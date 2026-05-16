@@ -1,6 +1,6 @@
 # Welcome to your Expo app 👋
 
-alô 1234 34543543
+alô 1234 34543543 
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
