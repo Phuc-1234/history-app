@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-// Sửa đường dẫn sang ./ chính xác theo cấu trúc folder của bạn
-import LoginForm from './features/auth/components/LoginForm';
+import { LoginForm } from '../features/auth';
 
-export default function Home() {
+export default function Login() {
   return (
     <View style={styles.container}>
       <LoginForm />
