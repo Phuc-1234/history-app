@@ -1,3 +1,6 @@
-<<<<<<< HEAD
-Xin chao 
+Xin chao
+
+Xin chao
 hello
+
+bonjour
