@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, TextInputProps } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 
-export default function Input({ icon: IconComponent, isPassword, ...props }) {
+interface InputProps extends TextInputProps {
+  icon?: React.ElementType;
+  isPassword?: boolean;
+}
+
+export default function Input({ icon: IconComponent, isPassword, ...props }: InputProps) {
   const [secureText, setSecureText] = useState(isPassword);
 
   return (
     <View style={styles.container}>
-      {/* Icon bên trái */}
       {IconComponent && (
         <View style={styles.iconLeft}>
           <IconComponent size={18} color="#A0AEC0" />
         </View>
       )}
 
-      {/* Ô nhập liệu */}
       <TextInput
         style={[styles.input, IconComponent && { paddingLeft: 44 }, isPassword && { paddingRight: 44 }]}
         placeholderTextColor="#A0AEC0"
@@ -23,7 +26,6 @@ export default function Input({ icon: IconComponent, isPassword, ...props }) {
         {...props}
       />
 
-      {/* Nút ẩn/hiện mật khẩu nếu là trường password */}
       {isPassword && (
         <TouchableOpacity
           onPress={() => setSecureText(!secureText)}

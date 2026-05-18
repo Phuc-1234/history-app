@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { User, Lock } from 'lucide-react-native';
-// Import thư viện tạo dải màu chuyển sắc
 import { LinearGradient } from 'expo-linear-gradient';
 
 import Input from '../../../components/Input';
@@ -12,13 +11,10 @@ import SocialLoginButtons from './SocialLoginButtons';
 export default function LoginForm() {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer} bounces={false}>
-      {/* 1. Phần Banner Chuyển Màu Tím - Xanh */}
       <LinearGradient
-        // Mã màu chuyển sắc nhẹ nhàng từ góc trên xuống góc dưới
         colors={['#4332eb', '#593df2', '#7b4fff']}
         style={styles.banner}
       >
-        {/* Logo Sách */}
         <View style={styles.logoContainer}>
           <Svg width="50" height="40" viewBox="0 0 24 24">
             <Path d="M12 21C12 21 7 18 2 20V5C7 3 12 6 12 6C12 6 17 3 22 5V20C17 18 12 21 12 21Z" fill="white" />
@@ -29,33 +25,26 @@ export default function LoginForm() {
         <Text style={styles.subText}>Đăng nhập để tiếp tục học tập</Text>
       </LinearGradient>
 
-      {/* 2. Phần Form Trắng bo cong lồi lên */}
       <View style={styles.formContainer}>
         <Text style={styles.title}>Đăng nhập</Text>
 
-        {/* Các ô Input */}
         <Input icon={User} placeholder="Email hoặc số điện thoại" />
         <Input icon={Lock} placeholder="Mật khẩu" isPassword />
 
-        {/* Quên mật khẩu */}
         <TouchableOpacity style={styles.forgotPassContainer} activeOpacity={0.6}>
           <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 
-        {/* Nút Đăng nhập chính */}
         <Button title="Đăng nhập" onPress={() => console.log('Login Pressed')} />
 
-        {/* Thanh phân cách HOẶC */}
         <View style={styles.dividerContainer}>
           <View style={styles.line} />
           <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP BẰNG</Text>
           <View style={styles.line} />
         </View>
 
-        {/* Nút Mạng Xã Hội */}
         <SocialLoginButtons />
 
-        {/* Footer Đăng ký ngay */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Chưa có tài khoản? </Text>
           <TouchableOpacity activeOpacity={0.6}>

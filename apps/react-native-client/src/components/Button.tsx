@@ -1,7 +1,13 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
-export default function Button({ title, onPress, variant = 'primary' }) {
+interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  variant?: 'primary' | 'outline';
+}
+
+export default function Button({ title, onPress, variant = 'primary' }: ButtonProps) {
   const isPrimary = variant === 'primary';
 
   return (
@@ -31,7 +37,6 @@ const styles = StyleSheet.create({
   },
   btnPrimary: {
     backgroundColor: '#5D45F9',
-    // Tạo shadow cho nút bấm chính
     shadowColor: '#5D45F9',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
