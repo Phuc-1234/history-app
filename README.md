@@ -1,2 +1,3 @@
+<<<<<<< HEAD
 Xin chao 
 hello
