@@ -1,0 +1,13 @@
+{
+  "name": "history-app-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "client": "npm start --workspace=react-native-client",
+    "server": "npm run dev --workspace=express-server"
+  }
+}
