@@ -9,5 +9,9 @@
   "scripts": {
     "client": "npm start --workspace=react-native-client",
     "server": "npm run dev --workspace=express-server"
+  },
+  "dependencies": {
+    "expo-router": "~55.0.14",
+    "lucide-react-native": "^1.16.0"
   }
 }
