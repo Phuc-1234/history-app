@@ -1,23 +1,35 @@
-import express from 'express';
+// index.ts
+import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from './config/db';
-import questionRoutes from './routes/QuestionRoutes';
+import authRoutes from './routes/authRoutes';
 
+// Load environment variables (.env)
 dotenv.config();
-const app = express();
+
+const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
-connectDB(); 
+// ==========================================
+// Middleware Pipeline
+// ==========================================
+app.use(cors()); // Allows your mobile client to connect cross-origin
+app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies onto req.body
 
-app.use(cors());
-app.use(express.json());
+// ==========================================
+// API Route Bindings
+// ==========================================
+// Mounts your authentication routes under the /api/auth prefix
+app.use('/api/auth', authRoutes);
 
-// Main Routes Link
-app.use('/api/questions', questionRoutes);
-
-app.listen(PORT, () => {
-  console.log(`Express server running on port http://localhost:${PORT}`);
+// Base Health Check Route (Great for beating Render's spin-down rate limits!)
+app.get('/api/healthcheck', (req: Request, res: Response) => {
+  res.status(200).send('OK');
 });
 
-
+// ==========================================
+// Server Boot Initialization
+// ==========================================
+app.listen(PORT, () => {
+  console.log(`🚀 History Duolingo Engine running on http://localhost:${PORT}`);
+});
