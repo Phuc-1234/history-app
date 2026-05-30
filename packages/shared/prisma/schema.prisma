@@ -270,12 +270,11 @@ model User {
   role             UserRole            @default(STUDENT)
   name             String
   email            String              @unique
-  passwordHash     String?             @map("password_hash")
-  refreshTokenHash String?             @map("refresh_token_hash")
+ 
   totalXp          Int                 @default(0) @map("total_xp")
   totalGold        Int                 @default(0) @map("total_gold")
   isHidden         Boolean             @default(false) @map("is_hidden")
-  isEmailVerified  Boolean             @default(false) @map("is_email_verified")
+ 
   profileImgUrl    String?             @map("profile_img_url")
   currentStreak    Int                 @default(0) @map("current_streak")
   highestStreak    Int                 @default(0) @map("highest_streak")
@@ -284,7 +283,7 @@ model User {
 
   // Relations
   tier             Tier                @relation(fields: [currentTierIndex], references: [index])
-  socialAccounts   UserSocialAccount[]
+  
   testLogs         UserTestLog[]
   userItems        UserItem[]
   pendingRewards   PendingReward[]
@@ -306,19 +305,7 @@ model Tier {
   @@map("tiers")
 }
 
-model UserSocialAccount {
-  id             String              @default(uuid()) @id
-  userId         String              @map("user_id")
-  providerName   String              @map("provider_name")
-  providerUserId String              @map("provider_user_id")
-  linkedAt       DateTime            @default(now()) @map("linked_at")
 
-  // Relations
-  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([providerName, providerUserId])
-  @@map("user_social_accounts")
-}
 
 
 model UserTestLog {

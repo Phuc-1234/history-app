@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
-import SocialLoginButtons from "./SocialLoginButtons";
+import SocialLoginButtons from "../components/SocialLoginButtons";
 
 export default function LoginForm() {
     return (
