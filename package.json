@@ -8,11 +8,20 @@
   ],
   "scripts": {
     "client": "npm start --workspace=react-native-client",
-    "server": "npm run dev --workspace=express-server"
+    "server": "npm run dev --workspace=express-server",
+    "postinstall": "npx prisma generate --schema=packages/shared/prisma/schema.prisma"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
     "expo-router": "~55.0.14",
     "lucide-react-native": "^1.16.0"
+  },
+  
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "expo-constants": "56.0.16",
+    "react-native-safe-area-context": "5.7.0",
+    "@expo/log-box": "56.0.12"
   }
 }
