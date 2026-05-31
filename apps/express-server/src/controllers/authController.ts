@@ -3,17 +3,34 @@ import { Request, Response } from "express";
 import { AuthService } from "../services/authService";
 import {
     RegisterRequestBody,
+    RegisterResponseBody,
     LoginRequestBody,
+    LoginResponseBody,
     VerifyOtpRequestBody,
+    VerifyOtpResponseBody,
+    RefreshTokenRequestBody,
+    RefreshTokenResponseBody,
+    SessionTokens,
+    UserProfileSummary,
 } from "@history-app/shared";
 import { prisma } from "@history-app/shared";
+import { Session } from "@supabase/supabase-js";
 
 const authService = new AuthService();
 
+/**
+ * Maps a raw Supabase Session into our slim, Supabase-agnostic SessionTokens contract.
+ */
+const mapSession = (session: Session): SessionTokens => ({
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
+    expiresAt: session.expires_at ?? 0,
+});
+
 export const registerUser = async (
-    req: Request<{}, {}, RegisterRequestBody>,
-    res: Response,
-): Promise<Response> => {
+    req: Request<{}, RegisterResponseBody, RegisterRequestBody>,
+    res: Response<RegisterResponseBody>,
+): Promise<Response<RegisterResponseBody>> => {
     try {
         const { name, email, password, confirmPassword } = req.body;
 
@@ -48,9 +65,9 @@ export const registerUser = async (
                 "Registration complete! Check your email for verification if enabled.",
             user: {
                 id: data.user.id,
-                email: data.user.email,
+                email: data.user.email!,
             },
-            session: data.session,
+            session: data.session ? mapSession(data.session) : null,
         });
     } catch (error) {
         console.error("Express Controller Register Error:", error);
@@ -61,9 +78,9 @@ export const registerUser = async (
 };
 
 export const loginUser = async (
-    req: Request<{}, {}, LoginRequestBody>,
-    res: Response,
-): Promise<Response> => {
+    req: Request<{}, LoginResponseBody, LoginRequestBody>,
+    res: Response<LoginResponseBody>,
+): Promise<Response<LoginResponseBody>> => {
     try {
         const { email, password } = req.body;
 
@@ -79,16 +96,29 @@ export const loginUser = async (
             password,
         });
 
-        if (error || !data.user) {
+        if (error || !data.user || !data.session) {
             return res.status(401).json({
                 error: error?.message || "Invalid email or password.",
             });
         }
 
-        // Fetch the target user profile. This profile row was created completely automatically
-        // by our PostgreSQL database trigger when signUpUser executed!
+        // Fetch the target user profile with tier info to match GET /user/profile shape
         const userProfile = await prisma.user.findUnique({
             where: { id: data.user.id },
+            select: {
+                id: true,
+                name: true,
+                totalXp: true,
+                totalGold: true,
+                profileImgUrl: true,
+                currentStreak: true,
+                tier: {
+                    select: {
+                        name: true,
+                        badgeImgUrl: true,
+                    },
+                },
+            },
         });
 
         if (!userProfile) {
@@ -97,10 +127,21 @@ export const loginUser = async (
             });
         }
 
+        const profile: UserProfileSummary = {
+            id: userProfile.id,
+            name: userProfile.name,
+            totalXp: userProfile.totalXp,
+            totalGold: userProfile.totalGold,
+            profileImgUrl: userProfile.profileImgUrl,
+            currentStreak: userProfile.currentStreak,
+            tierName: userProfile.tier.name,
+            badgeImgUrl: userProfile.tier.badgeImgUrl,
+        };
+
         return res.status(200).json({
             message: "Login verified successfully.",
-            session: data.session,
-            profile: userProfile,
+            session: mapSession(data.session),
+            profile,
         });
     } catch (error) {
         console.error("Express Controller Login Error:", error);
@@ -111,9 +152,9 @@ export const loginUser = async (
 };
 
 export const verifyOtp = async (
-    req: Request<{}, {}, VerifyOtpRequestBody>,
-    res: Response,
-): Promise<Response> => {
+    req: Request<{}, VerifyOtpResponseBody, VerifyOtpRequestBody>,
+    res: Response<VerifyOtpResponseBody>,
+): Promise<Response<VerifyOtpResponseBody>> => {
     try {
         const { email, token } = req.body;
 
@@ -130,16 +171,29 @@ export const verifyOtp = async (
             token,
         });
 
-        if (error || !data.user) {
+        if (error || !data.user || !data.session) {
             return res
                 .status(400)
                 .json({ error: error?.message || "Invalid or expired token." });
         }
 
-        // 3. Fetch the gamification engine details
-        // Because the trigger function fired, the database row is guaranteed to be ready now
+        // 3. Fetch the gamification engine details with tier info
         const userProfile = await prisma.user.findUnique({
             where: { id: data.user.id },
+            select: {
+                id: true,
+                name: true,
+                totalXp: true,
+                totalGold: true,
+                profileImgUrl: true,
+                currentStreak: true,
+                tier: {
+                    select: {
+                        name: true,
+                        badgeImgUrl: true,
+                    },
+                },
+            },
         });
 
         if (!userProfile) {
@@ -148,16 +202,71 @@ export const verifyOtp = async (
             });
         }
 
+        const profile: UserProfileSummary = {
+            id: userProfile.id,
+            name: userProfile.name,
+            totalXp: userProfile.totalXp,
+            totalGold: userProfile.totalGold,
+            profileImgUrl: userProfile.profileImgUrl,
+            currentStreak: userProfile.currentStreak,
+            tierName: userProfile.tier.name,
+            badgeImgUrl: userProfile.tier.badgeImgUrl,
+        };
+
         // 4. Return tokens and data right back to the React Native UI layout
         return res.status(200).json({
             message: "Email successfully verified!",
-            session: data.session, // The app stores this active token securely to stay logged in
-            profile: userProfile,
+            session: mapSession(data.session),
+            profile,
         });
     } catch (error) {
         console.error("Express Controller OTP Verification Error:", error);
         return res
             .status(500)
             .json({ error: "Internal server error during verification loop." });
+    }
+};
+
+export const refreshSessionToken = async (
+    // Generic Args: PathParams = {}, ResBody = RefreshTokenResponseBody, ReqBody = RefreshTokenRequestBody
+    req: Request<{}, RefreshTokenResponseBody, RefreshTokenRequestBody>,
+    res: Response<RefreshTokenResponseBody>, // 👈 Forces res.json() to adhere to the types
+): Promise<Response<RefreshTokenResponseBody>> => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            // ✅ Completely valid under { error: string } union block
+            return res
+                .status(400)
+                .json({ error: "Refresh token is a required parameter." });
+        }
+
+        const { data, error } =
+            await authService.refreshUserSession(refreshToken);
+
+        if (error || !data.session) {
+            // ✅ Completely valid under { error: string } union block
+            return res.status(401).json({
+                error:
+                    error?.message ||
+                    "Session rotation failed. Token may be completely expired or reuse-detected.",
+            });
+        }
+
+        const successResponse: RefreshTokenResponseBody = {
+            accessToken: data.session.access_token, // 100% guarded everywhere
+            refreshToken: data.session.refresh_token,
+        };
+
+        return res.status(200).json(successResponse);
+        
+    } catch (error) {
+        console.error("Express Controller Token Refresh Loop Crash:", error);
+        return res
+            .status(500)
+            .json({
+                error: "Internal server error during session rotation processing.",
+            });
     }
 };

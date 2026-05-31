@@ -6,7 +6,7 @@ import {
     LoginCredentials,
     VerifyOtpCredentials,
 } from "@history-app/shared";
-
+ 
 export class AuthService {
     /**
      * Registers a brand new user session with Supabase Auth
@@ -49,5 +49,12 @@ export class AuthService {
             token,
             type: "email", // Dictates we are validating a standard signup email token
         });
+    }
+
+    async refreshUserSession(refreshToken: string) {
+        const { data, error } = await supabase.auth.refreshSession({
+            refresh_token: refreshToken,
+        });
+        return { data, error };
     }
 }

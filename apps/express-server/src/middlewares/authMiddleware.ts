@@ -2,8 +2,11 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
-import { prisma } from "@history-app/shared";
-import { AuthenticatedUserPayload } from "@history-app/shared";
+import {
+    prisma,
+    AuthenticatedUserPayload,
+    ApiAuthErrorResponse,
+} from "@history-app/shared";
 
 // 1. Initialize the JWKS client using the URL configuration from your environment settings
 const client = jwksClient({
@@ -32,7 +35,7 @@ const getKey = (header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) => {
  */
 const extractUserProfileFromToken = async (
     req: Request,
-): Promise<AuthenticatedUserPayload | null> => {
+): Promise<AuthenticatedUserPayload | jwt.VerifyErrors | null> => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return null;
@@ -40,45 +43,48 @@ const extractUserProfileFromToken = async (
 
     const token = authHeader.split(" ")[1];
 
-    return new Promise((resolve) => {
-        jwt.verify(
-            token,
-            getKey,
-            { algorithms: ["RS256", "ES256"] },
-            async (err, decoded) => {
-                if (err || !decoded) {
-                    return resolve(null); // Invalid token structure
-                }
+    return new Promise<AuthenticatedUserPayload | jwt.VerifyErrors | null>(
+        (resolve) => {
+            jwt.verify(
+                token,
+                getKey,
+                { algorithms: ["RS256", "ES256"] },
+                async (err, decoded) => {
+                    if (err) {
+                        // Return the specific error type back out of the promise wrapper
+                        return resolve(err);
+                    }
 
-                const payload = decoded as jwt.JwtPayload;
+                    const payload = decoded as jwt.JwtPayload;
 
-                try {
-                    // Hydrate from your custom Prisma table structure using the token's 'sub' user UUID
-                    const userProfile = await prisma.user.findUnique({
-                        where: { id: payload.sub },
-                        select: {
-                            id: true,
-                            email: true,
-                            name: true,
-                            role: true,
-                            totalGold: true,
-                            totalXp: true,
-                        },
-                    });
+                    try {
+                        // Hydrate from your custom Prisma table structure using the token's 'sub' user UUID
+                        const userProfile = await prisma.user.findUnique({
+                            where: { id: payload.sub },
+                            select: {
+                                id: true,
+                                email: true,
+                                name: true,
+                                role: true,
+                                totalGold: true,
+                                totalXp: true,
+                            },
+                        });
 
-                    if (!userProfile) return resolve(null);
+                        if (!userProfile) return resolve(null);
 
-                    return resolve(userProfile as AuthenticatedUserPayload);
-                } catch (dbError) {
-                    console.error(
-                        "Database lookup error during token hydration:",
-                        dbError,
-                    );
-                    return resolve(null);
-                }
-            },
-        );
-    });
+                        return resolve(userProfile as AuthenticatedUserPayload);
+                    } catch (dbError) {
+                        console.error(
+                            "Database lookup error during token hydration:",
+                            dbError,
+                        );
+                        return resolve(null);
+                    }
+                },
+            );
+        },
+    );
 };
 
 /**
@@ -87,26 +93,42 @@ const extractUserProfileFromToken = async (
  */
 export const requireStudent = async (
     req: Request,
-    res: Response,
+    res: Response<ApiAuthErrorResponse>, // 👈 Remove the loose '| { error: string }'
     next: NextFunction,
 ) => {
-    req.user = await extractUserProfileFromToken(req);
+    const lookupResult = await extractUserProfileFromToken(req);
 
-    if (!req.user) {
-        return res
-            .status(401)
-            .json({ error: "Access denied. Valid login session required." });
+    if (lookupResult instanceof Error) {
+        const isExpired = lookupResult.name === "TokenExpiredError";
+
+        return res.status(401).json({
+            error: isExpired
+                ? "Access token session has expired."
+                : "Access token signature is completely invalid.",
+            code: isExpired ? "TOKEN_EXPIRED" : "TOKEN_INVALID", // ✅ Fixed: code added
+        });
     }
 
+    if (!lookupResult) {
+        return res.status(401).json({
+            error: "Access denied. Valid session missing.",
+            code: "TOKEN_MISSING", // ✅ Now strictly validated
+        });
+    }
+
+    req.user = lookupResult;
+
+    // For a 403 Forbidden, you might want a generic fallback type,
+    // or to update Response to handle authorization errors too.
     if (req.user.role !== "STUDENT") {
-        return res
-            .status(403)
-            .json({ error: "Access forbidden. Student status required." });
+        return res.status(403).json({
+            error: "Access forbidden. Student status required.",
+            code: "TOKEN_INVALID",
+        });
     }
 
     return next();
 };
-
 /**
  * MIDDLEWARE 2: Optional / Guest Interceptor
  * Always allows the request through. If a token is provided, it extracts user details
@@ -117,7 +139,8 @@ export const optionalAuth = async (
     res: Response,
     next: NextFunction,
 ) => {
-    req.user = await extractUserProfileFromToken(req);
+    const lookupResult = await extractUserProfileFromToken(req);
+    req.user = lookupResult instanceof Error ? null : lookupResult;
 
     // Always let the request pass down to the controller loop!
     return next();

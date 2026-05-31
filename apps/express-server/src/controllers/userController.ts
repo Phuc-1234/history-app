@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import { prisma } from "@history-app/shared";
+import { UserProfileResponseBody } from "@history-app/shared";
 
 export const getUserProfile = async (
-    req: Request,
-    res: Response,
-): Promise<Response> => {
+    req: Request<{}, UserProfileResponseBody, {}>, // 👈 PathParams = {}, ReqBody = {}
+    res: Response<UserProfileResponseBody>,
+): Promise<Response<UserProfileResponseBody>> => {
     try {
         // 1. GUEST CHECK: If middleware didn't find a user, return a peaceful guest state
         if (!req.user) {
@@ -13,7 +14,7 @@ export const getUserProfile = async (
                 name: "Anonymous Historian",
                 totalGold: 0,
                 totalXp: 0,
-                tierName: "Bronze Historian", // Default starting tier name
+                tierName: null, 
                 badgeImgUrl: null, // Default fallback asset link
                 profileImgUrl: null,
             });
@@ -45,6 +46,9 @@ export const getUserProfile = async (
                 name: "Anonymous Historian",
                 totalGold: 0,
                 totalXp: 0,
+                tierName: "",
+                badgeImgUrl: null,
+                profileImgUrl: null,
             });
         }
 
@@ -67,3 +71,4 @@ export const getUserProfile = async (
         });
     }
 };
+
