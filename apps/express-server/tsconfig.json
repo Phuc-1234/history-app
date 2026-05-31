@@ -1,15 +1,16 @@
 {
+  "_comment": "FIX: Keeps rootDir strictly mapped to ./src. Do NOT include external shared paths (like packages/shared) in the 'include' array. This prevents the 'is not under rootDir' compilation error by forcing TypeScript to treat our shared workspace package as an external type dependency rather than attempting to clone its out-of-bounds folder structure into the local /dist output directory.",
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["./**/*.ts", "../../packages/shared/src/types/auth.ts", "src/types/express.d.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules"]
 }
