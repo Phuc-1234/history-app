@@ -1,7 +1,11 @@
 // services/authService.ts
 import { supabase } from "../config/supabaseClient";
 import { AuthResponse } from "@supabase/supabase-js";
-import { RegisterCredentials, LoginCredentials, VerifyOtpCredentials } from "../types/auth";
+import {
+    RegisterCredentials,
+    LoginCredentials,
+    VerifyOtpCredentials,
+} from "@history-app/shared";
 
 export class AuthService {
     /**

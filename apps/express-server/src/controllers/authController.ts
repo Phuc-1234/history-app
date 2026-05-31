@@ -5,7 +5,7 @@ import {
     RegisterRequestBody,
     LoginRequestBody,
     VerifyOtpRequestBody,
-} from "../types/auth";
+} from "@history-app/shared";
 import { prisma } from "@history-app/shared";
 
 const authService = new AuthService();
@@ -124,7 +124,6 @@ export const verifyOtp = async (
                 .json({ error: "Email and verification token are required." });
         }
 
-
         // 2. Process token validation through our Service Layer
         const { data, error } = await authService.verifyOtpToken({
             email,
@@ -144,11 +143,9 @@ export const verifyOtp = async (
         });
 
         if (!userProfile) {
-            return res
-                .status(404)
-                .json({
-                    error: "Game account profile synchronization failed.",
-                });
+            return res.status(404).json({
+                error: "Game account profile synchronization failed.",
+            });
         }
 
         // 4. Return tokens and data right back to the React Native UI layout

@@ -3,6 +3,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
+import userRoutes from './routes/userRoutes';
 
 // Load environment variables (.env)
 dotenv.config();
@@ -21,6 +22,7 @@ app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies on
 // ==========================================
 // Mounts your authentication routes under the /api/auth prefix
 app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get('/api/healthcheck', (req: Request, res: Response) => {

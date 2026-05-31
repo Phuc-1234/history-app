@@ -1,4 +1,5 @@
 // types/auth.ts
+import { UserRole } from '@prisma/client';
 
 export interface RegisterRequestBody {
     name?: string;
@@ -31,4 +32,13 @@ export interface VerifyOtpRequestBody {
 export interface VerifyOtpCredentials {
   email: string;
   token: string;
+}
+
+export interface AuthenticatedUserPayload {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole; // Enforces 'STUDENT' | 'ADMIN' perfectly
+  totalGold: number;
+  totalXp: number;
 }
