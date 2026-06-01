@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     View,
     Text,
@@ -15,8 +15,8 @@ import Button from "../../../components/Button";
 import SocialLoginButtons from "../components/SocialLoginButtons";
 import useAuthForm from "../hooks/useAuthForm";
 
-export default function LoginForm() {
-    const { navigateToRegister, submitAndEnterApp } = useAuthForm();
+export default function RegisterForm() {
+    const { navigateToLogin, submitAndEnterApp } = useAuthForm();
 
     return (
         <ScrollView
@@ -36,62 +36,51 @@ export default function LoginForm() {
                     </Svg>
                     <Text style={styles.star}>★</Text>
                 </View>
-                <Text style={styles.welcomeText}>Chào mừng trở lại!</Text>
-                <Text style={styles.subText}>
-                    Đăng nhập để tiếp tục học tập
-                </Text>
+                <Text style={styles.welcomeText}>Chào mừng!</Text>
+                <Text style={styles.subText}>Tạo tài khoản để bắt đầu học</Text>
             </LinearGradient>
 
             <View style={styles.formContainer}>
-                <Text style={styles.title}>Đăng nhập</Text>
+                <Text style={styles.title}>Đăng ký</Text>
 
+                <Input icon={User} placeholder="Tên" />
                 <Input icon={User} placeholder="Email hoặc số điện thoại" />
                 <Input icon={Lock} placeholder="Mật khẩu" isPassword />
+                <Input icon={Lock} placeholder="Xác nhận mật khẩu" isPassword />
 
-                <TouchableOpacity
-                    style={styles.forgotPassContainer}
-                    activeOpacity={0.6}
-                >
-                    <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
-                </TouchableOpacity>
-
-                <Button title="Đăng nhập" onPress={submitAndEnterApp} />
+                <Button title="Đăng ký" onPress={submitAndEnterApp} />
 
                 <View style={styles.dividerContainer}>
                     <View style={styles.line} />
-                    <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP BẰNG</Text>
+                    <Text style={styles.dividerText}>HOẶC ĐĂNG KÝ BẰNG</Text>
                     <View style={styles.line} />
                 </View>
 
                 <SocialLoginButtons />
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-                    <TouchableOpacity activeOpacity={0.6} onPress={navigateToRegister}>
-                        <Text style={styles.registerText}>Đăng ký ngay</Text>
+                    <Text style={styles.footerText}>Đã có tài khoản? </Text>
+                    <TouchableOpacity
+                        activeOpacity={0.6}
+                        onPress={navigateToLogin}
+                    >
+                        <Text style={styles.registerText}>Đăng nhập</Text>
                     </TouchableOpacity>
                 </View>
             </View>
         </ScrollView>
-        
     );
 }
 
 const styles = StyleSheet.create({
-    scrollContainer: {
-        flexGrow: 1,
-        backgroundColor: "#FFFFFF",
-    },
+    scrollContainer: { flexGrow: 1, backgroundColor: "#FFFFFF" },
     banner: {
         paddingTop: 65,
         paddingBottom: 55,
         alignItems: "center",
         justifyContent: "center",
     },
-    logoContainer: {
-        position: "relative",
-        marginBottom: 12,
-    },
+    logoContainer: { position: "relative", marginBottom: 12 },
     star: {
         position: "absolute",
         top: -10,
@@ -126,25 +115,12 @@ const styles = StyleSheet.create({
         color: "#1A202C",
         marginBottom: 16,
     },
-    forgotPassContainer: {
-        alignSelf: "flex-end",
-        marginVertical: 8,
-    },
-    forgotPassText: {
-        color: "#4B3BF6",
-        fontSize: 12,
-        fontWeight: "600",
-    },
     dividerContainer: {
         flexDirection: "row",
         alignItems: "center",
         marginVertical: 20,
     },
-    line: {
-        flex: 1,
-        height: 1,
-        backgroundColor: "#E2E8F0",
-    },
+    line: { flex: 1, height: 1, backgroundColor: "#E2E8F0" },
     dividerText: {
         fontSize: 10,
         fontWeight: "700",
@@ -159,14 +135,6 @@ const styles = StyleSheet.create({
         marginTop: 30,
         marginBottom: 20,
     },
-    footerText: {
-        fontSize: 13,
-        color: "#718096",
-        fontWeight: "400",
-    },
-    registerText: {
-        fontSize: 13,
-        fontWeight: "700",
-        color: "#4B3BF6",
-    },
+    footerText: { fontSize: 13, color: "#718096", fontWeight: "400" },
+    registerText: { fontSize: 13, fontWeight: "700", color: "#4B3BF6" },
 });

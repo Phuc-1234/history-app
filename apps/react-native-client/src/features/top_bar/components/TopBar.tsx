@@ -18,9 +18,10 @@ interface TopBarProps {
         subtitle?: string; // e.g., "Thẻ lật"
         onBackPress?: () => void;
     };
+    onOpenStreak?: () => void;
 }
 
-export function TopBar({ data, branchConfig }: TopBarProps) {
+export function TopBar({ data, branchConfig, onOpenStreak }: TopBarProps) {
     if (!data) return null;
 
     return (
@@ -60,12 +61,18 @@ export function TopBar({ data, branchConfig }: TopBarProps) {
                     </View>
 
                     {/* Streak Chip */}
-                    <View style={styles.chip}>
+                    <TouchableOpacity
+                        style={styles.chip}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                            if (onOpenStreak) onOpenStreak();
+                        }}
+                    >
                         <Ionicons name="flame" size={16} color="#FF9500" />
                         <Text style={styles.chipText}>
                             {data.currentStreak}
                         </Text>
-                    </View>
+                    </TouchableOpacity>
                 </View>
             </View>
 
