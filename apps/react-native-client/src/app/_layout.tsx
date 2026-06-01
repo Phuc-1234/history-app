@@ -1,14 +1,40 @@
-import { Tabs } from "expo-router";
+import { useEffect } from 'react';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { ActivityIndicator, View } from 'react-native';
+import { store, persistor } from '../store/store';
 
-export default function TabLayout() {
+// Prevent the native splash screen from auto-hiding until assets/auth are loaded
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  useEffect(() => {
+    // Hide the native launch screen once everything mounts up fully
+    SplashScreen.hideAsync();
+  }, []);
+
   return (
-    <Tabs>
-      {/* Các tab khác giữ nguyên... */}
-      
-      {/* Thêm tab này vào đúng vị trí bạn muốn xuất hiện */}
-      <Tabs.Screen
-  name="9_1_leaderboard"
-  />
-    </Tabs>
+    // 1. Give the entire app tree access to the Redux Store
+    <Provider store={store}>
+      {/* 2. Delay rendering UI until local storage token/states are rehydrated */}
+      <PersistGate loading={<LoadingFallback />} persistor={persistor}>
+        {/* 3. Expo Router Native Navigation Container */}
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
+      </PersistGate>
+    </Provider>
+  );
+}
+
+// Simple fallback spinner layout while Redux Persist reads data from disk
+function LoadingFallback() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <ActivityIndicator size="large" color="#0000ff" />
+    </View>
   );
 }

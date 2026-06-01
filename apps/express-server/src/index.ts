@@ -18,7 +18,10 @@ const PORT = process.env.PORT || 5000;
 // ==========================================
 // Middleware Pipeline
 // ==========================================
-app.use(cors()); // Allows your mobile client to connect cross-origin
+// Allow your frontend origins to talk to the backend
+app.use(cors({
+  origin: '*', // For development, this allows web browsers and mobile apps to pass through freely
+}));
 app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies onto req.body
 
 // ==========================================
