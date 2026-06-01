@@ -1,5 +1,5 @@
-import { Redirect } from "expo-router";
+import { RewardPopupScreen } from "@/features/reward-popup";
 
 export default function Index() {
-    return <Redirect href="/login" />;
+    return <RewardPopupScreen />;
 }
