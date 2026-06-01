@@ -22,5 +22,4 @@ export const prisma = new PrismaClient({ adapter });
 
 export * from "./types/auth";
 export * from "./types/user";
-
- 
+export * from "./types/content";
