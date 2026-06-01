@@ -1,5 +1,7 @@
 // types/auth.ts
-import { UserRole } from "@prisma/client";
+// Use a lightweight local `UserRole` union to avoid brittle imports from the generated Prisma client
+// during typechecking across package boundaries.
+export type UserRole = "STUDENT" | "ADMIN";
 
 export interface RegisterRequestBody {
     name?: string;
@@ -43,28 +45,28 @@ export interface AuthenticatedUserPayload {
     totalXp: number;
 }
 // The machine-readable error format for your frontend interceptors
-export type AuthErrorCode = 'TOKEN_EXPIRED' | 'TOKEN_INVALID' | 'TOKEN_MISSING';
+export type AuthErrorCode = "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_MISSING";
 
 export interface ApiAuthErrorResponse {
-  error: string;
-  code: AuthErrorCode;
+    error: string;
+    code: AuthErrorCode;
 }
 
 // Request structure sent by React Native
 export interface RefreshTokenRequestBody {
-  refreshToken: string;
+    refreshToken: string;
 }
 
 // Response structure returned by your backend pass-through
 export interface RefreshTokenResponse {
-  accessToken: string;
-  refreshToken: string;
+    accessToken: string;
+    refreshToken: string;
 }
 
-export type RefreshTokenResponseBody = 
-  | RefreshTokenResponse 
-  | ApiAuthErrorResponse 
-  | { error: string }; // Fallback generic error structure
+export type RefreshTokenResponseBody =
+    | RefreshTokenResponse
+    | ApiAuthErrorResponse
+    | { error: string }; // Fallback generic error structure
 
 // Slim, Supabase-agnostic session token shape for the client to store
 export interface SessionTokens {
@@ -80,9 +82,7 @@ export interface RegisterSuccessResponse {
     session: SessionTokens | null;
 }
 
-export type RegisterResponseBody =
-    | RegisterSuccessResponse
-    | { error: string };
+export type RegisterResponseBody = RegisterSuccessResponse | { error: string };
 
 // Shared profile shape returned by login, verify-otp, and GET /user/profile
 // Matches the "student" branch of GET /user/profile (with tier info)
@@ -104,9 +104,7 @@ export interface LoginSuccessResponse {
     profile: UserProfileSummary;
 }
 
-export type LoginResponseBody =
-    | LoginSuccessResponse
-    | { error: string };
+export type LoginResponseBody = LoginSuccessResponse | { error: string };
 
 // --- POST /auth/verify-otp ---
 export interface VerifyOtpSuccessResponse {

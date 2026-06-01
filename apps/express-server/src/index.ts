@@ -6,6 +6,8 @@ import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import contentRoutes from "./routes/contentRoutes";
 import gamificationRoutes from "./routes/gamificationRoutes";
+import testsRoutes from "./routes/testsRoutes";
+import testLogsRoutes from "./routes/testLogsRoutes";
 
 // Load environment variables (.env)
 dotenv.config();
@@ -27,6 +29,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/content", contentRoutes);
 app.use("/api/gamification", gamificationRoutes);
+app.use("/api/tests", testsRoutes);
+app.use("/api/test-logs", testLogsRoutes);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {

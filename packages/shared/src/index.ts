@@ -10,7 +10,7 @@ const connectionString = process.env["DATABASE_URL"];
 
 if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is missing.");
-    throw new Error("DATABASE_URL environment variable is missing.");
+    
 }
 
 // 2. Set up the pg Pool
@@ -29,3 +29,4 @@ export * from "./types/auth";
 export * from "./types/user";
 export * from "./types/content";
 export * from "./types/gamification";
+export * from "./types/tests";
