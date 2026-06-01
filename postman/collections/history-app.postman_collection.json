@@ -1,0 +1,647 @@
+{
+  "info": {
+    "_postman_id": "cebd311b-177d-4bc9-8547-8f1d7051c704",
+    "name": "history-app",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "register",
+          "id": "5acf2bd3-9f38-42d8-a222-61a598257104",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Phuc\",\r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"password\": \"5anhemtren\",\r\n    \"confirmPassword\": \"5anhemtren\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/register",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "98412896-ba54-4947-87d0-7b9968904d2e",
+                "exec": [
+                  "// 1. Parse the incoming response JSON payload\r",
+                  "const responseData = pm.response.json();\r",
+                  "\r",
+                  "// 2. Extract the access token (adjust the path based on your exact response structure)\r",
+                  "const token = responseData.accessToken || responseData.session?.accessToken;\r",
+                  "const ref_token = responseData.refreshToken || responseData.session?.refreshToken;\r",
+                  "if (token && ref_token) {\r",
+                  "    // 3. Save it automatically into your current active environment vault\r",
+                  "    pm.environment.set(\"accessToken\", token);\r",
+                  "    pm.environment.set(\"refreshToken\", ref_token); // Save refresh token as well if needed\r",
+                  "    console.log(\"Token successfully captured and saved to environment!\");\r",
+                  "} else {\r",
+                  "    console.warn(\"Could not find access_token in the response payload.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "87db11b8-aeec-4432-b9b7-61a43250c00a",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Phuc\",\r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"password\": \"5anhemtren\",\r\n    \"confirmPassword\": \"5anhemtren\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/login",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "verufy",
+          "id": "e9921bbe-e590-46d2-8df3-4cb08e519e8c",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n   \r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"token\": \"76995889\" \r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/verify-otp",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-otp"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "refresah",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "496ed3c6-bfa9-4794-baff-3d80d50fb33d",
+                "exec": [
+                  "// 1. Parse the incoming response JSON payload\r",
+                  "const responseData = pm.response.json();\r",
+                  "\r",
+                  "// 2. Extract the access token (adjust the path based on your exact response structure)\r",
+                  "const token = responseData.accessToken || responseData.session?.accessToken;\r",
+                  "const ref_token = responseData.refreshToken || responseData.session?.refreshToken;\r",
+                  "if (token && ref_token) {\r",
+                  "    // 3. Save it automatically into your current active environment vault\r",
+                  "    pm.environment.set(\"accessToken\", token);\r",
+                  "    pm.environment.set(\"refreshToken\", ref_token); // Save refresh token as well if needed\r",
+                  "    console.log(\"Token successfully captured and saved to environment!\");\r",
+                  "} else {\r",
+                  "    console.warn(\"Could not find access_token in the response payload.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "49511f79-5c6e-492f-8b62-5f07a489effd",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n   \r\n    \"refreshToken\": \"{{refreshToken}}\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/refresh-token",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "8033d6d8-5b20-4e93-ad35-b0cc361edbad"
+    },
+    {
+      "name": "user",
+      "item": [
+        {
+          "name": "get profile",
+          "id": "9be5ab1c-b328-4eb7-a659-e22564578448",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n   \r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"token\": \"76995889\" \r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/user/profile",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "41de0fd9-e509-46e1-ac70-225f01f84a86"
+    },
+    {
+      "name": "content",
+      "item": [
+        {
+          "name": "grades",
+          "id": "75963332-b4fa-4168-ad3f-22de97cdd67c",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n   \r\n    \"refreshToken\": \"{{refreshToken}}\"\r\n\r\n}"
+            },
+            "url": {
+              "raw": "{{base-url}}/api/content/grades",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "grades"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "topics",
+          "id": "f364358c-1126-4725-aef9-a018987c78ff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/content/grades/10/topics",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "grades",
+                "10",
+                "topics"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "lesons",
+          "id": "b142f521-b6fa-4836-af6c-4c6bf4a47cde",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/content/topics/3/lessons",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "topics",
+                "3",
+                "lessons"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "sections",
+          "id": "4bda105d-ff74-4f1a-8594-84c98677b3d3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/content/lessons/1/sections",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "lessons",
+                "1",
+                "sections"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "tree",
+          "id": "ddb59932-2ab6-4202-b8eb-e0f37f00c803",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/content/lessons/1/tree",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "lessons",
+                "1",
+                "tree"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "cf37593e-8491-4510-83b3-1bf4cb71773a"
+    },
+    {
+      "name": "game",
+      "item": [
+        {
+          "name": "all tier",
+          "id": "ce92f8cd-97bb-4120-bc54-915c2d0b7df0",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/gamification/tiers",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "gamification",
+                "tiers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reward per tier",
+          "id": "f2cdc56b-4205-4702-be9b-be10fbef3b4a",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/gamification/tiers/:tierIndex/milestone-rewards",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "gamification",
+                "tiers",
+                ":tierIndex",
+                "milestone-rewards"
+              ],
+              "variable": [
+                {
+                  "key": "tierIndex",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "pending reward per tier",
+          "id": "28e53ea9-9490-4255-936e-c82b755f5d84",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/gamification/tiers/:tierIndex/pending-rewards",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "gamification",
+                "tiers",
+                ":tierIndex",
+                "pending-rewards"
+              ],
+              "variable": [
+                {
+                  "key": "tierIndex",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "invent",
+          "id": "5f6801b2-d3c1-41cd-b07c-14cd220454a8",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/gamification/items/me",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "gamification",
+                "items",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "leaderboard xp",
+          "id": "65ea8044-edbf-4aa2-ab72-4f86f23838c2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/gamification/leaderboard?limit=20&page=1",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "gamification",
+                "leaderboard"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "store",
+          "id": "e23f48ed-dddf-41a1-aeca-15e13eeabdab",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/gamification/items",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "gamification",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "4fb20f90-0860-4d27-8be5-27d3f3a401c1"
+    },
+    {
+      "name": "test",
+      "item": [
+        {
+          "name": "start test",
+          "id": "25f55def-d1af-4504-9e13-d3975cf19b2d",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/tests/:testId/start",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "tests",
+                ":testId",
+                "start"
+              ],
+              "variable": [
+                {
+                  "key": "testId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "jump",
+          "id": "960d3f94-d75a-4e42-ac74-e7c603f5725f",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/test-logs/:logId/jump",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "test-logs",
+                ":logId",
+                "jump"
+              ],
+              "variable": [
+                {
+                  "key": "logId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "submit",
+          "id": "0148c630-a914-4101-95aa-521b95d494f2",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/test-logs/:logId/submit-answer",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "test-logs",
+                ":logId",
+                "submit-answer"
+              ],
+              "variable": [
+                {
+                  "key": "logId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "finish",
+          "id": "0a0d57e2-d807-4e2a-ab22-2a09801876a2",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/test-logs/:logId/finish",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "test-logs",
+                ":logId",
+                "finish"
+              ],
+              "variable": [
+                {
+                  "key": "logId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "a32619a0-5959-41f7-bf56-b7965a566afc"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "id": "cfb5f947-c8df-454c-ae17-5c94a1ee785f",
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "id": "f78193a2-3d5f-4861-b53d-30fee55898b0",
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

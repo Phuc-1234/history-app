@@ -1,6 +1,11 @@
 import * as React from "react";
-import RankingScreen from "../../features/leaderboard/fe-leaderboard";
+import { RankingView } from "../../features/leaderboard";
+import { TopBarWrapper } from "@/features/top_bar";
 
 export default function LeaderboardScreen() {
-  return <RankingScreen />;
+    return (
+        <TopBarWrapper>
+            <RankingView></RankingView>
+        </TopBarWrapper>
+    );
 }

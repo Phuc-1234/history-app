@@ -5,7 +5,8 @@
     "scripts": {
         "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
         "build": "tsc",
-        "start": "ts-node ./src/index.ts"
+        "start": "ts-node ./src/index.ts",
+        "seed": "ts-node ./src/scripts/seeds.ts"
     },
     "dependencies": {
         "@history-app/shared": "*",
