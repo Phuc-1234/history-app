@@ -357,6 +357,7 @@ enum ItemType {
 model Item {
   id                Int               @id @default(autoincrement())
   cost              Int?               @default(0)
+  name              String            
   isConsumable      Boolean           @map("is_consumable")
   isPurchaseable    Boolean           @map("is_purchaseable")
   imgUrl            String?           @map("img_url")
@@ -394,6 +395,12 @@ enum RewardSourceType {
   TIER
 }
 
+enum RewardType {
+  ITEM
+  XP
+  GOLD
+}
+
 model PendingReward {
   id           Int      @id @default(autoincrement())
   goldAmount   Int      @default(0) @map("gold_amount")
@@ -404,7 +411,7 @@ model PendingReward {
   isClaimed    Boolean  @default(false) @map("is_claimed")
   userId       String      @map("user_id")
   itemId       Int?     @map("item_id")
-
+  rewardType   RewardType  @map("reward_type")
   // Relations
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   item         Item?    @relation(fields: [itemId], references: [id], onDelete: SetNull)
@@ -418,9 +425,10 @@ model MilestoneReward {
   xpAmount       Int   @default(0) @map("xp_amount")
   itemQuantity   Int   @default(1) @map("item_quantity")
   sourceType     RewardSourceType   @map("source_type")
+  name           String
   sourceValue    Int   @map("source_value")
   itemId         Int?  @map("item_id")
-
+  rewardType     RewardType  @map("reward_type")
   // Relations
   item           Item? @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
