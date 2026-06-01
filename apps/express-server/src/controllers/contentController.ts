@@ -7,6 +7,8 @@ import {
     GetLessonsResponse,
     GetSectionsResponse,
     GetLessonTreeResponse,
+    GetMindMapResponse,
+    MindMapRequestQuery,
 } from "@history-app/shared";
 
 export const getAllGrades = async (
@@ -89,3 +91,42 @@ export const getLessonTree = async (
         return res.status(500).json({ error: "Failed to fetch lesson tree." });
     }
 };
+
+export const getMindMap = async (
+    req: Request<{}, GetMindMapResponse, {}, MindMapRequestQuery>,
+    res: Response<GetMindMapResponse>,
+) => {
+    try {
+        const gradeId = req.query.gradeId ? Number(req.query.gradeId) : undefined;
+        const topicId = req.query.topicId ? Number(req.query.topicId) : undefined;
+        const lessonId = req.query.lessonId ? Number(req.query.lessonId) : undefined;
+
+        if (
+            (gradeId === undefined && topicId === undefined && lessonId === undefined) ||
+            (gradeId !== undefined && Number.isNaN(gradeId)) ||
+            (topicId !== undefined && Number.isNaN(topicId)) ||
+            (lessonId !== undefined && Number.isNaN(lessonId))
+        ) {
+            return res.status(400).json({
+                error: "Invalid or missing query parameter. Provide exactly one of gradeId, topicId, or lessonId as a number.",
+            });
+        }
+
+        const providedCount = [gradeId, topicId, lessonId].filter((x) => x !== undefined).length;
+        if (providedCount > 1) {
+            return res.status(400).json({
+                error: "Provide exactly one of gradeId, topicId, or lessonId, not multiple.",
+            });
+        }
+
+        const tree = await contentService.getMindMap({ gradeId, topicId, lessonId });
+        return res.status(200).json({ tree });
+    } catch (err: any) {
+        console.error("Fetch mind map error:", err);
+        if (err.message && (err.message.includes("not found") || err.message.includes("NotFound"))) {
+            return res.status(404).json({ error: err.message });
+        }
+        return res.status(500).json({ error: "Failed to fetch mind map." });
+    }
+};
+

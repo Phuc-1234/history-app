@@ -6,6 +6,7 @@ import {
     LessonDto,
     TopicDto,
     GradeDto,
+    MindMapNode,
 } from "@history-app/shared";
 
 export class ContentService {
@@ -175,6 +176,220 @@ export class ContentService {
         }
 
         return roots;
+    }
+
+    async getMindMap(params: {
+        gradeId?: number;
+        topicId?: number;
+        lessonId?: number;
+    }): Promise<MindMapNode> {
+        const { gradeId, topicId, lessonId } = params;
+
+        let topics: any[] = [];
+        let lessons: any[] = [];
+        let sections: any[] = [];
+        let nodes: any[] = [];
+        let rootNode: MindMapNode;
+
+        if (gradeId !== undefined) {
+            const grade = await prisma.grade.findUnique({ where: { id: gradeId } });
+            if (!grade) throw new Error("Grade not found");
+
+            topics = await prisma.topic.findMany({
+                where: { gradeId },
+                orderBy: { position: "asc" },
+            });
+            const topicIds = topics.map((t) => t.id);
+
+            lessons = await prisma.lesson.findMany({
+                where: { topicId: { in: topicIds } },
+                orderBy: { position: "asc" },
+            });
+            const lessonIds = lessons.map((l) => l.id);
+
+            sections = await prisma.section.findMany({
+                where: { lessonId: { in: lessonIds } },
+                orderBy: { position: "asc" },
+            });
+            const sectionIds = sections.map((s) => s.id);
+
+            nodes = await prisma.node.findMany({
+                where: { sectionId: { in: sectionIds } },
+                orderBy: { position: "asc" },
+            });
+
+            rootNode = {
+                id: grade.id,
+                type: "grade",
+                name: `Grade ${grade.id}`,
+                children: [],
+            };
+        } else if (topicId !== undefined) {
+            const topic = await prisma.topic.findUnique({ where: { id: topicId } });
+            if (!topic) throw new Error("Topic not found");
+
+            topics = [topic];
+
+            lessons = await prisma.lesson.findMany({
+                where: { topicId },
+                orderBy: { position: "asc" },
+            });
+            const lessonIds = lessons.map((l) => l.id);
+
+            sections = await prisma.section.findMany({
+                where: { lessonId: { in: lessonIds } },
+                orderBy: { position: "asc" },
+            });
+            const sectionIds = sections.map((s) => s.id);
+
+            nodes = await prisma.node.findMany({
+                where: { sectionId: { in: sectionIds } },
+                orderBy: { position: "asc" },
+            });
+
+            rootNode = {
+                id: topic.id,
+                type: "topic",
+                name: topic.name,
+                children: [],
+            };
+        } else if (lessonId !== undefined) {
+            const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+            if (!lesson) throw new Error("Lesson not found");
+
+            lessons = [lesson];
+
+            sections = await prisma.section.findMany({
+                where: { lessonId },
+                orderBy: { position: "asc" },
+            });
+            const sectionIds = sections.map((s) => s.id);
+
+            nodes = await prisma.node.findMany({
+                where: { sectionId: { in: sectionIds } },
+                orderBy: { position: "asc" },
+            });
+
+            rootNode = {
+                id: lesson.id,
+                type: "lesson",
+                name: lesson.name,
+                children: [],
+            };
+        } else {
+            throw new Error("Invalid parameters");
+        }
+
+        // Maps
+        const nodeMap = new Map<number, MindMapNode>();
+        const sectionMap = new Map<number, MindMapNode>();
+        const lessonMap = new Map<number, MindMapNode>();
+        const topicMap = new Map<number, MindMapNode>();
+
+        // 1. Nodes
+        for (const n of nodes) {
+            nodeMap.set(n.id, {
+                id: n.id,
+                type: "node",
+                header: n.header,
+                body: n.body,
+            });
+        }
+
+        // 2. Sections
+        for (const s of sections) {
+            sectionMap.set(s.id, {
+                id: s.id,
+                type: "section",
+                name: s.name,
+                children: [],
+            });
+        }
+
+        // 3. Lessons
+        for (const l of lessons) {
+            lessonMap.set(l.id, {
+                id: l.id,
+                type: "lesson",
+                name: l.name,
+                children: [],
+            });
+        }
+
+        // 4. Topics
+        for (const t of topics) {
+            topicMap.set(t.id, {
+                id: t.id,
+                type: "topic",
+                name: t.name,
+                children: [],
+            });
+        }
+
+        // Link them up:
+        // A. Nodes to Sections
+        for (const n of nodes) {
+            const nodeObj = nodeMap.get(n.id);
+            const parentSecObj = sectionMap.get(n.sectionId);
+            if (nodeObj && parentSecObj) {
+                parentSecObj.children!.push(nodeObj);
+            }
+        }
+
+        // B. Sections to parent Sections or Lessons
+        for (const s of sections) {
+            const secObj = sectionMap.get(s.id);
+            if (!secObj) continue;
+
+            if (s.parentSectionId !== null && s.parentSectionId !== undefined) {
+                const parentSecObj = sectionMap.get(s.parentSectionId);
+                if (parentSecObj) {
+                    parentSecObj.children!.push(secObj);
+                } else {
+                    const lessonObj = lessonMap.get(s.lessonId);
+                    if (lessonObj) {
+                        lessonObj.children!.push(secObj);
+                    }
+                }
+            } else {
+                const lessonObj = lessonMap.get(s.lessonId);
+                if (lessonObj) {
+                    lessonObj.children!.push(secObj);
+                }
+            }
+        }
+
+        // C. Lessons to Topics
+        for (const l of lessons) {
+            const lessonObj = lessonMap.get(l.id);
+            const topicObj = topicMap.get(l.topicId);
+            if (lessonObj && topicObj) {
+                topicObj.children!.push(lessonObj);
+            }
+        }
+
+        // D. Topics to Grade
+        for (const t of topics) {
+            const topicObj = topicMap.get(t.id);
+            if (topicObj && gradeId !== undefined) {
+                rootNode.children!.push(topicObj);
+            }
+        }
+
+        // E. Special case for root node linking:
+        if (topicId !== undefined) {
+            const topicObj = topicMap.get(topicId);
+            if (topicObj) {
+                rootNode.children = topicObj.children;
+            }
+        } else if (lessonId !== undefined) {
+            const lessonObj = lessonMap.get(lessonId);
+            if (lessonObj) {
+                rootNode.children = lessonObj.children;
+            }
+        }
+
+        return rootNode;
     }
 }
 
