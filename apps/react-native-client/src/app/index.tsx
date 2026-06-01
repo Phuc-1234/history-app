@@ -1,5 +1,5 @@
 import { RewardPopupScreen } from "@/features/reward-popup";
 
 export default function Index() {
-    return <RewardPopupScreen />;
+  return <Redirect href="/(3_4_lessons)/3_1_lesson_summary" />;
 }
