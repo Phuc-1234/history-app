@@ -40,6 +40,9 @@ export default function LessonSummaryScreen() {
                     console.log(
                         `Action triggers profile route pipeline: ${actionType} for Lesson ID: ${id}`,
                     );
+                    if (actionType === "mindmap") {
+                        router.push(`/(3_4_lessons)/4_6_mind_map`);
+                    };
                 }}
             />
         </TopBarWrapper>
