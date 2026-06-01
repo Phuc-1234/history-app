@@ -28,3 +28,4 @@ export * from "./types/user";
 export * from "./types/auth";
 export * from "./types/user";
 export * from "./types/content";
+export * from "./types/gamification";

@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import contentRoutes from "./routes/contentRoutes";
+import gamificationRoutes from "./routes/gamificationRoutes";
 
 // Load environment variables (.env)
 dotenv.config();
@@ -25,6 +26,7 @@ app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies on
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/content", contentRoutes);
+app.use("/api/gamification", gamificationRoutes);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {
