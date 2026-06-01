@@ -13,6 +13,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
     "expo-router": "~55.0.14",
-    "lucide-react-native": "^1.16.0"
+    "lucide-react-native": "^1.16.0",
+    "react-native-video": "^6.19.2"
   }
 }
