@@ -1,4 +1,5 @@
 // packages/shared/src/index.ts
+
 import { PrismaClient } from "./generated/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -8,6 +9,7 @@ import "dotenv/config";
 const connectionString = process.env["DATABASE_URL"];
 
 if (!connectionString) {
+    throw new Error("DATABASE_URL environment variable is missing.");
     throw new Error("DATABASE_URL environment variable is missing.");
 }
 
@@ -23,4 +25,6 @@ export const prisma = new PrismaClient({ adapter });
 export * from "./types/auth";
 export * from "./types/user";
 
- 
+export * from "./types/auth";
+export * from "./types/user";
+export * from "./types/content";
