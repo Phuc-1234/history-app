@@ -84,14 +84,14 @@ export default function StreakModal({
                         duration: 750,
                         useNativeDriver: true,
                     }),
-                ])
+                ]),
             ).start();
         }
     }, [visible]);
 
     const handleClaimReward = (id: number) => {
-        setRewards(prev =>
-            prev.map(r => (r.id === id ? { ...r, claimed: true } : r))
+        setRewards((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, claimed: true } : r)),
         );
         if (id === 1 && onClaimCoin) {
             setTimeout(() => {
@@ -114,7 +114,9 @@ export default function StreakModal({
                     {/* Header */}
                     <View style={styles.header}>
                         <View>
-                            <Text style={styles.headerTitle}>Chuỗi học tập 🔥</Text>
+                            <Text style={styles.headerTitle}>
+                                Chuỗi học tập 🔥
+                            </Text>
                             <Text style={styles.headerSubtitle}>
                                 Duy trì ngọn lửa học tập để rinh quà khủng
                             </Text>
@@ -141,13 +143,19 @@ export default function StreakModal({
                         >
                             <View style={styles.glassInnerBorder}>
                                 <View style={styles.flameIconBg}>
-                                    <Flame size={36} color="#FFFFFF" fill="#FFFFFF" />
+                                    <Flame
+                                        size={36}
+                                        color="#FFFFFF"
+                                        fill="#FFFFFF"
+                                    />
                                 </View>
                                 <Text style={styles.streakTitle}>
                                     Chuỗi {currentStreak} ngày
                                 </Text>
                                 <Text style={styles.streakDesc}>
-                                    Bạn đang làm rất xuất sắc! Hãy tiếp tục làm tối thiểu 1 bài test hôm nay để giữ lửa học tập nhé.
+                                    Bạn đang làm rất xuất sắc! Hãy tiếp tục làm
+                                    tối thiểu 1 bài test hôm nay để giữ lửa học
+                                    tập nhé.
                                 </Text>
                             </View>
                         </LinearGradient>
@@ -161,32 +169,49 @@ export default function StreakModal({
                                 <Info size={16} color="#FFFFFF" />
                             </LinearGradient>
                             <Text style={styles.infoText}>
-                                Làm ít nhất 1 bài test mỗi ngày để duy trì chuỗi.
-                                Chuỗi càng dài, phần quà nâng cấp càng lớn!
+                                Làm ít nhất 1 bài test mỗi ngày để duy trì
+                                chuỗi. Chuỗi càng dài, phần quà nâng cấp càng
+                                lớn!
                             </Text>
                         </View>
 
                         {/* Milestones Pathway */}
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Mốc chuỗi tiến trình</Text>
+                            <Text style={styles.sectionTitle}>
+                                Mốc chuỗi tiến trình
+                            </Text>
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
                                 contentContainerStyle={styles.milestoneRow}
                             >
                                 {milestones.map((item, index) => {
-                                    const isCompleted = item.status === "completed";
+                                    const isCompleted =
+                                        item.status === "completed";
                                     const isActive = item.status === "active";
                                     const isLocked = item.status === "locked";
 
                                     return (
-                                        <View key={index} style={styles.milestoneItem}>
+                                        <View
+                                            key={index}
+                                            style={styles.milestoneItem}
+                                        >
                                             {isCompleted && (
                                                 <LinearGradient
-                                                    colors={["#E8E5FF", "#D2C9FF"]}
-                                                    style={[styles.circle, styles.circleCompleted]}
+                                                    colors={[
+                                                        "#E8E5FF",
+                                                        "#D2C9FF",
+                                                    ]}
+                                                    style={[
+                                                        styles.circle,
+                                                        styles.circleCompleted,
+                                                    ]}
                                                 >
-                                                    <Check size={20} color="#5D45F9" strokeWidth={3.5} />
+                                                    <Check
+                                                        size={20}
+                                                        color="#5D45F9"
+                                                        strokeWidth={3.5}
+                                                    />
                                                 </LinearGradient>
                                             )}
 
@@ -195,29 +220,56 @@ export default function StreakModal({
                                                     style={[
                                                         styles.circle,
                                                         styles.circleActive,
-                                                        { transform: [{ scale: pulseAnim }] },
+                                                        {
+                                                            transform: [
+                                                                {
+                                                                    scale: pulseAnim,
+                                                                },
+                                                            ],
+                                                        },
                                                     ]}
                                                 >
                                                     <LinearGradient
-                                                        colors={["#FFF9F5", "#FFEADB"]}
-                                                        style={styles.circleActiveInner}
+                                                        colors={[
+                                                            "#FFF9F5",
+                                                            "#FFEADB",
+                                                        ]}
+                                                        style={
+                                                            styles.circleActiveInner
+                                                        }
                                                     >
-                                                        <Text style={styles.activeText}>{item.day}</Text>
+                                                        <Text
+                                                            style={
+                                                                styles.activeText
+                                                            }
+                                                        >
+                                                            {item.day}
+                                                        </Text>
                                                     </LinearGradient>
                                                 </Animated.View>
                                             )}
 
                                             {isLocked && (
-                                                <View style={[styles.circle, styles.circleLocked]}>
-                                                    <Lock size={16} color="#A0AEC0" />
+                                                <View
+                                                    style={[
+                                                        styles.circle,
+                                                        styles.circleLocked,
+                                                    ]}
+                                                >
+                                                    <Lock
+                                                        size={16}
+                                                        color="#A0AEC0"
+                                                    />
                                                 </View>
                                             )}
 
                                             <Text
                                                 style={[
                                                     styles.milestoneLabel,
-                                                    isActive && styles.activeLabel,
-                                                    isCompleted && styles.completedLabel,
+                                                    isActive &&
+                                                        styles.activeLabel,
+                                                    isCompleted &&
+                                                        styles.completedLabel,
                                                 ]}
                                             >
                                                 Chuỗi {item.day}
@@ -247,19 +299,35 @@ export default function StreakModal({
                                         >
                                             {reward.type === "coin" ? (
                                                 <LinearGradient
-                                                    colors={["#FBBF24", "#D97706"]}
-                                                    style={styles.goldBadge}
+                                                    colors={[
+                                                        "#FBBF24",
+                                                        "#D97706",
+                                                    ]}
+                                               //     style={styles.goldBadge}
                                                 >
-                                                    <Text style={styles.coinText}>$</Text>
+                                                    <Text
+                                                        style={styles.coinText}
+                                                    >
+                                                        $
+                                                    </Text>
                                                 </LinearGradient>
                                             ) : (
-                                                <Award size={22} color="#5D45F9" fill="#C7D2FE" />
+                                                <Award
+                                                    size={22}
+                                                    color="#5D45F9"
+                                                    fill="#C7D2FE"
+                                                />
                                             )}
                                         </LinearGradient>
 
                                         <View style={styles.rewardInfo}>
-                                            <Text style={styles.rewardTitle}>{reward.title}</Text>
-                                            <Text style={styles.rewardDesc} numberOfLines={1}>
+                                            <Text style={styles.rewardTitle}>
+                                                {reward.title}
+                                            </Text>
+                                            <Text
+                                                style={styles.rewardDesc}
+                                                numberOfLines={1}
+                                            >
                                                 {reward.description}
                                             </Text>
                                         </View>
@@ -267,13 +335,17 @@ export default function StreakModal({
 
                                     {reward.claimed ? (
                                         <View style={styles.claimedButton}>
-                                            <Text style={styles.claimedText}>Đã nhận</Text>
+                                            <Text style={styles.claimedText}>
+                                                Đã nhận
+                                            </Text>
                                         </View>
                                     ) : (
                                         <TouchableOpacity
                                             style={styles.claimButton}
                                             activeOpacity={0.8}
-                                            onPress={() => handleClaimReward(reward.id)}
+                                            onPress={() =>
+                                                handleClaimReward(reward.id)
+                                            }
                                         >
                                             <LinearGradient
                                                 colors={["#FF9B42", "#FF4F6B"]}
@@ -281,7 +353,13 @@ export default function StreakModal({
                                                 end={{ x: 1, y: 0 }}
                                                 style={styles.claimBtnGradient}
                                             >
-                                                <Text style={styles.claimButtonText}>Nhận</Text>
+                                                <Text
+                                                    style={
+                                                        styles.claimButtonText
+                                                    }
+                                                >
+                                                    Nhận
+                                                </Text>
                                             </LinearGradient>
                                         </TouchableOpacity>
                                     )}
