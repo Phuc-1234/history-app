@@ -6,6 +6,7 @@ import {
     getLessonsByTopic,
     getSectionsByLesson,
     getLessonTree,
+    getMindMap,
 } from "../controllers/contentController";
 
 const router = Router();
@@ -24,5 +25,8 @@ router.get("/lessons/:lessonId/sections", getSectionsByLesson);
 
 // GET /api/content/lessons/:lessonId/tree
 router.get("/lessons/:lessonId/tree", getLessonTree);
+
+// GET /api/content/mindmap
+router.get("/mindmap", getMindMap);
 
 export default router;

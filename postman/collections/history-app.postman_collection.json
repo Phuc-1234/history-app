@@ -336,6 +336,84 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "mindmap by grade",
+          "id": "23fdf89b-8e10-410a-9ff1-912a20bdff45",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/content/mindmap?gradeId=10",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "mindmap"
+              ],
+              "query": [
+                {
+                  "key": "gradeId",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "mindmap by topic",
+          "id": "50f588c8-b5b6-4554-bd6b-851f5c6b6534",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/content/mindmap?topicId=3",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "mindmap"
+              ],
+              "query": [
+                {
+                  "key": "topicId",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "mindmap by lesson",
+          "id": "8e600570-5b58-4fe6-805c-9c02ff3de11f",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/content/mindmap?lessonId=1",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "mindmap"
+              ],
+              "query": [
+                {
+                  "key": "lessonId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ],
       "id": "cf37593e-8491-4510-83b3-1bf4cb71773a"

@@ -24,7 +24,7 @@ export interface LessonDto {
 export interface NodeDto {
     id: number;
     position: number;
-    header: string;
+    header: string | null;
     body: string;
     imgUrl?: string | null;
     sectionId: number | null;
@@ -56,3 +56,22 @@ export type GetSectionsResponse =
 
 // Tree response for a lesson: top-level sections (with children recursively) and stand-alone nodes
 export type GetLessonTreeResponse = { tree: SectionDto[] } | { error: string };
+
+// ---- Mind Map Types ----
+export interface MindMapNode {
+    id: number;
+    type: "grade" | "topic" | "lesson" | "section" | "node";
+    name?: string;
+    header?: string | null;
+    body?: string;
+    children?: MindMapNode[];
+}
+
+export interface MindMapRequestQuery {
+    gradeId?: string;
+    topicId?: string;
+    lessonId?: string;
+}
+
+export type GetMindMapResponse = { tree: MindMapNode } | { error: string };
+
