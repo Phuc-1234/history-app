@@ -42,7 +42,9 @@ export default function LessonSummaryScreen() {
                     );
                     if (actionType === "mindmap") {
                         router.push(`/(3_4_lessons)/4_6_mind_map`);
-                    };
+                    } else if (actionType === "quiz") {
+                        router.push(`/(6_tests)/6_2_ques_choose`);
+                    }
                 }}
             />
         </TopBarWrapper>
