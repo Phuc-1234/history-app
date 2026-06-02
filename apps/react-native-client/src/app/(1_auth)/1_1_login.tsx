@@ -1,12 +1,6 @@
 import React from "react";
+import LoginForm from "../../features/auth/screens/LoginForm";
 
-import { LoginForm } from "../../features/auth";
-
-export default function Login() {
-    return (
-       
-            <LoginForm />
-       
-    );
+export default function LoginPage() {
+    return <LoginForm />;
 }
-

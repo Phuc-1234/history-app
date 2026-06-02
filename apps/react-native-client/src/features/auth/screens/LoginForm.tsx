@@ -13,15 +13,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import SocialLoginButtons from "../components/SocialLoginButtons";
-import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
-import StreakModal from "../../../components/StreakModal";
-import RewardModal from "../../../components/RewardModal";
+import useAuthForm from "../hooks/useAuthForm";
 
 export default function LoginForm() {
-    // Modal visibility states
-    const [celebrationVisible, setCelebrationVisible] = useState(false);
-    const [streakVisible, setStreakVisible] = useState(false);
-    const [rewardVisible, setRewardVisible] = useState(false);
+    const { navigateToRegister, submitAndEnterApp } = useAuthForm();
 
     return (
         <ScrollView
@@ -60,11 +55,7 @@ export default function LoginForm() {
                     <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
                 </TouchableOpacity>
 
-                {/* Pressing login launches Popup 1 (Streak Celebration) */}
-                <Button
-                    title="Đăng nhập"
-                    onPress={() => setCelebrationVisible(true)}
-                />
+                <Button title="Đăng nhập" onPress={submitAndEnterApp} />
 
                 <View style={styles.dividerContainer}>
                     <View style={styles.line} />
@@ -76,44 +67,13 @@ export default function LoginForm() {
 
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-                    <TouchableOpacity activeOpacity={0.6}>
+                    <TouchableOpacity activeOpacity={0.6} onPress={navigateToRegister}>
                         <Text style={styles.registerText}>Đăng ký ngay</Text>
                     </TouchableOpacity>
                 </View>
             </View>
-
-            {/* POPUP 1: Streak Celebration Modal (Giant Flame Overlay) */}
-            <StreakCelebrationModal
-                visible={celebrationVisible}
-                onClose={() => setCelebrationVisible(false)}
-                currentStreak={7}
-                onNext={() => {
-                    setCelebrationVisible(false);
-                    // Open the detailed streak page/modal
-                    setStreakVisible(true);
-                }}
-            />
-
-            {/* POPUP 2: Detailed Streak Modal (Matching your design image!) */}
-            <StreakModal
-                visible={streakVisible}
-                onClose={() => setStreakVisible(false)}
-                currentStreak={7}
-                onClaimCoin={() => {
-                    setStreakVisible(false);
-                    // Open the claim success celebration modal
-                    setRewardVisible(true);
-                }}
-            />
-
-            {/* POPUP 3: Claim Success Celebration Modal */}
-            <RewardModal
-                visible={rewardVisible}
-                onClose={() => setRewardVisible(false)}
-                goldAmount={50}
-                badgeName="Huy hiệu Chăm Chỉ"
-            />
         </ScrollView>
+        
     );
 }
 
