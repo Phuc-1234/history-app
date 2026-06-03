@@ -1,10 +1,10 @@
 import React from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
     ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -37,40 +37,37 @@ export default function ProfileMainScreen() {
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
         >
-            {/* Avatar Section */}
             <View style={styles.avatarSection}>
                 <ProfileAvatar size={120} onEditPress={handleEditProfile} />
-                <Text style={styles.userName}>Nguyễn Văn A</Text>
+                <Text style={styles.userName}>{"Nguy\u1ec5n V\u0103n A"}</Text>
                 <Text style={styles.userEmail}>nguyenvana@example.com</Text>
             </View>
 
-            {/* Menu Items */}
             <View style={styles.menuSection}>
                 <ProfileMenuItem
                     icon="person-outline"
-                    label="Sửa thông tin"
+                    label={"S\u1eeda th\u00f4ng tin"}
                     onPress={handleEditProfile}
                 />
                 <ProfileMenuItem
                     icon="lock-closed-outline"
-                    label="Đổi mật khẩu"
+                    label={"\u0110\u1ed5i m\u1eadt kh\u1ea9u"}
                     onPress={handleChangePassword}
                 />
                 <ProfileMenuItem
                     icon="link-outline"
-                    label="Liên kết tài khoản"
+                    label={"Li\u00ean k\u1ebft t\u00e0i kho\u1ea3n"}
                     onPress={handleLinkAccounts}
                 />
             </View>
 
-            {/* Logout Button */}
             <TouchableOpacity
                 style={styles.logoutButton}
                 onPress={handleLogout}
                 activeOpacity={0.7}
             >
                 <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-                <Text style={styles.logoutText}>Đăng xuất</Text>
+                <Text style={styles.logoutText}>{"\u0110\u0103ng xu\u1ea5t"}</Text>
             </TouchableOpacity>
         </ScrollView>
     );
@@ -81,35 +78,29 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#F9F8FD",
     },
-
     contentContainer: {
         paddingBottom: 40,
     },
-
     avatarSection: {
         alignItems: "center",
         paddingTop: 30,
         paddingBottom: 24,
     },
-
     userName: {
         fontSize: 20,
         fontWeight: "700",
         color: "#1C1C1E",
         marginTop: 16,
     },
-
     userEmail: {
         fontSize: 14,
         color: "#8E8E93",
         marginTop: 4,
     },
-
     menuSection: {
         paddingHorizontal: 20,
         marginTop: 8,
     },
-
     logoutButton: {
         flexDirection: "row",
         alignItems: "center",
@@ -122,7 +113,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#FFE0E0",
     },
-
     logoutText: {
         fontSize: 16,
         fontWeight: "600",
