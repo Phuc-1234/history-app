@@ -21,7 +21,7 @@ export default function RootLayout() {
       {/* 2. Delay rendering UI until local storage token/states are rehydrated */}
       <PersistGate loading={<LoadingFallback />} persistor={persistor}>
         {/* 3. Expo Router Native Navigation Container */}
-        <Stack>
+        <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>

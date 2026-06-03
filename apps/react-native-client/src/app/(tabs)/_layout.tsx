@@ -5,7 +5,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
         tabBarActiveTintColor: '#007AFF', // Clean iOS blue for active tabs
         tabBarInactiveTintColor: '#8E8E93', // Muted gray for inactive tabs
       }}
