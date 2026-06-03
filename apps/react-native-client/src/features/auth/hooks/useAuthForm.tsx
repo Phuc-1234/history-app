@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useLoginMutation } from "../services/authApi";
 import { useAppDispatch } from "@/store/storeHook"; // Standard typed useDispatch hook
-import { setProfile } from "@/store/authSlice";
+import { setProfile } from "@/features/auth/store/authSlice";
 import { Alert } from "react-native";
 
 export function useAuthForm() {

@@ -3,7 +3,7 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiSlice } from '../services/apiSlice';
-import authReducer from "./authSlice";
+import authReducer from "../features/auth/store/authSlice";
 import testHistoryReducer from '../features/test/store/testHistorySlice';
 
 // Combine your reducers (add your feature auth or history slices here later)

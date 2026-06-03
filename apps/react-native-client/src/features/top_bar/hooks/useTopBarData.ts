@@ -1,34 +1,50 @@
-import { useState, useEffect } from "react";
+// features/dashboard/hooks/useTopBarData.ts
+import { useAppSelector } from "../../../store/storeHook"; // Adjust path according to your structure
+import { useStreak } from "../../streak"; // Adjust path as used in your wrappers
 
-export interface TopBarData {
-    profileImgUrl: string;
-    badgeImgUrl: string | null;
-    xp: number;
-    gold: number;
+export interface ProcessedTopBarData {
+    isLoggedIn: boolean;
+    name: string;
+    avatarUri: string;
+    totalXp: number;
+    totalGold: string; // Formatted with toLocaleString() for direct presentation
     currentStreak: number;
+    badgeImgUrl: string | null;
 }
 
 export function useTopBarData() {
-    const [data, setData] = useState<TopBarData | null>(null);
-    const [loading, setLoading] = useState(true);
+    // 1. Fetch live data context straight from Redux State
+    const profile = useAppSelector((state) => state.auth.profile);
 
-    useEffect(() => {
-        // Simulating API/database fetch
-        const fetchUserData = () => {
-            setData({
-                profileImgUrl:
-                    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150", // Mock AI portrait
-                badgeImgUrl:
-                    "https://cdn-icons-png.flaticon.com/512/8215/8215545.png", // Mock medal icon
-                xp: 300,
-                gold: 1250,
-                currentStreak: 7,
-            });
-            setLoading(false);
-        };
+    // 2. Encapsulate streak module states and visibility configurations directly here
+    const streakCount = profile ? profile.currentStreak : 0;
+    const streakManager = useStreak(streakCount);
 
-        fetchUserData();
-    }, []);
+    // 3. Compute structural configurations, fallbacks, and avatar generation details
+    const isLoggedIn = !!profile;
+    const name = profile?.name ?? "";
+    const totalXp = profile?.totalXp ?? 0;
+    const totalGold = profile?.totalGold ? profile.totalGold.toLocaleString() : "0";
+    const badgeImgUrl = profile?.badgeImgUrl ?? null;
 
-    return { data, loading };
+    const avatarUri = profile?.profileImgUrl
+        ? profile.profileImgUrl
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              name || "User"
+          )}&background=E8E4F4&color=5856D6&bold=true`;
+
+    const processedData: ProcessedTopBarData = {
+        isLoggedIn,
+        name,
+        avatarUri,
+        totalXp,
+        totalGold,
+        currentStreak: streakCount,
+        badgeImgUrl,
+    };
+
+    return {
+        data: processedData,
+        streakManager, // Bubble up standard modal operations seamlessly
+    };
 }
