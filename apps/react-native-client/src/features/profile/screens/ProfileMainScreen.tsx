@@ -27,6 +27,10 @@ export default function ProfileMainScreen() {
         // TODO: Navigate to link accounts screen
     };
 
+    const handleViewHistory = () => {
+        router.push("/(10_proflie)/10_4_test_history");
+    };
+
     const handleLogout = () => {
         router.replace("/(1_auth)/1_1_login");
     };
@@ -55,6 +59,11 @@ export default function ProfileMainScreen() {
                     icon="lock-closed-outline"
                     label="Đổi mật khẩu"
                     onPress={handleChangePassword}
+                />
+                <ProfileMenuItem
+                    icon="document-text-outline"
+                    label="Lịch sử làm bài"
+                    onPress={handleViewHistory}
                 />
                 <ProfileMenuItem
                     icon="link-outline"

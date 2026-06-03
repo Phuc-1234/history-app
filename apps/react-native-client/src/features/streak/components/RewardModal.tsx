@@ -5,7 +5,6 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Dimensions,
     Animated,
 } from "react-native";
 import { Award, Trophy } from "lucide-react-native";
@@ -323,4 +322,3 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
 });
-export {};

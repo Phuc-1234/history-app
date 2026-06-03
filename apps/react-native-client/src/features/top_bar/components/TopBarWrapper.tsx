@@ -3,10 +3,12 @@ import { StyleSheet, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTopBarData } from "../hooks/useTopBarData";
 import { TopBar } from "./TopBar";
-import { useState } from "react";
-import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
-import StreakModal from "../../../components/StreakModal";
-import RewardModal from "../../../components/RewardModal";
+import {
+    useStreak,
+    StreakCelebrationModal,
+    StreakModal,
+    RewardModal,
+} from "../../streak";
 
 interface TopBarWrapperProps {
     children: React.ReactNode;
@@ -21,13 +23,19 @@ interface TopBarWrapperProps {
 export function TopBarWrapper({ children, branchConfig }: TopBarWrapperProps) {
     const { data, loading } = useTopBarData();
 
-    const [celebrationVisible, setCelebrationVisible] = useState(false);
-    const [streakVisible, setStreakVisible] = useState(false);
-    const [rewardVisible, setRewardVisible] = useState(false);
-
-    const openStreak = () => {
-        setCelebrationVisible(true);
-    };
+    const {
+        celebrationVisible,
+        streakVisible,
+        rewardVisible,
+        rewards,
+        milestones,
+        openStreak,
+        closeCelebration,
+        proceedToStreakModal,
+        handleClaimReward,
+        closeStreakModal,
+        closeRewardModal,
+    } = useStreak(data?.currentStreak ?? 7);
 
     if (loading) {
         return (
@@ -48,27 +56,23 @@ export function TopBarWrapper({ children, branchConfig }: TopBarWrapperProps) {
 
             <StreakCelebrationModal
                 visible={celebrationVisible}
-                onClose={() => setCelebrationVisible(false)}
+                onClose={closeCelebration}
                 currentStreak={data?.currentStreak ?? 7}
-                onNext={() => {
-                    setCelebrationVisible(false);
-                    setStreakVisible(true);
-                }}
+                onNext={proceedToStreakModal}
             />
 
             <StreakModal
                 visible={streakVisible}
-                onClose={() => setStreakVisible(false)}
+                onClose={closeStreakModal}
                 currentStreak={data?.currentStreak ?? 7}
-                onClaimCoin={() => {
-                    setStreakVisible(false);
-                    setRewardVisible(true);
-                }}
+                rewards={rewards}
+                milestones={milestones}
+                onClaimReward={handleClaimReward}
             />
 
             <RewardModal
                 visible={rewardVisible}
-                onClose={() => setRewardVisible(false)}
+                onClose={closeRewardModal}
                 goldAmount={50}
                 badgeName="Huy hiệu Chăm Chỉ"
             />

@@ -29,6 +29,7 @@ export default function TestContainer() {
         formattedTime,
         status,
         result,
+        lastAttemptId,
         actions,
         isQuestionAnswered
     } = useTestRunner(900); // 15 mins
@@ -297,7 +298,16 @@ export default function TestContainer() {
 
                             <TouchableOpacity
                                 style={styles.reviewButtonOutline}
-                                onPress={() => setViewMode("review")}
+                                onPress={() => {
+                                    if (lastAttemptId) {
+                                        router.push({
+                                            pathname: "/(10_proflie)/10_5_test_detail",
+                                            params: { attemptId: lastAttemptId }
+                                        });
+                                    } else {
+                                        setViewMode("review");
+                                    }
+                                }}
                                 activeOpacity={0.7}
                             >
                                 <Text style={styles.reviewButtonText}>Xem lại bài</Text>
