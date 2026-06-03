@@ -43,6 +43,7 @@ export default function PasswordChangeScreen() {
             <KeyboardAvoidingView
                 style={styles.flex}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0} // Accounts for the top native header bounds
             >
                 <ScrollView
                     style={styles.flex}
@@ -53,8 +54,8 @@ export default function PasswordChangeScreen() {
                 >
                     <View style={styles.card}>
                         <Text style={styles.description}>
-                            Vui lòng nhập mật khẩu cũ và tạo mật khẩu mới để
-                            bảo mật tài khoản của bạn.
+                            Vui lòng nhập mật khẩu cũ và tạo mật khẩu mới để bảo
+                            mật tài khoản của bạn.
                         </Text>
 
                         <View style={styles.formSection}>
@@ -67,9 +68,7 @@ export default function PasswordChangeScreen() {
                                 onChangeText={setOldPassword}
                             />
 
-                            <Text style={styles.fieldLabel}>
-                                Mật khẩu mới
-                            </Text>
+                            <Text style={styles.fieldLabel}>Mật khẩu mới</Text>
                             <Input
                                 icon={KeyRound}
                                 placeholder="Nhập mật khẩu mới"
@@ -124,7 +123,7 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         paddingHorizontal: 16,
         paddingTop: 8,
-        paddingBottom: 150,
+        paddingBottom: 24,
     },
 
     card: {
@@ -166,12 +165,12 @@ const styles = StyleSheet.create({
     },
 
     buttonContainer: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
+        // REMOVED: position: "absolute", left: 0, right: 0, bottom: 0,
         paddingHorizontal: 16,
         paddingTop: 12,
         backgroundColor: "#F8F7FF",
+        // Optional: Add a top border or light shadow if you want to retain the pinned look
+        borderTopWidth: 1,
+        borderColor: "#E5E7EB",
     },
 });

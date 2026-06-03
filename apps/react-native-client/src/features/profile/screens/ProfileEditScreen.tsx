@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { User, Mail } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
@@ -17,7 +18,7 @@ import SubPageHeader from "../components/SubPageHeader";
 
 export default function ProfileEditScreen() {
     const router = useRouter();
-
+    const insets = useSafeAreaInsets();
     const [name, setName] = useState("Nguyễn Văn A");
     const [email, setEmail] = useState("nguyenvana@example.com");
 
@@ -71,7 +72,15 @@ export default function ProfileEditScreen() {
                     </View>
                 </ScrollView>
 
-                <View style={styles.buttonContainer}>
+                <View
+                    style={[
+                        styles.buttonContainer,
+                        {
+                            paddingBottom:
+                                insets.bottom > 0 ? insets.bottom + 12 : 16,
+                        },
+                    ]}
+                >
                     <Button title="Lưu" onPress={handleSave} />
                 </View>
             </KeyboardAvoidingView>
@@ -137,7 +146,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         paddingHorizontal: 16,
         paddingTop: 12,
-        paddingBottom: Platform.OS === "ios" ? 34 : 24,
+        
         backgroundColor: "#F8F7FF",
     },
 });
