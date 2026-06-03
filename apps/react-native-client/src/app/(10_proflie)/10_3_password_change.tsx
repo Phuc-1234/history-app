@@ -1,6 +1,10 @@
-import React from "react";
-import { ChangePasswordScreen } from "@/features/profile";
+import { TopBarWrapper } from "../../features/top_bar";
+import { PasswordChangeScreen } from "../../features/profile";
 
-export default function Index() {
-  return <ChangePasswordScreen />;
+export default function PasswordChangeRoute() {
+    return (
+        <TopBarWrapper>
+            <PasswordChangeScreen />
+        </TopBarWrapper>
+    );
 }
