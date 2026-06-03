@@ -1,16 +1,10 @@
-// make a button that routes to login
-
-import Button from "@/components/Button";
 import { TopBarWrapper } from "../../features/top_bar";
-import { useRouter } from "expo-router";
+import { ProfileMainScreen } from "../../features/profile";
 
-
-const router = useRouter();
-
-export default function ProfileScreen() {
+export default function ProfileTab() {
     return (
         <TopBarWrapper>
-            <Button title="Login" onPress={() => router.push("/(1_auth)/1_1_login")} />
+            <ProfileMainScreen />
         </TopBarWrapper>
     );
 }
