@@ -1,49 +1,47 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
     KeyboardAvoidingView,
     Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Lock, KeyRound, ShieldCheck } from "lucide-react-native";
+import { CheckCircle, KeyRound, Lock } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import Input from "../../../components/Input";
 import Button from "../../../components/Button";
+import Input from "../../../components/Input";
+import { useChangePassword } from "../hooks/useChangePassword";
 import SubPageHeader from "../components/SubPageHeader";
+
+const text = {
+    title: "S\u1eeda m\u1eadt kh\u1ea9u",
+    description:
+        "Vui l\u00f2ng nh\u1eadp m\u1eadt kh\u1ea9u c\u0169 v\u00e0 t\u1ea1o m\u1eadt kh\u1ea9u m\u1edbi \u0111\u1ec3 b\u1ea3o m\u1eadt t\u00e0i kho\u1ea3n c\u1ee7a b\u1ea1n.",
+    currentLabel: "M\u1eadt kh\u1ea9u c\u0169",
+    currentPlaceholder: "Nh\u1eadp m\u1eadt kh\u1ea9u c\u0169",
+    newLabel: "M\u1eadt kh\u1ea9u m\u1edbi",
+    newPlaceholder: "Nh\u1eadp m\u1eadt kh\u1ea9u m\u1edbi",
+    confirmLabel: "X\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u",
+    confirmPlaceholder: "Nh\u1eadp l\u1ea1i m\u1eadt kh\u1ea9u m\u1edbi",
+    save: "L\u01b0u",
+};
 
 export default function PasswordChangeScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-
-    const [oldPassword, setOldPassword] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-
-    const handleSave = () => {
-        // TODO: Validate passwords and call API
-        if (newPassword !== confirmPassword) {
-            // TODO: Show error message
-            return;
-        }
-
-        router.back();
-    };
+    const state = useChangePassword();
 
     return (
         <View style={styles.container}>
-            <SubPageHeader
-                title="Sửa mật khẩu"
-                onBackPress={() => router.back()}
-            />
+            <SubPageHeader title={text.title} onBackPress={() => router.back()} />
 
             <KeyboardAvoidingView
                 style={styles.flex}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0} // Accounts for the top native header bounds
+                keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
             >
                 <ScrollView
                     style={styles.flex}
@@ -53,41 +51,54 @@ export default function PasswordChangeScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.card}>
-                        <Text style={styles.description}>
-                            Vui lòng nhập mật khẩu cũ và tạo mật khẩu mới để bảo
-                            mật tài khoản của bạn.
-                        </Text>
+                        <Text style={styles.description}>{text.description}</Text>
 
-                        <View style={styles.formSection}>
-                            <Text style={styles.fieldLabel}>Mật khẩu cũ</Text>
-                            <Input
-                                icon={Lock}
-                                placeholder="Nhập mật khẩu cũ"
-                                isPassword
-                                value={oldPassword}
-                                onChangeText={setOldPassword}
-                            />
+                        <Text style={styles.fieldLabel}>{text.currentLabel}</Text>
+                        <Input
+                            icon={Lock}
+                            placeholder={text.currentPlaceholder}
+                            isPassword
+                            value={state.currentPassword}
+                            onChangeText={state.setCurrentPassword}
+                        />
+                        {state.currentPasswordError ? (
+                            <Text style={styles.errorText}>{state.currentPasswordError}</Text>
+                        ) : null}
 
-                            <Text style={styles.fieldLabel}>Mật khẩu mới</Text>
-                            <Input
-                                icon={KeyRound}
-                                placeholder="Nhập mật khẩu mới"
-                                isPassword
-                                value={newPassword}
-                                onChangeText={setNewPassword}
-                            />
+                        <Text style={styles.fieldLabel}>{text.newLabel}</Text>
+                        <Input
+                            icon={KeyRound}
+                            placeholder={text.newPlaceholder}
+                            isPassword
+                            value={state.newPassword}
+                            onChangeText={state.setNewPassword}
+                        />
+                        {state.newPasswordError ? (
+                            <Text style={styles.errorText}>{state.newPasswordError}</Text>
+                        ) : null}
 
-                            <Text style={styles.fieldLabel}>
-                                Xác nhận mật khẩu
+                        <Text style={styles.fieldLabel}>{text.confirmLabel}</Text>
+                        <Input
+                            icon={CheckCircle}
+                            placeholder={text.confirmPlaceholder}
+                            isPassword
+                            value={state.confirmPassword}
+                            onChangeText={state.setConfirmPassword}
+                        />
+                        {state.confirmPasswordError ? (
+                            <Text style={styles.errorText}>{state.confirmPasswordError}</Text>
+                        ) : null}
+
+                        {state.feedbackMessage ? (
+                            <Text
+                                style={[
+                                    styles.feedbackText,
+                                    state.isSuccess ? styles.feedbackSuccess : styles.feedbackError,
+                                ]}
+                            >
+                                {state.feedbackMessage}
                             </Text>
-                            <Input
-                                icon={ShieldCheck}
-                                placeholder="Nhập lại mật khẩu mới"
-                                isPassword
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                            />
-                        </View>
+                        ) : null}
                     </View>
                 </ScrollView>
 
@@ -102,7 +113,10 @@ export default function PasswordChangeScreen() {
                         },
                     ]}
                 >
-                    <Button title="Lưu" onPress={handleSave} />
+                    <Button
+                        title={state.isLoading ? "\u0110ang l\u01b0u..." : text.save}
+                        onPress={state.handleChangePassword}
+                    />
                 </View>
             </KeyboardAvoidingView>
         </View>
@@ -112,65 +126,67 @@ export default function PasswordChangeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F8F7FF",
+        backgroundColor: "#F8F5FC",
     },
-
     flex: {
         flex: 1,
     },
-
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 16,
-        paddingTop: 8,
+        paddingHorizontal: 30,
+        paddingTop: 32,
         paddingBottom: 24,
     },
-
     card: {
         backgroundColor: "#FFFFFF",
-        borderRadius: 18,
-        paddingHorizontal: 18,
-        paddingTop: 22,
+        borderRadius: 12,
+        paddingHorizontal: 24,
+        paddingTop: 26,
         paddingBottom: 24,
-
-        shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 14,
-        shadowOffset: {
-            width: 0,
-            height: 6,
-        },
-        elevation: 4,
+        shadowColor: "#7C6AF2",
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.12,
+        shadowRadius: 24,
+        elevation: 7,
     },
-
     description: {
+        color: "#7C7787",
         fontSize: 14,
-        color: "#8E8E93",
-        lineHeight: 21,
+        lineHeight: 22,
         textAlign: "center",
-        paddingHorizontal: 8,
-        marginBottom: 18,
+        marginBottom: 26,
     },
-
-    formSection: {
-        width: "100%",
-    },
-
     fieldLabel: {
-        fontSize: 13,
-        fontWeight: "600",
-        color: "#374151",
-        marginBottom: 6,
+        color: "#242330",
+        fontSize: 14,
+        lineHeight: 20,
+        fontWeight: "700",
+        marginBottom: 10,
         marginTop: 8,
     },
-
+    errorText: {
+        color: "#E53E3E",
+        fontSize: 12,
+        lineHeight: 17,
+        marginTop: -8,
+        marginBottom: 10,
+        fontWeight: "500",
+    },
+    feedbackText: {
+        fontSize: 14,
+        fontWeight: "600",
+        textAlign: "center",
+        marginTop: 4,
+    },
+    feedbackSuccess: {
+        color: "#38A169",
+    },
+    feedbackError: {
+        color: "#E53E3E",
+    },
     buttonContainer: {
-        // REMOVED: position: "absolute", left: 0, right: 0, bottom: 0,
-        paddingHorizontal: 16,
+        paddingHorizontal: 30,
         paddingTop: 12,
-        backgroundColor: "#F8F7FF",
-        // Optional: Add a top border or light shadow if you want to retain the pinned look
-        borderTopWidth: 1,
-        borderColor: "#E5E7EB",
+        backgroundColor: "#F8F5FC",
     },
 });

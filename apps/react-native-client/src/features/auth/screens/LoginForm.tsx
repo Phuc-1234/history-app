@@ -9,6 +9,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 import { User, Lock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
@@ -70,6 +71,7 @@ export default function LoginForm() {
                 <TouchableOpacity
                     style={styles.forgotPassContainer}
                     activeOpacity={0.6}
+                    onPress={() => router.push("/(1_auth)/1_3_forgot")}
                 >
                     <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
                 </TouchableOpacity>
