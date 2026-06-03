@@ -38,17 +38,25 @@ const TabBarIcon: React.FC<TabIconProps> = ({
 
 export default function TabsLayout() {
     const insets = useSafeAreaInsets();
+    
     const isWeb = Platform.OS === "web";
 
     // Detect if safe-area-context hasn't returned the real measurement yet
     const hasInitialInsets = insets.bottom > 0;
 
-    // Resolve the real padding required to clear the translucent hardware buttons safely
+    // 1. Resolve padding
     const finalBottomPadding = isWeb
         ? 12
         : hasInitialInsets
-          ? insets.bottom + 8 // Safe inset + a little breathing room
-          : 24; // Sensible default fallback while the frame initializes
+          ? insets.bottom + 4 // Adjusted slightly for balance
+          : 16; 
+
+    // 2. Resolve an explicit height instead of using "auto"
+    const finalTabHeight = isWeb 
+        ? 70 
+        : hasInitialInsets 
+          ? 50 + insets.bottom  // Standard 60px tab height + dynamic notch space
+          : 68;                 // Safe fallback for physical hardware buttons
 
     return (
         <Tabs
@@ -65,10 +73,10 @@ export default function TabsLayout() {
                     shadowOpacity: 0,
 
                     // Auto-height for mobile layouts
-                    height: isWeb ? 70 : "auto",
+                    height: finalTabHeight,
 
                     // Balanced vertical spacing
-                    paddingTop: 12,
+                    paddingTop: 8,
                     paddingBottom: finalBottomPadding,
 
                     // FIX: Add horizontal padding to prevent edge icons from clipping
@@ -77,10 +85,8 @@ export default function TabsLayout() {
                     borderTopLeftRadius: 24,
                     borderTopRightRadius: 24,
 
-                    position: "relative",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
+                   
+                    
                 },
 
                 tabBarButton: ({
