@@ -4,6 +4,8 @@ import { PersistGate } from "redux-persist/integration/react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { ActivityIndicator, View } from "react-native";
+// 1. Import SafeAreaProvider
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { store, persistor } from "../store/store";
 
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
@@ -16,29 +18,29 @@ export default function RootLayout() {
     }, []);
 
     return (
-        // 1. Give the entire app tree access to the Redux Store
-        <Provider store={store}>
-            {/* 2. Delay rendering UI until local storage token/states are rehydrated */}
-            <PersistGate loading={<LoadingFallback />} persistor={persistor}>
-                {/* 3. Expo Router Native Navigation Container */}
-                <Stack
-                    screenOptions={{
-                        // This completely turns off the default native route headers
-                        // across ALL app stack contexts, tabs, and nested screens globally.
-                        headerShown: false,
-                    }}
-                >
-                    <Stack.Screen
-                        name="(tabs)"
-                        
-                    />
-                    <Stack.Screen
-                        name="modal"
-                        options={{ presentation: "modal" }}
-                    />
-                </Stack>
-            </PersistGate>
-        </Provider>
+        // 2. Wrap your entire application context tree
+        <SafeAreaProvider>
+            {/* 1. Give the entire app tree access to the Redux Store */}
+            <Provider store={store}>
+                {/* 2. Delay rendering UI until local storage token/states are rehydrated */}
+                <PersistGate loading={<LoadingFallback />} persistor={persistor}>
+                    {/* 3. Expo Router Native Navigation Container */}
+                    <Stack
+                        screenOptions={{
+                            // This completely turns off the default native route headers
+                            // across ALL app stack contexts, tabs, and nested screens globally.
+                            headerShown: false,
+                        }}
+                    >
+                        <Stack.Screen name="(tabs)" />
+                        <Stack.Screen
+                            name="modal"
+                            options={{ presentation: "modal" }}
+                        />
+                    </Stack>
+                </PersistGate>
+            </Provider>
+        </SafeAreaProvider>
     );
 }
 
