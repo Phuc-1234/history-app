@@ -1,6 +1,6 @@
 // packages/shared/src/index.ts
 
-import { PrismaClient } from "./generated/client";
+import { PrismaClient } from "../src/generated/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import "dotenv/config";
@@ -22,11 +22,12 @@ const adapter = new PrismaPg(pool);
 // 4. Construct PrismaClient with the adapter configuration
 export const prisma = new PrismaClient({ adapter });
 
-export * from "./types/auth";
-export * from "./types/user";
+
+
 
 export * from "./types/auth";
 export * from "./types/user";
 export * from "./types/content";
 export * from "./types/gamification";
 export * from "./types/tests";
+
