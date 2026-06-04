@@ -3,8 +3,8 @@
   
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "nodenext",                  // 👈 Compiles to standard Node CommonJS
+    "moduleResolution": "nodenext",     // 👈 Add this line
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
