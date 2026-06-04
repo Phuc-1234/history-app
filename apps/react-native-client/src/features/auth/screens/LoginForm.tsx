@@ -17,7 +17,15 @@ import SocialLoginButtons from "../components/SocialLoginButtons";
 import useAuthForm from "../hooks/useAuthForm";
 
 export default function LoginForm() {
-    const { navigateToRegister, submitAndEnterApp } = useAuthForm();
+    const { email,
+        setEmail,
+        password,
+        setPassword,
+        isLoading,
+        navigateToRegister,
+        navigateToLogin,
+        submitAndEnterApp,
+    } = useAuthForm();
 
     return (
         <ScrollView
@@ -46,8 +54,19 @@ export default function LoginForm() {
             <View style={styles.formContainer}>
                 <Text style={styles.title}>Đăng nhập</Text>
 
-                <Input icon={User} placeholder="Email hoặc số điện thoại" />
-                <Input icon={Lock} placeholder="Mật khẩu" isPassword />
+                <Input
+                    value={email}
+                    onChangeText={setEmail}
+                    icon={User}
+                    placeholder="Email hoặc số điện thoại"
+                />
+                <Input
+                    value={password}
+                    onChangeText={setPassword}
+                    icon={Lock}
+                    placeholder="Mật khẩu"
+                    isPassword
+                />
 
                 <TouchableOpacity
                     style={styles.forgotPassContainer}
@@ -57,7 +76,7 @@ export default function LoginForm() {
                     <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
                 </TouchableOpacity>
 
-                <Button title="Đăng nhập" onPress={submitAndEnterApp} />
+                <Button title={isLoading ? "Đang xử lý..." : "Đăng nhập"} onPress={submitAndEnterApp} />
 
                 <View style={styles.dividerContainer}>
                     <View style={styles.line} />

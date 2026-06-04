@@ -1,10 +1,10 @@
+// features/dashboard/components/TopBarWrapper.tsx
 import React from "react";
-import { StyleSheet, View, ActivityIndicator } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTopBarData } from "../hooks/useTopBarData";
 import { TopBar } from "./TopBar";
 import {
-    useStreak,
     StreakCelebrationModal,
     StreakModal,
     RewardModal,
@@ -21,58 +21,38 @@ interface TopBarWrapperProps {
 }
 
 export function TopBarWrapper({ children, branchConfig }: TopBarWrapperProps) {
-    const { data, loading } = useTopBarData();
-
-    const {
-        celebrationVisible,
-        streakVisible,
-        rewardVisible,
-        rewards,
-        milestones,
-        openStreak,
-        closeCelebration,
-        proceedToStreakModal,
-        handleClaimReward,
-        closeStreakModal,
-        closeRewardModal,
-    } = useStreak(data?.currentStreak ?? 7);
-
-    if (loading) {
-        return (
-            <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#5856D6" />
-            </View>
-        );
-    }
+    // Consume unified logic seamlessly from our refactored hook
+    const { data, streakManager } = useTopBarData();
 
     return (
         <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
             <TopBar
                 data={data}
                 branchConfig={branchConfig}
-                onOpenStreak={openStreak}
+                onOpenStreak={streakManager.openStreak}
             />
             <View style={styles.content}>{children}</View>
 
+            {/* Modal presentation values driven strictly via hook managers */}
             <StreakCelebrationModal
-                visible={celebrationVisible}
-                onClose={closeCelebration}
-                currentStreak={data?.currentStreak ?? 7}
-                onNext={proceedToStreakModal}
+                visible={streakManager.celebrationVisible}
+                onClose={streakManager.closeCelebration}
+                currentStreak={data.currentStreak}
+                onNext={streakManager.proceedToStreakModal}
             />
 
             <StreakModal
-                visible={streakVisible}
-                onClose={closeStreakModal}
-                currentStreak={data?.currentStreak ?? 7}
-                rewards={rewards}
-                milestones={milestones}
-                onClaimReward={handleClaimReward}
+                visible={streakManager.streakVisible}
+                onClose={streakManager.closeStreakModal}
+                currentStreak={data.currentStreak}
+                rewards={streakManager.rewards}
+                milestones={streakManager.milestones}
+                onClaimReward={streakManager.handleClaimReward}
             />
 
             <RewardModal
-                visible={rewardVisible}
-                onClose={closeRewardModal}
+                visible={streakManager.rewardVisible}
+                onClose={streakManager.closeRewardModal}
                 goldAmount={50}
                 badgeName="Huy hiệu Chăm Chỉ"
             />
@@ -83,16 +63,10 @@ export function TopBarWrapper({ children, branchConfig }: TopBarWrapperProps) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: "#5856D6", // Background colors align with the Top Bar to prevent flash gaps
+        backgroundColor: "#5856D6", // Matches bar color context smoothly
     },
     content: {
         flex: 1,
-        backgroundColor: "#FFF", // Restores screen background to normal under header
-    },
-    loaderContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
         backgroundColor: "#FFF",
     },
 });
