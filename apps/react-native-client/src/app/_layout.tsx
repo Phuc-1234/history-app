@@ -7,6 +7,7 @@ import { ActivityIndicator, View } from "react-native";
 // 1. Import SafeAreaProvider
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { store, persistor } from "../store/store";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
 SplashScreen.preventAutoHideAsync();
@@ -19,6 +20,7 @@ export default function RootLayout() {
 
     return (
         // 2. Wrap your entire application context tree
+        
         <SafeAreaProvider>
             {/* 1. Give the entire app tree access to the Redux Store */}
             <Provider store={store}>
@@ -41,6 +43,7 @@ export default function RootLayout() {
                 </PersistGate>
             </Provider>
         </SafeAreaProvider>
+       
     );
 }
 

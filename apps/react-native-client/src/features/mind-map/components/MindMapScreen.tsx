@@ -23,7 +23,7 @@ import Animated, {
     useAnimatedStyle,
     withSpring,
 } from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { SAMPLE_DATA, NODE_CONFIGS, SPRING_CONFIG, getScaleLimits, MOBILE_BREAKPOINT } from "../constants";
 import type { MindMapNode, LayoutNode } from "../types";
@@ -143,23 +143,38 @@ export default function MindMapScreen() {
     );
 
     const pinchGesture = useMemo(
-        () =>
-            Gesture.Pinch()
-                .onUpdate((e) => {
-                    const limits = getScaleLimits(false);
-                    const newScale = Math.max(limits.min, Math.min(limits.max, savedScale.value * e.scale));
-                    const ratio = newScale / savedScale.value;
-                    translateX.value = e.focalX - ratio * (e.focalX - savedTx.value);
-                    translateY.value = e.focalY - ratio * (e.focalY - savedTy.value);
-                    userScale.value = newScale;
-                })
-                .onEnd(() => {
-                    savedScale.value = userScale.value;
-                    savedTx.value = translateX.value;
-                    savedTy.value = translateY.value;
-                }),
-        []
-    );
+
+// TODO: fix this later
+() => Gesture.Pinch().enabled(false), // 👈 This completely turns it off safely
+    []
+
+//         () => {
+//     // 1. Calculate the limits here on the JS thread during memoization
+//     const isMobile = containerSize.width < MOBILE_BREAKPOINT;
+//     const limits = getScaleLimits(isMobile); 
+
+//     return Gesture.Pinch()
+//         .onUpdate((e) => {
+//             // 2. Use the pre-calculated limits safely inside the worklet
+//             const newScale = Math.max(
+//                 limits.min, 
+//                 Math.min(limits.max, savedScale.value * e.scale)
+//             );
+//             const ratio = newScale / savedScale.value;
+//             translateX.value = e.focalX - ratio * (e.focalX - savedTx.value);
+//             translateY.value = e.focalY - ratio * (e.focalY - savedTy.value);
+//             userScale.value = newScale;
+//         })
+//         .onEnd(() => {
+//             savedScale.value = userScale.value;
+//             savedTx.value = translateX.value;
+//             savedTy.value = translateY.value;
+//         });
+// }, [containerSize.width]
+
+
+
+); // 3. Re-run if container width changes (e.g., orientation change)
 
     const composedGesture = useMemo(
         () => Gesture.Race(pinchGesture, panGesture),
@@ -309,7 +324,7 @@ export default function MindMapScreen() {
     }, [nodes, fitScale]);
 
     return (
-        <View style={styles.root} onLayout={handleLayout}>
+        <GestureHandlerRootView style={styles.root} onLayout={handleLayout}>
             {/* ══ Toolbar ══ */}
             <View style={styles.toolbar}>
                 <TouchableOpacity activeOpacity={0.7} style={styles.toolbarBtn} onPress={handleExpandAll}>
@@ -376,7 +391,7 @@ export default function MindMapScreen() {
                     </Animated.View>
                 </GestureDetector>
             )}
-        </View>
+        </GestureHandlerRootView>
     );
 }
 
