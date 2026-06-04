@@ -12,6 +12,8 @@ import {
     RefreshTokenResponseBody,
     SessionTokens,
     UserProfileSummary,
+    ResendOtpRequestBody,
+    ResendOtpResponseBody
 } from "@history-app/shared";
 import { prisma } from "@history-app/shared";
 import { Session } from "@supabase/supabase-js";
@@ -297,5 +299,45 @@ export const refreshSessionToken = async (
             .json({
                 error: "Internal server error during session rotation processing.",
             });
+    }
+};
+
+export const resendOtp = async (
+    req: Request<{}, ResendOtpResponseBody, ResendOtpRequestBody>,
+    res: Response<ResendOtpResponseBody>
+): Promise<Response<ResendOtpResponseBody>> => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ 
+                status: 'error',
+                error: 'Email is required.' 
+            });
+        }
+
+        // Call service layer to trigger Supabase resend
+        const { error } = await authService.resendSignUpOtp(email);
+
+        if (error) {
+            // Catches rate-limits (HTTP 429) or invalid format errors gracefully
+            return res.status(error.status || 400).json({ 
+                status: 'error',
+                error: error.message || 'Failed to resend verification code.' 
+            });
+        }
+
+        // Matches ResendOtpSuccessResponse perfectly
+        return res.status(200).json({ 
+            status: 'success',
+            message: 'A fresh verification code has been sent successfully.' 
+        });
+
+    } catch (error) {
+        console.error('Express Controller Resend OTP Error:', error);
+        return res.status(500).json({ 
+            status: 'error',
+            error: 'Internal server error during OTP resend.' 
+        });
     }
 };

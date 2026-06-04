@@ -57,4 +57,15 @@ export class AuthService {
         });
         return { data, error };
     }
+
+    async resendSignUpOtp(email: string) {
+    return await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+            // Optional: If you ever want to redirect them to a specific site page after clicking a link
+            // redirectTo: 'https://your-app.com/welcome' 
+        }
+    });
+}
 }

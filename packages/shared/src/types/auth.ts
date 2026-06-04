@@ -132,3 +132,22 @@ export interface VerifyOtpSuccessResponse {
 export type VerifyOtpResponseBody =
     | VerifyOtpSuccessResponse
     | { error: string };
+
+
+// --- POST /auth/resend-otp ---
+export interface ResendOtpRequestBody {
+    email: string;
+}
+
+export interface ResendOtpSuccessResponse {
+    status: 'success';
+    message: string;
+}
+
+export interface ResendOtpFailureResponse {
+    status: 'error';
+    error: string;
+}
+
+// Unified strict type for the response body
+export type ResendOtpResponseBody = ResendOtpSuccessResponse | ResendOtpFailureResponse;
