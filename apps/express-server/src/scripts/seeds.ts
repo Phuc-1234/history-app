@@ -84,7 +84,7 @@ async function main() {
                 const assignedLessonId = lessonsPool[Math.floor(Math.random() * lessonsPool.length)];
 
                 // Setup blueprint answers array dependent on core schema types
-                const answersData = [];
+                const answersData: any[] = [];
                 
                 if (type === "CHOOSE") {
                     answersData.push(
