@@ -85,9 +85,10 @@ export const loginUser = async (
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res
-                .status(400)
-                .json({ error: "Email and password are required." });
+            return res.status(400).json({
+                status: 'error',
+                error: "Email and password are required.",
+            });
         }
 
         // Authenticate credentials via Service Layer
@@ -96,9 +97,32 @@ export const loginUser = async (
             password,
         });
 
-        if (error || !data.user || !data.session) {
+        // Handle errors coming from Supabase Auth
+        if (error) {
+            // Check if it's an unconfirmed email error (Supabase returns a 400 status)
+            const isUnconfirmed = error.status === 400 && 
+                                  error.message.toLowerCase().includes("confirmed");
+
+            if (isUnconfirmed) {
+                return res.status(400).json({
+                    status: 'requires_verification',
+                    error: "Email not confirmed.",
+                    requiresVerification: true,
+                });
+            }
+
+            // Default fallback for incorrect password / invalid credentials
             return res.status(401).json({
-                error: error?.message || "Invalid email or password.",
+                status: 'error',
+                error: error.message || "Invalid email or password.",
+            });
+        }
+
+        // Safety fallback check for typescript type guards
+        if (!data.user || !data.session) {
+            return res.status(401).json({
+                status: 'error',
+                error: "Invalid login session state.",
             });
         }
 
@@ -123,6 +147,7 @@ export const loginUser = async (
 
         if (!userProfile) {
             return res.status(404).json({
+                status: 'error',
                 error: "User gamification state profile not synchronized yet.",
             });
         }
@@ -138,16 +163,20 @@ export const loginUser = async (
             badgeImgUrl: userProfile.tier.badgeImgUrl,
         };
 
+        // Meets LoginSuccessResponse contract perfectly
         return res.status(200).json({
+            status: 'success',
             message: "Login verified successfully.",
             session: mapSession(data.session),
             profile,
         });
+
     } catch (error) {
         console.error("Express Controller Login Error:", error);
-        return res
-            .status(500)
-            .json({ error: "Internal server error during login." });
+        return res.status(500).json({ 
+            status: 'error',
+            error: "Internal server error during login." 
+        });
     }
 };
 
