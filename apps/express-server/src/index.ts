@@ -1,16 +1,24 @@
 // index.ts
 import express, { Application, Request, Response, NextFunction } from "express";
-import cors from "cors";
+
 import dotenv from "dotenv";
+import path from "path";
+// Load environment variables (.env)
+dotenv.config({
+    path: path.resolve(__dirname, '../.env')
+});
+
+import cors from "cors";
+
 import authRoutes from "./routes/authRoutes";
-import userRoutes from "./routes/userRoutes";
+import userRoutes from "./routes/userRoutes"; 
 import contentRoutes from "./routes/contentRoutes";
 import gamificationRoutes from "./routes/gamificationRoutes";
 import testsRoutes from "./routes/testsRoutes";
 import testLogsRoutes from "./routes/testLogsRoutes";
 
-// Load environment variables (.env)
-dotenv.config();
+
+
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
