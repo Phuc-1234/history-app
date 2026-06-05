@@ -25,39 +25,60 @@ export function useAuthForm() {
 
     const submitAndEnterApp = useCallback(async () => {
         if (!email || !password) {
-            Alert.alert("Missing Fields", "Please key in both email and password.");
+            Alert.alert(
+                "Thiếu thông tin",
+                "Vui lòng nhập đầy đủ email và mật khẩu.",
+            );
             return;
         }
 
         try {
-            // Execute request through RTK Query mutation wrapper
             const response = await login({ email, password }).unwrap();
-            
-            // Commit user details to state engine
-            dispatch(setProfile(response.profile));
-            
-            // Seamless routing swap to internal systems
-            router.replace("/(tabs)/2_1_lessons");
-        } catch (error: any) {
-            console.error("Login attempt failure:", error);
 
-            if (error?.data?.requiresVerification) {
+            // 1. Handle Unverified Status
+            if (response.status === "requires_verification") {
                 router.push({
-                pathname: "/(1_auth)/1_6_otp_confirm",
-                params: { 
-                    email: email.trim().toLowerCase(),
-                    autoSend: "true" 
-                },
-            });
+                    pathname: "/(1_auth)/1_6_otp_confirm",
+                    params: {
+                        email: email.trim().toLowerCase(),
+                        autoSend: "true",
+                    },
+                });
                 return;
             }
 
-            const errorMessage = error?.data?.error || "Invalid server credentials.";
-            Alert.alert("Authentication Failed", errorMessage);
-        }
-    }, [email, password, login, dispatch, router]);
+            // 2. Handle Explicit Error status (if backend returns errors as 200 status codes)
+            if (response.status === "error") {
+                Alert.alert("Lỗi đăng nhập", response.error);
+                return;
+            }
+            // 3. Handle Clean Success Destination Routing
+            if ("session" in response && response.session) {
+                router.replace("/(tabs)/2_1_lessons");
+                return;
+            }
+        } catch (error: any) {
+            console.error("Login attempt failure:", error);
 
-    
+            // Fallback for standard 4xx/5xx HTTP server rejections
+            if (error?.data?.requiresVerification) {
+                router.push({
+                    pathname: "/(1_auth)/1_6_otp_confirm",
+                    params: {
+                        email: email.trim().toLowerCase(),
+                        autoSend: "true",
+                    },
+                });
+                return;
+            }
+
+            const errorMessage =
+                error?.data?.error ||
+                "Tài khoản hoặc mật khẩu không chính xác.";
+            Alert.alert("Đăng nhập thất bại", errorMessage);
+        }
+    }, [email, password, login, router]);
+
     const enterAsGuest = useCallback(() => {
         router.replace("/(tabs)/2_1_lessons");
     }, [router]);

@@ -13,7 +13,7 @@ const getAuthToken = async () => {
   //   return await SecureStore.getItemAsync('user_token');
   // }
   
-  return await AsyncStorage.getItem('user_token');
+  return await AsyncStorage.getItem('access_token');
 };
 
 export const apiSlice = createApi({

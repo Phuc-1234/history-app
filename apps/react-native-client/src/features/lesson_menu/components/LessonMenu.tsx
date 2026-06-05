@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLessonMenu, Topic, Lesson } from "../hooks/useLessonMenu";
+import { TopBarWrapper } from "@/features/top_bar";
 
 interface LessonMenuProps {
     onLessonPress: (id: string) => void;
@@ -41,6 +42,7 @@ export function LessonMenu({
     }
 
     return (
+        <TopBarWrapper>
         <View style={styles.container}>
             {/* --- Grade Selector Tab Bar --- */}
             <View style={styles.gradeTabsContainer}>
@@ -234,7 +236,7 @@ export function LessonMenu({
                     </View>
                 )}
             </ScrollView>
-        </View>
+        </View></TopBarWrapper> 
     );
 }
 

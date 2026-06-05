@@ -17,7 +17,7 @@ export const appLogout = createAsyncThunk(
     async (_, { dispatch }) => {
         try {
             // 1. Completely delete your authentication tokens from device storage
-            await AsyncStorage.removeItem("user_token");
+            AsyncStorage.multiRemove(["user_token", "refresh_token"])
             
             // 2. Clear all RTK Query API cache tables completely 
             // This prevents an absolute security flaw where a logged-out user could still see old queries

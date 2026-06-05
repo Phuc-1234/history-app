@@ -1,3 +1,4 @@
+import { setProfile } from "@/features/auth/store/authSlice";
 import { useState, useEffect } from "react";
 
 export interface Lesson {
@@ -21,6 +22,9 @@ export interface GradeData {
 }
 
 export function useLessonMenu() {
+
+    
+
     const [selectedGrade, setSelectedGrade] = useState<number>(11); // Defaults to Grade 11 like your screenshot
     const [expandedTopicId, setExpandedTopicId] = useState<string | null>(
         "topic-1",
