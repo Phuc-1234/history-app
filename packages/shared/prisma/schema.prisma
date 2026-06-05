@@ -124,7 +124,7 @@ model UserFlashcard {
 }
 
 model Test {
-  id             String         @id @default(uuid())
+  id             String         @id @default(dbgenerated("gen_random_uuid()"))
   isManual       Boolean        @default(false) @map("is_manual")
   isNationalTest Boolean        @default(false) @map("is_national_test")
   questionNumber Int            @map("question_number")
@@ -151,6 +151,7 @@ model Question {
   id             Int              @id @default(autoincrement())
   type           QuestionType
   difficulty     Int              @default(1)
+  document       String?
   promptText     String           @map("prompt_text")
   gradeId        Int?             @map("grade_id")
   topicId        Int?             @map("topic_id")

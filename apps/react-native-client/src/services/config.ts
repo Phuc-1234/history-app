@@ -1,8 +1,9 @@
 import { Platform } from "react-native";
 
 
+let PRODUCTION_URL
 // 1. Get your production URL injected cleanly by Expo (no 'dotenv' needed!)
-const PRODUCTION_URL = process.env.EXPO_PUBLIC_API_URL_PRODUCTION;
+// PRODUCTION_URL = process.env.EXPO_PUBLIC_API_URL_PRODUCTION;
 // FIXME: Replace this with your computer's actual local Wi-Fi IP address
 // (Open cmd, type 'ipconfig', and look for 'IPv4 Address')
 const LOCAL_COMPUTER_IP = "192.168.1.X";

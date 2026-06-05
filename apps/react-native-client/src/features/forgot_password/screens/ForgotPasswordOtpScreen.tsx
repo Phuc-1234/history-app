@@ -29,9 +29,15 @@ export default function ForgotPasswordOtpScreen() {
     const onChange = (value: string, index: number) => {
         const clean = value.replace(/[^0-9]/g, "");
         const next = [...otp];
+        
+        // Grab the last character entered to handle fast-typing overwrites
         next[index] = clean ? clean[clean.length - 1] : "";
         setOtp(next);
-        if (clean && index < 5) refs.current[index + 1]?.focus();
+        
+        // Move focus forward cleanly
+        if (clean && index < 5) {
+            refs.current[index + 1]?.focus();
+        }
     };
 
     return (

@@ -40,6 +40,18 @@ export function useAuthForm() {
             router.replace("/(tabs)/2_1_lessons");
         } catch (error: any) {
             console.error("Login attempt failure:", error);
+
+            if (error?.data?.requiresVerification) {
+                router.push({
+                pathname: "/(1_auth)/1_6_otp_confirm",
+                params: { 
+                    email: email.trim().toLowerCase(),
+                    autoSend: "true" 
+                },
+            });
+                return;
+            }
+
             const errorMessage = error?.data?.error || "Invalid server credentials.";
             Alert.alert("Authentication Failed", errorMessage);
         }

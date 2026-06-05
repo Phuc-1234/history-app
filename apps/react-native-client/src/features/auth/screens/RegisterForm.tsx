@@ -1,27 +1,41 @@
-import React from "react";
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
+    ActivityIndicator,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { User, Lock } from "lucide-react-native";
+import { User, Lock, Mail } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import SocialLoginButtons from "../components/SocialLoginButtons";
-import useAuthForm from "../hooks/useAuthForm";
+import useRegisterForm from "../hooks/useRegisterForm"; // Using your brand new hook
 
 export default function RegisterForm() {
-    const { navigateToLogin, submitAndEnterApp } = useAuthForm();
+    const {
+        name,
+        setName,
+        email,
+        setEmail,
+        password,
+        setPassword,
+        confirmPassword,
+        setConfirmPassword,
+        formError,
+        isLoading,
+        navigateToLogin,
+        handleRegister,
+    } = useRegisterForm();
 
     return (
         <ScrollView
             contentContainerStyle={styles.scrollContainer}
             bounces={false}
+            keyboardShouldPersistTaps="handled"
         >
             <LinearGradient
                 colors={["#4332eb", "#593df2", "#7b4fff"]}
@@ -43,12 +57,52 @@ export default function RegisterForm() {
             <View style={styles.formContainer}>
                 <Text style={styles.title}>Đăng ký</Text>
 
-                <Input icon={User} placeholder="Tên" />
-                <Input icon={User} placeholder="Email hoặc số điện thoại" />
-                <Input icon={Lock} placeholder="Mật khẩu" isPassword />
-                <Input icon={Lock} placeholder="Xác nhận mật khẩu" isPassword />
+                {/* Display client/backend errors gracefully above fields */}
+                {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
 
-                <Button title="Đăng ký" onPress={submitAndEnterApp} />
+                <Input
+                    icon={User}
+                    placeholder="Tên"
+                    value={name}
+                    autoCapitalize="words"
+                    onChangeText={setName}
+                    editable={!isLoading}
+                />
+                <Input
+                    icon={Mail} // Using separate Mail icon if available for clarity
+                    placeholder="Email" 
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                />
+                <Input 
+                    icon={Lock} 
+                    placeholder="Mật khẩu" 
+                    isPassword 
+                    value={password}
+                    onChangeText={setPassword}
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                />
+                <Input 
+                    icon={Lock} 
+                    placeholder="Xác nhận mật khẩu" 
+                    isPassword 
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                />
+
+                {isLoading ? (
+                    <View style={styles.loadingWrapper}>
+                        <ActivityIndicator size="small" color="#593df2" />
+                    </View>
+                ) : (
+                    <Button title="Đăng ký" onPress={handleRegister} />
+                )}
 
                 <View style={styles.dividerContainer}>
                     <View style={styles.line} />
@@ -63,6 +117,7 @@ export default function RegisterForm() {
                     <TouchableOpacity
                         activeOpacity={0.6}
                         onPress={navigateToLogin}
+                        disabled={isLoading}
                     >
                         <Text style={styles.registerText}>Đăng nhập</Text>
                     </TouchableOpacity>
@@ -80,6 +135,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    errorText: { color: "#FF3B30", fontSize: 14, fontWeight: "600", marginBottom: 12, textAlign: "center" },
+    loadingWrapper: { height: 48, justifyContent: "center", alignItems: "center" },
     logoContainer: { position: "relative", marginBottom: 12 },
     star: {
         position: "absolute",
