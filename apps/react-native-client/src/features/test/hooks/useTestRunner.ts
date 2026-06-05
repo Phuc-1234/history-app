@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useDispatch } from "react-redux";
 import { Question, TestResult } from "../types";
+import { addAttempt } from "../store/testHistorySlice";
 
 const MOCK_QUESTIONS: Question[] = [
     {
@@ -56,12 +58,14 @@ const MOCK_QUESTIONS: Question[] = [
 ];
 
 export function useTestRunner(initialTimeInSeconds = 900) {
+    const dispatch = useDispatch();
     const [questions] = useState<Question[]>(MOCK_QUESTIONS);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, any>>({});
     const [timeLeft, setTimeLeft] = useState(initialTimeInSeconds);
     const [status, setStatus] = useState<"not-started" | "running" | "completed">("not-started");
     const [result, setResult] = useState<TestResult | null>(null);
+    const [lastAttemptId, setLastAttemptId] = useState<string | null>(null);
 
     const timerRef = useRef<any>(null);
 
@@ -220,6 +224,27 @@ export function useTestRunner(initialTimeInSeconds = 900) {
             correctAnswersCount: correctCount,
             gradedAnswers: graded
         });
+
+        // Save to Redux history
+        const attemptId = `attempt-${Date.now()}`;
+        const finalScore = Math.round((correctCount / questions.length) * 100);
+        const now = new Date();
+        const pad = (n: number) => n.toString().padStart(2, "0");
+        const dateStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+        dispatch(addAttempt({
+            id: attemptId,
+            testId: "test-theme-1",
+            testTitle: "Kiểm tra Chủ đề 1",
+            timestamp: dateStr,
+            score: finalScore,
+            correctAnswersCount: correctCount,
+            totalQuestions: questions.length,
+            answers,
+            gradedAnswers: graded,
+            questions
+        }));
+        setLastAttemptId(attemptId);
     };
 
     const handleStart = () => {
@@ -232,6 +257,7 @@ export function useTestRunner(initialTimeInSeconds = 900) {
         setTimeLeft(initialTimeInSeconds);
         setStatus("running");
         setResult(null);
+        setLastAttemptId(null);
     };
 
     // Formatted time: mm:ss
@@ -259,6 +285,7 @@ export function useTestRunner(initialTimeInSeconds = 900) {
         formattedTime: formatTime(timeLeft),
         status,
         result,
+        lastAttemptId,
         actions: {
             start: handleStart,
             answerSingle: handleAnswerSingle,

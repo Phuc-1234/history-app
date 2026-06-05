@@ -9,6 +9,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 import { User, Lock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
@@ -16,7 +17,17 @@ import SocialLoginButtons from "../components/SocialLoginButtons";
 import useAuthForm from "../hooks/useAuthForm";
 
 export default function LoginForm() {
-    const { navigateToRegister, submitAndEnterApp } = useAuthForm();
+    const {
+        email,
+        setEmail,
+        password,
+        setPassword,
+        isLoading,
+        navigateToRegister,
+        navigateToLogin,
+        submitAndEnterApp,
+        enterAsGuest,
+    } = useAuthForm();
 
     return (
         <ScrollView
@@ -44,36 +55,64 @@ export default function LoginForm() {
 
             <View style={styles.formContainer}>
                 <Text style={styles.title}>Đăng nhập</Text>
-
-                <Input icon={User} placeholder="Email hoặc số điện thoại" />
-                <Input icon={Lock} placeholder="Mật khẩu" isPassword />
-
+                <Input
+                    value={email}
+                    onChangeText={setEmail}
+                    icon={User}
+                    placeholder="Email hoặc số điện thoại"
+                />
+                <Input
+                    value={password}
+                    onChangeText={setPassword}
+                    icon={Lock}
+                    placeholder="Mật khẩu"
+                    isPassword
+                />
                 <TouchableOpacity
                     style={styles.forgotPassContainer}
                     activeOpacity={0.6}
+                    onPress={() => router.push("/(1_auth)/1_3_forgot")}
                 >
                     <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
                 </TouchableOpacity>
-
-                <Button title="Đăng nhập" onPress={submitAndEnterApp} />
-
+                <Button
+                    title={isLoading ? "Đang xử lý..." : "Đăng nhập"}
+                    onPress={submitAndEnterApp}
+                />
+                
+                <TouchableOpacity
+                    style={{ alignSelf: "center", marginTop: 14, marginBottom: 14 }}
+                    activeOpacity={0.6}
+                    onPress={enterAsGuest}
+                >
+                    <Text
+                        style={{
+                            color: "#718096",
+                            fontSize: 13,
+                            fontWeight: "600",
+                            textDecorationLine: "underline",
+                        }}
+                    >
+                        Tiếp tục với tư cách khách
+                    </Text>
+                </TouchableOpacity>
                 <View style={styles.dividerContainer}>
                     <View style={styles.line} />
                     <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP BẰNG</Text>
                     <View style={styles.line} />
                 </View>
-
                 <SocialLoginButtons />
-
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-                    <TouchableOpacity activeOpacity={0.6} onPress={navigateToRegister}>
+                    <TouchableOpacity
+                        activeOpacity={0.6}
+                        onPress={navigateToRegister}
+                    >
                         <Text style={styles.registerText}>Đăng ký ngay</Text>
                     </TouchableOpacity>
                 </View>
             </View>
         </ScrollView>
-        
     );
 }
 

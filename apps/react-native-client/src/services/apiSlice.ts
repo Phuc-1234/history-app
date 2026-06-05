@@ -1,16 +1,19 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+// import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { API_BASE_URL } from './config';
 
+// TODO: use secure storeage for prod
 // Safe secure key retrieval based on active platform target
 const getAuthToken = async () => {
-  if (Platform.OS === 'web') {
-    return await AsyncStorage.getItem('user_token');
-  } else {
-    return await SecureStore.getItemAsync('user_token');
-  }
+  // if (Platform.OS === 'web') {
+  //   return await AsyncStorage.getItem('user_token');
+  // } else {
+  //   return await SecureStore.getItemAsync('user_token');
+  // }
+  
+  return await AsyncStorage.getItem('user_token');
 };
 
 export const apiSlice = createApi({
