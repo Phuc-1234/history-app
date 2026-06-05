@@ -297,7 +297,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base-url}}/api/content/grades/10/topics",
+              "raw": "{{base-url}}/api/content/grades/11/topics",
               "host": [
                 "{{base-url}}"
               ],
@@ -305,7 +305,7 @@
                 "api",
                 "content",
                 "grades",
-                "10",
+                "11",
                 "topics"
               ]
             }
@@ -463,16 +463,22 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base-url}}/api/content/grades/10/topics",
+              "raw": "{{base-url}}/api/content/grade-struct/:gradeId",
               "host": [
                 "{{base-url}}"
               ],
               "path": [
                 "api",
                 "content",
-                "grades",
-                "10",
-                "topics"
+                "grade-struct",
+                ":gradeId"
+              ],
+              "variable": [
+                {
+                  "key": "gradeId",
+                  "value": "10",
+                  "uuid": "410e9da8-0016-4b61-8e81-ab4b993ed270"
+                }
               ]
             }
           },

@@ -10,6 +10,7 @@ import {
     TopicWithContentsDto,
     GradeStructureDto,
     CompactTestDto,
+    LessonWithContentDto
 } from "@history-app/shared";
 
 export class ContentService {
@@ -99,9 +100,28 @@ export class ContentService {
         return roots;
     }
 
-    async getLessonTree(lessonId: number): Promise<SectionDto[]> {
-        // Fetch sections and nodes, then assemble tree where nodes are attached to sections
-        const [sections, nodes] = await Promise.all([
+    async getLessonTree(
+        lessonId: number,
+    ): Promise<LessonWithContentDto | null> {
+        // 1. Fetch lesson details along with its nested videos and sections in parallel
+        const [lessonData, sections] = await Promise.all([
+            prisma.lesson.findUnique({
+                where: { id: lessonId },
+                select: {
+                    id: true,
+                    name: true,
+                    summary: true,
+                    position: true,
+                    topicId: true,
+                    videos: {
+                        select: {
+                            id: true,
+                            hlsUrl: true,
+                        },
+                        orderBy: { position: "asc" },
+                    },
+                },
+            }),
             prisma.section.findMany({
                 where: { lessonId },
                 select: {
@@ -114,32 +134,32 @@ export class ContentService {
                 },
                 orderBy: { position: "asc" },
             }),
-            prisma.node.findMany({
-                where: {
-                    sectionId: {
-                        in: (
-                            await prisma.section.findMany({
-                                where: { lessonId },
-                                select: { id: true },
-                            })
-                        ).map((s) => s.id),
-                    },
-                },
-                select: {
-                    id: true,
-                    position: true,
-                    header: true,
-                    body: true,
-                    imgUrl: true,
-                    sectionId: true,
-                },
-            }),
         ]);
 
+        if (!lessonData) return null;
+
+        // 2. Fetch nodes cleanly by targeting the extracted section IDs from step 1
+        const sectionIds = sections.map((s) => s.id);
+        const nodes = await prisma.node.findMany({
+            where: {
+                sectionId: { in: sectionIds },
+            },
+            select: {
+                id: true,
+                position: true,
+                header: true,
+                body: true,
+                imgUrl: true,
+                sectionId: true,
+            },
+        });
+
+        // 3. Reconstruct tree elements using map mapping structures
         const map = new Map<
             number,
             SectionDto & { children: SectionDto[]; nodes: NodeDto[] }
         >();
+
         for (const s of sections) {
             map.set(s.id, {
                 id: s.id,
@@ -178,7 +198,16 @@ export class ContentService {
             }
         }
 
-        return roots;
+        // 4. Return parent lesson wrapper along with attached nested lists
+        return {
+            id: lessonData.id,
+            name: lessonData.name,
+            summary: lessonData.summary ?? null,
+            position: lessonData.position,
+            topicId: lessonData.topicId,
+            videos: lessonData.videos,
+            sections: roots,
+        };
     }
 
     async getMindMap(params: {
@@ -195,7 +224,9 @@ export class ContentService {
         let rootNode: MindMapNode;
 
         if (gradeId !== undefined) {
-            const grade = await prisma.grade.findUnique({ where: { id: gradeId } });
+            const grade = await prisma.grade.findUnique({
+                where: { id: gradeId },
+            });
             if (!grade) throw new Error("Grade not found");
 
             topics = await prisma.topic.findMany({
@@ -228,7 +259,9 @@ export class ContentService {
                 children: [],
             };
         } else if (topicId !== undefined) {
-            const topic = await prisma.topic.findUnique({ where: { id: topicId } });
+            const topic = await prisma.topic.findUnique({
+                where: { id: topicId },
+            });
             if (!topic) throw new Error("Topic not found");
 
             topics = [topic];
@@ -257,7 +290,9 @@ export class ContentService {
                 children: [],
             };
         } else if (lessonId !== undefined) {
-            const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+            const lesson = await prisma.lesson.findUnique({
+                where: { id: lessonId },
+            });
             if (!lesson) throw new Error("Lesson not found");
 
             lessons = [lesson];
@@ -396,59 +431,63 @@ export class ContentService {
     }
 
     async getGradeStructure(gradeId: number): Promise<GradeStructureDto> {
-    const gradeTest = await prisma.test.findFirst({
-        where: { gradeId },
-        orderBy: { id: 'asc' }
-    });
+        const gradeTest = await prisma.test.findFirst({
+            where: { gradeId },
+            orderBy: { id: "asc" },
+        });
 
-    const topics = await prisma.topic.findMany({
-        where: { gradeId },
-        orderBy: { position: 'asc' },
-        include: {
-            lessons: {
-                orderBy: { position: 'asc' }
+        const topics = await prisma.topic.findMany({
+            where: { gradeId },
+            orderBy: { position: "asc" },
+            include: {
+                lessons: {
+                    orderBy: { position: "asc" },
+                },
+                tests: {
+                    where: { topicId: { not: null } },
+                    orderBy: { id: "asc" },
+                },
             },
-            tests: {
-                where: { topicId: { not: null } },
-                orderBy: { id: 'asc' }
-            }
-        }
-    });
+        });
 
-    const formattedTopics: TopicWithContentsDto[] = topics.map((topic) => {
-        const firstTopicTest = topic.tests[0] || null;
+        const formattedTopics: TopicWithContentsDto[] = topics.map((topic) => {
+            const firstTopicTest = topic.tests[0] || null;
+
+            return {
+                id: topic.id,
+                name: topic.name,
+                position: topic.position,
+                gradeId: topic.gradeId,
+                lessons: topic.lessons.map((lesson) => ({
+                    id: lesson.id,
+                    name: lesson.name,
+                    summary: lesson.summary ?? null,
+                    position: lesson.position,
+                    topicId: lesson.topicId,
+                })),
+                firstTest: firstTopicTest
+                    ? {
+                          id: firstTopicTest.id,
+                          title: firstTopicTest.title,
+                          questionNumber: firstTopicTest.questionNumber,
+                          timeLimit: firstTopicTest.timeLimit,
+                      }
+                    : null,
+            };
+        });
 
         return {
-            id: topic.id,
-            name: topic.name,
-            position: topic.position,
-            gradeId: topic.gradeId,
-            lessons: topic.lessons.map((lesson) => ({
-                id: lesson.id,
-                name: lesson.name,
-                summary: lesson.summary ?? null,
-                position: lesson.position,
-                topicId: lesson.topicId,
-            })),
-            firstTest: firstTopicTest ? {
-                id: firstTopicTest.id,
-                title: firstTopicTest.title,
-                questionNumber: firstTopicTest.questionNumber,
-                timeLimit: firstTopicTest.timeLimit,
-            } : null
+            topics: formattedTopics,
+            gradeFirstTest: gradeTest
+                ? {
+                      id: gradeTest.id,
+                      title: gradeTest.title,
+                      questionNumber: gradeTest.questionNumber,
+                      timeLimit: gradeTest.timeLimit,
+                  }
+                : null,
         };
-    });
-
-    return {
-        topics: formattedTopics,
-        gradeFirstTest: gradeTest ? {
-            id: gradeTest.id,
-            title: gradeTest.title,
-            questionNumber: gradeTest.questionNumber,
-            timeLimit: gradeTest.timeLimit,
-        } : null
-    };
-}
+    }
 }
 
 export const contentService = new ContentService();

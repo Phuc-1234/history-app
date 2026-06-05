@@ -11,7 +11,8 @@ import {
     MindMapRequestQuery,
     GetGradeStructureParams,
     GetGradeStructureResponse,
-} from "@history-app/shared";
+    GetLessonTreeParams
+} from "@history-app/shared"; 
 
 export const getAllGrades = async (
     req: Request<{}, GetGradesResponse, {}>,
@@ -98,16 +99,22 @@ export const getSectionsByLesson = async (
 
 
 export const getLessonTree = async (
-    req: Request<{ lessonId: string }, GetLessonTreeResponse, {}>,
+    req: Request<GetLessonTreeParams, GetLessonTreeResponse, {}>,
     res: Response<GetLessonTreeResponse>,
 ) => {
     try {
         const lessonId = Number(req.params.lessonId);
-        if (Number.isNaN(lessonId))
+        if (Number.isNaN(lessonId)) {
             return res.status(400).json({ error: "Invalid lessonId" });
+        }
 
         const tree = await contentService.getLessonTree(lessonId);
-        return res.status(200).json({ tree });
+        if (!tree) {
+            return res.status(404).json({ error: "Lesson not found." });
+        }
+
+        // Return the object directly to match LessonWithContentDto contract
+        return res.status(200).json(tree);
     } catch (err) {
         console.error("Fetch lesson tree error:", err);
         return res.status(500).json({ error: "Failed to fetch lesson tree." });

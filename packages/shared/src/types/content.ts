@@ -54,8 +54,7 @@ export type GetSectionsResponse =
     | { sections: SectionDto[] }
     | { error: string };
 
-// Tree response for a lesson: top-level sections (with children recursively) and stand-alone nodes
-export type GetLessonTreeResponse = { tree: SectionDto[] } | { error: string };
+
 
 // ---- Mind Map Types ----
 export interface MindMapNode {
@@ -101,3 +100,20 @@ export interface GradeStructureDto {
 
 export type GetGradeStructureParams = { gradeId: string };
 export type GetGradeStructureResponse = GradeStructureDto | { error: string };
+
+
+
+// new lesson sum
+export interface CompactVideoDto {
+    id: string;
+    hlsUrl: string;
+}
+
+export interface LessonWithContentDto extends LessonDto {
+    videos: CompactVideoDto[];
+    sections: SectionDto[];
+}
+
+// Explicit API Contract types
+export type GetLessonTreeParams = { lessonId: string };
+export type GetLessonTreeResponse = LessonWithContentDto | { error: string };
