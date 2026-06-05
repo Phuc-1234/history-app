@@ -268,7 +268,7 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                         <Star size={18} color="#3182CE" fill="#90CDF4" />
                                     </View>
                                     <Text style={styles.completedStatValue}>
-                                        {result ? result.score * 10 : 0}/100
+                                        {result ? result.score : 0}/100
                                     </Text>
                                     <Text style={styles.completedStatLabel}>ĐIỂM</Text>
                                 </View>
