@@ -75,3 +75,29 @@ export interface MindMapRequestQuery {
 
 export type GetMindMapResponse = { tree: MindMapNode } | { error: string };
 
+
+// get grade structure
+
+export interface CompactTestDto {
+    id: string;
+    title: string;
+    questionNumber: number;
+    timeLimit: number | null;
+}
+
+export interface TopicWithContentsDto {
+    id: number;
+    name: string;
+    position: number;
+    gradeId: number;
+    lessons: LessonDto[];
+    firstTest: CompactTestDto | null;
+}
+
+export interface GradeStructureDto {
+    topics: TopicWithContentsDto[];
+    gradeFirstTest: CompactTestDto | null;
+}
+
+export type GetGradeStructureParams = { gradeId: string };
+export type GetGradeStructureResponse = GradeStructureDto | { error: string };

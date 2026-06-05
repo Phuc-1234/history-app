@@ -455,6 +455,28 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "grade struct",
+          "id": "94fd9b51-fc79-4169-9ee3-9c4d230c5515",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/content/grades/10/topics",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "content",
+                "grades",
+                "10",
+                "topics"
+              ]
+            }
+          },
+          "response": []
         }
       ],
       "id": "cf37593e-8491-4510-83b3-1bf4cb71773a"

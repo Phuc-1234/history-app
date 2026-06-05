@@ -7,6 +7,9 @@ import {
     TopicDto,
     GradeDto,
     MindMapNode,
+    TopicWithContentsDto,
+    GradeStructureDto,
+    CompactTestDto,
 } from "@history-app/shared";
 
 export class ContentService {
@@ -391,6 +394,61 @@ export class ContentService {
 
         return rootNode;
     }
+
+    async getGradeStructure(gradeId: number): Promise<GradeStructureDto> {
+    const gradeTest = await prisma.test.findFirst({
+        where: { gradeId },
+        orderBy: { id: 'asc' }
+    });
+
+    const topics = await prisma.topic.findMany({
+        where: { gradeId },
+        orderBy: { position: 'asc' },
+        include: {
+            lessons: {
+                orderBy: { position: 'asc' }
+            },
+            tests: {
+                where: { topicId: { not: null } },
+                orderBy: { id: 'asc' }
+            }
+        }
+    });
+
+    const formattedTopics: TopicWithContentsDto[] = topics.map((topic) => {
+        const firstTopicTest = topic.tests[0] || null;
+
+        return {
+            id: topic.id,
+            name: topic.name,
+            position: topic.position,
+            gradeId: topic.gradeId,
+            lessons: topic.lessons.map((lesson) => ({
+                id: lesson.id,
+                name: lesson.name,
+                summary: lesson.summary ?? null,
+                position: lesson.position,
+                topicId: lesson.topicId,
+            })),
+            firstTest: firstTopicTest ? {
+                id: firstTopicTest.id,
+                title: firstTopicTest.title,
+                questionNumber: firstTopicTest.questionNumber,
+                timeLimit: firstTopicTest.timeLimit,
+            } : null
+        };
+    });
+
+    return {
+        topics: formattedTopics,
+        gradeFirstTest: gradeTest ? {
+            id: gradeTest.id,
+            title: gradeTest.title,
+            questionNumber: gradeTest.questionNumber,
+            timeLimit: gradeTest.timeLimit,
+        } : null
+    };
+}
 }
 
 export const contentService = new ContentService();

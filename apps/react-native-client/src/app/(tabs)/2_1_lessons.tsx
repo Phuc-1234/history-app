@@ -5,12 +5,12 @@ import { useRouter } from "expo-router";
 
 export default function LessonsScreen() {
     const router = useRouter();
-    const handleLessonNavigation = (id: string) => {
+    const handleLessonNavigation = (id: number) => {
         console.log(`${id}`);
         router.push(`/(3_4_lessons)/lesson/${id}`)
     };
 
-    const handleMindmapView = (topicId: string) => {
+    const handleMindmapView = (topicId: number) => {
         console.log(`Open context-mindmap for Topic ID: ${topicId}`);
     };
 

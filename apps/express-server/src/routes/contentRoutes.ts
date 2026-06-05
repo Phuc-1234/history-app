@@ -7,6 +7,7 @@ import {
     getSectionsByLesson,
     getLessonTree,
     getMindMap,
+    getGradeStructure,
 } from "../controllers/contentController";
 
 const router = Router();
@@ -29,4 +30,8 @@ router.get("/lessons/:lessonId/tree", getLessonTree);
 // GET /api/content/mindmap
 router.get("/mindmap", getMindMap);
 
+// GET /api/content/grade-struct/:gradeId
+router.get("/grade-struct/:gradeId", getGradeStructure);
+
 export default router;
+ 

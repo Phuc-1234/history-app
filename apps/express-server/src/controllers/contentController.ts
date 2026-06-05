@@ -9,6 +9,8 @@ import {
     GetLessonTreeResponse,
     GetMindMapResponse,
     MindMapRequestQuery,
+    GetGradeStructureParams,
+    GetGradeStructureResponse,
 } from "@history-app/shared";
 
 export const getAllGrades = async (
@@ -58,6 +60,24 @@ export const getLessonsByTopic = async (
     }
 };
 
+export const getGradeStructure = async (
+    req: Request<GetGradeStructureParams, GetGradeStructureResponse, {}>,
+    res: Response<GetGradeStructureResponse>,
+) => {
+    try {
+        const gradeId = Number(req.params.gradeId);
+        if (Number.isNaN(gradeId)) {
+            return res.status(400).json({ error: "Invalid gradeId" });
+        }
+
+        const gradeStructure = await contentService.getGradeStructure(gradeId);
+        return res.status(200).json(gradeStructure);
+    } catch (err) {
+        console.error("Fetch grade structure error:", err);
+        return res.status(500).json({ error: "Failed to fetch grade structure." });
+    }
+};
+
 export const getSectionsByLesson = async (
     req: Request<{ lessonId: string }, GetSectionsResponse, {}>,
     res: Response<GetSectionsResponse>,
@@ -74,6 +94,8 @@ export const getSectionsByLesson = async (
         return res.status(500).json({ error: "Failed to fetch sections." });
     }
 };
+
+
 
 export const getLessonTree = async (
     req: Request<{ lessonId: string }, GetLessonTreeResponse, {}>,
