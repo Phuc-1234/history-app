@@ -198,7 +198,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n   \r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"token\": \"76995889\" \r\n\r\n}",
+              "raw": "{\r\n   \r\n    \"email\": \"{{my_email}}\"\r\n \r\n\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -206,14 +206,14 @@
               }
             },
             "url": {
-              "raw": "{{base-url}}/api/auth/verify-otp",
+              "raw": "{{base-url}}/api/auth/resend-otp",
               "host": [
                 "{{base-url}}"
               ],
               "path": [
                 "api",
                 "auth",
-                "verify-otp"
+                "resend-otp"
               ]
             }
           },
@@ -644,6 +644,45 @@
       "item": [
         {
           "name": "start test",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "0052d433-ff26-431f-a21d-63cff3214f71",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "49102032-64ad-4a30-9f5c-9b54f76c4e63",
+                "exec": [
+                  "// 1. Parse the incoming response JSON payload\r",
+                  "const responseData = pm.response.json();\r",
+                  "\r",
+                  "\r",
+                  "const userTestLogId = responseData.userTestLogId\r",
+                  "\r",
+                  "if (userTestLogId) {\r",
+                  "    // 3. Save it automatically into your current active environment vault\r",
+                  "    pm.environment.set(\"userTestLogId\", userTestLogId);\r",
+                  "   \r",
+                  "    console.log(\"userTestLogId successfully!\");\r",
+                  "} else {\r",
+                  "    console.warn(\"Could not find userTestLogId in the response payload.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "id": "25f55def-d1af-4504-9e13-d3975cf19b2d",
           "request": {
             "method": "POST",
@@ -662,7 +701,7 @@
               "variable": [
                 {
                   "key": "testId",
-                  "value": ""
+                  "value": "dcf7d975-096c-4f3b-93a7-a440f827f56c"
                 }
               ]
             }
@@ -671,26 +710,68 @@
         },
         {
           "name": "jump",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "aae702f0-7b9d-4a14-859f-e25632272140",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "0d4ec463-243e-4cd4-9fde-3f09e667de37",
+                "exec": [
+                  "// 1. Parse the incoming response JSON payload\r",
+                  "const responseData = pm.response.json();\r",
+                  "\r",
+                  "\r",
+                  "const questionId = responseData.question.id\r",
+                  "\r",
+                  "if (questionId) {\r",
+                  "    // 3. Save it automatically into your current active environment vault\r",
+                  "    pm.environment.set(\"questionId\", questionId);\r",
+                  "   \r",
+                  "    console.log(\"questionId successfully!\");\r",
+                  "} else {\r",
+                  "    console.warn(\"Could not find questionId in the response payload.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "id": "960d3f94-d75a-4e42-ac74-e7c603f5725f",
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"targetIndex\": 5\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{base-url}}/api/test-logs/:logId/jump",
+              "raw": "{{base-url}}/api/test-logs/{{userTestLogId}}/jump",
               "host": [
                 "{{base-url}}"
               ],
               "path": [
                 "api",
                 "test-logs",
-                ":logId",
+                "{{userTestLogId}}",
                 "jump"
-              ],
-              "variable": [
-                {
-                  "key": "logId",
-                  "value": ""
-                }
               ]
             }
           },
@@ -702,22 +783,25 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"questionId\": \"{{questionId}}\",\r\n  \"answerData\": {\r\n  \"typedAnswer\": \"exact_match_keyphrase\",\r\n  \"selectedAnswerIds\": [\r\n    277\r\n  ]}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{base-url}}/api/test-logs/:logId/submit-answer",
+              "raw": "{{base-url}}/api/test-logs/{{userTestLogId}}/submit-answer",
               "host": [
                 "{{base-url}}"
               ],
               "path": [
                 "api",
                 "test-logs",
-                ":logId",
+                "{{userTestLogId}}",
                 "submit-answer"
-              ],
-              "variable": [
-                {
-                  "key": "logId",
-                  "value": ""
-                }
               ]
             }
           },
@@ -730,20 +814,80 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base-url}}/api/test-logs/:logId/finish",
+              "raw": "{{base-url}}/api/test-logs/{{userTestLogId}}/finish",
               "host": [
                 "{{base-url}}"
               ],
               "path": [
                 "api",
                 "test-logs",
-                ":logId",
+                "{{userTestLogId}}",
                 "finish"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "test sum",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "0052d433-ff26-431f-a21d-63cff3214f71",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "49102032-64ad-4a30-9f5c-9b54f76c4e63",
+                "exec": [
+                  "// 1. Parse the incoming response JSON payload\r",
+                  "const responseData = pm.response.json();\r",
+                  "\r",
+                  "\r",
+                  "const userTestLogId = responseData.userTestLogId\r",
+                  "\r",
+                  "if (userTestLogId) {\r",
+                  "    // 3. Save it automatically into your current active environment vault\r",
+                  "    pm.environment.set(\"userTestLogId\", userTestLogId);\r",
+                  "    pm.environment.set(\"refreshToken\", ref_token); // Save refresh token as well if needed\r",
+                  "    console.log(\"userTestLogId successfully!\");\r",
+                  "} else {\r",
+                  "    console.warn(\"Could not find userTestLogId in the response payload.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "a7c1a1c0-7629-43dd-b462-704c16a62257",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/tests/:testId/summary",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "tests",
+                ":testId",
+                "summary"
               ],
               "variable": [
                 {
-                  "key": "logId",
-                  "value": ""
+                  "key": "testId",
+                  "value": "c6b64d32-33a8-45e7-96d2-d54492d94f11"
                 }
               ]
             }

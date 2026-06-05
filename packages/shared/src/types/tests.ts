@@ -17,6 +17,8 @@ export interface QuestionDto {
     answers?: QuestionAnswerDto[];
 }
 
+
+
 export interface StartTestResponse {
     userTestLogId: string;
     totalQuestionCount: number;
