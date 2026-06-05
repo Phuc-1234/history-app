@@ -244,7 +244,7 @@ export class TestService {
                         if (!userString) return false;
                         return q.answers.some(
                             (a: any) =>
-                                (a.content ?? "").toLowerCase().trim() === userString,
+                                (a.correctAnswer ?? "").toLowerCase().trim() === userString,
                         );
                     }
 

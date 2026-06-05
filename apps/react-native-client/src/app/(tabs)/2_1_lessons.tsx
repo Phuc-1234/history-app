@@ -16,7 +16,7 @@ export default function LessonsScreen() {
 
     const handleTestEngine = (testId: string) => {
         console.log(`Initialize test runner for Test ID: ${testId}`);
-        router.push(`/(6_tests)/6_2_ques_choose`);
+        router.push({ pathname: "/(6_tests)/6_2_ques_choose", params: { testId } });
     };
 
     return (

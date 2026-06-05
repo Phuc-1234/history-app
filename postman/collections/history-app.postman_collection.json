@@ -84,7 +84,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"name\": \"Phuc\",\r\n    \"email\": \"{{my_email}}\",\r\n    \"password\": \"{{my_password}}\",\r\n    \"confirmPassword\": \"{{my_password}}\"\r\n\r\n}",
+              "raw": "{\r\n    \"name\": \"Phuc\",\r\n    \"email\": \"{{my_email}}\",\r\n    \"password\": \"{{my_password}}\"\r\n\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -476,8 +476,7 @@
               "variable": [
                 {
                   "key": "gradeId",
-                  "value": "10",
-                  "uuid": "410e9da8-0016-4b61-8e81-ab4b993ed270"
+                  "value": "10"
                 }
               ]
             }
