@@ -6,7 +6,7 @@ import VideoError from "./VideoError";
 import VideoLoading from "./VideoLoading";
 
 interface VideoPlayerProps {
-  videoId: number;
+  videoId:  string;
   videoUrl: string;
   onEnd: () => void;
   onNextWhenError: () => void;

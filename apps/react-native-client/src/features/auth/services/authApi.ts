@@ -3,7 +3,7 @@ import { apiSlice } from "@/services/apiSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
     LoginRequestBody,
-    LoginSuccessResponse,
+    LoginResponseBody,
     RegisterRequestBody, // Imported from shared contract packages
     RegisterResponseBody,
     VerifyOtpResponseBody, // Map to your backend types
@@ -14,28 +14,35 @@ import { setProfile } from "../store/authSlice";
 
 export const authApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        // --- Existing Login Mutation ---
-        login: builder.mutation<LoginSuccessResponse, LoginRequestBody>({
+        // --- Refactored Login Mutation ---
+        login: builder.mutation<LoginResponseBody, LoginRequestBody>({
             query: (credentials) => ({
                 url: "/api/auth/login",
                 method: "POST",
                 body: credentials,
             }),
-            // Invalidate 'User' cache tag on login to force refetching fresh state
             invalidatesTags: ["User"],
-            // Seamlessly save the token to storage immediately on success
-            async onQueryStarted(_, { queryFulfilled }) {
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    if (data?.session?.accessToken) {
-                        await AsyncStorage.setItem(
-                            "user_token",
-                            data.session.accessToken,
-                        );
+
+                    // FIX: Check if 'session' exists in the data object to determine success
+
+                    
+
+                    if (data && "session" in data && data.session) {
+                        // Persist BOTH tokens safely
+                        await AsyncStorage.multiSet([
+                            ["access_token", data.session.accessToken],
+                            ["refresh_token", data.session.refreshToken],
+                        ]);
+
+                        // Automatically sync global profile store instantly
+                        dispatch(setProfile(data.profile));
                     }
                 } catch (error) {
                     console.error(
-                        "Failed to persist auth token on login:",
+                        "Failed to execute onQueryStarted login side-effects:",
                         error,
                     );
                 }
@@ -69,14 +76,14 @@ export const authApi = apiSlice.injectEndpoints({
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    if ("session" in data && data.session?.accessToken) {
-                        // 1. Persist the clean session token strings
-                        await AsyncStorage.setItem(
-                            "user_token",
-                            data.session.accessToken,
-                        );
 
-                        // 2. Set the global profile cache to switch guest TopBar screens instantly
+                    // Type Guard: Make sure we have a success response (contains session and profile)
+                    if (data && "session" in data && data.session) {
+                        // FIX HERE: Persist BOTH tokens safely upon verification success
+                        await AsyncStorage.multiSet([
+                            ["user_token", data.session.accessToken],
+                            ["refresh_token", data.session.refreshToken],
+                        ]);
                         dispatch(setProfile(data.profile));
                     }
                 } catch (error) {

@@ -42,7 +42,7 @@ export function LessonSummary({
                 >
                     <View style={styles.tag}>
                         <Text style={styles.tagText}>
-                            Lịch sử lớp {data.lessonNumber * 10}
+                            Lịch sử lớp {data.position * 10}
                         </Text>
                     </View>
                 </ImageBackground>
@@ -51,9 +51,9 @@ export function LessonSummary({
             {/* --- Main Hero Content --- */}
             <View style={styles.heroContent}>
                 <Text style={styles.lessonHeading}>
-                    Bài {data.lessonNumber}: {data.title}
+                    Bài {data.position}: {data.name}
                 </Text>
-                <Text style={styles.lessonDescription}>{data.description}</Text>
+                <Text style={styles.lessonDescription}>{data.summary}</Text>
             </View>
 
             {/* --- Matrix Action Grid Button Links --- */}

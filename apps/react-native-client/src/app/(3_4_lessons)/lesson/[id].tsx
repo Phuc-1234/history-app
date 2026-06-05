@@ -28,8 +28,8 @@ export default function LessonSummaryScreen() {
     return (
         <TopBarWrapper
             branchConfig={{
-                hierarchy: summaryData.hierarchy,
-                title: summaryData.chapterTitle,
+                hierarchy: `Bài ${summaryData.position}`,
+                title: summaryData.name,
                 onBackPress: () => router.back(),
             }}
         >
