@@ -99,12 +99,28 @@ export interface UserProfileSummary {
 
 // --- POST /auth/login ---
 export interface LoginSuccessResponse {
+    status: 'success';
     message: string;
     session: SessionTokens;
     profile: UserProfileSummary;
 }
 
-export type LoginResponseBody = LoginSuccessResponse | { error: string };
+export interface LoginRequiresVerificationResponse {
+    status: 'requires_verification';
+    error: string;
+    requiresVerification: true;
+}
+
+export interface LoginFailureResponse {
+    status: 'error';
+    error: string;
+}
+
+// Your final unified response body type
+export type LoginResponseBody =
+    | LoginSuccessResponse
+    | LoginRequiresVerificationResponse
+    | LoginFailureResponse;
 
 // --- POST /auth/verify-otp ---
 export interface VerifyOtpSuccessResponse {
@@ -116,3 +132,22 @@ export interface VerifyOtpSuccessResponse {
 export type VerifyOtpResponseBody =
     | VerifyOtpSuccessResponse
     | { error: string };
+
+
+// --- POST /auth/resend-otp ---
+export interface ResendOtpRequestBody {
+    email: string;
+}
+
+export interface ResendOtpSuccessResponse {
+    status: 'success';
+    message: string;
+}
+
+export interface ResendOtpFailureResponse {
+    status: 'error';
+    error: string;
+}
+
+// Unified strict type for the response body
+export type ResendOtpResponseBody = ResendOtpSuccessResponse | ResendOtpFailureResponse;

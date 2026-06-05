@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { API_BASE_URL } from './config';
 
+// TODO: use secure storeage for prod
 // Safe secure key retrieval based on active platform target
 const getAuthToken = async () => {
   // if (Platform.OS === 'web') {

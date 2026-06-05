@@ -4,7 +4,8 @@ import {
     registerUser,
     loginUser,
     verifyOtp,
-    refreshSessionToken
+    refreshSessionToken,
+    resendOtp
 } from "../controllers/authController";
 
 const router = Router();
@@ -18,5 +19,7 @@ router.post("/login", loginUser);
 router.post("/verify-otp", verifyOtp);
 
 router.post("/refresh-token", refreshSessionToken);
+
+router.post('/resend-otp', resendOtp);
 
 export default router;

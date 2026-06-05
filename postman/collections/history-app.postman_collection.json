@@ -16,7 +16,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"name\": \"Phuc\",\r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"password\": \"5anhemtren\",\r\n    \"confirmPassword\": \"5anhemtren\"\r\n\r\n}",
+              "raw": "{\r\n    \"name\": \"Phuc\",\r\n    \"email\": \"{{my_email}}\",\r\n    \"password\": \"{{my_password}}\",\r\n    \"confirmPassword\": \"{{my_password}}\"\r\n\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -64,6 +64,18 @@
                 "packages": {},
                 "requests": {}
               }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "73d96024-ecec-4011-94b1-f61bc030f712",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
             }
           ],
           "id": "87db11b8-aeec-4432-b9b7-61a43250c00a",
@@ -72,7 +84,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"name\": \"Phuc\",\r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"password\": \"5anhemtren\",\r\n    \"confirmPassword\": \"5anhemtren\"\r\n\r\n}",
+              "raw": "{\r\n    \"name\": \"Phuc\",\r\n    \"email\": \"{{my_email}}\",\r\n    \"password\": \"{{my_password}}\",\r\n    \"confirmPassword\": \"{{my_password}}\"\r\n\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -173,6 +185,35 @@
                 "api",
                 "auth",
                 "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "resden",
+          "id": "3ed340b6-9ffc-43d4-8823-09854d2e2c95",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n   \r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"token\": \"76995889\" \r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/verify-otp",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-otp"
               ]
             }
           },
@@ -695,31 +736,5 @@
         "type": "string"
       }
     ]
-  },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "id": "cfb5f947-c8df-454c-ae17-5c94a1ee785f",
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "id": "f78193a2-3d5f-4861-b53d-30fee55898b0",
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
-    }
-  ]
+  }
 }
