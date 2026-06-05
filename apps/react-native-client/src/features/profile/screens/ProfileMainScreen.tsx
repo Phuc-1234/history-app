@@ -8,12 +8,14 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-
+import { useAppDispatch } from "@/store/storeHook";
+import { appLogout } from "@/features/auth/store/authSlice";
 import ProfileAvatar from "../components/ProfileAvatar";
 import ProfileMenuItem from "../components/ProfileMenuItem";
 
 export default function ProfileMainScreen() {
     const router = useRouter();
+    const dispatch = useAppDispatch();
 
     const handleEditProfile = () => {
         router.push("/(10_proflie)/10_2_profile_edit");
@@ -31,7 +33,8 @@ export default function ProfileMainScreen() {
         router.push("/(10_proflie)/10_4_test_history");
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await dispatch(appLogout());
         router.replace("/(1_auth)/1_1_login");
     };
 

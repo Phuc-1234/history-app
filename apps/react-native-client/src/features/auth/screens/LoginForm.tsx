@@ -17,7 +17,8 @@ import SocialLoginButtons from "../components/SocialLoginButtons";
 import useAuthForm from "../hooks/useAuthForm";
 
 export default function LoginForm() {
-    const { email,
+    const {
+        email,
         setEmail,
         password,
         setPassword,
@@ -25,6 +26,7 @@ export default function LoginForm() {
         navigateToRegister,
         navigateToLogin,
         submitAndEnterApp,
+        enterAsGuest,
     } = useAuthForm();
 
     return (
@@ -53,7 +55,6 @@ export default function LoginForm() {
 
             <View style={styles.formContainer}>
                 <Text style={styles.title}>Đăng nhập</Text>
-
                 <Input
                     value={email}
                     onChangeText={setEmail}
@@ -67,7 +68,6 @@ export default function LoginForm() {
                     placeholder="Mật khẩu"
                     isPassword
                 />
-
                 <TouchableOpacity
                     style={styles.forgotPassContainer}
                     activeOpacity={0.6}
@@ -75,26 +75,44 @@ export default function LoginForm() {
                 >
                     <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
                 </TouchableOpacity>
-
-                <Button title={isLoading ? "Đang xử lý..." : "Đăng nhập"} onPress={submitAndEnterApp} />
-
+                <Button
+                    title={isLoading ? "Đang xử lý..." : "Đăng nhập"}
+                    onPress={submitAndEnterApp}
+                />
+                
+                <TouchableOpacity
+                    style={{ alignSelf: "center", marginTop: 14, marginBottom: 14 }}
+                    activeOpacity={0.6}
+                    onPress={enterAsGuest}
+                >
+                    <Text
+                        style={{
+                            color: "#718096",
+                            fontSize: 13,
+                            fontWeight: "600",
+                            textDecorationLine: "underline",
+                        }}
+                    >
+                        Tiếp tục với tư cách khách
+                    </Text>
+                </TouchableOpacity>
                 <View style={styles.dividerContainer}>
                     <View style={styles.line} />
                     <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP BẰNG</Text>
                     <View style={styles.line} />
                 </View>
-
                 <SocialLoginButtons />
-
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-                    <TouchableOpacity activeOpacity={0.6} onPress={navigateToRegister}>
+                    <TouchableOpacity
+                        activeOpacity={0.6}
+                        onPress={navigateToRegister}
+                    >
                         <Text style={styles.registerText}>Đăng ký ngay</Text>
                     </TouchableOpacity>
                 </View>
             </View>
         </ScrollView>
-        
     );
 }
 

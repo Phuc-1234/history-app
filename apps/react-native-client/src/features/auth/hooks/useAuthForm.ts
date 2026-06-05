@@ -57,6 +57,11 @@ export function useAuthForm() {
         }
     }, [email, password, login, dispatch, router]);
 
+    
+    const enterAsGuest = useCallback(() => {
+        router.replace("/(tabs)/2_1_lessons");
+    }, [router]);
+
     return {
         email,
         setEmail,
@@ -66,6 +71,7 @@ export function useAuthForm() {
         navigateToRegister,
         navigateToLogin,
         submitAndEnterApp,
+        enterAsGuest,
     };
 }
 
