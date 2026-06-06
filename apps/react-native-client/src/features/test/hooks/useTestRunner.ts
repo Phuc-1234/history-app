@@ -25,6 +25,12 @@ function mapDtoToQuestion(dto: QuestionDto): Question {
                 // Crucial Add: keep a reference of the answer IDs in matching sequence
                 answerIds: answers.map((a) => a.id),
                 correctOptionIndex: -1,
+                // Inside your mapped single-choice question object, keep an explicit index string helper
+                optionsWithLabels: answers.map((a, index) => ({
+                    label: `Lựa chọn ${String.fromCharCode(65 + index)}`, // "Lựa chọn A", "Lựa chọn B"
+                    text: a.content,
+                    id: a.id,
+                })),
             };
         }
         case "FILL":
@@ -56,6 +62,11 @@ function mapDtoToQuestion(dto: QuestionDto): Question {
                 text: dto.promptText,
                 options: answers.map((a) => a.content),
                 correctOptionIndex: -1,
+                optionsWithLabels: answers.map((a, index) => ({
+                    label: `Lựa chọn ${String.fromCharCode(65 + index)}`, // "Lựa chọn A", "Lựa chọn B"
+                    text: a.content,
+                    id: a.id,
+                })),
             };
     }
 }
@@ -77,8 +88,8 @@ function buildAnswerData(question: Question, answer: any): any {
             // If answer is an array of indices [0, 2], map them to IDs
             const selectedIds = Array.isArray(answer)
                 ? answer
-                      .map((idx) => (question as any).answerIds?.[idx])
-                      .filter(Boolean)
+                    .map((idx) => (question as any).answerIds?.[idx])
+                    .filter(Boolean)
                 : [];
             return selectedIds.length > 0
                 ? { selectedAnswerIds: selectedIds }
@@ -196,28 +207,131 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
             console.error("Failed to start test:", err);
             setError(
                 err?.data?.error ??
-                    err?.message ??
-                    "Không thể bắt đầu bài kiểm tra",
+                err?.message ??
+                "Không thể bắt đầu bài kiểm tra",
             );
             setStatus("not-started");
         }
     }, [testId, startTestMut]);
 
+    // ------ Submit / Finish ------
+    const handleSubmit = useCallback(async (pendingAnswer?: any) => {
+        if (
+            status === "completed" ||
+            status === "submitting" ||
+            !logIdRef.current
+        )
+            return;
+        setStatus("submitting");
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        try {
+            // Persist the current question's answer first
+            const currentQ = questions[currentQuestionIndex];
+            const answerToSubmit = pendingAnswer !== undefined ? pendingAnswer : answers[currentQ.id];
+
+            let finalAnswers = answers;
+            if (currentQ && pendingAnswer !== undefined) {
+                setAnswers((prev) => ({ ...prev, [currentQ.id]: pendingAnswer }));
+                finalAnswers = { ...answers, [currentQ.id]: pendingAnswer };
+            }
+
+
+
+            if (currentQ && answerToSubmit !== undefined) {
+                await submitAnswerMut({
+                    logId: logIdRef.current!,
+                    questionId: Number(currentQ.id),
+                    answerData: buildAnswerData(currentQ, answerToSubmit),
+                })
+                    .unwrap()
+                    .catch(() => { });
+            }
+
+            // Finish
+            const resp: FinishTestResponse = await finishTestMut({
+                logId: logIdRef.current!,
+            }).unwrap();
+
+            // Build graded map
+            const graded: Record<string, boolean> = {};
+            let correctCount = 0;
+            if (resp && resp.questionSummaries) {
+                resp.questionSummaries.forEach((qs) => {
+                    graded[String(qs.questionId)] = qs.isCorrect;
+                    if (qs.isCorrect) correctCount++;
+                });
+            }
+
+            setResult({
+                score: resp ? resp.score : 0,
+                totalQuestions: totalQuestionCount,
+                correctAnswersCount: correctCount,
+                gradedAnswers: graded,
+                xpEarned: resp ? resp.xpEarned : 0,
+                goldEarned: resp ? resp.goldEarned : 0,
+            });
+
+            // Save to Redux history
+            const attemptId = logIdRef.current!;
+            const now = new Date();
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const dateStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+            dispatch(
+                addAttempt({
+                    id: attemptId,
+                    testId,
+                    testTitle: `Kiểm tra`, // server doesn't return title in finish
+                    timestamp: dateStr,
+                    score: resp ? resp.score : 0,
+                    correctAnswersCount: correctCount,
+                    totalQuestions: totalQuestionCount,
+                    answers: finalAnswers,
+                    gradedAnswers: graded,
+                    questions: questions.filter(Boolean),
+                }),
+            );
+            setLastAttemptId(attemptId);
+            setStatus("completed");
+        } catch (err: any) {
+            console.error("Finish test error:", err);
+            setError(err?.data?.error ?? "Không thể nộp bài");
+            setStatus("running"); // allow retry
+        }
+    }, [
+        status,
+        questions,
+        currentQuestionIndex,
+        answers,
+        totalQuestionCount,
+        testId,
+        submitAnswerMut,
+        finishTestMut,
+        dispatch,
+    ]);
+
     // ------ Navigate / jump ------
     const jumpTo = useCallback(
-        async (targetIndex: number) => {
+        async (targetIndex: number, pendingAnswer?: any) => {
             if (!logIdRef.current || status !== "running") return;
 
             // Persist current answer before jumping
             const currentQ = questions[currentQuestionIndex];
-            if (currentQ && answers[currentQ.id] !== undefined) {
+            const answerToSubmit = pendingAnswer !== undefined ? pendingAnswer : answers[currentQ.id];
+
+            if (currentQ && pendingAnswer !== undefined) {
+                setAnswers((prev) => ({ ...prev, [currentQ.id]: pendingAnswer }));
+            }
+
+            if (currentQ && answerToSubmit !== undefined) {
                 try {
                     await submitAnswerMut({
                         logId: logIdRef.current,
                         questionId: Number(currentQ.id),
                         answerData: buildAnswerData(
                             currentQ,
-                            answers[currentQ.id],
+                            answerToSubmit,
                         ),
                     }).unwrap();
                 } catch {
@@ -272,15 +386,21 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
         ],
     );
 
-    const handleGoNext = useCallback(() => {
-        if (currentQuestionIndex < totalQuestionCount - 1) {
-            jumpTo(currentQuestionIndex + 1);
-        }
-    }, [currentQuestionIndex, totalQuestionCount, jumpTo]);
+    const handleGoNext = useCallback((pendingAnswer?: any) => {
 
-    const handleGoPrev = useCallback(() => {
+        console.log("handleGoNext called with pendingAnswer:", pendingAnswer);
+        console.log("pending:", pendingAnswer);
+
+        if (currentQuestionIndex < totalQuestionCount - 1) {
+            jumpTo(currentQuestionIndex + 1, pendingAnswer);
+        } else if (currentQuestionIndex === totalQuestionCount - 1) {
+            handleSubmit(pendingAnswer);
+        }
+    }, [currentQuestionIndex, totalQuestionCount, jumpTo, handleSubmit]);
+
+    const handleGoPrev = useCallback((pendingAnswer?: any) => {
         if (currentQuestionIndex > 0) {
-            jumpTo(currentQuestionIndex - 1);
+            jumpTo(currentQuestionIndex - 1, pendingAnswer);
         }
     }, [currentQuestionIndex, jumpTo]);
 
@@ -344,90 +464,29 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
         });
     };
 
-    // ------ Submit / Finish ------
-    const handleSubmit = useCallback(async () => {
-        if (
-            status === "completed" ||
-            status === "submitting" ||
-            !logIdRef.current
-        )
-            return;
-        setStatus("submitting");
-        if (timerRef.current) clearInterval(timerRef.current);
+    const handleAnswerSingleAndGoNext = useCallback((questionId: string, optionIndex: number) => {
+        if (status !== "running") return;
+        setAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
+        handleGoNext(optionIndex);
+    }, [status, handleGoNext]);
 
-        try {
-            // Persist the current question's answer first
-            const currentQ = questions[currentQuestionIndex];
-            if (currentQ && answers[currentQ.id] !== undefined) {
-                await submitAnswerMut({
-                    logId: logIdRef.current!,
-                    questionId: Number(currentQ.id),
-                    answerData: buildAnswerData(currentQ, answers[currentQ.id]),
-                })
-                    .unwrap()
-                    .catch(() => {});
-            }
+    const handleAnswerFillAndGoNext = useCallback((questionId: string, text: string) => {
+        if (status !== "running") return;
+        setAnswers((prev) => ({ ...prev, [questionId]: text }));
+        handleGoNext(text);
+    }, [status, handleGoNext]);
 
-            // Finish
-            const resp: FinishTestResponse = await finishTestMut({
-                logId: logIdRef.current!,
-            }).unwrap();
+    const handleAnswerMultipleAndGoNext = useCallback((questionId: string, optionIndexes: number[]) => {
+        if (status !== "running") return;
+        setAnswers((prev) => ({ ...prev, [questionId]: optionIndexes }));
+        handleGoNext(optionIndexes);
+    }, [status, handleGoNext]);
 
-            // Build graded map
-            const graded: Record<string, boolean> = {};
-            let correctCount = 0;
-            if (resp.questionSummaries) {
-                resp.questionSummaries.forEach((qs) => {
-                    graded[String(qs.questionId)] = qs.isCorrect;
-                    if (qs.isCorrect) correctCount++;
-                });
-            }
-
-            setResult({
-                score: resp.score,
-                totalQuestions: totalQuestionCount,
-                correctAnswersCount: correctCount,
-                gradedAnswers: graded,
-            });
-
-            // Save to Redux history
-            const attemptId = logIdRef.current!;
-            const now = new Date();
-            const pad = (n: number) => n.toString().padStart(2, "0");
-            const dateStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-            dispatch(
-                addAttempt({
-                    id: attemptId,
-                    testId,
-                    testTitle: `Kiểm tra`, // server doesn't return title in finish
-                    timestamp: dateStr,
-                    score: resp.score,
-                    correctAnswersCount: correctCount,
-                    totalQuestions: totalQuestionCount,
-                    answers,
-                    gradedAnswers: graded,
-                    questions: questions.filter(Boolean),
-                }),
-            );
-            setLastAttemptId(attemptId);
-            setStatus("completed");
-        } catch (err: any) {
-            console.error("Finish test error:", err);
-            setError(err?.data?.error ?? "Không thể nộp bài");
-            setStatus("running"); // allow retry
-        }
-    }, [
-        status,
-        questions,
-        currentQuestionIndex,
-        answers,
-        totalQuestionCount,
-        testId,
-        submitAnswerMut,
-        finishTestMut,
-        dispatch,
-    ]);
+    const handleAnswerMatchingAndGoNext = useCallback((questionId: string, pairs: Record<string, string>) => {
+        if (status !== "running") return;
+        setAnswers((prev) => ({ ...prev, [questionId]: pairs }));
+        handleGoNext(pairs);
+    }, [status, handleGoNext]);
 
     // ------ Restart ------
     const handleRestart = useCallback(async () => {
@@ -477,6 +536,10 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
             answerFill: handleAnswerFill,
             answerMatching: handleAnswerMatching,
             removeMatch: handleRemoveMatch,
+            answerSingleAndGoNext: handleAnswerSingleAndGoNext,
+            answerMultipleAndGoNext: handleAnswerMultipleAndGoNext,
+            answerFillAndGoNext: handleAnswerFillAndGoNext,
+            answerMatchingAndGoNext: handleAnswerMatchingAndGoNext,
             goNext: handleGoNext,
             goPrev: handleGoPrev,
             submit: handleSubmit,
