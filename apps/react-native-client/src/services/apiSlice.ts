@@ -12,7 +12,7 @@ const getAuthToken = async () => {
   // } else {
   //   return await SecureStore.getItemAsync('user_token');
   // }
-  
+
   return await AsyncStorage.getItem('access_token');
 };
 
