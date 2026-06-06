@@ -332,22 +332,20 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                         <View
                                             style={[
                                                 styles.voiceStatusDot,
-                                                voiceStatus === "listening" &&
-                                                    styles.voiceStatusDotListening,
-                                                voiceStatus === "speaking" &&
-                                                    styles.voiceStatusDotSpeaking,
-                                                voiceStatus === "processing" &&
-                                                    styles.voiceStatusDotProcessing,
-                                                voiceStatus === "error" &&
-                                                    styles.voiceStatusDotError,
+                                                voiceStatus === "listening" && styles.voiceStatusDotListening,
+                                                voiceStatus === "speaking"  && styles.voiceStatusDotSpeaking,
+                                                voiceStatus === "processing" && styles.voiceStatusDotProcessing,
+                                                voiceStatus === "submitted" && styles.voiceStatusDotSubmitted,
+                                                voiceStatus === "error"     && styles.voiceStatusDotError,
                                             ]}
                                         />
                                         <Text style={styles.voiceStatusText}>
-                                            {voiceStatus === "listening" && "Đang lắng nghe..."}
-                                            {voiceStatus === "speaking" && "Đang đọc câu hỏi..."}
-                                            {voiceStatus === "processing" && "Đang xử lý..."}
-                                            {voiceStatus === "idle" && "Đang chờ..."}
-                                            {voiceStatus === "error" && "Lỗi micro/quyền truy cập"}
+                                            {voiceStatus === "listening"  && "Đang lắng nghe..."}
+                                            {voiceStatus === "speaking"   && "Đang đọc câu hỏi..."}
+                                            {voiceStatus === "processing" && "Đang xử lý đáp án..."}
+                                            {voiceStatus === "submitted"  && "Đã ghi đáp án ✓"}
+                                            {voiceStatus === "idle"       && "Chờ..."}
+                                            {voiceStatus === "error"      && "Lỗi micro / quyền truy cập"}
                                         </Text>
                                     </View>
                                     <TouchableOpacity
@@ -356,45 +354,46 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                         activeOpacity={0.7}
                                     >
                                         <X size={12} color="#E53E3E" />
-                                        <Text style={styles.voiceCloseButtonText}>
-                                            Tắt giọng nói
-                                        </Text>
+                                        <Text style={styles.voiceCloseButtonText}>Tắt</Text>
                                     </TouchableOpacity>
                                 </View>
 
                                 <View style={styles.voiceBody}>
                                     <View style={[
                                         styles.voiceIconContainer,
-                                        voiceStatus === "listening" && styles.voiceIconContainerListening,
-                                        voiceStatus === "speaking" && styles.voiceIconContainerSpeaking,
+                                        voiceStatus === "listening"  && styles.voiceIconContainerListening,
+                                        voiceStatus === "speaking"   && styles.voiceIconContainerSpeaking,
+                                        voiceStatus === "submitted"  && styles.voiceIconContainerSubmitted,
                                     ]}>
-                                        {voiceStatus === "listening" ? (
-                                            <Mic size={18} color="#FFFFFF" />
-                                        ) : voiceStatus === "speaking" ? (
-                                            <Volume2 size={18} color="#FFFFFF" />
-                                        ) : voiceStatus === "processing" ? (
-                                            <ActivityIndicator size="small" color="#FFFFFF" />
-                                        ) : (
-                                            <Mic size={18} color="#A0AEC0" />
-                                        )}
+                                        {voiceStatus === "listening"  ? <Mic size={18} color="#FFFFFF" />
+                                        : voiceStatus === "speaking"  ? <Volume2 size={18} color="#FFFFFF" />
+                                        : voiceStatus === "processing" ? <ActivityIndicator size="small" color="#FFFFFF" />
+                                        : <Mic size={18} color="#A0AEC0" />}
                                     </View>
                                     <View style={styles.voiceTextContainer}>
-                                        <Text style={styles.voiceLabel}>Bạn nói:</Text>
-                                        <Text style={styles.voiceSpokenText} numberOfLines={2}>
-                                            {spokenText ? `"${spokenText}"` : "Hãy nói lựa chọn của bạn..."}
+                                        <Text style={styles.voiceLabel}>
+                                            {voiceStatus === "listening" ? "Bạn đang nói:" : "Bạn đã nói:"}
+                                        </Text>
+                                        <Text style={styles.voiceSpokenText} numberOfLines={3}>
+                                            {spokenText
+                                                ? `"${spokenText}"`
+                                                : voiceStatus === "speaking"
+                                                    ? "Đang phát âm thanh..."
+                                                    : "Hãy nói đáp án của bạn..."}
                                         </Text>
                                     </View>
                                 </View>
 
                                 {voiceStatus === "speaking" && ttsText ? (
                                     <View style={styles.voiceSubtitles}>
-                                        <Text style={styles.voiceSubtitlesText} numberOfLines={2}>
+                                        <Text style={styles.voiceSubtitlesText} numberOfLines={3}>
                                             {ttsText}
                                         </Text>
                                     </View>
                                 ) : null}
                             </View>
                         )}
+
                     </>
                 ) : viewMode === "celebration" ? (
                     /* Lesson Progress Celebration View */
@@ -1385,6 +1384,9 @@ const styles = StyleSheet.create({
     voiceStatusDotProcessing: {
         backgroundColor: "#5D45F9",
     },
+    voiceStatusDotSubmitted: {
+        backgroundColor: "#38A169",
+    },
     voiceStatusDotError: {
         backgroundColor: "#E53E3E",
     },
@@ -1427,6 +1429,9 @@ const styles = StyleSheet.create({
     },
     voiceIconContainerSpeaking: {
         backgroundColor: "#3182CE",
+    },
+    voiceIconContainerSubmitted: {
+        backgroundColor: "#38A169",
     },
     voiceTextContainer: {
         flex: 1,
