@@ -8,12 +8,25 @@ import {
     ScrollView,
     Modal,
     Dimensions,
-    Image
+    Image,
 } from "react-native";
-import { ArrowLeft, Clock, Grid, RotateCcw, Award, CheckCircle2, AlertCircle, X, HelpCircle, Check, Star } from "lucide-react-native";
+import {
+    ArrowLeft,
+    Clock,
+    Grid,
+    RotateCcw,
+    Award,
+    CheckCircle2,
+    AlertCircle,
+    X,
+    HelpCircle,
+    Check,
+    Star,
+} from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { TopBarWrapper } from "../../top_bar";
 import { useTestRunner } from "../hooks/useTestRunner";
+import { useVoiceTestController } from "../hooks/useVoiceTestController";
 import SingleChoiceQuestion from "./SingleChoiceQuestion";
 import MultipleChoiceQuestion from "./MultipleChoiceQuestion";
 import FillInBlankQuestion from "./FillInBlankQuestion";
@@ -26,6 +39,7 @@ interface TestContainerProps {
 
 export default function TestContainer({ testId = "1" }: TestContainerProps) {
     const router = useRouter();
+    const testRunner = useTestRunner(testId, 900); // 15 mins
     const {
         questions,
         totalQuestionCount,
@@ -38,11 +52,16 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
         lastAttemptId,
         error,
         actions,
-        isQuestionAnswered
-    } = useTestRunner(testId, 900); // 15 mins
+        isQuestionAnswered,
+    } = testRunner;
+
+    const [isVoiceMode, setIsVoiceMode] = useState(false);
+    useVoiceTestController(testRunner, isVoiceMode);
 
     const [isListModalVisible, setIsListModalVisible] = useState(false);
-    const [viewMode, setViewMode] = useState<"celebration" | "review">("celebration");
+    const [viewMode, setViewMode] = useState<"celebration" | "review">(
+        "celebration",
+    );
 
     const handleBack = () => {
         router.back();
@@ -50,20 +69,46 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
 
     const activeQuestionNumber = currentQuestionIndex + 1;
     const totalQuestions = totalQuestionCount || questions.length;
-    const progressPercent = totalQuestions > 0 ? (activeQuestionNumber / totalQuestions) * 100 : 0;
+    const progressPercent =
+        totalQuestions > 0 ? (activeQuestionNumber / totalQuestions) * 100 : 0;
 
     return (
         <TopBarWrapper>
             <View style={styles.container}>
                 {status === "not-started" ? (
-                    <TestIntro onStart={actions.start} onBack={handleBack} />
+                    <TestIntro
+                        onStart={actions.start}
+                        onBack={handleBack}
+                        onStartVoice={() => {
+                            setIsVoiceMode(true);
+                            actions.start();
+                        }}
+                    />
                 ) : status === "loading" ? (
-                    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                    <View
+                        style={{
+                            flex: 1,
+                            justifyContent: "center",
+                            alignItems: "center",
+                        }}
+                    >
                         <ActivityIndicator size="large" color="#5D45F9" />
-                        <Text style={{ marginTop: 12, color: "#718096", fontWeight: "600" }}>Đang tải bài kiểm tra...</Text>
-                        {error ? <Text style={{ marginTop: 8, color: "#E53E3E" }}>{error}</Text> : null}
+                        <Text
+                            style={{
+                                marginTop: 12,
+                                color: "#718096",
+                                fontWeight: "600",
+                            }}
+                        >
+                            Đang tải bài kiểm tra...
+                        </Text>
+                        {error ? (
+                            <Text style={{ marginTop: 8, color: "#E53E3E" }}>
+                                {error}
+                            </Text>
+                        ) : null}
                     </View>
-                ) : (status === "running" || status === "submitting") ? (
+                ) : status === "running" || status === "submitting" ? (
                     <>
                         {/* Header bar */}
                         <View style={styles.header}>
@@ -76,33 +121,44 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                             </TouchableOpacity>
 
                             <View style={styles.titleContainer}>
-                                <Text style={styles.headerTitle}>Kiểm tra Chủ đề 1</Text>
+                                <Text style={styles.headerTitle}>
+                                    Kiểm tra Chủ đề 1
+                                </Text>
                                 <View style={styles.timerContainer}>
                                     <Clock size={14} color="#5D45F9" />
-                                    <Text style={styles.timerText}>{formattedTime}</Text>
+                                    <Text style={styles.timerText}>
+                                        {formattedTime}
+                                    </Text>
                                 </View>
                             </View>
 
                             <TouchableOpacity
                                 style={styles.submitButton}
-                                onPress={actions.submit}
+                                onPress={() => actions.submit()}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.submitButtonText}>Nộp bài</Text>
+                                <Text style={styles.submitButtonText}>
+                                    Nộp bài
+                                </Text>
                             </TouchableOpacity>
                         </View>
 
                         {/* Progress Bar Area */}
                         <View style={styles.progressArea}>
                             <View style={styles.progressTextRow}>
-                                <Text style={styles.progressLabel}>Tiến độ</Text>
+                                <Text style={styles.progressLabel}>
+                                    Tiến độ
+                                </Text>
                                 <Text style={styles.progressValue}>
                                     Câu {activeQuestionNumber}/{totalQuestions}
                                 </Text>
                             </View>
                             <View style={styles.progressBarBg}>
                                 <View
-                                    style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
+                                    style={[
+                                        styles.progressBarFill,
+                                        { width: `${progressPercent}%` },
+                                    ]}
                                 />
                             </View>
                         </View>
@@ -113,56 +169,104 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                             contentContainerStyle={styles.scrollContent}
                         >
                             {!currentQuestion ? (
-                                <View style={{ padding: 40, alignItems: "center" }}>
-                                    <ActivityIndicator size="small" color="#5D45F9" />
+                                <View
+                                    style={{
+                                        padding: 40,
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <ActivityIndicator
+                                        size="small"
+                                        color="#5D45F9"
+                                    />
                                 </View>
                             ) : currentQuestion.type === "single-choice" ? (
                                 <SingleChoiceQuestion
                                     question={currentQuestion}
                                     selectedAnswer={answers[currentQuestion.id]}
-                                    onSelect={(idx) => actions.answerSingle(currentQuestion.id, idx)}
+                                    onSelect={(idx) =>
+                                        actions.answerSingle(
+                                            currentQuestion.id,
+                                            idx,
+                                        )
+                                    }
                                 />
                             ) : currentQuestion.type === "multiple-choice" ? (
                                 <MultipleChoiceQuestion
                                     question={currentQuestion}
-                                    selectedAnswers={answers[currentQuestion.id]}
-                                    onSelect={(idx) => actions.answerMultiple(currentQuestion.id, idx)}
+                                    selectedAnswers={
+                                        answers[currentQuestion.id]
+                                    }
+                                    onSelect={(idx) =>
+                                        actions.answerMultiple(
+                                            currentQuestion.id,
+                                            idx,
+                                        )
+                                    }
                                 />
                             ) : currentQuestion.type === "fill-in-blank" ? (
                                 <FillInBlankQuestion
                                     question={currentQuestion}
                                     value={answers[currentQuestion.id]}
-                                    onChange={(txt) => actions.answerFill(currentQuestion.id, txt)}
+                                    onChange={(txt) =>
+                                        actions.answerFill(
+                                            currentQuestion.id,
+                                            txt,
+                                        )
+                                    }
                                 />
                             ) : currentQuestion.type === "matching" ? (
                                 <MatchingQuestion
                                     question={currentQuestion}
                                     selectedPairs={answers[currentQuestion.id]}
-                                    onMatch={(lId, rId) => actions.answerMatching(currentQuestion.id, lId, rId)}
-                                    onRemoveMatch={(lId) => actions.removeMatch(currentQuestion.id, lId)}
+                                    onMatch={(lId, rId) =>
+                                        actions.answerMatching(
+                                            currentQuestion.id,
+                                            lId,
+                                            rId,
+                                        )
+                                    }
+                                    onRemoveMatch={(lId) =>
+                                        actions.removeMatch(
+                                            currentQuestion.id,
+                                            lId,
+                                        )
+                                    }
                                 />
                             ) : null}
 
                             {/* Indicators representing all questions under options */}
                             <View style={styles.blockIndicatorsRow}>
-                                {Array.from({ length: totalQuestions }, (_, idx) => {
-                                    const q = questions[idx];
-                                    const isActive = idx === currentQuestionIndex;
-                                    const isAnswered = q ? isQuestionAnswered(q.id) : false;
+                                {Array.from(
+                                    { length: totalQuestions },
+                                    (_, idx) => {
+                                        const q = questions[idx];
+                                        const isActive =
+                                            idx === currentQuestionIndex;
+                                        const isAnswered = q
+                                            ? isQuestionAnswered(q.id)
+                                            : false;
 
-                                    return (
-                                        <TouchableOpacity
-                                            key={idx}
-                                            style={[
-                                                styles.blockIndicator,
-                                                isAnswered && styles.blockIndicatorAnswered,
-                                                isActive && styles.blockIndicatorActive
-                                            ]}
-                                            onPress={() => actions.setQuestionIndex(idx)}
-                                            activeOpacity={0.7}
-                                        />
-                                    );
-                                })}
+                                        return (
+                                            <TouchableOpacity
+                                                key={idx}
+                                                style={[
+                                                    styles.blockIndicator,
+                                                    isAnswered &&
+                                                        styles.blockIndicatorAnswered,
+                                                    isActive &&
+                                                        styles.blockIndicatorActive,
+                                                ]}
+                                                onPress={() =>
+                                                    actions.setQuestionIndex(
+                                                        idx,
+                                                    )
+                                                }
+                                                activeOpacity={0.7}
+                                            />
+                                        );
+                                    },
+                                )}
                             </View>
                         </ScrollView>
 
@@ -173,29 +277,34 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                     style={[
                                         styles.navButton,
                                         styles.navButtonPrev,
-                                        currentQuestionIndex === 0 && styles.navButtonDisabled
+                                        currentQuestionIndex === 0 &&
+                                            styles.navButtonDisabled,
                                     ]}
-                                    onPress={actions.goPrev}
+                                    onPress={() => actions.goPrev()}
                                     disabled={currentQuestionIndex === 0}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.navButtonTextPrev}>‹ Câu trước</Text>
+                                    <Text style={styles.navButtonTextPrev}>
+                                        ‹ Câu trước
+                                    </Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
                                     style={[
                                         styles.navButton,
-                                        styles.navButtonNext
+                                        styles.navButtonNext,
                                     ]}
-                                    onPress={
-                                        currentQuestionIndex === totalQuestions - 1
-                                            ? actions.submit
-                                            : actions.goNext
-                                    }
+                                    onPress={() => {
+                                        currentQuestionIndex ===
+                                        totalQuestions - 1
+                                            ? actions.submit()
+                                            : actions.goNext(); // <-- Safely invoked without parameters
+                                    }}
                                     activeOpacity={0.8}
                                 >
                                     <Text style={styles.navButtonTextNext}>
-                                        {currentQuestionIndex === totalQuestions - 1
+                                        {currentQuestionIndex ===
+                                        totalQuestions - 1
                                             ? "Nộp bài ›"
                                             : "Câu tiếp ›"}
                                     </Text>
@@ -227,7 +336,9 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                 <X size={20} color="#1A202C" />
                             </TouchableOpacity>
 
-                            <Text style={styles.headerTitle}>Lesson Progress</Text>
+                            <Text style={styles.headerTitle}>
+                                Lesson Progress
+                            </Text>
 
                             <TouchableOpacity
                                 style={styles.helpButton}
@@ -239,7 +350,9 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
 
                         <ScrollView
                             showsVerticalScrollIndicator={false}
-                            contentContainerStyle={styles.completedScrollContent}
+                            contentContainerStyle={
+                                styles.completedScrollContent
+                            }
                         >
                             {/* Circle Celebration Hero Illustration */}
                             <View style={styles.completedHeroOuter}>
@@ -252,47 +365,84 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                 </View>
                                 {/* Medal Badge Overlay */}
                                 <View style={styles.completedBadgeOverlay}>
-                                    <Award size={20} color="#5D45F9" fill="#E8E5FF" />
+                                    <Award
+                                        size={20}
+                                        color="#5D45F9"
+                                        fill="#E8E5FF"
+                                    />
                                 </View>
                             </View>
 
                             {/* Congratulatory Typography */}
-                            <Text style={styles.completedTitle}>Tuyệt vời!</Text>
-                            <Text style={styles.completedSubtitle}>Bạn đã hoàn thành bài học.</Text>
+                            <Text style={styles.completedTitle}>
+                                Tuyệt vời!
+                            </Text>
+                            <Text style={styles.completedSubtitle}>
+                                Bạn đã hoàn thành bài học.
+                            </Text>
 
                             {/* Two Stats Cards */}
                             <View style={styles.completedStatsRow}>
                                 {/* Score card */}
                                 <View style={styles.completedStatCard}>
-                                    <View style={[styles.completedStatIconBg, styles.statBlueBg]}>
-                                        <Star size={18} color="#3182CE" fill="#90CDF4" />
+                                    <View
+                                        style={[
+                                            styles.completedStatIconBg,
+                                            styles.statBlueBg,
+                                        ]}
+                                    >
+                                        <Star
+                                            size={18}
+                                            color="#3182CE"
+                                            fill="#90CDF4"
+                                        />
                                     </View>
                                     <Text style={styles.completedStatValue}>
                                         {result ? result.score : 0}/100
                                     </Text>
-                                    <Text style={styles.completedStatLabel}>ĐIỂM</Text>
+                                    <Text style={styles.completedStatLabel}>
+                                        ĐIỂM
+                                    </Text>
                                 </View>
 
                                 {/* Correct answers count card */}
                                 <View style={styles.completedStatCard}>
-                                    <View style={[styles.completedStatIconBg, styles.statIndigoBg]}>
-                                        <Check size={18} color="#5D45F9" strokeWidth={3} />
+                                    <View
+                                        style={[
+                                            styles.completedStatIconBg,
+                                            styles.statIndigoBg,
+                                        ]}
+                                    >
+                                        <Check
+                                            size={18}
+                                            color="#5D45F9"
+                                            strokeWidth={3}
+                                        />
                                     </View>
                                     <Text style={styles.completedStatValue}>
-                                        {result?.correctAnswersCount}/{totalQuestions}
+                                        {result?.correctAnswersCount}/
+                                        {totalQuestions}
                                     </Text>
-                                    <Text style={styles.completedStatLabel}>CÂU ĐÚNG</Text>
+                                    <Text style={styles.completedStatLabel}>
+                                        CÂU ĐÚNG
+                                    </Text>
                                 </View>
                             </View>
 
                             {/* Progress bar area */}
                             <View style={styles.completedProgressArea}>
                                 <View style={styles.completedProgressBarBg}>
-                                    <View style={styles.completedProgressBarFill} />
+                                    <View
+                                        style={styles.completedProgressBarFill}
+                                    />
                                 </View>
                                 <View style={styles.completedProgressTextRow}>
-                                    <Text style={styles.completedProgressLabel}>Tiến độ</Text>
-                                    <Text style={styles.completedProgressValue}>100%</Text>
+                                    <Text style={styles.completedProgressLabel}>
+                                        Tiến độ
+                                    </Text>
+                                    <Text style={styles.completedProgressValue}>
+                                        100%
+                                    </Text>
                                 </View>
                             </View>
                         </ScrollView>
@@ -304,7 +454,9 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                 onPress={handleBack}
                                 activeOpacity={0.85}
                             >
-                                <Text style={styles.continueButtonText}>Tiếp tục chương sau</Text>
+                                <Text style={styles.continueButtonText}>
+                                    Tiếp tục chương sau
+                                </Text>
                                 <Text style={styles.continueArrow}>➔</Text>
                             </TouchableOpacity>
 
@@ -313,8 +465,11 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                 onPress={() => {
                                     if (lastAttemptId) {
                                         router.push({
-                                            pathname: "/(10_proflie)/10_5_test_detail",
-                                            params: { attemptId: lastAttemptId }
+                                            pathname:
+                                                "/(10_proflie)/10_5_test_detail",
+                                            params: {
+                                                attemptId: lastAttemptId,
+                                            },
                                         });
                                     } else {
                                         setViewMode("review");
@@ -322,7 +477,9 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                 }}
                                 activeOpacity={0.7}
                             >
-                                <Text style={styles.reviewButtonText}>Xem lại bài</Text>
+                                <Text style={styles.reviewButtonText}>
+                                    Xem lại bài
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -339,7 +496,9 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                 <ArrowLeft size={20} color="#1A202C" />
                             </TouchableOpacity>
 
-                            <Text style={styles.headerTitle}>Chi tiết bài làm</Text>
+                            <Text style={styles.headerTitle}>
+                                Chi tiết bài làm
+                            </Text>
 
                             <View style={{ width: 40 }} />
                         </View>
@@ -350,18 +509,26 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                         >
                             <View style={styles.reviewList}>
                                 {questions.filter(Boolean).map((q, idx) => {
-                                    const isCorrect = result?.gradedAnswers[q.id];
+                                    const isCorrect =
+                                        result?.gradedAnswers[q.id];
 
                                     return (
-                                        <View key={q.id} style={styles.reviewCard}>
+                                        <View
+                                            key={q.id}
+                                            style={styles.reviewCard}
+                                        >
                                             <View style={styles.reviewHeader}>
-                                                <Text style={styles.reviewIndex}>Câu {idx + 1}</Text>
+                                                <Text
+                                                    style={styles.reviewIndex}
+                                                >
+                                                    Câu {idx + 1}
+                                                </Text>
                                                 <View
                                                     style={[
                                                         styles.gradingBadge,
                                                         isCorrect
                                                             ? styles.gradingBadgeCorrect
-                                                            : styles.gradingBadgeIncorrect
+                                                            : styles.gradingBadgeIncorrect,
                                                     ]}
                                                 >
                                                     <Text
@@ -369,14 +536,18 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                                             styles.gradingBadgeText,
                                                             isCorrect
                                                                 ? styles.gradingBadgeTextCorrect
-                                                                : styles.gradingBadgeTextIncorrect
+                                                                : styles.gradingBadgeTextIncorrect,
                                                         ]}
                                                     >
-                                                        {isCorrect ? "Đúng" : "Sai"}
+                                                        {isCorrect
+                                                            ? "Đúng"
+                                                            : "Sai"}
                                                     </Text>
                                                 </View>
                                             </View>
-                                            <Text style={styles.reviewText}>{q.text}</Text>
+                                            <Text style={styles.reviewText}>
+                                                {q.text}
+                                            </Text>
                                         </View>
                                     );
                                 })}
@@ -390,7 +561,9 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                 onPress={() => setViewMode("celebration")}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.continueButtonText}>Quay lại</Text>
+                                <Text style={styles.continueButtonText}>
+                                    Quay lại
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -406,50 +579,68 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContainer}>
                             <View style={styles.modalDragIndicator} />
-                            
+
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Danh sách câu hỏi</Text>
+                                <Text style={styles.modalTitle}>
+                                    Danh sách câu hỏi
+                                </Text>
                                 <TouchableOpacity
                                     style={styles.modalCloseButton}
                                     onPress={() => setIsListModalVisible(false)}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.modalCloseText}>Đóng</Text>
+                                    <Text style={styles.modalCloseText}>
+                                        Đóng
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
 
                             <View style={styles.modalGrid}>
-                                {Array.from({ length: totalQuestions }, (_, idx) => {
-                                    const q = questions[idx];
-                                    const isActive = idx === currentQuestionIndex;
-                                    const isAnswered = q ? isQuestionAnswered(q.id) : false;
+                                {Array.from(
+                                    { length: totalQuestions },
+                                    (_, idx) => {
+                                        const q = questions[idx];
+                                        const isActive =
+                                            idx === currentQuestionIndex;
+                                        const isAnswered = q
+                                            ? isQuestionAnswered(q.id)
+                                            : false;
 
-                                    return (
-                                        <TouchableOpacity
-                                            key={idx}
-                                            style={[
-                                                styles.gridItem,
-                                                isAnswered && styles.gridItemAnswered,
-                                                isActive && styles.gridItemActive
-                                            ]}
-                                            onPress={() => {
-                                                actions.setQuestionIndex(idx);
-                                                setIsListModalVisible(false);
-                                            }}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Text
+                                        return (
+                                            <TouchableOpacity
+                                                key={idx}
                                                 style={[
-                                                    styles.gridItemText,
-                                                    isAnswered && styles.gridItemTextAnswered,
-                                                    isActive && styles.gridItemTextActive
+                                                    styles.gridItem,
+                                                    isAnswered &&
+                                                        styles.gridItemAnswered,
+                                                    isActive &&
+                                                        styles.gridItemActive,
                                                 ]}
+                                                onPress={() => {
+                                                    actions.setQuestionIndex(
+                                                        idx,
+                                                    );
+                                                    setIsListModalVisible(
+                                                        false,
+                                                    );
+                                                }}
+                                                activeOpacity={0.7}
                                             >
-                                                {idx + 1}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                                                <Text
+                                                    style={[
+                                                        styles.gridItemText,
+                                                        isAnswered &&
+                                                            styles.gridItemTextAnswered,
+                                                        isActive &&
+                                                            styles.gridItemTextActive,
+                                                    ]}
+                                                >
+                                                    {idx + 1}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    },
+                                )}
                             </View>
                         </View>
                     </View>
