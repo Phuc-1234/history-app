@@ -91,18 +91,31 @@ function parseMultipleOptionIndexes(norm: string): number[] {
     return Array.from(selected).sort();
 }
 
-/** Parse a matching pair like "mot ghep a", "1 voi b", "hai la c". */
-function parseMatchingPair(norm: string): { leftIdx: number; rightIdx: number } | null {
-    for (const sep of ["ghep", "voi", "la"]) {
-        const sepIdx = norm.indexOf(sep);
-        if (sepIdx === -1) continue;
-        const lw = norm.slice(0, sepIdx).trim().split(" ").pop() ?? "";
-        const rw = norm.slice(sepIdx + sep.length).trim().split(" ")[0] ?? "";
-        if (VN_NUMBER_MAP[lw] !== undefined && VN_LETTER_MAP[rw] !== undefined) {
-            return { leftIdx: VN_NUMBER_MAP[lw], rightIdx: VN_LETTER_MAP[rw] };
+interface MatchingPairParseResult {
+    leftIdx: number;
+    rightIdx: number;
+}
+
+/** Parse all matching pairs from a single utterance like "1 a 2 b 3 c" or "1 voi a 2 la b" */
+function parseAllMatchingPairs(norm: string): MatchingPairParseResult[] {
+    const pairs: MatchingPairParseResult[] = [];
+    const tokens = norm.split(/\s+/);
+
+    for (let i = 0; i < tokens.length; i++) {
+        const leftVal = VN_NUMBER_MAP[tokens[i]];
+        if (leftVal !== undefined) {
+            // Find the next letter token within 3 tokens
+            for (let j = i + 1; j <= i + 3 && j < tokens.length; j++) {
+                const rightVal = VN_LETTER_MAP[tokens[j]];
+                if (rightVal !== undefined) {
+                    pairs.push({ leftIdx: leftVal, rightIdx: rightVal });
+                    i = j; // skip forward
+                    break;
+                }
+            }
         }
     }
-    return null;
+    return pairs;
 }
 
 // ---------------------------------------------------------------------------
@@ -378,17 +391,30 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                     }
                     acts.answerMatchingAndGoNext(q.id, { ...pendingMatchingPairs.current });
                 } else {
-                    const pair = parseMatchingPair(norm);
-                    if (pair && q.leftOptions[pair.leftIdx] && q.rightOptions[pair.rightIdx]) {
-                        const leftId = String(q.leftOptions[pair.leftIdx].id);
-                        const rightId = String(q.rightOptions[pair.rightIdx].id);
-                        pendingMatchingPairs.current = { ...pendingMatchingPairs.current, [leftId]: rightId };
-                        acts.answerMatching(q.id, leftId, rightId); // realtime UI line
+                    const parsedPairs = parseAllMatchingPairs(norm);
+                    let matchedAny = false;
+                    const matchedDescriptions: string[] = [];
+
+                    parsedPairs.forEach((pair) => {
+                        if (q.leftOptions[pair.leftIdx] && q.rightOptions[pair.rightIdx]) {
+                            const leftId = String(q.leftOptions[pair.leftIdx].id);
+                            const rightId = String(q.rightOptions[pair.rightIdx].id);
+                            pendingMatchingPairs.current = { ...pendingMatchingPairs.current, [leftId]: rightId };
+                            acts.answerMatching(q.id, leftId, rightId); // realtime UI line
+                            matchedAny = true;
+                            matchedDescriptions.push(`${pair.leftIdx + 1} với ${String.fromCharCode(65 + pair.rightIdx)}`);
+                        }
+                    });
+
+                    if (matchedAny) {
                         const done = Object.keys(pendingMatchingPairs.current).length;
                         const total = (q.leftOptions as any[]).length;
                         isVoiceProcessing.current = false;
+
+                        // Speak confirmation of all matches
+                        const desc = matchedDescriptions.join(", ");
                         ttsSpeak(
-                            `Đã ghép ${q.leftOptions[pair.leftIdx].text} với ${q.rightOptions[pair.rightIdx].text}. ${done} trên ${total}. Nói xong khi hoàn tất.`,
+                            `Đã ghép: ${desc}. Được ${done} trên ${total} cặp. Nói xong khi hoàn tất.`,
                             () => startListening(),
                         );
                     } else {

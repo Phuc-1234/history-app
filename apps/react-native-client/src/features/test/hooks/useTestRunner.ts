@@ -256,7 +256,7 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
             // Build graded map
             const graded: Record<string, boolean> = {};
             let correctCount = 0;
-            if (resp.questionSummaries) {
+            if (resp && resp.questionSummaries) {
                 resp.questionSummaries.forEach((qs) => {
                     graded[String(qs.questionId)] = qs.isCorrect;
                     if (qs.isCorrect) correctCount++;
@@ -264,12 +264,12 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
             }
 
             setResult({
-                score: resp.score,
+                score: resp ? resp.score : 0,
                 totalQuestions: totalQuestionCount,
                 correctAnswersCount: correctCount,
                 gradedAnswers: graded,
-                xpEarned: resp.xpEarned,
-                goldEarned: resp.goldEarned,
+                xpEarned: resp ? resp.xpEarned : 0,
+                goldEarned: resp ? resp.goldEarned : 0,
             });
 
             // Save to Redux history
@@ -284,7 +284,7 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
                     testId,
                     testTitle: `Kiểm tra`, // server doesn't return title in finish
                     timestamp: dateStr,
-                    score: resp.score,
+                    score: resp ? resp.score : 0,
                     correctAnswersCount: correctCount,
                     totalQuestions: totalQuestionCount,
                     answers: finalAnswers,
