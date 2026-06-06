@@ -1,6 +1,7 @@
 // features/dashboard/hooks/useTopBarData.ts
 import { useAppSelector } from "../../../store/storeHook"; // Adjust path according to your structure
 import { useStreak } from "../../streak"; // Adjust path as used in your wrappers
+import { useGetProfileQuery } from "@/features/auth/services/authApi";
 
 export interface ProcessedTopBarData {
     isLoggedIn: boolean;
@@ -13,6 +14,9 @@ export interface ProcessedTopBarData {
 }
 
 export function useTopBarData() {
+    // Automatically trigger profile query and subscribe to updates
+    useGetProfileQuery();
+
     // 1. Fetch live data context straight from Redux State
     const profile = useAppSelector((state) => state.auth.profile);
 

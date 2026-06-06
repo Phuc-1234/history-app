@@ -8,9 +8,9 @@ import {
     Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { User, Mail } from "lucide-react-native";
+import { User } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { useAppSelector } from "@/store/storeHook";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import ProfileAvatar from "../components/ProfileAvatar";
@@ -19,11 +19,23 @@ import SubPageHeader from "../components/SubPageHeader";
 export default function ProfileEditScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [name, setName] = useState("Nguyễn Văn A");
-    const [email, setEmail] = useState("nguyenvana@example.com");
+    const profile = useAppSelector((state) => state.auth.profile);
+    const [name, setName] = useState(profile?.name ?? "");
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSave = () => {
-        // TODO: Save profile changes via API
+    const handleSave = async () => {
+        const trimmedName = name.trim();
+        if (trimmedName === "") {
+            setErrorMsg("Tên không được để trống");
+            return;
+        }
+        setErrorMsg(null);
+        setIsLoading(true);
+
+        // Simulate local save loading
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        setIsLoading(false);
         router.back();
     };
 
@@ -47,7 +59,11 @@ export default function ProfileEditScreen() {
                 >
                     <View style={styles.card}>
                         <View style={styles.avatarSection}>
-                            <ProfileAvatar size={78} onEditPress={() => {}} />
+                            <ProfileAvatar
+                                uri={profile?.profileImgUrl}
+                                size={78}
+                                onEditPress={() => {}}
+                            />
                         </View>
 
                         <View style={styles.formSection}>
@@ -56,18 +72,14 @@ export default function ProfileEditScreen() {
                                 icon={User}
                                 placeholder="Nhập họ và tên"
                                 value={name}
-                                onChangeText={setName}
+                                onChangeText={(text) => {
+                                    setName(text);
+                                    if (errorMsg) setErrorMsg(null);
+                                }}
                             />
-
-                            <Text style={styles.fieldLabel}>Email</Text>
-                            <Input
-                                icon={Mail}
-                                placeholder="Nhập email"
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                            />
+                            {errorMsg && (
+                                <Text style={styles.errorText}>{errorMsg}</Text>
+                            )}
                         </View>
                     </View>
                 </ScrollView>
@@ -81,7 +93,10 @@ export default function ProfileEditScreen() {
                         },
                     ]}
                 >
-                    <Button title="Lưu" onPress={handleSave} />
+                    <Button
+                        title={isLoading ? "Đang lưu..." : "Lưu"}
+                        onPress={isLoading ? () => {} : handleSave}
+                    />
                 </View>
             </KeyboardAvoidingView>
         </View>
@@ -137,6 +152,14 @@ const styles = StyleSheet.create({
         color: "#374151",
         marginBottom: 6,
         marginTop: 8,
+    },
+
+    errorText: {
+        color: "#EF4444",
+        fontSize: 13,
+        fontWeight: "500",
+        marginTop: 8,
+        marginLeft: 4,
     },
 
     buttonContainer: {

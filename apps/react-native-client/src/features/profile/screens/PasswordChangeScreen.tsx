@@ -17,16 +17,16 @@ import { useChangePassword } from "../hooks/useChangePassword";
 import SubPageHeader from "../components/SubPageHeader";
 
 const text = {
-    title: "S\u1eeda m\u1eadt kh\u1ea9u",
+    title: "Sửa mật khẩu",
     description:
-        "Vui l\u00f2ng nh\u1eadp m\u1eadt kh\u1ea9u c\u0169 v\u00e0 t\u1ea1o m\u1eadt kh\u1ea9u m\u1edbi \u0111\u1ec3 b\u1ea3o m\u1eadt t\u00e0i kho\u1ea3n c\u1ee7a b\u1ea1n.",
-    currentLabel: "M\u1eadt kh\u1ea9u c\u0169",
-    currentPlaceholder: "Nh\u1eadp m\u1eadt kh\u1ea9u c\u0169",
-    newLabel: "M\u1eadt kh\u1ea9u m\u1edbi",
-    newPlaceholder: "Nh\u1eadp m\u1eadt kh\u1ea9u m\u1edbi",
-    confirmLabel: "X\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u",
-    confirmPlaceholder: "Nh\u1eadp l\u1ea1i m\u1eadt kh\u1ea9u m\u1edbi",
-    save: "L\u01b0u",
+        "Vui lòng nhập mật khẩu cũ và tạo mật khẩu mới để bảo mật tài khoản của bạn.",
+    currentLabel: "Mật khẩu cũ",
+    currentPlaceholder: "Nhập mật khẩu cũ",
+    newLabel: "Mật khẩu mới",
+    newPlaceholder: "Nhập mật khẩu mới",
+    confirmLabel: "Xác nhận mật khẩu",
+    confirmPlaceholder: "Nhập lại mật khẩu mới",
+    save: "Lưu",
 };
 
 export default function PasswordChangeScreen() {
@@ -114,7 +114,7 @@ export default function PasswordChangeScreen() {
                     ]}
                 >
                     <Button
-                        title={state.isLoading ? "\u0110ang l\u01b0u..." : text.save}
+                        title={state.isLoading ? "Đang lưu..." : text.save}
                         onPress={state.handleChangePassword}
                     />
                 </View>

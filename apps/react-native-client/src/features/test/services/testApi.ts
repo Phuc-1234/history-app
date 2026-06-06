@@ -45,6 +45,7 @@ export const testApi = apiSlice.injectEndpoints({
                 url: `/api/test-logs/${logId}/finish`,
                 method: "POST",
             }),
+            invalidatesTags: ["User"],
         }),
     }),
     overrideExisting: __DEV__,

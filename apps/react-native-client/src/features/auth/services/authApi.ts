@@ -9,6 +9,8 @@ import {
     VerifyOtpResponseBody, // Map to your backend types
     ResendOtpRequestBody, // Map to your backend types
     ResendOtpResponseBody, // Imported from shared contract packages
+    UserProfileResponseBody,
+    UserProfileSummary,
 } from "@history-app/shared";
 import { setProfile } from "../store/authSlice";
 
@@ -105,6 +107,29 @@ export const authApi = apiSlice.injectEndpoints({
                 body,
             }),
         }),
+
+        getProfile: builder.query<UserProfileResponseBody, void>({
+            query: () => ({
+                url: "/api/user/profile",
+                method: "GET",
+            }),
+            providesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if (data && !("error" in data)) {
+                        if ("isGuest" in data && data.isGuest) {
+                            dispatch(setProfile(null));
+                        } else {
+                            dispatch(setProfile(data as UserProfileSummary));
+                        }
+                    }
+                } catch (error) {
+                    console.error("Failed to sync profile:", error);
+                }
+            },
+        }),
+
     }),
     overrideExisting: __DEV__, // Safe hot-reloading for Expo local servers
 });
@@ -115,4 +140,5 @@ export const {
     useRegisterUserMutation,
     useVerifyOtpMutation,
     useResendOtpMutation,
+    useGetProfileQuery,
 } = authApi;

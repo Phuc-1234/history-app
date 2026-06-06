@@ -1,9 +1,9 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
-import { User } from "../hooks/useLeaderboard";
+import { LeaderboardUser } from "../hooks/useLeaderboard";
 
 interface RankingListProps {
-    rankingList: User[];
+    rankingList: LeaderboardUser[];
     isSmallDevice: boolean;
 }
 

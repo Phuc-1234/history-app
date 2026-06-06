@@ -8,14 +8,20 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppDispatch } from "@/store/storeHook";
+import { useAppDispatch, useAppSelector } from "@/store/storeHook";
 import { appLogout } from "@/features/auth/store/authSlice";
+import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import ProfileAvatar from "../components/ProfileAvatar";
 import ProfileMenuItem from "../components/ProfileMenuItem";
 
 export default function ProfileMainScreen() {
     const router = useRouter();
     const dispatch = useAppDispatch();
+
+    // Auto-subscribe to profile updates
+    useGetProfileQuery();
+
+    const profile = useAppSelector((state) => state.auth.profile);
 
     const handleEditProfile = () => {
         router.push("/(10_proflie)/10_2_profile_edit");
@@ -45,20 +51,29 @@ export default function ProfileMainScreen() {
             showsVerticalScrollIndicator={false}
         >
             <View style={styles.avatarSection}>
-                <ProfileAvatar size={120} onEditPress={handleEditProfile} />
-                <Text style={styles.userName}>{"Nguy\u1ec5n V\u0103n A"}</Text>
-                <Text style={styles.userEmail}>nguyenvana@example.com</Text>
+                <ProfileAvatar
+                    uri={profile?.profileImgUrl}
+                    size={120}
+                    showEditButton={false}
+                />
+                <Text style={styles.userName}>{profile?.name || "Người dùng"}</Text>
+                
+                {profile?.tierName && (
+                    <View style={styles.tierBadge}>
+                        <Text style={styles.tierText}>{profile.tierName}</Text>
+                    </View>
+                )}
             </View>
 
             <View style={styles.menuSection}>
                 <ProfileMenuItem
                     icon="person-outline"
-                    label={"S\u1eeda th\u00f4ng tin"}
+                    label="Sửa thông tin"
                     onPress={handleEditProfile}
                 />
                 <ProfileMenuItem
                     icon="lock-closed-outline"
-                    label={"\u0110\u1ed5i m\u1eadt kh\u1ea9u"}
+                    label="Đổi mật khẩu"
                     onPress={handleChangePassword}
                 />
                 <ProfileMenuItem
@@ -68,7 +83,7 @@ export default function ProfileMainScreen() {
                 />
                 <ProfileMenuItem
                     icon="link-outline"
-                    label={"Li\u00ean k\u1ebft t\u00e0i kho\u1ea3n"}
+                    label="Liên kết tài khoản"
                     onPress={handleLinkAccounts}
                 />
             </View>
@@ -79,7 +94,7 @@ export default function ProfileMainScreen() {
                 activeOpacity={0.7}
             >
                 <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-                <Text style={styles.logoutText}>{"\u0110\u0103ng xu\u1ea5t"}</Text>
+                <Text style={styles.logoutText}>Đăng xuất</Text>
             </TouchableOpacity>
         </ScrollView>
     );
@@ -104,10 +119,17 @@ const styles = StyleSheet.create({
         color: "#1C1C1E",
         marginTop: 16,
     },
-    userEmail: {
-        fontSize: 14,
-        color: "#8E8E93",
-        marginTop: 4,
+    tierBadge: {
+        backgroundColor: "#E8E4F4",
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginTop: 6,
+    },
+    tierText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#5856D6",
     },
     menuSection: {
         paddingHorizontal: 20,
