@@ -462,6 +462,30 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
         });
     };
 
+    const handleAnswerSingleAndGoNext = useCallback((questionId: string, optionIndex: number) => {
+        if (status !== "running") return;
+        setAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
+        handleGoNext(optionIndex);
+    }, [status, handleGoNext]);
+
+    const handleAnswerFillAndGoNext = useCallback((questionId: string, text: string) => {
+        if (status !== "running") return;
+        setAnswers((prev) => ({ ...prev, [questionId]: text }));
+        handleGoNext(text);
+    }, [status, handleGoNext]);
+
+    const handleAnswerMultipleAndGoNext = useCallback((questionId: string, optionIndexes: number[]) => {
+        if (status !== "running") return;
+        setAnswers((prev) => ({ ...prev, [questionId]: optionIndexes }));
+        handleGoNext(optionIndexes);
+    }, [status, handleGoNext]);
+
+    const handleAnswerMatchingAndGoNext = useCallback((questionId: string, pairs: Record<string, string>) => {
+        if (status !== "running") return;
+        setAnswers((prev) => ({ ...prev, [questionId]: pairs }));
+        handleGoNext(pairs);
+    }, [status, handleGoNext]);
+
     // ------ Restart ------
     const handleRestart = useCallback(async () => {
         setAnswers({});
@@ -510,6 +534,10 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
             answerFill: handleAnswerFill,
             answerMatching: handleAnswerMatching,
             removeMatch: handleRemoveMatch,
+            answerSingleAndGoNext: handleAnswerSingleAndGoNext,
+            answerMultipleAndGoNext: handleAnswerMultipleAndGoNext,
+            answerFillAndGoNext: handleAnswerFillAndGoNext,
+            answerMatchingAndGoNext: handleAnswerMatchingAndGoNext,
             goNext: handleGoNext,
             goPrev: handleGoPrev,
             submit: handleSubmit,

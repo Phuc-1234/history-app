@@ -7,26 +7,40 @@ import {
 import { useRouter } from "expo-router";
 
 // ---------------------------------------------------------------------------
-// Vietnamese number words → 0-based left-option index
+// Helpers to remove accents and normalize text for comparison
 // ---------------------------------------------------------------------------
+function removeVietnameseAccents(str: string): string {
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "d")
+        .replace(/[^a-zA-Z0-9\s]/g, ""); // Keep only alphanumeric and spaces
+}
+
+function normalizeSpokenText(str: string): string {
+    if (!str) return "";
+    return removeVietnameseAccents(str.toLowerCase().trim());
+}
+
+// Vietnamese number words (normalized) → 0-based left-option index
 const VN_NUMBER_MAP: Record<string, number> = {
-    "một": 0, "1": 0,
+    "mot": 0, "1": 0,
     "hai": 1, "2": 1,
     "ba": 2, "3": 2,
-    "bốn": 3, "4": 3,
-    "năm": 4, "5": 4,
-    "sáu": 5, "6": 5,
-    "bảy": 6, "7": 6,
+    "bon": 3, "4": 3,
+    "nam": 4, "5": 4,
+    "sau": 5, "6": 5,
+    "bay": 6, "7": 6,
 };
 
-// Vietnamese / phonetic letter words → 0-based right-option index
+// Vietnamese / phonetic letter words (normalized) → 0-based right-option index
 const VN_LETTER_MAP: Record<string, number> = {
     "a": 0,
-    "bê": 1, "b": 1,
-    "xê": 2, "c": 2,
-    "dê": 3, "d": 3,
+    "be": 1, "b": 1,
+    "xe": 2, "c": 2,
+    "de": 3, "d": 3,
     "e": 4,
-    "ê": 5,
 };
 
 export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
@@ -177,27 +191,29 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
 
         setSpokenText(transcript);
         const spoken = transcript.toLowerCase().trim();
+        const normSpoken = normalizeSpokenText(transcript);
         const q      = currentQuestionRef.current;
         const acts   = actionsRef.current;
         const st     = statusRef.current;
 
-        console.log("[Voice]", spoken);
+        console.log("[Voice Original]", spoken);
+        console.log("[Voice Normalized]", normSpoken);
 
         // ------ Global commands (work in any state) ------
-        if (["nghe lại", "đọc lại", "repeat"].includes(spoken)) {
+        if (["nghe lai", "doc lai", "repeat"].includes(normSpoken)) {
             speakQuestionSequence(); return;
         }
-        if (["nộp bài", "hoàn thành", "submit"].includes(spoken)) {
+        if (["nop bai", "hoan thanh", "submit"].includes(normSpoken)) {
             setVoiceStatus("processing");
             acts.submit(); return;
         }
-        if (["quay lại", "câu trước", "back"].includes(spoken)) {
+        if (["quay lai", "cau truoc", "back"].includes(normSpoken)) {
             setVoiceStatus("processing");
             if (st === "completed") { stopListening(); router.back(); }
             else acts.goPrev();
             return;
         }
-        if (["tiếp tục"].includes(spoken) && st === "completed") {
+        if (["tiep tuc"].includes(normSpoken) && st === "completed") {
             setVoiceStatus("processing");
             stopListening(); router.back(); return;
         }
@@ -206,18 +222,20 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
 
         // ------ Fill confirmation sub-state ------
         if (awaitingFillConfirm.current) {
-            const YES = ["xác nhận", "đúng", "có", "ok", "ừ", "yes"];
-            const NO  = ["sai", "không", "lại", "nhập lại", "no"];
-            if (YES.some(w => spoken.includes(w))) {
+            const YES = ["xac nhan", "dung", "co", "ok", "u", "yes"];
+            const NO  = ["sai", "khong", "lai", "nhap lai", "no"];
+            if (YES.some(w => normSpoken.includes(w))) {
                 isVoiceProcessing.current  = true;
                 setVoiceStatus("processing");
                 awaitingFillConfirm.current = false;
                 stopListening();
-                acts.goNext(pendingFillAnswer.current);
+                acts.answerFillAndGoNext(q.id, pendingFillAnswer.current || "");
                 pendingFillAnswer.current = null;
-            } else if (NO.some(w => spoken.includes(w))) {
+            } else if (NO.some(w => normSpoken.includes(w))) {
                 awaitingFillConfirm.current = false;
                 pendingFillAnswer.current = null;
+                // Clear UI input
+                acts.answerFill(q.id, "");
                 ttsSpeak("Hãy nói lại câu trả lời.", () => startListening());
             } else {
                 startListening();
@@ -232,23 +250,32 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
             case "single-choice": {
                 let idx = -1;
                 const kws = [
-                    { i: 0, kw: ["lựa chọn a", "đáp án a", "chọn a", "câu a"] },
-                    { i: 1, kw: ["lựa chọn b", "đáp án b", "chọn b", "câu b", "bê"] },
-                    { i: 2, kw: ["lựa chọn c", "đáp án c", "chọn c", "câu c", "xê"] },
-                    { i: 3, kw: ["lựa chọn d", "đáp án d", "chọn d", "câu d", "dê"] },
+                    { i: 0, kw: ["lua chon a", "dap an a", "chon a", "cau a"] },
+                    { i: 1, kw: ["lua chon b", "dap an b", "chon b", "cau b", "be"] },
+                    { i: 2, kw: ["lua chon c", "dap an c", "chon c", "cau c", "xe"] },
+                    { i: 3, kw: ["lua chon d", "dap an d", "chon d", "cau d", "de"] },
                 ];
                 for (const { i, kw } of kws) {
-                    if (kw.some(k => spoken.includes(k))) { idx = i; break; }
+                    if (kw.some(k => normSpoken.includes(k))) { idx = i; break; }
                 }
-                if (idx === -1 && VN_LETTER_MAP[spoken] !== undefined) idx = VN_LETTER_MAP[spoken];
+                if (idx === -1 && VN_LETTER_MAP[normSpoken] !== undefined) {
+                    idx = VN_LETTER_MAP[normSpoken];
+                }
                 if (idx === -1) {
-                    idx = (q.options as string[]).findIndex((o: string) => spoken.includes(o.toLowerCase()));
+                    idx = (q.options as string[]).findIndex((o: string) => {
+                        const normO = normalizeSpokenText(o);
+                        return normO && normSpoken.includes(normO);
+                    });
                 }
                 if (idx !== -1) {
                     isVoiceProcessing.current = true;
                     setVoiceStatus("processing");
                     stopListening();
-                    ttsSpeak(`Đã chọn ${String.fromCharCode(65 + idx)}.`, () => acts.goNext(idx));
+                    // Set answer locally immediately so UI shows selected state
+                    acts.answerSingle(q.id, idx);
+                    ttsSpeak(`Đã chọn ${String.fromCharCode(65 + idx)}.`, () => {
+                        acts.answerSingleAndGoNext(q.id, idx);
+                    });
                 } else {
                     startListening();
                 }
@@ -257,8 +284,8 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
 
             // ---- Multiple choice ----
             case "multiple-choice": {
-                const COMMIT = ["xong", "tiếp theo", "tiếp", "xác nhận", "next"];
-                if (COMMIT.some(w => spoken.includes(w))) {
+                const COMMIT = ["xong", "tiep theo", "tiep", "xac nhan", "next"];
+                if (COMMIT.some(w => normSpoken.includes(w))) {
                     isVoiceProcessing.current = true;
                     setVoiceStatus("processing");
                     stopListening();
@@ -271,26 +298,36 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                     }
                     const sorted = pendingMultiSelections.current.slice().sort();
                     const labels = sorted.map(i => String.fromCharCode(65 + i)).join(", ");
-                    ttsSpeak(`Đã chọn ${labels}.`, () => acts.goNext(sorted));
+                    ttsSpeak(`Đã chọn ${labels}.`, () => {
+                        acts.answerMultipleAndGoNext(q.id, sorted);
+                    });
                     return;
                 }
                 // Toggle letter selections
                 const kws = [
-                    { i: 0, kw: ["lựa chọn a", "chọn a", "đáp án a"] },
-                    { i: 1, kw: ["lựa chọn b", "chọn b", "đáp án b", "bê"] },
-                    { i: 2, kw: ["lựa chọn c", "chọn c", "đáp án c", "xê"] },
-                    { i: 3, kw: ["lựa chọn d", "chọn d", "đáp án d", "dê"] },
+                    { i: 0, kw: ["lua chon a", "chon a", "dap an a"] },
+                    { i: 1, kw: ["lua chon b", "chon b", "dap an b", "be"] },
+                    { i: 2, kw: ["lua chon c", "chon c", "dap an c", "xe"] },
+                    { i: 3, kw: ["lua chon d", "chon d", "dap an d", "de"] },
                 ];
                 let toggled: number[] = [];
                 for (const { i, kw } of kws) {
-                    if (kw.some(k => spoken.includes(k))) toggled.push(i);
+                    if (kw.some(k => normSpoken.includes(k))) toggled.push(i);
                 }
-                if (toggled.length === 0 && VN_LETTER_MAP[spoken] !== undefined) {
-                    toggled.push(VN_LETTER_MAP[spoken]);
+                if (toggled.length === 0 && VN_LETTER_MAP[normSpoken] !== undefined) {
+                    toggled.push(VN_LETTER_MAP[normSpoken]);
                 }
                 if (toggled.length > 0) {
                     const cur = new Set(pendingMultiSelections.current);
-                    toggled.forEach(i => cur.has(i) ? cur.delete(i) : cur.add(i));
+                    toggled.forEach(i => {
+                        if (cur.has(i)) {
+                            cur.delete(i);
+                        } else {
+                            cur.add(i);
+                        }
+                        // Update UI checkbox in real-time
+                        acts.answerMultiple(q.id, i);
+                    });
                     pendingMultiSelections.current = Array.from(cur);
                     const labels = pendingMultiSelections.current.map(i => String.fromCharCode(65 + i)).join(", ") || "chưa có";
                     ttsSpeak(`Đang chọn: ${labels}. Nói thêm hoặc nói xong.`, () => startListening());
@@ -303,16 +340,18 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
             // ---- Fill in blank ----
             case "fill-in-blank": {
                 stopListening();
-                pendingFillAnswer.current   = spoken;
+                pendingFillAnswer.current   = transcript; // use capitalized transcript
                 awaitingFillConfirm.current = true;
-                ttsSpeak(`Bạn vừa nói: ${spoken}. Nói xác nhận để tiếp tục, hoặc nói lại để nhập lại.`, () => startListening());
+                // Preview the text in the input box immediately
+                acts.answerFill(q.id, transcript);
+                ttsSpeak(`Bạn vừa nói: ${transcript}. Nói xác nhận để tiếp tục, hoặc nói lại để nhập lại.`, () => startListening());
                 break;
             }
 
             // ---- Matching ----
             case "matching": {
-                const COMMIT = ["xong", "hoàn tất", "kết thúc", "tiếp theo"];
-                if (COMMIT.some(w => spoken.includes(w))) {
+                const COMMIT = ["xong", "hoan tat", "ket thuc", "tiep theo"];
+                if (COMMIT.some(w => normSpoken.includes(w))) {
                     isVoiceProcessing.current = true;
                     setVoiceStatus("processing");
                     stopListening();
@@ -323,13 +362,15 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                         });
                         return;
                     }
-                    ttsSpeak("Đã ghi nhận các cặp ghép.", () => acts.goNext({ ...pendingMatchingPairs.current }));
+                    ttsSpeak("Đã ghi nhận các cặp ghép.", () => {
+                        acts.answerMatchingAndGoNext(q.id, { ...pendingMatchingPairs.current });
+                    });
                     return;
                 }
                 // Parse "N ghép/là/với L"
                 let leftIdx = -1, rightIdx = -1;
-                for (const sep of ["ghép", "là", "với"]) {
-                    const parts = spoken.split(sep);
+                for (const sep of ["ghep", "la", "voi"]) {
+                    const parts = normSpoken.split(sep);
                     if (parts.length >= 2) {
                         const lw = parts[0].trim();
                         const rw = parts[1].trim();
@@ -344,6 +385,10 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                     const leftId  = String(q.leftOptions[leftIdx].id);
                     const rightId = String(q.rightOptions[rightIdx].id);
                     pendingMatchingPairs.current = { ...pendingMatchingPairs.current, [leftId]: rightId };
+                    
+                    // Update UI matching connection in real-time
+                    acts.answerMatching(q.id, leftId, rightId);
+
                     const done  = Object.keys(pendingMatchingPairs.current).length;
                     const total = (q.leftOptions as any[]).length;
                     ttsSpeak(
@@ -415,10 +460,11 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
         if (lastSpokenQuestionId.current === currentQuestion.id) return;
 
         lastSpokenQuestionId.current = currentQuestion.id;
-        // Reset per-question accumulation state
-        pendingMultiSelections.current = [];
-        pendingMatchingPairs.current   = {};
-        pendingFillAnswer.current      = null;
+        // Seed per-question accumulation state from saved answers if present
+        const savedAns = testRunner.answers[currentQuestion.id];
+        pendingMultiSelections.current = Array.isArray(savedAns) ? [...savedAns] : [];
+        pendingMatchingPairs.current   = (savedAns && typeof savedAns === "object" && !Array.isArray(savedAns)) ? { ...savedAns } : {};
+        pendingFillAnswer.current      = typeof savedAns === "string" ? savedAns : null;
         awaitingFillConfirm.current    = false;
         setSpokenText("");
         setTtsText("");
