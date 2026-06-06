@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import * as Speech from "expo-speech";
 import {
     ExpoSpeechRecognitionModule,
@@ -33,6 +33,10 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
     const { currentQuestion, actions, status, result, totalQuestionCount } = testRunner;
     const router = useRouter();
 
+    const [voiceStatus, setVoiceStatus] = useState<"idle" | "listening" | "speaking" | "processing" | "error">("idle");
+    const [spokenText, setSpokenText] = useState("");
+    const [ttsText, setTtsText] = useState("");
+
     // Stable refs to avoid stale closure issues in callbacks
     const currentQuestionRef = useRef(currentQuestion);
     const actionsRef         = useRef(actions);
@@ -64,11 +68,14 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
             const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
             if (!result.granted) {
                 console.warn("Speech recognition permission not granted");
+                setVoiceStatus("error");
                 return;
             }
+            setVoiceStatus("listening");
             ExpoSpeechRecognitionModule.start({ lang: "vi-VN", interimResults: false });
         } catch (e) {
             console.error("Mic start failed:", e);
+            setVoiceStatus("error");
         }
     }, []);
 
@@ -79,10 +86,26 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
 
     const ttsSpeak = useCallback((text: string, onDone?: () => void) => {
         isTtsSpeaking.current = true;
+        setVoiceStatus("speaking");
+        setTtsText(text);
         Speech.speak(text, {
             language: "vi-VN",
-            onDone:  () => { isTtsSpeaking.current = false; onDone?.(); },
-            onError: () => { isTtsSpeaking.current = false; onDone?.(); },
+            onDone:  () => {
+                isTtsSpeaking.current = false;
+                if (onDone) {
+                    onDone();
+                } else {
+                    setVoiceStatus("idle");
+                }
+            },
+            onError: () => {
+                isTtsSpeaking.current = false;
+                if (onDone) {
+                    onDone();
+                } else {
+                    setVoiceStatus("idle");
+                }
+            },
         });
     }, []);
 
@@ -129,13 +152,18 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
         if (!q) return;
         isVoiceProcessing.current = false;
         isTtsSpeaking.current     = true;
+        setVoiceStatus("speaking");
+        setTtsText(q.text);
         await Speech.stop();
         await stopListening();
 
         Speech.speak(q.text, {
             language: "vi-VN",
             onDone:  () => speakOptionsSequence(),
-            onError: () => { isTtsSpeaking.current = false; },
+            onError: () => {
+                isTtsSpeaking.current = false;
+                setVoiceStatus("idle");
+            },
         });
     }, [stopListening, speakOptionsSequence]);
 
@@ -147,6 +175,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
         const transcript = event.results?.[0]?.transcript;
         if (isVoiceProcessing.current || !transcript) return;
 
+        setSpokenText(transcript);
         const spoken = transcript.toLowerCase().trim();
         const q      = currentQuestionRef.current;
         const acts   = actionsRef.current;
@@ -159,14 +188,17 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
             speakQuestionSequence(); return;
         }
         if (["nộp bài", "hoàn thành", "submit"].includes(spoken)) {
+            setVoiceStatus("processing");
             acts.submit(); return;
         }
         if (["quay lại", "câu trước", "back"].includes(spoken)) {
+            setVoiceStatus("processing");
             if (st === "completed") { stopListening(); router.back(); }
             else acts.goPrev();
             return;
         }
         if (["tiếp tục"].includes(spoken) && st === "completed") {
+            setVoiceStatus("processing");
             stopListening(); router.back(); return;
         }
 
@@ -178,6 +210,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
             const NO  = ["sai", "không", "lại", "nhập lại", "no"];
             if (YES.some(w => spoken.includes(w))) {
                 isVoiceProcessing.current  = true;
+                setVoiceStatus("processing");
                 awaitingFillConfirm.current = false;
                 stopListening();
                 acts.goNext(pendingFillAnswer.current);
@@ -213,6 +246,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                 }
                 if (idx !== -1) {
                     isVoiceProcessing.current = true;
+                    setVoiceStatus("processing");
                     stopListening();
                     ttsSpeak(`Đã chọn ${String.fromCharCode(65 + idx)}.`, () => acts.goNext(idx));
                 } else {
@@ -226,6 +260,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                 const COMMIT = ["xong", "tiếp theo", "tiếp", "xác nhận", "next"];
                 if (COMMIT.some(w => spoken.includes(w))) {
                     isVoiceProcessing.current = true;
+                    setVoiceStatus("processing");
                     stopListening();
                     if (pendingMultiSelections.current.length === 0) {
                         ttsSpeak("Bạn chưa chọn đáp án nào. Hãy chọn ít nhất một đáp án.", () => {
@@ -279,6 +314,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                 const COMMIT = ["xong", "hoàn tất", "kết thúc", "tiếp theo"];
                 if (COMMIT.some(w => spoken.includes(w))) {
                     isVoiceProcessing.current = true;
+                    setVoiceStatus("processing");
                     stopListening();
                     if (Object.keys(pendingMatchingPairs.current).length === 0) {
                         ttsSpeak("Bạn chưa ghép cặp nào. Hãy nói số ghép chữ cái.", () => {
@@ -333,7 +369,12 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
     // Voice listener bootstrap — only active in voice mode
     // ---------------------------------------------------------------------------
     useEffect(() => {
-        if (!isVoiceMode) return;
+        if (!isVoiceMode) {
+            setVoiceStatus("idle");
+            setSpokenText("");
+            setTtsText("");
+            return;
+        }
 
         return () => {
             ExpoSpeechRecognitionModule.stop();
@@ -379,8 +420,15 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
         pendingMatchingPairs.current   = {};
         pendingFillAnswer.current      = null;
         awaitingFillConfirm.current    = false;
+        setSpokenText("");
+        setTtsText("");
 
         speakQuestionSequence();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentQuestion, status, isVoiceMode]);
+    return {
+        voiceStatus,
+        spokenText,
+        ttsText,
+    };
 }

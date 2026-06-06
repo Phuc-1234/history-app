@@ -22,6 +22,8 @@ import {
     HelpCircle,
     Check,
     Star,
+    Mic,
+    Volume2,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { TopBarWrapper } from "../../top_bar";
@@ -56,7 +58,7 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
     } = testRunner;
 
     const [isVoiceMode, setIsVoiceMode] = useState(false);
-    useVoiceTestController(testRunner, isVoiceMode);
+    const { voiceStatus, spokenText, ttsText } = useVoiceTestController(testRunner, isVoiceMode);
 
     const [isListModalVisible, setIsListModalVisible] = useState(false);
     const [viewMode, setViewMode] = useState<"celebration" | "review">(
@@ -322,6 +324,77 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                 </Text>
                             </TouchableOpacity>
                         </View>
+
+                        {isVoiceMode && (
+                            <View style={styles.voicePanel}>
+                                <View style={styles.voiceHeader}>
+                                    <View style={styles.voiceStatusIndicator}>
+                                        <View
+                                            style={[
+                                                styles.voiceStatusDot,
+                                                voiceStatus === "listening" &&
+                                                    styles.voiceStatusDotListening,
+                                                voiceStatus === "speaking" &&
+                                                    styles.voiceStatusDotSpeaking,
+                                                voiceStatus === "processing" &&
+                                                    styles.voiceStatusDotProcessing,
+                                                voiceStatus === "error" &&
+                                                    styles.voiceStatusDotError,
+                                            ]}
+                                        />
+                                        <Text style={styles.voiceStatusText}>
+                                            {voiceStatus === "listening" && "Đang lắng nghe..."}
+                                            {voiceStatus === "speaking" && "Đang đọc câu hỏi..."}
+                                            {voiceStatus === "processing" && "Đang xử lý..."}
+                                            {voiceStatus === "idle" && "Đang chờ..."}
+                                            {voiceStatus === "error" && "Lỗi micro/quyền truy cập"}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.voiceCloseButton}
+                                        onPress={() => setIsVoiceMode(false)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <X size={12} color="#E53E3E" />
+                                        <Text style={styles.voiceCloseButtonText}>
+                                            Tắt giọng nói
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.voiceBody}>
+                                    <View style={[
+                                        styles.voiceIconContainer,
+                                        voiceStatus === "listening" && styles.voiceIconContainerListening,
+                                        voiceStatus === "speaking" && styles.voiceIconContainerSpeaking,
+                                    ]}>
+                                        {voiceStatus === "listening" ? (
+                                            <Mic size={18} color="#FFFFFF" />
+                                        ) : voiceStatus === "speaking" ? (
+                                            <Volume2 size={18} color="#FFFFFF" />
+                                        ) : voiceStatus === "processing" ? (
+                                            <ActivityIndicator size="small" color="#FFFFFF" />
+                                        ) : (
+                                            <Mic size={18} color="#A0AEC0" />
+                                        )}
+                                    </View>
+                                    <View style={styles.voiceTextContainer}>
+                                        <Text style={styles.voiceLabel}>Bạn nói:</Text>
+                                        <Text style={styles.voiceSpokenText} numberOfLines={2}>
+                                            {spokenText ? `"${spokenText}"` : "Hãy nói lựa chọn của bạn..."}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {voiceStatus === "speaking" && ttsText ? (
+                                    <View style={styles.voiceSubtitles}>
+                                        <Text style={styles.voiceSubtitlesText} numberOfLines={2}>
+                                            {ttsText}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                            </View>
+                        )}
                     </>
                 ) : viewMode === "celebration" ? (
                     /* Lesson Progress Celebration View */
@@ -1265,5 +1338,123 @@ const styles = StyleSheet.create({
     },
     reviewScrollContent: {
         paddingBottom: 40,
+    },
+    // Voice Mode HUD Styles
+    voicePanel: {
+        position: "absolute",
+        bottom: 125, // Positioned above the bottom footer
+        left: 20,
+        right: 20,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1.5,
+        borderColor: "#E2E8F0",
+        shadowColor: "#5D45F9",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    voiceHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        borderBottomWidth: 1,
+        borderBottomColor: "#EDF2F7",
+        paddingBottom: 8,
+        marginBottom: 12,
+    },
+    voiceStatusIndicator: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    voiceStatusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 100,
+        backgroundColor: "#A0AEC0",
+    },
+    voiceStatusDotListening: {
+        backgroundColor: "#E53E3E",
+    },
+    voiceStatusDotSpeaking: {
+        backgroundColor: "#3182CE",
+    },
+    voiceStatusDotProcessing: {
+        backgroundColor: "#5D45F9",
+    },
+    voiceStatusDotError: {
+        backgroundColor: "#E53E3E",
+    },
+    voiceStatusText: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: "#4A5568",
+    },
+    voiceCloseButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: "#FFF5F5",
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 100,
+        borderWidth: 1,
+        borderColor: "#FED7D7",
+    },
+    voiceCloseButtonText: {
+        fontSize: 11,
+        fontWeight: "800",
+        color: "#C53030",
+    },
+    voiceBody: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    voiceIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 100,
+        backgroundColor: "#E2E8F0",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    voiceIconContainerListening: {
+        backgroundColor: "#E53E3E",
+    },
+    voiceIconContainerSpeaking: {
+        backgroundColor: "#3182CE",
+    },
+    voiceTextContainer: {
+        flex: 1,
+    },
+    voiceLabel: {
+        fontSize: 11,
+        fontWeight: "800",
+        color: "#718096",
+        textTransform: "uppercase",
+        marginBottom: 2,
+    },
+    voiceSpokenText: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#1A202C",
+    },
+    voiceSubtitles: {
+        marginTop: 12,
+        backgroundColor: "#F7FAFC",
+        borderRadius: 12,
+        padding: 10,
+        borderLeftWidth: 3,
+        borderLeftColor: "#3182CE",
+    },
+    voiceSubtitlesText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#4A5568",
+        fontStyle: "italic",
     },
 });
