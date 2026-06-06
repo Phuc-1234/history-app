@@ -52,6 +52,11 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
     const totalQuestions = totalQuestionCount || questions.length;
     const progressPercent = totalQuestions > 0 ? (activeQuestionNumber / totalQuestions) * 100 : 0;
 
+    // Tính toán % câu đúng cho màn hình chúc mừng
+    const successPercent = totalQuestions > 0 && result 
+        ? (result.correctAnswersCount / totalQuestions) * 100 
+        : 0;
+
     return (
         <TopBarWrapper>
             <View style={styles.container}>
@@ -288,11 +293,11 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                             {/* Progress bar area */}
                             <View style={styles.completedProgressArea}>
                                 <View style={styles.completedProgressBarBg}>
-                                    <View style={styles.completedProgressBarFill} />
+                                    <View style={[styles.completedProgressBarFill, { width: `${successPercent}%` }]} />
                                 </View>
                                 <View style={styles.completedProgressTextRow}>
-                                    <Text style={styles.completedProgressLabel}>Tiến độ</Text>
-                                    <Text style={styles.completedProgressValue}>100%</Text>
+                                    <Text style={styles.completedProgressLabel}>Tỷ lệ chính xác</Text>
+                                    <Text style={styles.completedProgressValue}>{Math.round(successPercent)}%</Text>
                                 </View>
                             </View>
                         </ScrollView>
@@ -437,17 +442,7 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                                 setIsListModalVisible(false);
                                             }}
                                             activeOpacity={0.7}
-                                        >
-                                            <Text
-                                                style={[
-                                                    styles.gridItemText,
-                                                    isAnswered && styles.gridItemTextAnswered,
-                                                    isActive && styles.gridItemTextActive
-                                                ]}
-                                            >
-                                                {idx + 1}
-                                            </Text>
-                                        </TouchableOpacity>
+                                        />
                                     );
                                 })}
                             </View>
@@ -559,12 +554,12 @@ const styles = StyleSheet.create({
     blockIndicatorsRow: {
         flexDirection: "row",
         justifyContent: "center",
-        gap: 8,
+        gap: 5,
         marginTop: 36,
     },
     blockIndicator: {
-        width: 32,
-        height: 6,
+        width: 15,
+        height: 3,
         borderRadius: 100,
         backgroundColor: "#E2E8F0",
     },
@@ -573,7 +568,7 @@ const styles = StyleSheet.create({
     },
     blockIndicatorActive: {
         backgroundColor: "#5D45F9",
-        width: 48,
+        width: 28,
     },
     footer: {
         backgroundColor: "#FFFFFF",
@@ -632,7 +627,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#718096",
     },
-    // Modal Styles
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(15, 12, 38, 0.45)",
@@ -716,196 +710,31 @@ const styles = StyleSheet.create({
     gridItemTextActive: {
         color: "#FFFFFF",
     },
-    // Result Screen Styles
-    resultScrollContent: {
-        paddingBottom: 40,
-    },
-    resultHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 16,
-        backgroundColor: "#FFFFFF",
-        borderBottomWidth: 1,
-        borderBottomColor: "#EDF2F7",
-    },
-    resultHeaderTitle: {
-        fontSize: 16,
-        fontWeight: "800",
-        color: "#1A202C",
-    },
-    resultCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 24,
-        padding: 28,
-        margin: 20,
-        alignItems: "center",
-        shadowColor: "#5D45F9",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: "#F1F5F9",
-    },
-    awardIconContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 100,
-        backgroundColor: "#F5F3FF",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 20,
-    },
-    resultScoreText: {
-        fontSize: 28,
-        fontWeight: "900",
-        color: "#5D45F9",
-        marginBottom: 10,
-    },
-    resultFeedbackText: {
-        fontSize: 14,
-        color: "#4A5568",
-        textAlign: "center",
-        lineHeight: 20,
-        fontWeight: "600",
-        marginBottom: 24,
-        paddingHorizontal: 10,
-    },
-    statsContainer: {
-        flexDirection: "row",
-        width: "100%",
-        gap: 16,
-        marginBottom: 28,
-    },
-    statBox: {
-        flex: 1,
-        backgroundColor: "#F8FAFC",
-        borderWidth: 1,
-        borderColor: "#EDF2F7",
-        borderRadius: 18,
-        padding: 16,
-        alignItems: "center",
-    },
-    statValue: {
-        fontSize: 20,
-        fontWeight: "800",
-        color: "#2D3748",
-        marginTop: 6,
-        marginBottom: 2,
-    },
-    statLabel: {
-        fontSize: 12,
-        color: "#718096",
-        fontWeight: "600",
-    },
-    restartButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        backgroundColor: "#5D45F9",
-        borderRadius: 100,
-        paddingVertical: 14,
-        paddingHorizontal: 28,
-        width: "100%",
-        shadowColor: "#5D45F9",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
-        elevation: 2,
-    },
-    restartButtonText: {
-        fontSize: 15,
-        fontWeight: "800",
-        color: "#FFFFFF",
-    },
-    reviewTitle: {
-        fontSize: 16,
-        fontWeight: "800",
-        color: "#1A202C",
-        paddingHorizontal: 20,
-        marginBottom: 14,
-    },
-    reviewList: {
-        paddingHorizontal: 20,
-        gap: 12,
-    },
-    reviewCard: {
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "#EDF2F7",
-        borderRadius: 18,
-        padding: 16,
-    },
-    reviewHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 8,
-    },
-    reviewIndex: {
-        fontSize: 12,
-        fontWeight: "800",
-        color: "#A0AEC0",
-        textTransform: "uppercase",
-    },
-    gradingBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: 100,
-    },
-    gradingBadgeCorrect: {
-        backgroundColor: "#ECFDF5",
-    },
-    gradingBadgeIncorrect: {
-        backgroundColor: "#FEF2F2",
-    },
-    gradingBadgeText: {
-        fontSize: 11,
-        fontWeight: "800",
-    },
-    gradingBadgeTextCorrect: {
-        color: "#059669",
-    },
-    gradingBadgeTextIncorrect: {
-        color: "#DC2626",
-    },
-    reviewText: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: "#2D3748",
-        lineHeight: 20,
-    },
-    // Completed Screen Styles
     completedContainer: {
         flex: 1,
         backgroundColor: "#FFFFFF",
     },
+    helpButton: {
+        padding: 8,
+    },
     completedScrollContent: {
-        paddingHorizontal: 24,
-        paddingTop: 36,
-        paddingBottom: 40,
         alignItems: "center",
+        paddingHorizontal: 24,
+        paddingTop: 32,
+        paddingBottom: 40,
     },
     completedHeroOuter: {
         position: "relative",
-        marginBottom: 36,
+        marginBottom: 24,
     },
     completedHeroCircle: {
-        width: 240,
-        height: 240,
-        borderRadius: 120,
-        borderWidth: 8,
-        borderColor: "#F5F3FF",
+        width: 140,
+        height: 140,
+        borderRadius: 100,
+        backgroundColor: "#F8FAFC",
         overflow: "hidden",
-        shadowColor: "#5D45F9",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 6,
+        borderWidth: 4,
+        borderColor: "#EEF2FF",
     },
     completedHeroImage: {
         width: "100%",
@@ -913,53 +742,45 @@ const styles = StyleSheet.create({
     },
     completedBadgeOverlay: {
         position: "absolute",
-        bottom: 8,
-        right: 8,
+        bottom: 0,
+        right: 4,
         backgroundColor: "#FFFFFF",
-        borderRadius: 100,
         padding: 10,
-        borderWidth: 4,
-        borderColor: "#F5F3FF",
-        shadowColor: "#000",
+        borderRadius: 100,
+        shadowColor: "#5D45F9",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 3,
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
     },
     completedTitle: {
         fontSize: 26,
         fontWeight: "900",
         color: "#1A202C",
         textAlign: "center",
-        marginBottom: 8,
+        marginBottom: 6,
     },
     completedSubtitle: {
-        fontSize: 14,
-        color: "#718096",
+        fontSize: 15,
         fontWeight: "600",
+        color: "#718096",
         textAlign: "center",
-        marginBottom: 36,
+        marginBottom: 32,
     },
     completedStatsRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
         gap: 16,
         width: "100%",
-        marginBottom: 36,
+        marginBottom: 32,
     },
     completedStatCard: {
         flex: 1,
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1.5,
-        borderColor: "#F1F5F9",
-        borderRadius: 24,
+        backgroundColor: "#F8FAFC",
+        borderRadius: 20,
         padding: 20,
         alignItems: "center",
-        shadowColor: "#1A202C",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.02,
-        shadowRadius: 8,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: "#EDF2F7",
     },
     completedStatIconBg: {
         width: 38,
@@ -967,17 +788,17 @@ const styles = StyleSheet.create({
         borderRadius: 100,
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 10,
+        marginBottom: 12,
     },
     statBlueBg: {
         backgroundColor: "#EBF8FF",
     },
     statIndigoBg: {
-        backgroundColor: "#F5F3FF",
+        backgroundColor: "#EEF2FF",
     },
     completedStatValue: {
         fontSize: 20,
-        fontWeight: "900",
+        fontWeight: "800",
         color: "#1A202C",
         marginBottom: 4,
     },
@@ -989,27 +810,28 @@ const styles = StyleSheet.create({
     },
     completedProgressArea: {
         width: "100%",
-        paddingHorizontal: 4,
+        backgroundColor: "#F8FAFC",
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: "#EDF2F7",
     },
     completedProgressBarBg: {
         height: 8,
-        backgroundColor: "#F1F5F9",
+        backgroundColor: "#E2E8F0",
         borderRadius: 100,
         overflow: "hidden",
-        width: "100%",
-        marginBottom: 10,
+        marginBottom: 12,
     },
     completedProgressBarFill: {
         height: "100%",
         backgroundColor: "#5D45F9",
         borderRadius: 100,
-        width: "100%",
     },
     completedProgressTextRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        width: "100%",
     },
     completedProgressLabel: {
         fontSize: 13,
@@ -1017,62 +839,107 @@ const styles = StyleSheet.create({
         color: "#718096",
     },
     completedProgressValue: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: "800",
         color: "#5D45F9",
     },
     completedFooter: {
-        backgroundColor: "#FFFFFF",
-        borderTopWidth: 1,
-        borderTopColor: "#EDF2F7",
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
         paddingTop: 16,
         paddingBottom: 24,
-        gap: 12,
+        borderTopWidth: 1,
+        borderTopColor: "#F1F5F9",
+        backgroundColor: "#FFFFFF",
     },
     continueButton: {
+        height: 54,
+        backgroundColor: "#5D45F9",
+        borderRadius: 100,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        backgroundColor: "#5D45F9",
-        borderRadius: 100,
-        height: 56,
-        width: "100%",
+        marginBottom: 12,
         shadowColor: "#5D45F9",
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 3,
     },
     continueButtonText: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: "800",
         color: "#FFFFFF",
     },
     continueArrow: {
-        fontSize: 14,
+        fontSize: 16,
         color: "#FFFFFF",
-        fontWeight: "800",
     },
     reviewButtonOutline: {
-        alignItems: "center",
-        justifyContent: "center",
-        height: 48,
+        height: 54,
         borderRadius: 100,
         borderWidth: 1.5,
         borderColor: "#E2E8F0",
+        alignItems: "center",
+        justifyContent: "center",
         backgroundColor: "#FFFFFF",
     },
     reviewButtonText: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: "800",
         color: "#4A5568",
     },
-    helpButton: {
-        padding: 8,
-    },
     reviewScrollContent: {
+        paddingHorizontal: 24,
+        paddingTop: 24,
         paddingBottom: 40,
     },
+    reviewList: {
+        gap: 16,
+    },
+    reviewCard: {
+        backgroundColor: "#F8FAFC",
+        borderRadius: 18,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: "#EDF2F7",
+    },
+    reviewHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    reviewIndex: {
+        fontSize: 14,
+        fontWeight: "800",
+        color: "#718096",
+    },
+    gradingBadge: {
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 100,
+    },
+    gradingBadgeCorrect: {
+        backgroundColor: "#E6FFFA",
+    },
+    gradingBadgeIncorrect: {
+        backgroundColor: "#FFF5F5",
+    },
+    gradingBadgeText: {
+        fontSize: 12,
+        fontWeight: "800",
+    },
+    gradingBadgeTextCorrect: {
+        color: "#319795",
+    },
+    gradingBadgeTextIncorrect: {
+        color: "#E53E3E",
+    },
+    reviewText: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: "#2D3748",
+        lineHeight: 22,
+    }
 });
