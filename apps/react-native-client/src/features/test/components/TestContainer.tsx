@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ActivityIndicator } from "react-native";
 import {
     StyleSheet,
     Text,
@@ -19,10 +20,15 @@ import FillInBlankQuestion from "./FillInBlankQuestion";
 import MatchingQuestion from "./MatchingQuestion";
 import TestIntro from "./TestIntro";
 
-export default function TestContainer() {
+interface TestContainerProps {
+    testId?: string;
+}
+
+export default function TestContainer({ testId = "1" }: TestContainerProps) {
     const router = useRouter();
     const {
         questions,
+        totalQuestionCount,
         currentQuestionIndex,
         currentQuestion,
         answers,
@@ -30,9 +36,10 @@ export default function TestContainer() {
         status,
         result,
         lastAttemptId,
+        error,
         actions,
         isQuestionAnswered
-    } = useTestRunner(900); // 15 mins
+    } = useTestRunner(testId, 900); // 15 mins
 
     const [isListModalVisible, setIsListModalVisible] = useState(false);
     const [viewMode, setViewMode] = useState<"celebration" | "review">("celebration");
@@ -42,15 +49,21 @@ export default function TestContainer() {
     };
 
     const activeQuestionNumber = currentQuestionIndex + 1;
-    const totalQuestions = questions.length;
-    const progressPercent = (activeQuestionNumber / totalQuestions) * 100;
+    const totalQuestions = totalQuestionCount || questions.length;
+    const progressPercent = totalQuestions > 0 ? (activeQuestionNumber / totalQuestions) * 100 : 0;
 
     return (
         <TopBarWrapper>
             <View style={styles.container}>
                 {status === "not-started" ? (
                     <TestIntro onStart={actions.start} onBack={handleBack} />
-                ) : status === "running" ? (
+                ) : status === "loading" ? (
+                    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                        <ActivityIndicator size="large" color="#5D45F9" />
+                        <Text style={{ marginTop: 12, color: "#718096", fontWeight: "600" }}>Đang tải bài kiểm tra...</Text>
+                        {error ? <Text style={{ marginTop: 8, color: "#E53E3E" }}>{error}</Text> : null}
+                    </View>
+                ) : (status === "running" || status === "submitting") ? (
                     <>
                         {/* Header bar */}
                         <View style={styles.header}>
@@ -99,48 +112,47 @@ export default function TestContainer() {
                             showsVerticalScrollIndicator={false}
                             contentContainerStyle={styles.scrollContent}
                         >
-                            {currentQuestion.type === "single-choice" && (
+                            {!currentQuestion ? (
+                                <View style={{ padding: 40, alignItems: "center" }}>
+                                    <ActivityIndicator size="small" color="#5D45F9" />
+                                </View>
+                            ) : currentQuestion.type === "single-choice" ? (
                                 <SingleChoiceQuestion
                                     question={currentQuestion}
                                     selectedAnswer={answers[currentQuestion.id]}
                                     onSelect={(idx) => actions.answerSingle(currentQuestion.id, idx)}
                                 />
-                            )}
-
-                            {currentQuestion.type === "multiple-choice" && (
+                            ) : currentQuestion.type === "multiple-choice" ? (
                                 <MultipleChoiceQuestion
                                     question={currentQuestion}
                                     selectedAnswers={answers[currentQuestion.id]}
                                     onSelect={(idx) => actions.answerMultiple(currentQuestion.id, idx)}
                                 />
-                            )}
-
-                            {currentQuestion.type === "fill-in-blank" && (
+                            ) : currentQuestion.type === "fill-in-blank" ? (
                                 <FillInBlankQuestion
                                     question={currentQuestion}
                                     value={answers[currentQuestion.id]}
                                     onChange={(txt) => actions.answerFill(currentQuestion.id, txt)}
                                 />
-                            )}
-
-                            {currentQuestion.type === "matching" && (
+                            ) : currentQuestion.type === "matching" ? (
                                 <MatchingQuestion
                                     question={currentQuestion}
                                     selectedPairs={answers[currentQuestion.id]}
                                     onMatch={(lId, rId) => actions.answerMatching(currentQuestion.id, lId, rId)}
                                     onRemoveMatch={(lId) => actions.removeMatch(currentQuestion.id, lId)}
                                 />
-                            )}
+                            ) : null}
 
                             {/* Indicators representing all questions under options */}
                             <View style={styles.blockIndicatorsRow}>
-                                {questions.map((q, idx) => {
+                                {Array.from({ length: totalQuestions }, (_, idx) => {
+                                    const q = questions[idx];
                                     const isActive = idx === currentQuestionIndex;
-                                    const isAnswered = isQuestionAnswered(q.id);
+                                    const isAnswered = q ? isQuestionAnswered(q.id) : false;
 
                                     return (
                                         <TouchableOpacity
-                                            key={q.id}
+                                            key={idx}
                                             style={[
                                                 styles.blockIndicator,
                                                 isAnswered && styles.blockIndicatorAnswered,
@@ -256,7 +268,7 @@ export default function TestContainer() {
                                         <Star size={18} color="#3182CE" fill="#90CDF4" />
                                     </View>
                                     <Text style={styles.completedStatValue}>
-                                        {result ? result.score * 10 : 0}/100
+                                        {result ? result.score : 0}/100
                                     </Text>
                                     <Text style={styles.completedStatLabel}>ĐIỂM</Text>
                                 </View>
@@ -337,7 +349,7 @@ export default function TestContainer() {
                             contentContainerStyle={styles.reviewScrollContent}
                         >
                             <View style={styles.reviewList}>
-                                {questions.map((q, idx) => {
+                                {questions.filter(Boolean).map((q, idx) => {
                                     const isCorrect = result?.gradedAnswers[q.id];
 
                                     return (
@@ -407,13 +419,14 @@ export default function TestContainer() {
                             </View>
 
                             <View style={styles.modalGrid}>
-                                {questions.map((q, idx) => {
+                                {Array.from({ length: totalQuestions }, (_, idx) => {
+                                    const q = questions[idx];
                                     const isActive = idx === currentQuestionIndex;
-                                    const isAnswered = isQuestionAnswered(q.id);
+                                    const isAnswered = q ? isQuestionAnswered(q.id) : false;
 
                                     return (
                                         <TouchableOpacity
-                                            key={q.id}
+                                            key={idx}
                                             style={[
                                                 styles.gridItem,
                                                 isAnswered && styles.gridItemAnswered,

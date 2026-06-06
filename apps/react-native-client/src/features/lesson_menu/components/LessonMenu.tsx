@@ -83,6 +83,9 @@ export function LessonMenu({
                             <View key={topic.id} style={styles.topicWrapper}>
                                 {/* Accordion Trigger Header */}
                                 <TouchableOpacity
+                                    accessible={true}
+                                    accessibilityLabel={isExpanded ? `Thu gọn chủ đề ${topic.position}: ${topic.name}` : `Mở rộng chủ đề ${topic.position}: ${topic.name}`}
+                                    accessibilityRole="button"
                                     style={[
                                         styles.topicHeader,
                                         isExpanded && styles.expandedTopicHeader,

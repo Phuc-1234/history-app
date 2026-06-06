@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ScrollView,
@@ -64,8 +65,9 @@ const testData: TestItem[] = [
 export const NationalTestsView: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState("Tất cả");
 
+  const router = useRouter();
   const handleTestPress = (id: string) => {
-    console.log(`Navigating to test sheet: ${id}`);
+    router.push({ pathname: "/(6_tests)/6_2_ques_choose", params: { testId: "d3cac572-7861-4554-8867-9beaadefd50b"} });
   };
 
   const renderIcon = (iconType: string) => {

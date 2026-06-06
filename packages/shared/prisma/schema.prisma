@@ -1,7 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-
-  binaryTargets = ["native", "debian-openssl-3.0.x"] // 👈 CRUCIAL FOR RENDER
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -35,7 +34,7 @@ model Lesson {
   id         Int         @id @default(autoincrement())
   name       String
   summary    String?
-  position   Int         
+  position   Int
   topicId    Int         @map("topic_id")
   flashcards Flashcard[]
   topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
@@ -82,9 +81,9 @@ model Section {
 
 model Node {
   id         Int         @id @default(autoincrement())
-  position   Int         
-  body       String
+  position   Int
   header     String?
+  body       String
   imgUrl     String?     @map("img_url")
   sectionId  Int         @map("section_id")
   flashcards Flashcard[]
@@ -137,6 +136,7 @@ model Test {
   lessonId       Int?           @map("lesson_id")
   sectionId      Int?           @map("section_id")
   title          String
+  summary        String?        @default("Kiểm tra kiến thức của bạn")
   testQuestions  TestQuestion[]
   grade          Grade?         @relation(fields: [gradeId], references: [id])
   lesson         Lesson?        @relation(fields: [lessonId], references: [id])
@@ -151,13 +151,13 @@ model Question {
   id             Int              @id @default(autoincrement())
   type           QuestionType
   difficulty     Int              @default(1)
-  document       String?
   promptText     String           @map("prompt_text")
   gradeId        Int?             @map("grade_id")
   topicId        Int?             @map("topic_id")
   lessonId       Int?             @map("lesson_id")
   sectionId      Int?             @map("section_id")
   nodeId         Int?             @map("node_id")
+  document       String?
   answers        QuestionAnswer[]
   grade          Grade?           @relation(fields: [gradeId], references: [id])
   lesson         Lesson?          @relation(fields: [lessonId], references: [id])
@@ -186,7 +186,7 @@ model QuestionAnswer {
 model TestQuestion {
   testId     String   @map("test_id")
   questionId Int      @map("question_id")
-  position   Int      
+  position   Int
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
   test       Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
 
@@ -212,7 +212,7 @@ model User {
   userItems        UserItem[]
   testLogs         UserTestLog[]
   tier             Tier            @relation(fields: [currentTierIndex], references: [index])
-
+  isVerified       Boolean         @default(false) @map("is_verified")
   @@map("users")
 }
 

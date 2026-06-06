@@ -10,6 +10,7 @@ export interface SingleChoiceQuestion extends BaseQuestion {
     type: "single-choice";
     options: string[];
     correctOptionIndex: number;
+    answerIds?: number[];
 }
 
 export interface MultipleChoiceQuestion extends BaseQuestion {

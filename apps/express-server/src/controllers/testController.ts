@@ -54,6 +54,26 @@ export const startTest = async (
     }
 };
 
+export const getTestSummary = async (
+    req: Request<{ testId: string }, StartTestResponse, {}>,
+    res: Response<StartTestResponse>,
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ error: "Unauthorized" } as any);
+        }
+
+        const resp = await testService.getTestSummary(req.user.id, req.params.testId);
+        return res.status(200).json(resp as any);
+    } catch (err: any) {
+        console.error("Get test summary error:", err?.message ?? err);
+        if (err?.code === "NOT_FOUND" || err?.message?.includes("not found")) {
+            return res.status(404).json({ error: "Test not found" } as any);
+        }
+        return res.status(500).json({ error: "Failed to get test summary" } as any);
+    }
+};
+
 export const jump = async (
     req: Request<{ logId: string }, JumpResponse, JumpRequest>,
     res: Response<JumpResponse>,
@@ -170,7 +190,7 @@ export const finishTest = async (
             return res.status(400).json({ error: "Time limit exceeded" } as any);
         }
         if (err?.code === "ALREADY_SUBMITTED" || err?.message?.includes("already submitted")) {
-            return res.status(400).json({ error: "Test already submitted" } as any);
+            return res.status(400).json({ error: "Test aewfewfwèwewfewlready submitted" } as any);
         }
         return res.status(500).json({ error: "Failed to finish test" } as any);
     }
