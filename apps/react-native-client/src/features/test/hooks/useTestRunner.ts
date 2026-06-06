@@ -268,6 +268,8 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
                 totalQuestions: totalQuestionCount,
                 correctAnswersCount: correctCount,
                 gradedAnswers: graded,
+                xpEarned: resp.xpEarned,
+                goldEarned: resp.goldEarned,
             });
 
             // Save to Redux history

@@ -24,13 +24,14 @@ function normalizeSpokenText(str: string): string {
     return removeVietnameseAccents(str.toLowerCase().trim());
 }
 
+
 // ---------------------------------------------------------------------------
 // Vocabulary maps (all normalized / no diacritics)
 // ---------------------------------------------------------------------------
 const VN_NUMBER_MAP: Record<string, number> = {
     "mot": 0, "1": 0,
     "hai": 1, "2": 1,
-    "ba": 2,  "3": 2,
+    "ba": 2, "3": 2,
     "bon": 3, "4": 3,
     "nam": 4, "5": 4,
     "sau": 5, "6": 5,
@@ -107,12 +108,14 @@ function parseMatchingPair(norm: string): { leftIdx: number; rightIdx: number } 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const SILENCE_DELAY_MS = 1500;
-const CMD_COMMIT  = ["xong", "tiep theo", "tiep", "next", "xac nhan"];
-const CMD_REPEAT  = ["nghe lai", "doc lai", "repeat", "nhe lai"];
-const CMD_PREV    = ["quay lai", "cau truoc", "back", "tro lai"];
-const CMD_SUBMIT  = ["nop bai", "hoan thanh", "submit"];
+const SILENCE_DELAY_MS = 1000;
+const CMD_COMMIT = ["xong", "tiep theo", "tiep", "next", "xac nhan"];
+const CMD_REPEAT = ["nghe lai", "doc lai", "repeat", "nhe lai"];
+const CMD_PREV = ["quay lai", "cau truoc", "back", "tro lai"];
+const CMD_SUBMIT = ["nop bai", "hoan thanh", "submit"];
 const CMD_NAV_BACK = ["tiep tuc"];
+const CMD_SKIP = ["bo qua", "skip", "qua cau"];
+
 
 // ===========================================================================
 // Hook
@@ -124,34 +127,34 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
     const router = useRouter();
 
     const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("idle");
-    const [spokenText, setSpokenText]   = useState("");
-    const [ttsText, setTtsText]         = useState("");
+    const [spokenText, setSpokenText] = useState("");
+    const [ttsText, setTtsText] = useState("");
 
     // ---- Stable refs ----
-    const isVoiceModeRef       = useRef(isVoiceMode);
-    const currentQuestionRef   = useRef(currentQuestion);
-    const actionsRef           = useRef(actions);
-    const statusRef            = useRef(status);
+    const isVoiceModeRef = useRef(isVoiceMode);
+    const currentQuestionRef = useRef(currentQuestion);
+    const actionsRef = useRef(actions);
+    const statusRef = useRef(status);
 
     useEffect(() => { isVoiceModeRef.current = isVoiceMode; }, [isVoiceMode]);
     useEffect(() => {
         currentQuestionRef.current = currentQuestion;
-        actionsRef.current         = actions;
-        statusRef.current          = status;
+        actionsRef.current = actions;
+        statusRef.current = status;
     }, [currentQuestion, actions, status]);
 
     // ---- TTS / mic state refs ----
-    const isTtsSpeaking         = useRef(false);
-    const isVoiceProcessing     = useRef(false);
-    const lastSpokenQuestionId  = useRef<string | null>(null);
+    const isTtsSpeaking = useRef(false);
+    const isVoiceProcessing = useRef(false);
+    const lastSpokenQuestionId = useRef<string | null>(null);
 
     // ---- Realtime transcript + silence debounce ----
-    const silenceTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const latestTranscriptRef   = useRef<string>("");
+    const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const latestTranscriptRef = useRef<string>("");
 
     // ---- Per-question accumulation (multiple-choice, matching) ----
     const pendingMultiSelections = useRef<number[]>([]);
-    const pendingMatchingPairs   = useRef<Record<string, string>>({});
+    const pendingMatchingPairs = useRef<Record<string, string>>({});
 
     // ---------------------------------------------------------------------------
     // Helpers
@@ -221,7 +224,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                 ttsSpeak("Điền vào chỗ trống. Nói câu trả lời của bạn.", () => startListening());
                 break;
             case "matching": {
-                const lefts  = (q.leftOptions  as any[]).map((o: any, i: number) => `${i + 1}: ${o.text}`).join(". ");
+                const lefts = (q.leftOptions as any[]).map((o: any, i: number) => `${i + 1}: ${o.text}`).join(". ");
                 const rights = (q.rightOptions as any[]).map((o: any, i: number) => `${String.fromCharCode(65 + i)}: ${o.text}`).join(". ");
                 ttsSpeak(`Bên trái: ${lefts}. Bên phải: ${rights}. Nói số ghép chữ cái.`, () => startListening());
                 break;
@@ -237,7 +240,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
         if (!q) return;
         clearSilenceTimer();
         isVoiceProcessing.current = false;
-        isTtsSpeaking.current     = true;
+        isTtsSpeaking.current = true;
         setVoiceStatus("speaking");
         setTtsText(q.text);
         await Speech.stop();
@@ -245,7 +248,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
 
         Speech.speak(q.text, {
             language: "vi-VN",
-            onDone:  () => speakOptionsSequence(),
+            onDone: () => speakOptionsSequence(),
             onError: () => { isTtsSpeaking.current = false; setVoiceStatus("idle"); },
         });
     }, [stopListening, speakOptionsSequence, clearSilenceTimer]);
@@ -254,18 +257,25 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
     // handleFinalTranscript — called after 1.5 s of silence
     // ---------------------------------------------------------------------------
     const handleFinalTranscript = useCallback((transcript: string) => {
-        if (!isVoiceModeRef.current)     return;
-        if (isVoiceProcessing.current)   return;
+        if (!isVoiceModeRef.current) return;
+        if (isVoiceProcessing.current) return;
 
-        const q    = currentQuestionRef.current;
+        const q = currentQuestionRef.current;
         const acts = actionsRef.current;
-        const st   = statusRef.current;
+        const st = statusRef.current;
         const norm = normalizeSpokenText(transcript);
 
         console.log("[Voice] final →", norm);
 
         // --- Global commands ---
         if (CMD_REPEAT.some((w) => norm.includes(w))) { speakQuestionSequence(); return; }
+
+        if (CMD_SKIP.some((w) => norm.includes(w))) {
+            setVoiceStatus("processing");
+            stopListening();
+            acts.goNext();
+            return;
+        }
 
         if (CMD_PREV.some((w) => norm.includes(w))) {
             setVoiceStatus("processing");
@@ -292,6 +302,11 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
 
             // ---- Single choice ----
             case "single-choice": {
+                // If user says "tiếp theo", "tiếp", "next" in single choice, treat it as a skip
+                if (["tiep theo", "tiep", "next"].some((w) => norm.includes(w))) {
+                    acts.goNext();
+                    break;
+                }
                 let idx = parseSingleOptionIndex(norm);
                 // Fallback: spoken text matches option content
                 if (idx === -1) {
@@ -365,11 +380,11 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
                 } else {
                     const pair = parseMatchingPair(norm);
                     if (pair && q.leftOptions[pair.leftIdx] && q.rightOptions[pair.rightIdx]) {
-                        const leftId  = String(q.leftOptions[pair.leftIdx].id);
+                        const leftId = String(q.leftOptions[pair.leftIdx].id);
                         const rightId = String(q.rightOptions[pair.rightIdx].id);
                         pendingMatchingPairs.current = { ...pendingMatchingPairs.current, [leftId]: rightId };
                         acts.answerMatching(q.id, leftId, rightId); // realtime UI line
-                        const done  = Object.keys(pendingMatchingPairs.current).length;
+                        const done = Object.keys(pendingMatchingPairs.current).length;
                         const total = (q.leftOptions as any[]).length;
                         isVoiceProcessing.current = false;
                         ttsSpeak(
@@ -394,9 +409,9 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
     // Speech recognition events
     // ---------------------------------------------------------------------------
     useSpeechRecognitionEvent("result", (event) => {
-        if (!isVoiceModeRef.current)   return;
+        if (!isVoiceModeRef.current) return;
         if (isVoiceProcessing.current) return;
-        if (isTtsSpeaking.current)     return;
+        if (isTtsSpeaking.current) return;
 
         const transcript = event.results?.[0]?.transcript;
         if (!transcript) return;
@@ -453,10 +468,12 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
         clearSilenceTimer();
         isTtsSpeaking.current = true;
         const total = totalQuestionCount || result.totalQuestions || 0;
-        const msg = `Bạn đã hoàn thành bài kiểm tra. Điểm của bạn là ${result.score} trên 100. Đúng ${result.correctAnswersCount} trên ${total} câu. Nói quay lại để về màn trước.`;
+        const xp = result.xpEarned ?? 0;
+        const gold = result.goldEarned ?? 0;
+        const msg = `Bạn đã hoàn thành bài kiểm tra. Điểm của bạn là ${result.score} trên 100. Đúng ${result.correctAnswersCount} trên ${total} câu. Bạn nhận được ${xp} kinh nghiệm và ${gold} vàng. Nói quay lại để về màn trước.`;
         Speech.speak(msg, {
             language: "vi-VN",
-            onDone:  () => { isTtsSpeaking.current = false; startListening(); },
+            onDone: () => { isTtsSpeaking.current = false; startListening(); },
             onError: () => { isTtsSpeaking.current = false; startListening(); },
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -474,7 +491,7 @@ export function useVoiceTestController(testRunner: any, isVoiceMode: boolean) {
         // Restore accumulation from previously saved answers
         const saved = testRunner.answers[currentQuestion.id];
         pendingMultiSelections.current = Array.isArray(saved) ? [...saved] : [];
-        pendingMatchingPairs.current   = (saved && typeof saved === "object" && !Array.isArray(saved)) ? { ...saved } : {};
+        pendingMatchingPairs.current = (saved && typeof saved === "object" && !Array.isArray(saved)) ? { ...saved } : {};
 
         setSpokenText("");
         setTtsText("");

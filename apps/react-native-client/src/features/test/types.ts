@@ -55,4 +55,6 @@ export interface TestResult {
     totalQuestions: number;
     correctAnswersCount: number;
     gradedAnswers: Record<string, boolean>; // Maps questionId -> isCorrect
+    xpEarned?: number;
+    goldEarned?: number;
 }

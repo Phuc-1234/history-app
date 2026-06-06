@@ -24,6 +24,8 @@ import {
     Star,
     Mic,
     Volume2,
+    Zap,
+    Coins,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { TopBarWrapper } from "../../top_bar";
@@ -454,7 +456,7 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                             </Text>
 
                             {/* Two Stats Cards */}
-                            <View style={styles.completedStatsRow}>
+                            <View style={[styles.completedStatsRow, { marginBottom: 16 }]}>
                                 {/* Score card */}
                                 <View style={styles.completedStatCard}>
                                     <View
@@ -497,6 +499,53 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                                     </Text>
                                     <Text style={styles.completedStatLabel}>
                                         CÂU ĐÚNG
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* XP and Gold Stats Row */}
+                            <View style={[styles.completedStatsRow, { marginTop: 0 }]}>
+                                {/* XP Card */}
+                                <View style={styles.completedStatCard}>
+                                    <View
+                                        style={[
+                                            styles.completedStatIconBg,
+                                            styles.statOrangeBg,
+                                        ]}
+                                    >
+                                        <Zap
+                                            size={18}
+                                            color="#DD6B20"
+                                            fill="#FBD38D"
+                                        />
+                                    </View>
+                                    <Text style={styles.completedStatValue}>
+                                        +{result?.xpEarned ?? 0}
+                                    </Text>
+                                    <Text style={styles.completedStatLabel}>
+                                        KINH NGHIỆM (XP)
+                                    </Text>
+                                </View>
+
+                                {/* Gold Card */}
+                                <View style={styles.completedStatCard}>
+                                    <View
+                                        style={[
+                                            styles.completedStatIconBg,
+                                            styles.statYellowBg,
+                                        ]}
+                                    >
+                                        <Coins
+                                            size={18}
+                                            color="#D69E2E"
+                                            fill="#F6E05E"
+                                        />
+                                    </View>
+                                    <Text style={styles.completedStatValue}>
+                                        +{result?.goldEarned ?? 0}
+                                    </Text>
+                                    <Text style={styles.completedStatLabel}>
+                                        VÀNG NHẬN ĐƯỢC
                                     </Text>
                                 </View>
                             </View>
@@ -1237,6 +1286,12 @@ const styles = StyleSheet.create({
     },
     statIndigoBg: {
         backgroundColor: "#F5F3FF",
+    },
+    statOrangeBg: {
+        backgroundColor: "#FFF5F5",
+    },
+    statYellowBg: {
+        backgroundColor: "#FEFCBF",
     },
     completedStatValue: {
         fontSize: 20,
