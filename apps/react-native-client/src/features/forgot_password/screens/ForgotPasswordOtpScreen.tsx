@@ -4,15 +4,17 @@ import { useLocalSearchParams } from "expo-router";
 import { TopBarWrapper } from "@/features/top_bar";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 const text = {
-    headline: "X\u00e1c th\u1ef1c m\u00e3 OTP",
-    sent: "M\u00e3 x\u00e1c th\u1ef1c \u0111\u00e3 \u0111\u01b0\u1ee3c g\u1eedi \u0111\u1ebfn email",
-    enter: "Nh\u1eadp m\u00e3 c\u1ee7a b\u1ea1n",
-    subtitle: "Vui l\u00f2ng nh\u1eadp m\u00e3 \u0111\u1ec3 ti\u1ebfp t\u1ee5c.",
-    confirm: "X\u00e1c nh\u1eadn",
-    confirming: "\u0110ang x\u00e1c th\u1ef1c...",
-    noCode: "Ch\u01b0a nh\u1eadn \u0111\u01b0\u1ee3c m\u00e3?",
-    resend: "G\u1eedi l\u1ea1i m\u00e3",
+    headline: "Xác thực mã OTP",
+    sent: "Mã xác thực đã được gửi đến email",
+    enter: "Nhập mã của bạn",
+    subtitle: "Vui lòng nhập mã để tiếp tục.",
+    confirm: "Xác nhận",
+    confirming: "Đang xác thực...",
+    noCode: "Chưa nhận được mã?",
+    resend: "Gửi lại mã",
 };
 
 export default function ForgotPasswordOtpScreen() {
@@ -20,6 +22,7 @@ export default function ForgotPasswordOtpScreen() {
     const emailToShow = paramEmail || "example@gmail.com";
     const refs = useRef<Array<TextInput | null>>([]);
     const { otp, setOtp, otpError, otpCountdown, isLoading, handleVerifyOtp, handleResendOtp, formatCountdown } = useForgotPassword(emailToShow);
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         const timer = setTimeout(() => refs.current[0]?.focus(), 100);
@@ -42,8 +45,8 @@ export default function ForgotPasswordOtpScreen() {
 
     return (
         <TopBarWrapper>
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardAvoid}>
-                <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.keyboardAvoid}>
+                <ScrollView contentContainerStyle={[styles.screen, { paddingBottom: Math.max(insets.bottom, 20) }]} keyboardShouldPersistTaps="handled">
                     <View style={styles.hero}>
                         <View style={styles.heroIcon}>
                             <Image source={require("../assets/ic_lock.png")} style={styles.heroImage} resizeMode="contain" />
