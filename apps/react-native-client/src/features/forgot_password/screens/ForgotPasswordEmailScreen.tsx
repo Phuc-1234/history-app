@@ -5,22 +5,25 @@ import { ArrowLeft, Mail } from "lucide-react-native";
 import { TopBarWrapper } from "@/features/top_bar";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 const text = {
-    description: "Nh\u1eadp email \u0111\u00e3 \u0111\u0103ng k\u00fd c\u1ee7a b\u1ea1n \u0111\u1ec3\nnh\u1eadn m\u00e3 x\u00e1c th\u1ef1c (OTP).",
+    description: "Nhập email đã đăng ký của bạn để\nnhận mã xác thực (OTP).",
     email: "Email",
-    emailPlaceholder: "Email c\u1ee7a b\u1ea1n",
-    send: "G\u1eedi m\u00e3 x\u00e1c th\u1ef1c",
-    sending: "\u0110ang g\u1eedi...",
-    backLogin: "Quay l\u1ea1i \u0111\u0103ng nh\u1eadp",
+    emailPlaceholder: "Email của bạn",
+    send: "Gửi mã xác thực",
+    sending: "Đang gửi...",
+    backLogin: "Quay lại đăng nhập",
 };
 
 export default function ForgotPasswordEmailScreen() {
     const { email, setEmail, emailError, isLoading, handleSendOtp } = useForgotPassword();
+    const insets = useSafeAreaInsets();
 
     return (
         <TopBarWrapper>
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardAvoid}>
-                <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.keyboardAvoid}>
+                <ScrollView contentContainerStyle={[styles.screen, { paddingBottom: Math.max(insets.bottom, 20) }]} keyboardShouldPersistTaps="handled">
                     <View style={styles.hero}>
                         <View style={styles.heroIcon}>
                             <Image source={require("../assets/ic_lock_reload.png")} style={styles.heroImage} resizeMode="contain" />

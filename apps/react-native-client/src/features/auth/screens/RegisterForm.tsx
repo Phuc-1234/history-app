@@ -5,10 +5,13 @@ import {
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { User, Lock, Mail } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
@@ -30,13 +33,21 @@ export default function RegisterForm() {
         navigateToLogin,
         handleRegister,
     } = useRegisterForm();
+    const insets = useSafeAreaInsets();
 
     return (
-        <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            bounces={false}
-            keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.keyboardAvoid}
         >
+            <ScrollView
+                contentContainerStyle={[
+                    styles.scrollContainer,
+                    { paddingBottom: Math.max(insets.bottom, 20) }
+                ]}
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+            >
             <LinearGradient
                 colors={["#4332eb", "#593df2", "#7b4fff"]}
                 style={styles.banner}
@@ -123,11 +134,16 @@ export default function RegisterForm() {
                     </TouchableOpacity>
                 </View>
             </View>
-        </ScrollView>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
+    keyboardAvoid: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+    },
     scrollContainer: { flexGrow: 1, backgroundColor: "#FFFFFF" },
     banner: {
         paddingTop: 65,

@@ -5,26 +5,29 @@ import { CheckCircle2, Eye, EyeOff, Lock } from "lucide-react-native";
 import { TopBarWrapper } from "@/features/top_bar";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 const text = {
-    cardTitle: "T\u1ea1o m\u1eadt kh\u1ea9u m\u1edbi",
-    subtitle: "M\u1eadt kh\u1ea9u m\u1edbi ph\u1ea3i kh\u00e1c v\u1edbi m\u1eadt kh\u1ea9u \u0111\u00e3 s\u1eed d\u1ee5ng tr\u01b0\u1edbc \u0111\u00f3.",
-    newPassword: "M\u1eadt kh\u1ea9u m\u1edbi",
-    confirmPassword: "X\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u m\u1edbi",
-    minLength: "\u00cdt nh\u1ea5t 8 k\u00fd t\u1ef1",
-    uppercase: "C\u00f3 \u00edt nh\u1ea5t 1 ch\u1eef hoa",
-    number: "C\u00f3 \u00edt nh\u1ea5t 1 ch\u1eef s\u1ed1",
-    submit: "\u0110\u1eb7t l\u1ea1i m\u1eadt kh\u1ea9u",
-    updating: "\u0110ang \u0111\u1eb7t l\u1ea1i...",
+    cardTitle: "Tạo mật khẩu mới",
+    subtitle: "Mật khẩu mới phải khác với mật khẩu đã sử dụng trước đó.",
+    newPassword: "Mật khẩu mới",
+    confirmPassword: "Xác nhận mật khẩu mới",
+    minLength: "Ít nhất 8 ký tự",
+    uppercase: "Có ít nhất 1 chữ hoa",
+    number: "Có ít nhất 1 chữ số",
+    submit: "Đặt lại mật khẩu",
+    updating: "Đang đặt lại...",
 };
 
 export default function ForgotPasswordNewPasswordScreen() {
     const { email: paramEmail } = useLocalSearchParams<{ email: string }>();
     const state = useForgotPassword(paramEmail || "");
+    const insets = useSafeAreaInsets();
 
     return (
         <TopBarWrapper>
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardAvoid}>
-                <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.keyboardAvoid}>
+                <ScrollView contentContainerStyle={[styles.screen, { paddingBottom: Math.max(insets.bottom, 20) }]} keyboardShouldPersistTaps="handled">
                     <View style={styles.hero}>
                         <View style={styles.heroIcon}>
                             <Image source={require("../assets/ic_lock.png")} style={styles.heroImage} resizeMode="contain" />

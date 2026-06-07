@@ -5,11 +5,14 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
+    KeyboardAvoidingView,
+    Platform,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { User, Lock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
@@ -28,12 +31,20 @@ export default function LoginForm() {
         submitAndEnterApp,
         enterAsGuest,
     } = useAuthForm();
+    const insets = useSafeAreaInsets();
 
     return (
-        <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            bounces={false}
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.keyboardAvoid}
         >
+            <ScrollView
+                contentContainerStyle={[
+                    styles.scrollContainer,
+                    { paddingBottom: Math.max(insets.bottom, 20) }
+                ]}
+                bounces={false}
+            >
             <LinearGradient
                 colors={["#4332eb", "#593df2", "#7b4fff"]}
                 style={styles.banner}
@@ -111,12 +122,16 @@ export default function LoginForm() {
                         <Text style={styles.registerText}>Đăng ký ngay</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
-        </ScrollView>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
+    keyboardAvoid: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+    },
     scrollContainer: {
         flexGrow: 1,
         backgroundColor: "#FFFFFF",
