@@ -8,24 +8,29 @@ import {
     StyleSheet,
     Text,
     TextInput,
+    useWindowDimensions,
     View,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { TopBarWrapper } from "@/features/top_bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRegisterOtp } from "../hooks/useRegisterOtp"; // Path to your new custom hook
 
 const text = {
     headline: "Xác thực tài khoản",
     sent: "Mã xác thực đăng ký đã được gửi đến email",
     enter: "Nhập mã OTP",
-    subtitle: "Vui lòng nhập mã 6 số để kích hoạt tài khoản.",
+    subtitle: (length: number) => `Vui lòng nhập mã ${length} số để kích hoạt tài khoản.`,
     confirm: "Kích hoạt",
     confirming: "Đang xác thực...",
     noCode: "Chưa nhận được mã?",
     resend: "Gửi lại mã",
 };
 
-export default function RegisterOtpScreen() {
+interface OtpVerifyScreenProps {
+    length?: number;
+}
+
+export default function RegisterOtpScreen({ length = 8 }: OtpVerifyScreenProps = {}) {
     const { email: paramEmail, autoSend } = useLocalSearchParams<{ 
         email: string; 
         autoSend?: string; 
@@ -34,6 +39,8 @@ export default function RegisterOtpScreen() {
 
     const shouldAutoSend = autoSend === "true";
     const refs = useRef<Array<TextInput | null>>([]);
+    const insets = useSafeAreaInsets();
+    const { width: screenWidth } = useWindowDimensions();
 
     const {
         otp,
@@ -44,7 +51,18 @@ export default function RegisterOtpScreen() {
         handleVerifyOtp,
         handleResendOtp,
         formatCountdown,
-    } = useRegisterOtp(emailToShow, shouldAutoSend);
+    } = useRegisterOtp(emailToShow, shouldAutoSend, length);
+
+    // Calculate dynamic responsive width and height for OTP input boxes to fit exactly inside card boundaries on all devices
+    const gap = 5;
+    const paddingHorizontal = 16;
+    const marginHorizontal = 14;
+    const totalGaps = length - 1;
+    const availableWidth = screenWidth - (marginHorizontal * 2) - (paddingHorizontal * 2);
+    const calculatedWidth = (availableWidth - (totalGaps * gap)) / length;
+    const boxWidth = Math.min(42, calculatedWidth);
+    const boxHeight = boxWidth * 1.3;
+    const fontSize = Math.max(14, Math.min(20, Math.floor(boxWidth * 0.5)));
 
     // Auto-focus first input box when screen loads
     useEffect(() => {
@@ -54,13 +72,33 @@ export default function RegisterOtpScreen() {
 
     const onChange = (value: string, index: number) => {
         const clean = value.replace(/[^0-9]/g, "");
-        const next = [...otp];
         
+        // Handle copy-paste of multiple digits
+        if (clean.length - otp[index].length > 1) {
+            let pasted = clean;
+            if (otp[index] && clean.startsWith(otp[index])) {
+                pasted = clean.slice(otp[index].length);
+            } else if (otp[index] && clean.endsWith(otp[index])) {
+                pasted = clean.slice(0, -otp[index].length);
+            }
+            
+            const next = [...otp];
+            for (let i = 0; i < pasted.length && index + i < length; i++) {
+                next[index + i] = pasted[i];
+            }
+            setOtp(next);
+            
+            const focusIndex = Math.min(index + pasted.length - 1, length - 1);
+            refs.current[focusIndex]?.focus();
+            return;
+        }
+
+        const next = [...otp];
         next[index] = clean ? clean[clean.length - 1] : "";
         setOtp(next);
         
-        // Dynamic Focus adjustments for 8 entries (index boundaries shift up to 7)
-        if (clean && index < 7) {
+        // Dynamic Focus adjustments based on length
+        if (clean && index < length - 1) {
             refs.current[index + 1]?.focus();
         }
     };
@@ -73,13 +111,16 @@ export default function RegisterOtpScreen() {
     };
 
     return (
-        <TopBarWrapper>
+        <View style={styles.container}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.keyboardAvoid}
             >
                 <ScrollView
-                    contentContainerStyle={styles.screen}
+                    contentContainerStyle={[
+                        styles.screen,
+                        { paddingBottom: Math.max(insets.bottom, 20) }
+                    ]}
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.hero}>
@@ -101,9 +142,9 @@ export default function RegisterOtpScreen() {
 
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>{text.enter}</Text>
-                        <Text style={styles.cardSubtitle}>{text.subtitle}</Text>
+                        <Text style={styles.cardSubtitle}>{text.subtitle(length)}</Text>
 
-                        <View style={styles.otpRow}>
+                        <View style={[styles.otpRow, { gap }]}>
                             {otp.map((digit, index) => (
                                 <TextInput
                                     key={index}
@@ -116,9 +157,10 @@ export default function RegisterOtpScreen() {
                                     }
                                     onKeyPress={(e) => onKeyPress(e, index)}
                                     keyboardType="numeric"
-                                    maxLength={1}
+                                    maxLength={length}
                                     style={[
                                         styles.otpBox,
+                                        { width: boxWidth, height: boxHeight, fontSize },
                                         digit && styles.otpBoxFilled,
                                     ]}
                                 />
@@ -158,11 +200,15 @@ export default function RegisterOtpScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </TopBarWrapper>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: "#5732DD", // Blends status bar smoothly with the hero color
+    },
     keyboardAvoid: { flex: 1 },
     screen: { flexGrow: 1, backgroundColor: "#F8F6F3" },
     hero: {
@@ -175,9 +221,9 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 34,
     },
     heroIcon: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
+        width: 110,
+        height: 110,
+        borderRadius: 55,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "rgba(255,255,255,0.13)",
@@ -185,7 +231,7 @@ const styles = StyleSheet.create({
         borderColor: "rgba(255,255,255,0.28)",
         marginBottom: 26,
     },
-    heroImage: { width: 38, height: 38 },
+    heroImage: { width: 58, height: 58 },
     headline: {
         color: "#FFFFFF",
         fontSize: 26,
@@ -208,7 +254,7 @@ const styles = StyleSheet.create({
         marginTop: -28,
         backgroundColor: "#FFFFFF",
         borderRadius: 36,
-        paddingHorizontal: 32,
+        paddingHorizontal: 16, // Reduced horizontal padding to maximize screen width for OTP boxes
         paddingTop: 54,
         paddingBottom: 40,
         shadowColor: "#000",
@@ -234,19 +280,18 @@ const styles = StyleSheet.create({
     },
     otpRow: {
         flexDirection: "row",
-        gap: 2,
         justifyContent: "center",
+        alignItems: "center",
+        width: "100%",
         marginBottom: 34,
     },
     otpBox: {
-        width: 48,
-        height: 64,
-        borderRadius: 22,
+        borderRadius: 10,
         backgroundColor: "#EFEEEC",
         textAlign: "center",
-        fontSize: 20,
         fontWeight: "800",
         color: "#242330",
+        padding: 0,
     },
     otpBoxFilled: {
         backgroundColor: "#F0ECFF",
