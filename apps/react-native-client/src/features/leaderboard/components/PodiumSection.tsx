@@ -1,26 +1,17 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
-import { LeaderboardUser } from "../hooks/useLeaderboard";
+import { DisplayUser } from "../hooks/useLeaderboard";
 
 interface PodiumSectionProps {
-    topUsers: LeaderboardUser[];
+    topUsers: DisplayUser[];
     isSmallDevice: boolean;
-}
-
-// Generates a ui-avatars fallback URL when the user has no avatar
-function avatarSource(user: LeaderboardUser) {
-    if (user.avatar && user.avatar.trim() !== "") {
-        return { uri: user.avatar };
-    }
-    const initials = encodeURIComponent(user.name || "?");
-    return {
-        uri: `https://ui-avatars.com/api/?name=${initials}&background=6A58EB&color=fff&bold=true`,
-    };
+    showStreak?: boolean;
 }
 
 export const PodiumSection: React.FC<PodiumSectionProps> = ({
     topUsers,
     isSmallDevice,
+    showStreak = false,
 }) => {
     const styles = createStyles(isSmallDevice);
 
@@ -30,7 +21,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             <View style={styles.podiumColumn}>
                 <View style={styles.avatarWrapper}>
                     <Image
-                        source={avatarSource(topUsers[0])}
+                        source={{ uri: topUsers[0].avatar }}
                         style={styles.podiumAvatar}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank2Badge]}>
@@ -41,7 +32,9 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[0].name}
                 </Text>
                 <Text style={styles.rank2Xp}>
-                    {topUsers[0].xp.toLocaleString()} XP
+                    {showStreak
+                        ? `🔥 ${topUsers[0].streak} ngày`
+                        : `${topUsers[0].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank2Base]} />
             </View>
@@ -51,7 +44,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                 <Text style={styles.crownIcon}>👑</Text>
                 <View style={styles.avatarWrapper}>
                     <Image
-                        source={avatarSource(topUsers[1])}
+                        source={{ uri: topUsers[1].avatar }}
                         style={[styles.podiumAvatar, styles.rank1Avatar]}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank1Badge]}>
@@ -65,7 +58,9 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[1].name}
                 </Text>
                 <Text style={styles.rank1Xp}>
-                    {topUsers[1].xp.toLocaleString()} XP
+                    {showStreak
+                        ? `🔥 ${topUsers[1].streak} ngày`
+                        : `${topUsers[1].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank1Base]} />
             </View>
@@ -74,7 +69,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             <View style={styles.podiumColumn}>
                 <View style={styles.avatarWrapper}>
                     <Image
-                        source={avatarSource(topUsers[2])}
+                        source={{ uri: topUsers[2].avatar }}
                         style={styles.podiumAvatar}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank3Badge]}>
@@ -85,7 +80,9 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[2].name}
                 </Text>
                 <Text style={styles.rank3Xp}>
-                    {topUsers[2].xp.toLocaleString()} XP
+                    {showStreak
+                        ? `🔥 ${topUsers[2].streak} ngày`
+                        : `${topUsers[2].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank3Base]} />
             </View>
