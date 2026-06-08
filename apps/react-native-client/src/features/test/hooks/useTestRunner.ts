@@ -13,20 +13,33 @@ import {
 // ---------------------------------------------------------------------------
 // QuestionDto (server) → local Question (UI) mapper
 // ---------------------------------------------------------------------------
+function shuffle<T>(array: T[]): T[] {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// ---------------------------------------------------------------------------
+// QuestionDto (server) → local Question (UI) mapper
+// ---------------------------------------------------------------------------
 function mapDtoToQuestion(dto: QuestionDto): Question {
     const answers = dto.answers ?? [];
     switch (dto.type) {
         case "CHOOSE": {
+            const shuffledAnswers = shuffle(answers);
             return {
                 id: String(dto.id),
                 type: "single-choice",
                 text: dto.promptText,
-                options: answers.map((a) => a.content),
+                options: shuffledAnswers.map((a) => a.content),
                 // Crucial Add: keep a reference of the answer IDs in matching sequence
-                answerIds: answers.map((a) => a.id),
+                answerIds: shuffledAnswers.map((a) => a.id),
                 correctOptionIndex: -1,
                 // Inside your mapped single-choice question object, keep an explicit index string helper
-                optionsWithLabels: answers.map((a, index) => ({
+                optionsWithLabels: shuffledAnswers.map((a, index) => ({
                     label: `Lựa chọn ${String.fromCharCode(65 + index)}`, // "Lựa chọn A", "Lựa chọn B"
                     text: a.content,
                     id: a.id,
@@ -46,23 +59,28 @@ function mapDtoToQuestion(dto: QuestionDto): Question {
                 id: String(dto.id),
                 type: "matching",
                 text: dto.promptText,
-                leftOptions: answers
-                    .filter((a) => a.leftText)
-                    .map((a) => ({ id: String(a.id), text: a.leftText! })),
-                rightOptions: answers
-                    .filter((a) => a.rightText)
-                    .map((a) => ({ id: String(a.id), text: a.rightText! })),
+                leftOptions: shuffle(
+                    answers
+                        .filter((a) => a.leftText)
+                        .map((a) => ({ id: String(a.id), text: a.leftText! })),
+                ),
+                rightOptions: shuffle(
+                    answers
+                        .filter((a) => a.rightText)
+                        .map((a) => ({ id: String(a.id), text: a.rightText! })),
+                ),
                 correctPairs: {}, // graded server-side
             };
         default:
             // Fallback for any future types
+            const shuffledFallback = shuffle(answers);
             return {
                 id: String(dto.id),
                 type: "single-choice",
                 text: dto.promptText,
-                options: answers.map((a) => a.content),
+                options: shuffledFallback.map((a) => a.content),
                 correctOptionIndex: -1,
-                optionsWithLabels: answers.map((a, index) => ({
+                optionsWithLabels: shuffledFallback.map((a, index) => ({
                     label: `Lựa chọn ${String.fromCharCode(65 + index)}`, // "Lựa chọn A", "Lựa chọn B"
                     text: a.content,
                     id: a.id,
@@ -272,7 +290,31 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
                 goldEarned: resp ? resp.goldEarned : 0,
             });
 
-            // Save to Redux history
+            // Map correct answers details from response summaries back to client question instances
+            const updatedQuestions = questions.filter(Boolean).map((q) => {
+                const qs = resp.questionSummaries?.find((s) => String(s.questionId) === q.id);
+                if (!qs) return q;
+
+                const updatedQ = { ...q } as any;
+                if (updatedQ.type === "single-choice") {
+                    if (qs.correctAnswerIds && qs.correctAnswerIds.length > 0) {
+                        const correctId = qs.correctAnswerIds[0];
+                        updatedQ.correctOptionIndex = updatedQ.answerIds?.indexOf(correctId) ?? -1;
+                    }
+                } else if (updatedQ.type === "multiple-choice") {
+                    if (qs.correctAnswerIds) {
+                        updatedQ.correctOptionIndexes = qs.correctAnswerIds
+                            .map((id: number) => updatedQ.answerIds?.indexOf(id))
+                            .filter((idx: number) => idx !== -1);
+                    }
+                } else if (updatedQ.type === "fill-in-blank") {
+                    updatedQ.correctText = qs.correctText ?? "";
+                } else if (updatedQ.type === "matching") {
+                    updatedQ.correctPairs = qs.correctPairs ?? {};
+                }
+                return updatedQ;
+            });
+
             const attemptId = logIdRef.current!;
             const now = new Date();
             const pad = (n: number) => n.toString().padStart(2, "0");
@@ -289,7 +331,7 @@ export function useTestRunner(testId: string, initialTimeInSeconds = 900) {
                     totalQuestions: totalQuestionCount,
                     answers: finalAnswers,
                     gradedAnswers: graded,
-                    questions: questions.filter(Boolean),
+                    questions: updatedQuestions,
                 }),
             );
             setLastAttemptId(attemptId);
