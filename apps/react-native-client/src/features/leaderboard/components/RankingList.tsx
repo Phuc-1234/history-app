@@ -1,34 +1,28 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
-import { LeaderboardUser } from "../hooks/useLeaderboard";
+import { DisplayUser } from "../hooks/useLeaderboard";
 
 interface RankingListProps {
-    rankingList: LeaderboardUser[];
+    rankingList: DisplayUser[];
     isSmallDevice: boolean;
+    showStreak?: boolean;
 }
 
 export const RankingList: React.FC<RankingListProps> = ({
     rankingList,
     isSmallDevice,
+    showStreak = false,
 }) => {
     const styles = createStyles(isSmallDevice);
 
     return (
         <View style={styles.listContainer}>
             {rankingList.map((item, index) => {
-                const isMe = item.name === "Bạn";
                 const hasAvatar = item.avatar && item.avatar.trim() !== "";
 
                 return (
-                    <View
-                        key={item.id}
-                        style={[styles.rankRow, isMe && styles.meRow]}
-                    >
-                        <Text
-                            style={[styles.rowPosition, isMe && styles.meText]}
-                        >
-                            {index + 4}
-                        </Text>
+                    <View key={item.id} style={styles.rankRow}>
+                        <Text style={styles.rowPosition}>{index + 4}</Text>
 
                         {hasAvatar ? (
                             <Image
@@ -45,15 +39,14 @@ export const RankingList: React.FC<RankingListProps> = ({
                             </View>
                         )}
 
-                        <Text
-                            style={[styles.rowName, isMe && styles.meText]}
-                            numberOfLines={1}
-                        >
+                        <Text style={styles.rowName} numberOfLines={1}>
                             {item.name}
                         </Text>
 
-                        <Text style={[styles.rowXp, isMe && styles.meText]}>
-                            {item.xp.toLocaleString()} XP
+                        <Text style={styles.rowXp}>
+                            {showStreak
+                                ? `🔥 ${item.streak} ngày`
+                                : `${item.xp.toLocaleString()} XP`}
                         </Text>
                     </View>
                 );
@@ -73,16 +66,6 @@ const createStyles = (isSmallDevice: boolean) =>
             paddingHorizontal: 16,
             paddingVertical: 14,
             marginBottom: 14,
-        },
-        meRow: {
-            backgroundColor: "#DCD8F6",
-            borderWidth: 1,
-            borderColor: "#B8ADEE",
-            shadowColor: "#7F6BFF",
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.12,
-            shadowRadius: 8,
-            elevation: 2,
         },
         rowPosition: {
             width: 22,
@@ -124,5 +107,4 @@ const createStyles = (isSmallDevice: boolean) =>
             color: "#4E3FE0",
             fontWeight: "700",
         },
-        meText: { color: "#4E3FE0", fontWeight: "700" },
     });

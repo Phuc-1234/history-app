@@ -1,20 +1,20 @@
+// services/leaderboardApi.ts
 import { apiSlice } from "@/services/apiSlice";
-import { GetLeaderboardResponse } from "@history-app/shared";
-
-// Args type for the leaderboard query
-export interface GetLeaderboardXpArgs {
-    limit?: number;
-    page?: number;
-    sort?: "xp" | "streak";
-}
+import { LeaderboardResponse, SortType } from "../types/leaderboardTypes";
 
 export const leaderboardApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        getLeaderboardXp: builder.query<GetLeaderboardResponse, GetLeaderboardXpArgs>({
-            query: ({ limit = 20, page = 1, sort = "xp" } = {}) => ({
+        getLeaderboard: builder.query<
+            LeaderboardResponse,
+            { limit?: number; page?: number; sort?: SortType }
+        >({
+            query: (params) => ({
                 url: "/api/gamification/leaderboard",
-                method: "GET",
-                params: { limit, page, sort },
+                params: {
+                    limit: params.limit ?? 20,
+                    page: params.page ?? 1,
+                    sort: params.sort ?? "xp",
+                },
             }),
             providesTags: ["User"],
         }),
@@ -22,4 +22,4 @@ export const leaderboardApi = apiSlice.injectEndpoints({
     overrideExisting: __DEV__,
 });
 
-export const { useGetLeaderboardXpQuery } = leaderboardApi;
+export const { useGetLeaderboardQuery } = leaderboardApi;
