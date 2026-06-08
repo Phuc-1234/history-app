@@ -135,10 +135,12 @@ export const loginUser = async (
             select: {
                 id: true,
                 name: true,
+                email: true,
                 totalXp: true,
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                role: true,
                 tier: {
                     select: {
                         name: true,
@@ -158,12 +160,14 @@ export const loginUser = async (
         const profile: UserProfileSummary = {
             id: userProfile.id,
             name: userProfile.name,
+            email: userProfile.email,
             totalXp: userProfile.totalXp,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,
             currentStreak: userProfile.currentStreak,
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
+            role: userProfile.role as any,
         };
 
         // Meets LoginSuccessResponse contract perfectly
@@ -214,10 +218,12 @@ export const verifyOtp = async (
             select: {
                 id: true,
                 name: true,
+                email: true,
                 totalXp: true,
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                role: true,
                 tier: {
                     select: {
                         name: true,
@@ -236,12 +242,14 @@ export const verifyOtp = async (
         const profile: UserProfileSummary = {
             id: userProfile.id,
             name: userProfile.name,
+            email: userProfile.email,
             totalXp: userProfile.totalXp,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,
             currentStreak: userProfile.currentStreak,
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
+            role: userProfile.role as any,
         };
 
         // 4. Return tokens and data right back to the React Native UI layout
@@ -385,6 +393,8 @@ export const verifyGoogleSession = async (
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                email: true,
+                role: true,
                 tier: {
                     select: {
                         name: true,
@@ -407,11 +417,13 @@ export const verifyGoogleSession = async (
             id: userProfile.id,
             name: userProfile.name,
             totalXp: userProfile.totalXp,
+            email: userProfile.email,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,
             currentStreak: userProfile.currentStreak,
             tierName: userProfile.tier?.name || "Bronze",
             badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
+            role: userProfile.role as any,
         };
 
         // 6. Return unified payload containing native, auto-refreshing Supabase session JWTs

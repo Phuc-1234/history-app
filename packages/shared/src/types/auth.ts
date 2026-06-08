@@ -1,7 +1,8 @@
 // types/auth.ts
 // Use a lightweight local `UserRole` union to avoid brittle imports from the generated Prisma client
 // during typechecking across package boundaries.
-export type UserRole = "STUDENT" | "ADMIN";
+export type UserRole = "STUDENT" | "ADMIN" | "SUPER_ADMIN";
+
 
 export interface RegisterRequestBody {
     name?: string;
@@ -91,12 +92,14 @@ export type RegisterResponseBody = RegisterSuccessResponse | { error: string };
 export interface UserProfileSummary {
     id: string;
     name: string;
+    email: string;
     totalXp: number;
     totalGold: number;
     profileImgUrl: string | null;
     currentStreak: number;
     tierName: string | null;
     badgeImgUrl: string | null;
+    role?: UserRole;
 }
 
 // --- POST /auth/login ---
