@@ -10,7 +10,7 @@ import {
 } from "@history-app/shared";
 import { supabase, getSupabaseUserClient } from "../config/supabaseClient";
 
-const getBearerToken = (req: Request) => {
+export const getBearerToken = (req: Request) => {
     const authHeader = req.headers.authorization;
     return authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
 };
