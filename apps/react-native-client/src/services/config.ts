@@ -1,10 +1,5 @@
 import { Platform } from "react-native";
 
-
-let PRODUCTION_URL
-// // 1. Get your production URL injected cleanly by Expo (no 'dotenv' needed!)
-// // PRODUCTION_URL = process.env.EXPO_PUBLIC_API_URL_PRODUCTION;
-PRODUCTION_URL = process.env.EXPO_PUBLIC_API_URL_FEATURE;
 // FIXME: Replace this with your computer's actual local Wi-Fi IP address
 // (Open cmd, type 'ipconfig', and look for 'IPv4 Address')
 const LOCAL_COMPUTER_IP = "192.168.1.22";
@@ -16,7 +11,12 @@ const LOCAL_URL = Platform.select({
     default: `http://${LOCAL_COMPUTER_IP}:5000`,
 });
 
-export const API_BASE_URL = PRODUCTION_URL || LOCAL_URL;
+const ENV_API_URL =
+    process.env.EXPO_PUBLIC_API_URL ||
+    process.env.EXPO_PUBLIC_API_URL_FEATURE ||
+    process.env.EXPO_PUBLIC_API_URL_PRODUCTION;
+
+export const API_BASE_URL = __DEV__ ? LOCAL_URL : ENV_API_URL || LOCAL_URL;
 
 // Big bold terminal alert warning about fallback unencrypted web tokens
 if (Platform.OS === "web") {

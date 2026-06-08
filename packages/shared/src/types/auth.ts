@@ -92,6 +92,7 @@ export type RegisterResponseBody = RegisterSuccessResponse | { error: string };
 export interface UserProfileSummary {
     id: string;
     name: string;
+    email: string;
     totalXp: number;
     totalGold: number;
     profileImgUrl: string | null;
