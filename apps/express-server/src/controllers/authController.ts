@@ -13,12 +13,10 @@ import {
     SessionTokens,
     UserProfileSummary,
     ResendOtpRequestBody,
-    ResendOtpResponseBody
+    ResendOtpResponseBody,
 } from "@history-app/shared";
 import { prisma } from "@history-app/shared";
 import { Session } from "@supabase/supabase-js";
-
-
 
 const authService = new AuthService();
 
@@ -87,10 +85,10 @@ export const loginUser = async (
 ): Promise<Response<LoginResponseBody>> => {
     try {
         const { email, password } = req.body;
-        
+
         if (!email || !password) {
             return res.status(400).json({
-                status: 'error',
+                status: "error",
                 error: "Email and password are required.",
             });
         }
@@ -104,12 +102,13 @@ export const loginUser = async (
         // Handle errors coming from Supabase Auth
         if (error) {
             // Check if it's an unconfirmed email error (Supabase returns a 400 status)
-            const isUnconfirmed = error.status === 400 && 
-                                  error.message.toLowerCase().includes("confirmed");
+            const isUnconfirmed =
+                error.status === 400 &&
+                error.message.toLowerCase().includes("confirmed");
 
             if (isUnconfirmed) {
                 return res.status(400).json({
-                    status: 'requires_verification',
+                    status: "requires_verification",
                     error: "Email not confirmed.",
                     requiresVerification: true,
                 });
@@ -117,7 +116,7 @@ export const loginUser = async (
 
             // Default fallback for incorrect password / invalid credentials
             return res.status(401).json({
-                status: 'error',
+                status: "error",
                 error: error.message || "Invalid email or password.",
             });
         }
@@ -125,7 +124,7 @@ export const loginUser = async (
         // Safety fallback check for typescript type guards
         if (!data.user || !data.session) {
             return res.status(401).json({
-                status: 'error',
+                status: "error",
                 error: "Invalid login session state.",
             });
         }
@@ -151,7 +150,7 @@ export const loginUser = async (
 
         if (!userProfile) {
             return res.status(404).json({
-                status: 'error',
+                status: "error",
                 error: "User gamification state profile not synchronized yet.",
             });
         }
@@ -169,17 +168,16 @@ export const loginUser = async (
 
         // Meets LoginSuccessResponse contract perfectly
         return res.status(200).json({
-            status: 'success',
+            status: "success",
             message: "Login verified successfully.",
             session: mapSession(data.session),
             profile,
         });
-
     } catch (error) {
         console.error("Express Controller Login Error:", error);
-        return res.status(500).json({ 
-            status: 'error',
-            error: "Internal server error during login." 
+        return res.status(500).json({
+            status: "error",
+            error: "Internal server error during login.",
         });
     }
 };
@@ -293,28 +291,25 @@ export const refreshSessionToken = async (
         };
 
         return res.status(200).json(successResponse);
-        
     } catch (error) {
         console.error("Express Controller Token Refresh Loop Crash:", error);
-        return res
-            .status(500)
-            .json({
-                error: "Internal server error during session rotation processing.",
-            });
+        return res.status(500).json({
+            error: "Internal server error during session rotation processing.",
+        });
     }
 };
 
 export const resendOtp = async (
     req: Request<{}, ResendOtpResponseBody, ResendOtpRequestBody>,
-    res: Response<ResendOtpResponseBody>
+    res: Response<ResendOtpResponseBody>,
 ): Promise<Response<ResendOtpResponseBody>> => {
     try {
         const { email } = req.body;
 
         if (!email) {
-            return res.status(400).json({ 
-                status: 'error',
-                error: 'Email is required.' 
+            return res.status(400).json({
+                status: "error",
+                error: "Email is required.",
             });
         }
 
@@ -323,23 +318,120 @@ export const resendOtp = async (
 
         if (error) {
             // Catches rate-limits (HTTP 429) or invalid format errors gracefully
-            return res.status(error.status || 400).json({ 
-                status: 'error',
-                error: error.message || 'Failed to resend verification code.' 
+            return res.status(error.status || 400).json({
+                status: "error",
+                error: error.message || "Failed to resend verification code.",
             });
         }
 
         // Matches ResendOtpSuccessResponse perfectly
-        return res.status(200).json({ 
+        return res.status(200).json({
+            status: "success",
+            message: "A fresh verification code has been sent successfully.",
+        });
+    } catch (error) {
+        console.error("Express Controller Resend OTP Error:", error);
+        return res.status(500).json({
+            status: "error",
+            error: "Internal server error during OTP resend.",
+        });
+    }
+};
+
+export const verifyGoogleSession = async (
+    req: Request<{}, LoginResponseBody, { accessToken?: string, refreshToken?: string, idToken?: string }>,
+    res: Response<LoginResponseBody>
+): Promise<Response<LoginResponseBody>> => {
+    try {
+        const { accessToken, refreshToken, idToken } = req.body;
+
+        // 1. Enforce validation check: Secure mobile logins require the OIDC ID Token wrapper
+        if (!idToken) {
+            return res.status(400).json({
+                status: 'error',
+                error: "Google ID Token (idToken) is required to complete authentication exchange.",
+            });
+        }
+
+        // 2. Execute the isolated ID Token exchange via your new service helper layout
+        const { data, error } = await authService.getUserViaGoogleToken(idToken);
+
+        if (error || !data || !data.user) {
+            return res.status(401).json({
+                status: 'error',
+                error: error?.message || "Invalid or expired Google authentication session.",
+            });
+        }
+
+        const { user, session } = data;
+
+        // 3. Fallback validation logic: Ensure email profiles are authenticated
+        if (!user.email_confirmed_at) {
+            return res.status(400).json({
+                status: 'requires_verification',
+                error: "This Google account email address is unverified.",
+                requiresVerification: true,
+            });
+        }
+
+        // 4. Fetch the user profile. Because of your native Supabase PostgreSQL trigger, 
+        // this row is guaranteed to exist already, even for brand-new users!
+        const userProfile = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+                id: true,
+                name: true,
+                totalXp: true,
+                totalGold: true,
+                profileImgUrl: true,
+                currentStreak: true,
+                tier: {
+                    select: {
+                        name: true,
+                        badgeImgUrl: true,
+                    },
+                },
+            },
+        });
+
+        // Edge case fallback protection valve if database engine sync encounters latency
+        if (!userProfile) {
+            return res.status(404).json({
+                status: 'error',
+                error: "User gamification state profile not synchronized yet.",
+            });
+        }
+
+        // 5. Structure the active gamification response values
+        const profile: UserProfileSummary = {
+            id: userProfile.id,
+            name: userProfile.name,
+            totalXp: userProfile.totalXp,
+            totalGold: userProfile.totalGold,
+            profileImgUrl: userProfile.profileImgUrl,
+            currentStreak: userProfile.currentStreak,
+            tierName: userProfile.tier?.name || "Bronze",
+            badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
+        };
+
+        // 6. Return unified payload containing native, auto-refreshing Supabase session JWTs
+        return res.status(200).json({
             status: 'success',
-            message: 'A fresh verification code has been sent successfully.' 
+            message: "Google login verified successfully.",
+            session: {
+                // ✅ Grabs genuine, signed Supabase access/refresh tokens from the exchange!
+                accessToken: session?.access_token || "",
+                refreshToken: session?.refresh_token || "", 
+                expiresAt: session?.expires_at || Math.floor(Date.now() / 1000) + 3600,
+            },
+            profile,
         });
 
     } catch (error) {
-        console.error('Express Controller Resend OTP Error:', error);
-        return res.status(500).json({ 
+        console.error("Express Controller Google Verify Error:", error);
+        return res.status(500).json({
             status: 'error',
-            error: 'Internal server error during OTP resend.' 
+            error: "Internal server error processing Google login."
         });
     }
 };
