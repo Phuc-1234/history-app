@@ -45,82 +45,83 @@ export default function LoginForm() {
                 ]}
                 bounces={false}
             >
-            <LinearGradient
-                colors={["#4332eb", "#593df2", "#7b4fff"]}
-                style={styles.banner}
-            >
-                <View style={styles.logoContainer}>
-                    <Svg width="50" height="40" viewBox="0 0 24 24">
-                        <Path
-                            d="M12 21C12 21 7 18 2 20V5C7 3 12 6 12 6C12 6 17 3 22 5V20C17 18 12 21 12 21Z"
-                            fill="white"
-                        />
-                    </Svg>
-                    <Text style={styles.star}>★</Text>
-                </View>
-                <Text style={styles.welcomeText}>Chào mừng trở lại!</Text>
-                <Text style={styles.subText}>
-                    Đăng nhập để tiếp tục học tập
-                </Text>
-            </LinearGradient>
-
-            <View style={styles.formContainer}>
-                <Text style={styles.title}>Đăng nhập</Text>
-                <Input
-                    value={email}
-                    onChangeText={setEmail}
-                    icon={User}
-                    placeholder="Email hoặc số điện thoại"
-                />
-                <Input
-                    value={password}
-                    onChangeText={setPassword}
-                    icon={Lock}
-                    placeholder="Mật khẩu"
-                    isPassword
-                />
-                <TouchableOpacity
-                    style={styles.forgotPassContainer}
-                    activeOpacity={0.6}
-                    onPress={() => router.push("/(1_auth)/1_3_forgot")}
+                <LinearGradient
+                    colors={["#4332eb", "#593df2", "#7b4fff"]}
+                    style={styles.banner}
                 >
-                    <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
-                </TouchableOpacity>
-                <Button
-                    title={isLoading ? "Đang xử lý..." : "Đăng nhập"}
-                    onPress={submitAndEnterApp}
-                />
-                
-                <TouchableOpacity
-                    style={{ alignSelf: "center", marginTop: 14, marginBottom: 14 }}
-                    activeOpacity={0.6}
-                    onPress={enterAsGuest}
-                >
-                    <Text
-                        style={{
-                            color: "#718096",
-                            fontSize: 13,
-                            fontWeight: "600",
-                            textDecorationLine: "underline",
-                        }}
-                    >
-                        Tiếp tục với tư cách khách
+                    <View style={styles.logoContainer}>
+                        <Svg width="50" height="40" viewBox="0 0 24 24">
+                            <Path
+                                d="M12 21C12 21 7 18 2 20V5C7 3 12 6 12 6C12 6 17 3 22 5V20C17 18 12 21 12 21Z"
+                                fill="white"
+                            />
+                        </Svg>
+                        <Text style={styles.star}>★</Text>
+                    </View>
+                    <Text style={styles.welcomeText}>Chào mừng trở lại!</Text>
+                    <Text style={styles.subText}>
+                        Đăng nhập để tiếp tục học tập
                     </Text>
-                </TouchableOpacity>
-                <View style={styles.dividerContainer}>
-                    <View style={styles.line} />
-                    <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP BẰNG</Text>
-                    <View style={styles.line} />
-                </View>
-                <SocialLoginButtons />
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>Chưa có tài khoản? </Text>
+                </LinearGradient>
+
+                <View style={styles.formContainer}>
+                    <Text style={styles.title}>Đăng nhập</Text>
+                    <Input
+                        value={email}
+                        onChangeText={setEmail}
+                        icon={User}
+                        placeholder="Email hoặc số điện thoại"
+                    />
+                    <Input
+                        value={password}
+                        onChangeText={setPassword}
+                        icon={Lock}
+                        placeholder="Mật khẩu"
+                        isPassword
+                    />
                     <TouchableOpacity
+                        style={styles.forgotPassContainer}
                         activeOpacity={0.6}
-                        onPress={navigateToRegister}
+                        onPress={() => router.push("/(1_auth)/1_3_forgot")}
                     >
-                        <Text style={styles.registerText}>Đăng ký ngay</Text>
+                        <Text style={styles.forgotPassText}>Quên mật khẩu?</Text>
                     </TouchableOpacity>
+                    <Button
+                        title={isLoading ? "Đang xử lý..." : "Đăng nhập"}
+                        onPress={submitAndEnterApp}
+                    />
+
+                    <TouchableOpacity
+                        style={{ alignSelf: "center", marginTop: 14, marginBottom: 14 }}
+                        activeOpacity={0.6}
+                        onPress={enterAsGuest}
+                    >
+                        <Text
+                            style={{
+                                color: "#718096",
+                                fontSize: 13,
+                                fontWeight: "600",
+                                textDecorationLine: "underline",
+                            }}
+                        >
+                            Tiếp tục với tư cách khách
+                        </Text>
+                    </TouchableOpacity>
+                    <View style={styles.dividerContainer}>
+                        <View style={styles.line} />
+                        <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP BẰNG</Text>
+                        <View style={styles.line} />
+                    </View>
+                    <SocialLoginButtons />
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>Chưa có tài khoản? </Text>
+                        <TouchableOpacity
+                            activeOpacity={0.6}
+                            onPress={navigateToRegister}
+                        >
+                            <Text style={styles.registerText}>Đăng ký ngay</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>

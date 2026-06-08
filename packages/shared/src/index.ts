@@ -30,4 +30,4 @@ export * from "./types/user";
 export * from "./types/content";
 export * from "./types/gamification";
 export * from "./types/tests";
-
+export * from "./types/admin";
