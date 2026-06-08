@@ -11,7 +11,7 @@ export interface SingleChoiceQuestion extends BaseQuestion {
     options: string[];
     correctOptionIndex: number;
     answerIds?: number[];
-    optionsWithLabels: OptionWithLabel[]; // ADD THIS
+    optionsWithLabels?: OptionWithLabel[]; // ADD THIS
 }
 
 export interface MultipleChoiceQuestion extends BaseQuestion {
