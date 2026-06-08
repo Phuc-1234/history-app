@@ -40,11 +40,37 @@ const userSupabaseClient = async (
 
     await uSupabaseClient.auth.setSession({
         access_token: accessToken,
-        refresh_token: "iyl7y35cbakb",
+        refresh_token: refreshToken || "iyl7y35cbakb",
     });
 
     return uSupabaseClient;
 };
+
+const exchangeGoogleIdToken = async (idToken: string) => {
+        const uSupabaseClient = createClient(
+            supabaseUrl,
+            supabasePublishableKey,
+            {
+                auth: {
+                    persistSession: false,
+                    autoRefreshToken: false,
+                },
+            },
+        );
+
+        // Exchange the token and directly capture the resulting user and session
+        const { data, error } = await uSupabaseClient.auth.signInWithIdToken({
+            provider: "google",
+            token: idToken,
+        });
+
+        if (error) throw error;
+
+        return {
+            user: data.user,
+            session: data.session, // This contains the real Supabase access_token and refresh_token!
+        };
+    };
 
 export class AuthService {
     /**
@@ -133,11 +159,7 @@ export class AuthService {
         return { data, error };
     }
 
-    async updateUserEmail(
-        accessToken: string,
-        newEmail: string,
-    ) {
-        
+    async updateUserEmail(accessToken: string, newEmail: string) {
         const uSupabaseClient = await userSupabaseClient(accessToken);
         const { data, error } = await uSupabaseClient.auth.updateUser({
             email: newEmail,
@@ -145,5 +167,22 @@ export class AuthService {
         return { data, error };
     }
 
+    
 
+    async getUserViaGoogleToken(idToken: string) {
+        try {
+            // Call the new dedicated helper
+            const { user, session } = await exchangeGoogleIdToken(idToken);
+
+            return {
+                data: { user, session },
+                error: null,
+            };
+        } catch (error: any) {
+            return {
+                data: { user: null, session: null },
+                error: error,
+            };
+        }
+    }
 }

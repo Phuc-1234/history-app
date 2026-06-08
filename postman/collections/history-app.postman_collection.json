@@ -218,6 +218,75 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "login Copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "98412896-ba54-4947-87d0-7b9968904d2e",
+                "exec": [
+                  "// 1. Parse the incoming response JSON payload\r",
+                  "const responseData = pm.response.json();\r",
+                  "\r",
+                  "// 2. Extract the access token (adjust the path based on your exact response structure)\r",
+                  "const token = responseData.accessToken || responseData.session?.accessToken;\r",
+                  "const ref_token = responseData.refreshToken || responseData.session?.refreshToken;\r",
+                  "if (token && ref_token) {\r",
+                  "    // 3. Save it automatically into your current active environment vault\r",
+                  "    pm.environment.set(\"accessToken\", token);\r",
+                  "    pm.environment.set(\"refreshToken\", ref_token); // Save refresh token as well if needed\r",
+                  "    console.log(\"Token successfully captured and saved to environment!\");\r",
+                  "} else {\r",
+                  "    console.warn(\"Could not find access_token in the response payload.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "73d96024-ecec-4011-94b1-f61bc030f712",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "df9e64e9-b369-4a5d-a37e-33ef4c1580d9",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"idToken\": {{idToken}}\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/google/verify",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "google",
+                "verify"
+              ]
+            }
+          },
+          "response": []
         }
       ],
       "id": "8033d6d8-5b20-4e93-ad35-b0cc361edbad"

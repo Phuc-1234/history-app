@@ -5,7 +5,8 @@ import {
     loginUser,
     verifyOtp,
     refreshSessionToken,
-    resendOtp
+    resendOtp,
+    verifyGoogleSession
 } from "../controllers/authController";
 
 
@@ -23,5 +24,7 @@ router.post("/verify-otp", verifyOtp);
 router.post("/refresh-token", refreshSessionToken);
 
 router.post('/resend-otp', resendOtp);
+
+router.post("/google/verify", verifyGoogleSession);
 
 export default router;
