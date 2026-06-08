@@ -17,6 +17,8 @@ import {
 } from "@history-app/shared";
 import { prisma } from "@history-app/shared";
 import { Session } from "@supabase/supabase-js";
+import { getSupabaseUserClient, supabase } from "../config/supabaseClient";
+import { getBearerToken } from "./userController";
 
 const authService = new AuthService();
 
@@ -393,6 +395,7 @@ export const verifyGoogleSession = async (
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                email: true,
                 role: true,
                 tier: {
                     select: {
@@ -416,6 +419,7 @@ export const verifyGoogleSession = async (
             id: userProfile.id,
             name: userProfile.name,
             totalXp: userProfile.totalXp,
+            email: userProfile.email,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,
             currentStreak: userProfile.currentStreak,
@@ -443,5 +447,90 @@ export const verifyGoogleSession = async (
             status: 'error',
             error: "Internal server error processing Google login."
         });
+    }
+};
+
+// POST /api/auth/forgot-password
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ error: "Vui lòng nhập email." });
+        }
+
+        // This triggers the email containing your 6-digit {{ .Token }}
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+
+        return res.status(200).json({ message: "Mã OTP đã được gửi đến email của bạn." });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Lỗi hệ thống." });
+    }
+};
+
+// POST /api/auth/verify-forgot-otp
+export const verifyOtpOnly = async (req, res) => {
+    try {
+        const { email, token } = req.body;
+
+        if (!email || !token) {
+            return res.status(400).json({ error: "Vui lòng nhập đầy đủ email và mã OTP." });
+        }
+
+        const { data, error } = await supabase.auth.verifyOtp({
+            email,
+            token,
+            type: 'recovery'
+        });
+
+        if (error || !data.session) {
+            return res.status(400).json({ error: "Mã OTP không đúng hoặc đã hết hạn." });
+        }
+
+        // Return the temporary session token back to React Native
+        return res.status(200).json({ 
+            message: "Xác thực OTP thành công.",
+            accessToken: data.session.access_token 
+        });
+    } catch (error) {
+        return res.status(500).json({ error: "Lỗi hệ thống." });
+    }
+};
+
+// PUT /api/auth/complete-reset
+export const completeReset = async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+        
+        const token = getBearerToken(req);
+        
+
+        if (!token) {
+            return res.status(401).json({ error: "Phiên làm việc đã hết hạn." });
+        }
+
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ error: "Mật khẩu phải có ít nhất 6 ký tự." });
+        }
+
+        // Use the token passed from the mobile app to target the specific user
+        const userSupabase = getSupabaseUserClient(token);
+        const { error: sessionError } = await userSupabase.auth.setSession({
+            access_token: token,
+            refresh_token: "iyl7y35cbakb",
+        });
+        
+        const { error } = await userSupabase.auth.updateUser({ password: newPassword });
+        console.log("error", error);
+        if (error) return res.status(400).json({ error: error.message });
+
+        return res.status(200).json({ message: "Đặt lại mật khẩu thành công!" });
+    } catch (error) {
+        return res.status(500).json({ error: "Lỗi hệ thống." });
     }
 };

@@ -6,8 +6,12 @@ import {
     verifyOtp,
     refreshSessionToken,
     resendOtp,
-    verifyGoogleSession
+    verifyGoogleSession,
+    forgotPassword,
+    verifyOtpOnly,
+    completeReset
 } from "../controllers/authController";
+import { requireStudent } from "../middlewares/authMiddleware";
 
 
 
@@ -26,5 +30,11 @@ router.post("/refresh-token", refreshSessionToken);
 router.post('/resend-otp', resendOtp);
 
 router.post("/google/verify", verifyGoogleSession);
+
+router.post("/forgot-password", forgotPassword);
+
+router.post("/verify-forgot-otp", verifyOtpOnly);
+
+router.post("/complete-reset", completeReset);
 
 export default router;
