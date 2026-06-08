@@ -140,6 +140,7 @@ export const loginUser = async (
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                role: true,
                 tier: {
                     select: {
                         name: true,
@@ -166,6 +167,7 @@ export const loginUser = async (
             currentStreak: userProfile.currentStreak,
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
+            role: userProfile.role as any,
         };
 
         // Meets LoginSuccessResponse contract perfectly
@@ -221,6 +223,7 @@ export const verifyOtp = async (
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                role: true,
                 tier: {
                     select: {
                         name: true,
@@ -246,6 +249,7 @@ export const verifyOtp = async (
             currentStreak: userProfile.currentStreak,
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
+            role: userProfile.role as any,
         };
 
         // 4. Return tokens and data right back to the React Native UI layout
@@ -389,6 +393,7 @@ export const verifyGoogleSession = async (
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                role: true,
                 tier: {
                     select: {
                         name: true,
@@ -416,6 +421,7 @@ export const verifyGoogleSession = async (
             currentStreak: userProfile.currentStreak,
             tierName: userProfile.tier?.name || "Bronze",
             badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
+            role: userProfile.role as any,
         };
 
         // 6. Return unified payload containing native, auto-refreshing Supabase session JWTs
