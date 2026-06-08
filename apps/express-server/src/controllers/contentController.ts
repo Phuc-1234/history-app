@@ -6,6 +6,7 @@ import {
     GetTopicsResponse,
     GetLessonsResponse,
     GetSectionsResponse,
+    GetNodesResponse,
     GetLessonTreeResponse,
     GetMindMapResponse,
     MindMapRequestQuery,
@@ -156,6 +157,23 @@ export const getMindMap = async (
             return res.status(404).json({ error: err.message });
         }
         return res.status(500).json({ error: "Failed to fetch mind map." });
+    }
+};
+
+export const getNodesBySection = async (
+    req: Request<{ sectionId: string }, GetNodesResponse, {}>,
+    res: Response<GetNodesResponse>,
+) => {
+    try {
+        const sectionId = Number(req.params.sectionId);
+        if (Number.isNaN(sectionId))
+            return res.status(400).json({ error: "Invalid sectionId" });
+
+        const nodes = await contentService.getNodesBySection(sectionId);
+        return res.status(200).json({ nodes });
+    } catch (err) {
+        console.error("Fetch nodes error:", err);
+        return res.status(500).json({ error: "Failed to fetch nodes." });
     }
 };
 
