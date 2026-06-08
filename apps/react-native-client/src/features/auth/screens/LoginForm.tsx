@@ -122,6 +122,7 @@ export default function LoginForm() {
                         <Text style={styles.registerText}>Đăng ký ngay</Text>
                     </TouchableOpacity>
                 </View>
+            </View>
             </ScrollView>
         </KeyboardAvoidingView>
     );
