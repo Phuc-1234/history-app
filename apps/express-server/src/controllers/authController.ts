@@ -135,6 +135,7 @@ export const loginUser = async (
             select: {
                 id: true,
                 name: true,
+                email: true,
                 totalXp: true,
                 totalGold: true,
                 profileImgUrl: true,
@@ -158,6 +159,7 @@ export const loginUser = async (
         const profile: UserProfileSummary = {
             id: userProfile.id,
             name: userProfile.name,
+            email: userProfile.email,
             totalXp: userProfile.totalXp,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,
@@ -214,6 +216,7 @@ export const verifyOtp = async (
             select: {
                 id: true,
                 name: true,
+                email: true,
                 totalXp: true,
                 totalGold: true,
                 profileImgUrl: true,
@@ -236,6 +239,7 @@ export const verifyOtp = async (
         const profile: UserProfileSummary = {
             id: userProfile.id,
             name: userProfile.name,
+            email: userProfile.email,
             totalXp: userProfile.totalXp,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -8,9 +8,13 @@ import {
     Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { User } from "lucide-react-native";
+import { User, Mail } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppSelector } from "@/store/storeHook";
+import {
+    useUpdateUserDataMutation,
+    useUpdateUserEmailMutation,
+} from "@/features/auth/services/authApi";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import ProfileAvatar from "../components/ProfileAvatar";
@@ -21,22 +25,53 @@ export default function ProfileEditScreen() {
     const insets = useSafeAreaInsets();
     const profile = useAppSelector((state) => state.auth.profile);
     const [name, setName] = useState(profile?.name ?? "");
+    const [email, setEmail] = useState(profile?.email ?? "");
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [updateUserData] = useUpdateUserDataMutation();
+    const [updateUserEmail] = useUpdateUserEmailMutation();
+
+    useEffect(() => {
+        setName(profile?.name ?? "");
+        setEmail(profile?.email ?? "");
+    }, [profile?.email, profile?.name]);
 
     const handleSave = async () => {
         const trimmedName = name.trim();
+        const trimmedEmail = email.trim();
+
         if (trimmedName === "") {
             setErrorMsg("Tên không được để trống");
             return;
         }
+        if (trimmedEmail === "") {
+            setErrorMsg("Email không được để trống");
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            setErrorMsg("Email không đúng định dạng");
+            return;
+        }
+
         setErrorMsg(null);
         setIsLoading(true);
 
-        // Simulate local save loading
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        setIsLoading(false);
-        router.back();
+        try {
+            // Update name if changed
+            if (trimmedName !== profile?.name) {
+                await updateUserData({ name: trimmedName }).unwrap();
+            }
+            // Update email if changed
+            if (trimmedEmail !== profile?.email) {
+                await updateUserEmail({ newEmail: trimmedEmail }).unwrap();
+            }
+            router.back();
+        } catch (err: any) {
+            setErrorMsg(err?.data?.error || "Cập nhật thông tin thất bại");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -77,13 +112,26 @@ export default function ProfileEditScreen() {
                                     if (errorMsg) setErrorMsg(null);
                                 }}
                             />
+
+                            <Text style={styles.fieldLabel}>Email</Text>
+                            <Input
+                                icon={Mail}
+                                placeholder="Nhập email"
+                                value={email}
+                                keyboardType="email-address"
+                                onChangeText={(text) => {
+                                    setEmail(text);
+                                    if (errorMsg) setErrorMsg(null);
+                                }}
+                            />
+
                             {errorMsg && (
                                 <Text style={styles.errorText}>{errorMsg}</Text>
                             )}
                         </View>
                     </View>
                 </ScrollView>
-
+ 
                 <View
                     style={[
                         styles.buttonContainer,

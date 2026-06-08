@@ -11,7 +11,7 @@ import {
 // 1. Initialize the JWKS client using the URL configuration from your environment settings
 const client = jwksClient({
     jwksUri:
-        process.env.SUPABASE_JWKS_URL ||
+        (process.env.SUPABASE_JWKS_URL?.replace(/^"|"$/g, "")) ||
         "https://zxoiowktwundibeofwnt.supabase.co/auth/v1/.well-known/jwks.json",
     cache: true, // Caches public signing keys locally so it doesn't slam Supabase on every request
     rateLimit: true, // Protects against socket flooding
