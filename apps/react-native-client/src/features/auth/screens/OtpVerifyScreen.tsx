@@ -30,7 +30,7 @@ interface OtpVerifyScreenProps {
     length?: number;
 }
 
-export default function RegisterOtpScreen({ length = 8 }: OtpVerifyScreenProps = {}) {
+export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps = {}) {
     const { email: paramEmail, autoSend } = useLocalSearchParams<{ 
         email: string; 
         autoSend?: string; 

@@ -8,6 +8,8 @@ import {
     resendOtp
 } from "../controllers/authController";
 
+
+
 const router = Router();
 
 // Route: POST /api/auth/register

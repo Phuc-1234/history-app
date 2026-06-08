@@ -1,6 +1,11 @@
 import { Request, Response } from "express";
 import { prisma } from "@history-app/shared";
 import { UserProfileResponseBody } from "@history-app/shared";
+import { AuthService } from "../services/authService";
+
+
+
+const authService = new AuthService();
 
 export const getUserProfile = async (
     req: Request<{}, UserProfileResponseBody, {}>, // 👈 PathParams = {}, ReqBody = {}
@@ -14,7 +19,7 @@ export const getUserProfile = async (
                 name: "Anonymous Historian",
                 totalGold: 0,
                 totalXp: 0,
-                tierName: null, 
+                tierName: null,
                 badgeImgUrl: null, // Default fallback asset link
                 profileImgUrl: null,
             });
@@ -72,3 +77,67 @@ export const getUserProfile = async (
     }
 };
 
+export const updateUserData = async (req: Request, res: Response) => {
+    const { name } = req.body;
+
+    try {
+        if (name) {
+            await authService.updateUserData(req.user!.id, { name });
+        }
+    } catch (error) {
+        console.error("Express User Update Controller Crash:", error);
+        return res.status(500).json({
+            error: "Internal server error updating user data.",
+        });
+    }
+    return res.status(200).json({
+        message: "User data updated successfully.",
+    });
+};
+
+export const updateUserPassword = async (req: Request, res: Response) => {
+    const { oldPassword, newPassword } = req.body;
+    try {        
+        const result = await authService.updateUserPassword(
+            req!.user!.accessToken!,
+            oldPassword,
+            newPassword,
+        )      
+        if (result.error) {
+            return res.status(400).json({
+                error: result.error.message,
+            });
+        }
+    } catch (error) {
+        console.error("Express Password Update Controller Crash:", error);
+        return res.status(500).json({
+            error: "Internal server error updating password.",
+        });
+    }   
+    return res.status(200).json({
+        message: "Password updated successfully.",
+    });
+};
+
+export const updateUserEmail = async (req: Request, res: Response) => {
+    const { newEmail } = req.body;
+    try {
+        const result = await authService.updateUserEmail(
+            req!.user!.accessToken!,
+            newEmail,
+        );
+        if (result.error) {
+            return res.status(400).json({
+                error: result.error.message,
+            });
+        }
+    } catch (error) {
+        console.error("Express Email Update Controller Crash:", error);
+        return res.status(500).json({
+            error: "Internal server error updating email.",
+        });
+    }
+    return res.status(200).json({
+        message: "Email updated successfully.",
+    });
+};

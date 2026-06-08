@@ -18,6 +18,8 @@ import {
 import { prisma } from "@history-app/shared";
 import { Session } from "@supabase/supabase-js";
 
+
+
 const authService = new AuthService();
 
 /**
