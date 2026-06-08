@@ -236,7 +236,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n   \r\n    \"email\": \"vdp.hh.1234@gmail.com\",\r\n    \"token\": \"76995889\" \r\n\r\n}",
+              "raw": "",
               "options": {
                 "raw": {
                   "language": "json"
@@ -252,6 +252,93 @@
                 "api",
                 "user",
                 "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "name",
+          "id": "2c658b20-1f89-40f8-aca4-bce364050bde",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Phuc 3\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/user/data",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "data"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "meail",
+          "id": "da37397c-8577-421b-a6ed-150065a5b648",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"newEmail\": \"vdp.hh.1234@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/user/email",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "email"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "password",
+          "id": "0e9f78b7-80f3-46e2-8058-63588b25110d",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"oldPassword\": \"fsdfsdfdsds\",\r\n    \"newPassword\": \"gregergerreregregre\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/user/password",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "password"
               ]
             }
           },
@@ -631,6 +718,36 @@
                 "api",
                 "gamification",
                 "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "leaderboard xp Copy",
+          "id": "461dbd92-8def-4c79-953d-a4b29a7c8b87",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/gamification/leaderboard?limit=20&page=1",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "gamification",
+                "leaderboard"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
               ]
             }
           },

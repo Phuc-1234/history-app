@@ -5,8 +5,47 @@ import {
     RegisterCredentials,
     LoginCredentials,
     VerifyOtpCredentials,
+    prisma,
 } from "@history-app/shared";
- 
+
+// config/supabaseClient.ts
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabasePublishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+
+if (!supabaseUrl || !supabasePublishableKey) {
+    throw new Error(
+        "Missing Supabase environment variables inside Express backend config.",
+    );
+}
+
+const userSupabaseClient = async (
+    accessToken?: string,
+    refreshToken?: string,
+) => {
+    if (!accessToken) {
+        throw new Error("Access token is required.");
+    }
+
+    const uSupabaseClient = createClient(supabaseUrl, supabasePublishableKey, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+        },
+    });
+
+    await uSupabaseClient.auth.setSession({
+        access_token: accessToken,
+        refresh_token: "iyl7y35cbakb",
+    });
+
+    return uSupabaseClient;
+};
+
 export class AuthService {
     /**
      * Registers a brand new user session with Supabase Auth
@@ -59,13 +98,52 @@ export class AuthService {
     }
 
     async resendSignUpOtp(email: string) {
-    return await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-        options: {
-            // Optional: If you ever want to redirect them to a specific site page after clicking a link
-            // redirectTo: 'https://your-app.com/welcome' 
+        return await supabase.auth.resend({
+            type: "signup",
+            email: email,
+            options: {
+                // Optional: If you ever want to redirect them to a specific site page after clicking a link
+                // redirectTo: 'https://your-app.com/welcome'
+            },
+        });
+    }
+
+    async updateUserData(userId: string, data: any) {
+        if (data.name) {
+            // prisma
+            const user = await prisma.user.update({
+                where: { id: userId },
+                data: { name: data.name },
+            });
+            return user;
         }
-    });
-}
+    }
+
+    async updateUserPassword(
+        accessToken: string,
+        oldPassword: string,
+        newPassword: string,
+    ) {
+        const uSupabaseClient = await userSupabaseClient(accessToken);
+        const { data, error } = await uSupabaseClient.auth.updateUser({
+            password: newPassword,
+
+            current_password: oldPassword,
+        });
+        return { data, error };
+    }
+
+    async updateUserEmail(
+        accessToken: string,
+        newEmail: string,
+    ) {
+        
+        const uSupabaseClient = await userSupabaseClient(accessToken);
+        const { data, error } = await uSupabaseClient.auth.updateUser({
+            email: newEmail,
+        });
+        return { data, error };
+    }
+
+
 }

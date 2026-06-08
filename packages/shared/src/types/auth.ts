@@ -43,6 +43,8 @@ export interface AuthenticatedUserPayload {
     role: UserRole; // Enforces 'STUDENT' | 'ADMIN' perfectly
     totalGold: number;
     totalXp: number;
+    accessToken?: string; // Optional, included in login/register responses
+    refreshToken?: string; // Optional, included in login/register responses
 }
 // The machine-readable error format for your frontend interceptors
 export type AuthErrorCode = "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_MISSING";
@@ -99,20 +101,20 @@ export interface UserProfileSummary {
 
 // --- POST /auth/login ---
 export interface LoginSuccessResponse {
-    status: 'success';
+    status: "success";
     message: string;
     session: SessionTokens;
     profile: UserProfileSummary;
 }
 
 export interface LoginRequiresVerificationResponse {
-    status: 'requires_verification';
+    status: "requires_verification";
     error: string;
     requiresVerification: true;
 }
 
 export interface LoginFailureResponse {
-    status: 'error';
+    status: "error";
     error: string;
 }
 
@@ -133,21 +135,22 @@ export type VerifyOtpResponseBody =
     | VerifyOtpSuccessResponse
     | { error: string };
 
-
 // --- POST /auth/resend-otp ---
 export interface ResendOtpRequestBody {
     email: string;
 }
 
 export interface ResendOtpSuccessResponse {
-    status: 'success';
+    status: "success";
     message: string;
 }
 
 export interface ResendOtpFailureResponse {
-    status: 'error';
+    status: "error";
     error: string;
 }
 
 // Unified strict type for the response body
-export type ResendOtpResponseBody = ResendOtpSuccessResponse | ResendOtpFailureResponse;
+export type ResendOtpResponseBody =
+    | ResendOtpSuccessResponse
+    | ResendOtpFailureResponse;

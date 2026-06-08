@@ -55,6 +55,8 @@ const extractUserProfileFromToken = async (
                         return resolve(err);
                     }
 
+                    
+                    
                     const payload = decoded as jwt.JwtPayload;
 
                     try {
@@ -68,12 +70,15 @@ const extractUserProfileFromToken = async (
                                 role: true,
                                 totalGold: true,
                                 totalXp: true,
+                                
                             },
                         });
 
+
                         if (!userProfile) return resolve(null);
 
-                        return resolve(userProfile as AuthenticatedUserPayload);
+                        
+                        return resolve({...userProfile, accessToken: token} as AuthenticatedUserPayload);
                     } catch (dbError) {
                         console.error(
                             "Database lookup error during token hydration:",
@@ -140,7 +145,12 @@ export const optionalAuth = async (
     next: NextFunction,
 ) => {
     const lookupResult = await extractUserProfileFromToken(req);
-    req.user = lookupResult instanceof Error ? null : lookupResult;
+    if (lookupResult instanceof Error || !lookupResult) {
+        req.user = null;
+       // 👈 Ensure it's cleared if validation fails
+    } else {
+        req.user = lookupResult;
+    }
 
     // Always let the request pass down to the controller loop!
     return next();
