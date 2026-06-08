@@ -1,10 +1,13 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useWindowDimensions } from "react-native";
+import { useGetLeaderboardQuery } from "../services/leaderboardApi";
+import { SortType } from "../types/leaderboardTypes";
 
-export interface User {
-    id: number;
+export interface DisplayUser {
+    id: string;
     name: string;
     xp: number;
+    streak: number;
     avatar: string;
 }
 
@@ -12,52 +15,46 @@ export function useLeaderboard() {
     const { width } = useWindowDimensions();
     const isSmallDevice = width < 390;
 
-    const topUsers: User[] = [
-        {
-            id: 2,
-            name: "Minh Quân",
-            xp: 3450,
-            avatar: "https://i.pravatar.cc/100?img=12",
-        },
-        {
-            id: 1,
-            name: "Lan Anh",
-            xp: 4200,
-            avatar: "https://i.pravatar.cc/100?img=5",
-        },
-        {
-            id: 3,
-            name: "Hoàng Tú",
-            xp: 3120,
-            avatar: "https://i.pravatar.cc/100?img=15",
-        },
-    ];
+    const [activeTab, setActiveTab] = useState<"xp" | "streak">("xp");
 
-    const rankingList: User[] = [
-        {
-            id: 4,
-            name: "Bảo Hân",
-            xp: 2950,
-            avatar: "https://i.pravatar.cc/100?img=32",
-        },
-        {
-            id: 5,
-            name: "Bạn",
-            xp: 2800,
-            avatar: "https://i.pravatar.cc/100?img=20",
-        },
-        {
-            id: 6,
-            name: "Tuấn Phong",
-            xp: 2600,
-            avatar: "https://i.pravatar.cc/100?img=18",
-        },
-        { id: 7, name: "Thanh Nhàn", xp: 2450, avatar: "" },
-    ];
+    const {
+        data: response,
+        isLoading,
+        isError,
+        refetch,
+    } = useGetLeaderboardQuery({
+        limit: 20,
+        page: 1,
+        sort: activeTab as SortType,
+    });
+
+    const displayUsers: DisplayUser[] = useMemo(() => {
+        if (!response?.entries) return [];
+        return response.entries.map((user) => ({
+            id: user.id,
+            name: user.name || "Ẩn danh",
+            xp: user.totalXp ?? 0,
+            streak: user.currentStreak ?? 0,
+            avatar:
+                user.avatarUrl ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    user.name || "User"
+                )}&background=E8E4F4&color=5856D6&bold=true`,
+        }));
+    }, [response]);
+
+    const topUsers = displayUsers.slice(0, 3);
+    const rankingList = displayUsers.slice(3);
 
     return {
         topUsers,
         rankingList,
         isSmallDevice,
+        activeTab,
+        setActiveTab,
+        isLoading,
+        isError,
+        refetch,
+        total: response?.total ?? 0,
     };
 }
