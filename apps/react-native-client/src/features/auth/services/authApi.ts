@@ -12,6 +12,10 @@ import {
     ResendOtpResponseBody, // Imported from shared contract packages
     UserProfileResponseBody,
     UserProfileSummary,
+    UpdateProfileRequestBody,
+    ChangePasswordRequestBody,
+    UpdateUserDataRequestBody,
+    UpdateUserEmailRequestBody,
 } from "@history-app/shared";
 import { setProfile } from "../store/authSlice";
 import type { RootState } from "@/store/store";
@@ -159,6 +163,78 @@ export const authApi = apiSlice.injectEndpoints({
             },
         }),
 
+        updateProfile: builder.mutation<UserProfileSummary, UpdateProfileRequestBody>({
+            query: (body) => ({
+                url: "/api/user/profile",
+                method: "PUT",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] updateProfile success, data:", data);
+                    dispatch(setProfile(data));
+                } catch (error) {
+                    console.error("[authApi] Failed to update profile:", error);
+                }
+            },
+        }),
+
+        changePassword: builder.mutation<{ message: string }, ChangePasswordRequestBody>({
+            query: (body) => ({
+                url: "/api/user/change-password",
+                method: "PUT",
+                body,
+            }),
+        }),
+
+        updateUserData: builder.mutation<{ message: string }, UpdateUserDataRequestBody>({
+            query: (body) => ({
+                url: "/api/user/data",
+                method: "PUT",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] updateUserData success, data:", data);
+                    // Refresh profile
+                    dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+                } catch (error) {
+                    console.error("[authApi] Failed to update user data:", error);
+                }
+            },
+        }),
+
+        updateUserEmail: builder.mutation<{ message: string }, UpdateUserEmailRequestBody>({
+            query: (body) => ({
+                url: "/api/user/email",
+                method: "PUT",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] updateUserEmail success, data:", data);
+                    // Refresh profile
+                    dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+                } catch (error) {
+                    console.error("[authApi] Failed to update email:", error);
+                }
+            },
+        }),
+
+        updateUserPassword: builder.mutation<{ message: string }, ChangePasswordRequestBody>({
+            query: (body) => ({
+                url: "/api/user/password",
+                method: "PUT",
+                body,
+            }),
+        }),
+
     }),
     overrideExisting: __DEV__, // Safe hot-reloading for Expo local servers
 });
@@ -170,4 +246,9 @@ export const {
     useVerifyOtpMutation,
     useResendOtpMutation,
     useGetProfileQuery,
+    useUpdateProfileMutation,
+    useChangePasswordMutation,
+    useUpdateUserDataMutation,
+    useUpdateUserEmailMutation,
+    useUpdateUserPasswordMutation,
 } = authApi;

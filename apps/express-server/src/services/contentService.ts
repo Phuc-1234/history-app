@@ -100,6 +100,21 @@ export class ContentService {
         return roots;
     }
 
+    async getNodesBySection(sectionId: number): Promise<NodeDto[]> {
+        const nodes = await prisma.node.findMany({
+            where: { sectionId },
+            orderBy: { position: "asc" },
+        });
+        return nodes.map((n) => ({
+            id: n.id,
+            position: n.position,
+            header: n.header,
+            body: n.body,
+            imgUrl: n.imgUrl ?? null,
+            sectionId: n.sectionId ?? null,
+        }));
+    }
+
     async getLessonTree(
         lessonId: number,
     ): Promise<LessonWithContentDto | null> {

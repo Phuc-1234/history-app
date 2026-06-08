@@ -31,9 +31,9 @@ interface OtpVerifyScreenProps {
 }
 
 export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps = {}) {
-    const { email: paramEmail, autoSend } = useLocalSearchParams<{ 
-        email: string; 
-        autoSend?: string; 
+    const { email: paramEmail, autoSend } = useLocalSearchParams<{
+        email: string;
+        autoSend?: string;
     }>();
     const emailToShow = paramEmail || "example@gmail.com";
 
@@ -72,7 +72,7 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
 
     const onChange = (value: string, index: number) => {
         const clean = value.replace(/[^0-9]/g, "");
-        
+
         // Handle copy-paste of multiple digits
         if (clean.length - otp[index].length > 1) {
             let pasted = clean;
@@ -81,13 +81,13 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
             } else if (otp[index] && clean.endsWith(otp[index])) {
                 pasted = clean.slice(0, -otp[index].length);
             }
-            
+
             const next = [...otp];
             for (let i = 0; i < pasted.length && index + i < length; i++) {
                 next[index + i] = pasted[i];
             }
             setOtp(next);
-            
+
             const focusIndex = Math.min(index + pasted.length - 1, length - 1);
             refs.current[focusIndex]?.focus();
             return;
@@ -96,7 +96,7 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
         const next = [...otp];
         next[index] = clean ? clean[clean.length - 1] : "";
         setOtp(next);
-        
+
         // Dynamic Focus adjustments based on length
         if (clean && index < length - 1) {
             refs.current[index + 1]?.focus();
@@ -116,13 +116,7 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.keyboardAvoid}
             >
-                <ScrollView
-                    contentContainerStyle={[
-                        styles.screen,
-                        { paddingBottom: Math.max(insets.bottom, 20) }
-                    ]}
-                    keyboardShouldPersistTaps="handled"
-                >
+                <View style={styles.scrollView}>
                     <View style={styles.hero}>
                         <View style={styles.heroIcon}>
                             {/* Replaced ic_lock with a shield/verify concept asset reference if available */}
@@ -140,7 +134,7 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                         </Text>
                     </View>
 
-                    <View style={styles.card}>
+                    <View style={[styles.card, { paddingBottom: Math.max(insets.bottom, 20) }]}>
                         <Text style={styles.cardTitle}>{text.enter}</Text>
                         <Text style={styles.cardSubtitle}>{text.subtitle(length)}</Text>
 
@@ -198,7 +192,7 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                             </Pressable>
                         </View>
                     </View>
-                </ScrollView>
+                </View>
             </KeyboardAvoidingView>
         </View>
     );
@@ -207,10 +201,14 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#5732DD", // Blends status bar smoothly with the hero color
+        backgroundColor: "#FFFFFF", // Matches the bottom white container to prevent color leaking
     },
     keyboardAvoid: { flex: 1 },
-    screen: { flexGrow: 1, backgroundColor: "#F8F6F3" },
+    scrollView: {
+        flex: 1,
+        backgroundColor: "#FFFFFF", // Matches the bottom white container
+    },
+    screen: { flexGrow: 1, backgroundColor: "#FFFFFF" },
     hero: {
         minHeight: 348,
         backgroundColor: "#5732DD",
@@ -250,18 +248,12 @@ const styles = StyleSheet.create({
     emailText: { fontWeight: "800" },
     card: {
         flex: 1,
-        marginHorizontal: 14,
-        marginTop: -28,
         backgroundColor: "#FFFFFF",
-        borderRadius: 36,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        marginTop: -26,
         paddingHorizontal: 16, // Reduced horizontal padding to maximize screen width for OTP boxes
-        paddingTop: 54,
-        paddingBottom: 40,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.14,
-        shadowRadius: 24,
-        elevation: 8,
+        paddingTop: 36,
     },
     cardTitle: {
         color: "#1D1B18",
@@ -276,14 +268,14 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         textAlign: "center",
         marginTop: 8,
-        marginBottom: 62,
+        marginBottom: 36,
     },
     otpRow: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
-        marginBottom: 34,
+        marginBottom: 36,
     },
     otpBox: {
         borderRadius: 10,
@@ -322,7 +314,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 28,
+        marginTop: "auto",
+        paddingTop: 16,
         flexWrap: "wrap",
     },
     resendText: { color: "#4D4A5F", fontSize: 16 },

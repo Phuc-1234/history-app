@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { router } from "expo-router";
+import { useChangePasswordMutation } from "@/features/auth/services/authApi";
 
 const message = {
     currentRequired: "Vui lòng nhập mật khẩu cũ.",
@@ -21,6 +22,7 @@ export function useChangePassword() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState("");
+    const [changePasswordApi] = useChangePasswordMutation();
 
     const validateFields = () => {
         let isValid = true;
@@ -63,20 +65,29 @@ export function useChangePassword() {
 
         setIsLoading(true);
         setFeedbackMessage("");
-        await new Promise((resolve) => setTimeout(resolve, 400));
-
-        setIsSuccess(true);
-        setFeedbackMessage(message.success);
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setIsLoading(false);
-
-        setTimeout(() => {
-            if (router.canGoBack()) router.back();
-        }, 900);
-
-        return true;
+        
+        try {
+            await changePasswordApi({
+                currentPassword,
+                oldPassword: currentPassword,
+                newPassword,
+            }).unwrap();
+            setIsSuccess(true);
+            setFeedbackMessage(message.success);
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+            setTimeout(() => {
+                if (router.canGoBack()) router.back();
+            }, 900);
+            return true;
+        } catch (err: any) {
+            setIsSuccess(false);
+            setFeedbackMessage(err?.data?.error || "Cập nhật mật khẩu thất bại.");
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return {
