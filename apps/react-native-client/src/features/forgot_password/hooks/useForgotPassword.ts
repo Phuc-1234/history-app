@@ -1,31 +1,43 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { router } from "expo-router";
+import { Alert } from "react-native";
+import {
+    useForgotPasswordMutation,
+    useVerifyForgotOtpMutation,
+    useCompleteResetMutation,
+} from "@/features/auth/services/authApi";
 
 const OTP_LENGTH = 6;
 const INITIAL_COUNTDOWN = 60;
 
 const message = {
-    emailRequired: "Vui l\u00f2ng nh\u1eadp email.",
-    emailInvalid: "Email kh\u00f4ng \u0111\u00fang \u0111\u1ecbnh d\u1ea1ng.",
-    otpRequired: "Vui l\u00f2ng nh\u1eadp \u0111\u1ea7y \u0111\u1ee7 m\u00e3 OTP.",
-    otpInvalid: "M\u00e3 OTP kh\u00f4ng \u0111\u00fang. T\u1ea1m th\u1eddi d\u00f9ng 123456 \u0111\u1ec3 test.",
-    passwordRequired: "Vui l\u00f2ng nh\u1eadp m\u1eadt kh\u1ea9u m\u1edbi.",
-    passwordWeak: "M\u1eadt kh\u1ea9u c\u1ea7n \u00edt nh\u1ea5t 8 k\u00fd t\u1ef1, 1 ch\u1eef hoa v\u00e0 1 s\u1ed1.",
-    confirmRequired: "Vui l\u00f2ng x\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u m\u1edbi.",
-    confirmMismatch: "M\u1eadt kh\u1ea9u x\u00e1c nh\u1eadn kh\u00f4ng kh\u1edbp.",
+    emailRequired: "Vui lòng nhập email.",
+    emailInvalid: "Email không đúng định dạng.",
+    otpRequired: (length: number) => `Vui lòng nhập đầy đủ mã ${length} số OTP.`,
+    otpInvalid: "Mã OTP không đúng hoặc đã hết hạn.",
+    passwordRequired: "Vui lòng nhập mật khẩu mới.",
+    passwordWeak: "Mật khẩu cần ít nhất 6 ký tự.",
+    confirmRequired: "Vui lòng xác nhận mật khẩu mới.",
+    confirmMismatch: "Mật khẩu xác nhận không khớp.",
 };
 
-export function useForgotPassword(initialEmail = "") {
+export function useForgotPassword(initialEmail = "", initialToken = "", length = OTP_LENGTH) {
     const [email, setEmail] = useState(initialEmail);
     const [emailError, setEmailError] = useState("");
-    const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
+    const [otp, setOtp] = useState<string[]>(Array(length).fill(""));
     const [otpError, setOtpError] = useState("");
     const [otpCountdown, setOtpCountdown] = useState(INITIAL_COUNTDOWN);
     const [newPassword, setNewPassword] = useState("");
     const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
     const [newPasswordError, setNewPasswordError] = useState("");
     const [newPasswordConfirmError, setNewPasswordConfirmError] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+
+    const [forgotPassword, { isLoading: isSendingForgotPassword }] = useForgotPasswordMutation();
+    const [verifyForgotOtp, { isLoading: isVerifyingOtp }] = useVerifyForgotOtpMutation();
+    const [completeReset, { isLoading: isCompletingReset }] = useCompleteResetMutation();
+
+    const isLoading = isSendingForgotPassword || isVerifyingOtp || isCompletingReset;
+
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
@@ -36,7 +48,7 @@ export function useForgotPassword(initialEmail = "") {
         };
     }, [otpCountdown]);
 
-    const hasMinLength = newPassword.length >= 8;
+    const hasMinLength = newPassword.length >= 6;
     const hasUppercase = /[A-Z]/.test(newPassword);
     const hasNumber = /[0-9]/.test(newPassword);
 
@@ -51,40 +63,56 @@ export function useForgotPassword(initialEmail = "") {
             return false;
         }
         setEmailError("");
-        setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        setIsLoading(false);
-        router.push({ pathname: "/(1_auth)/1_4_otp_forgot", params: { email: trimmedEmail } });
-        return true;
+        try {
+            await forgotPassword({ email: trimmedEmail }).unwrap();
+            router.push({ pathname: "/(1_auth)/1_4_otp_forgot", params: { email: trimmedEmail } });
+            return true;
+        } catch (error: any) {
+            const backendError = error?.data?.error || "Không thể gửi mã xác thực vào lúc này.";
+            setEmailError(backendError);
+            return false;
+        }
     };
 
     const handleVerifyOtp = async () => {
         const fullOtp = otp.join("");
-        if (fullOtp.length < OTP_LENGTH) {
-            setOtpError(message.otpRequired);
-            return false;
-        }
-        setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        setIsLoading(false);
-        if (fullOtp !== "123456" && fullOtp !== "111111") {
-            setOtpError(message.otpInvalid);
+        if (fullOtp.length < length) {
+            setOtpError(message.otpRequired(length));
             return false;
         }
         setOtpError("");
-        router.push({ pathname: "/(1_auth)/1_5_new_pass_forgot", params: { email, otp: fullOtp } });
-        return true;
+        try {
+            const response = await verifyForgotOtp({
+                email: email.trim().toLowerCase(),
+                token: fullOtp,
+            }).unwrap();
+
+            router.push({
+                pathname: "/(1_auth)/1_5_new_pass_forgot",
+                params: { email: email.trim().toLowerCase(), token: response.accessToken },
+            });
+            return true;
+        } catch (error: any) {
+            const backendError = error?.data?.error || message.otpInvalid;
+            setOtpError(backendError);
+            return false;
+        }
     };
 
     const handleResendOtp = async () => {
         if (otpCountdown > 0 || isLoading) return false;
-        setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        setOtp(Array(OTP_LENGTH).fill(""));
-        setOtpError("");
-        setOtpCountdown(INITIAL_COUNTDOWN);
-        setIsLoading(false);
-        return true;
+        try {
+            await forgotPassword({ email: email.trim().toLowerCase() }).unwrap();
+            setOtp(Array(length).fill(""));
+            setOtpError("");
+            setOtpCountdown(INITIAL_COUNTDOWN);
+            Alert.alert("Gửi lại mã", "Mã xác thực mới đã được chuyển tới email của bạn.");
+            return true;
+        } catch (error: any) {
+            const backendError = error?.data?.error || "Không thể gửi lại mã vào lúc này.";
+            Alert.alert("Lỗi", backendError);
+            return false;
+        }
     };
 
     const handleResetPassword = async () => {
@@ -92,12 +120,13 @@ export function useForgotPassword(initialEmail = "") {
         if (!newPassword) {
             setNewPasswordError(message.passwordRequired);
             valid = false;
-        } else if (!hasMinLength || !hasUppercase || !hasNumber) {
+        } else if (!hasMinLength) {
             setNewPasswordError(message.passwordWeak);
             valid = false;
         } else {
             setNewPasswordError("");
         }
+
         if (!newPasswordConfirm) {
             setNewPasswordConfirmError(message.confirmRequired);
             valid = false;
@@ -107,12 +136,23 @@ export function useForgotPassword(initialEmail = "") {
         } else {
             setNewPasswordConfirmError("");
         }
+
         if (!valid) return false;
-        setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        setIsLoading(false);
-        router.replace("/(1_auth)/1_1_login");
-        return true;
+
+        try {
+            await completeReset({
+                token: initialToken,
+                newPassword,
+            }).unwrap();
+            Alert.alert("Thành công", "Mật khẩu của bạn đã được đặt lại thành công.", [
+                { text: "OK", onPress: () => router.replace("/(1_auth)/1_1_login") }
+            ]);
+            return true;
+        } catch (error: any) {
+            const backendError = error?.data?.error || "Không thể đặt lại mật khẩu vào lúc này.";
+            setNewPasswordError(backendError);
+            return false;
+        }
     };
 
     const formatCountdown = () => {

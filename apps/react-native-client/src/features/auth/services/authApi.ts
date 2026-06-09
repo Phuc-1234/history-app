@@ -272,6 +272,33 @@ export const authApi = apiSlice.injectEndpoints({
             }),
         }),
 
+        forgotPassword: builder.mutation<{ message: string }, { email: string }>({
+            query: (body) => ({
+                url: "/api/auth/forgot-password",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        verifyForgotOtp: builder.mutation<{ message: string; accessToken: string }, { email: string; token: string }>({
+            query: (body) => ({
+                url: "/api/auth/verify-forgot-otp",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        completeReset: builder.mutation<{ message: string }, { token: string; newPassword: string }>({
+            query: ({ token, newPassword }) => ({
+                url: "/api/auth/complete-reset",
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: { newPassword },
+            }),
+        }),
+
     }),
     overrideExisting: __DEV__, // Safe hot-reloading for Expo local servers
 });
@@ -289,4 +316,7 @@ export const {
     useUpdateUserEmailMutation,
     useUpdateUserPasswordMutation,
     useGoogleVerifyMutation,
+    useForgotPasswordMutation,
+    useVerifyForgotOtpMutation,
+    useCompleteResetMutation,
 } = authApi;

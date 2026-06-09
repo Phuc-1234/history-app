@@ -20,8 +20,8 @@ const text = {
 };
 
 export default function ForgotPasswordNewPasswordScreen() {
-    const { email: paramEmail } = useLocalSearchParams<{ email: string }>();
-    const state = useForgotPassword(paramEmail || "");
+    const { email: paramEmail, token: paramToken } = useLocalSearchParams<{ email: string; token: string }>();
+    const state = useForgotPassword(paramEmail || "", paramToken || "");
     const insets = useSafeAreaInsets();
 
     return (
