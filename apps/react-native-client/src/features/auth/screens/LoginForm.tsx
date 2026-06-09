@@ -46,8 +46,7 @@ export default function LoginForm() {
                 ]}
                 bounces={false}
             >
-                <View style={styles.contentWrapper}>
-                    <LinearGradient
+                <LinearGradient
                     colors={["#4332eb", "#593df2", "#7b4fff"]}
                     style={styles.banner}
                 >
@@ -125,7 +124,7 @@ export default function LoginForm() {
                         </TouchableOpacity>
                     </View>
                 </View>
-                </View>
+            
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -139,9 +138,6 @@ const styles = StyleSheet.create({
     scrollContainer: {
         flexGrow: 1,
         backgroundColor: "#FFFFFF",
-    },
-    contentWrapper: {
-        flex: 1,
     },
     banner: {
         paddingTop: 65,
