@@ -1,15 +1,17 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
-import { User } from "../hooks/useLeaderboard";
+import { DisplayUser } from "../hooks/useLeaderboard";
 
 interface PodiumSectionProps {
-    topUsers: User[];
+    topUsers: DisplayUser[];
     isSmallDevice: boolean;
+    showStreak?: boolean;
 }
 
 export const PodiumSection: React.FC<PodiumSectionProps> = ({
     topUsers,
     isSmallDevice,
+    showStreak = false,
 }) => {
     const styles = createStyles(isSmallDevice);
 
@@ -30,7 +32,9 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[0].name}
                 </Text>
                 <Text style={styles.rank2Xp}>
-                    {topUsers[0].xp.toLocaleString()} XP
+                    {showStreak
+                        ? `🔥 ${topUsers[0].streak} ngày`
+                        : `${topUsers[0].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank2Base]} />
             </View>
@@ -54,7 +58,9 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[1].name}
                 </Text>
                 <Text style={styles.rank1Xp}>
-                    {topUsers[1].xp.toLocaleString()} XP
+                    {showStreak
+                        ? `🔥 ${topUsers[1].streak} ngày`
+                        : `${topUsers[1].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank1Base]} />
             </View>
@@ -74,7 +80,9 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[2].name}
                 </Text>
                 <Text style={styles.rank3Xp}>
-                    {topUsers[2].xp.toLocaleString()} XP
+                    {showStreak
+                        ? `🔥 ${topUsers[2].streak} ngày`
+                        : `${topUsers[2].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank3Base]} />
             </View>

@@ -23,3 +23,23 @@ export type UserProfileResponseBody =
     | GuestProfileResponse
     | StudentProfileResponse
     | { error: string };
+
+export interface UpdateProfileRequestBody {
+    name?: string;
+    email?: string;
+}
+
+export interface UpdateUserDataRequestBody {
+    name?: string;
+}
+
+export interface UpdateUserEmailRequestBody {
+    newEmail?: string;
+}
+
+export interface ChangePasswordRequestBody {
+    currentPassword?: string;
+    oldPassword?: string;
+    newPassword?: string;
+}
+

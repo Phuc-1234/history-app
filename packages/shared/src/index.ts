@@ -2,11 +2,15 @@
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import dotenv from "dotenv";
 import pg from "pg";
-import "dotenv/config";
+import path from "node:path";
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config();
 
 // 1. Grab your runtime DATABASE_URL string (Transaction pooler)
-const connectionString = process.env["DATABASE_URL"];
+const connectionString = process.env["DATABASE_URL"]?.replace(/^"|"$/g, "");
 
 if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is missing.");
@@ -30,4 +34,4 @@ export * from "./types/user";
 export * from "./types/content";
 export * from "./types/gamification";
 export * from "./types/tests";
-
+export * from "./types/admin";

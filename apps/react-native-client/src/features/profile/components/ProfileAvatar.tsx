@@ -1,14 +1,16 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 interface ProfileAvatarProps {
+    uri?: string | null;
     size?: number;
     onEditPress?: () => void;
     showEditButton?: boolean;
 }
 
 export default function ProfileAvatar({
+    uri,
     size = 120,
     onEditPress,
     showEditButton = true,
@@ -20,7 +22,7 @@ export default function ProfileAvatar({
 
     return (
         <View style={[styles.container, { width: size, height: size }]}>
-            {/* Avatar circle with placeholder icon */}
+            {/* Avatar circle with placeholder icon or image */}
             <View
                 style={[
                     styles.avatarCircle,
@@ -28,14 +30,25 @@ export default function ProfileAvatar({
                         width: size,
                         height: size,
                         borderRadius: avatarRadius,
+                        overflow: "hidden",
                     },
                 ]}
             >
-                <Ionicons
-                    name="person"
-                    size={size * 0.45}
-                    color="#B8B0D8"
-                />
+                {uri && uri.trim() !== "" ? (
+                    <Image
+                        source={{ uri }}
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                        }}
+                    />
+                ) : (
+                    <Ionicons
+                        name="person"
+                        size={size * 0.45}
+                        color="#B8B0D8"
+                    />
+                )}
             </View>
 
             {/* Edit badge */}

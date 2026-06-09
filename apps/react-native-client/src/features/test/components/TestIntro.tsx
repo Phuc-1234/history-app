@@ -8,14 +8,15 @@ import {
     Image,
     Dimensions
 } from "react-native";
-import { ArrowLeft, HelpCircle, FileText, Clock, TrendingUp, Sparkles } from "lucide-react-native";
+import { ArrowLeft, HelpCircle, FileText, Clock, TrendingUp, Sparkles, Mic } from "lucide-react-native";
 
 interface Props {
     onStart: () => void;
     onBack: () => void;
+    onStartVoice?: () => void;
 }
 
-export default function TestIntro({ onStart, onBack }: Props) {
+export default function TestIntro({ onStart, onBack, onStartVoice }: Props) {
     return (
         <View style={styles.container}>
             {/* Header bar */}
@@ -105,6 +106,17 @@ export default function TestIntro({ onStart, onBack }: Props) {
                     <Text style={styles.startButtonText}>Bắt đầu làm bài</Text>
                     <Text style={styles.arrowIcon}>➔</Text>
                 </TouchableOpacity>
+
+                {onStartVoice && (
+                    <TouchableOpacity
+                        style={styles.voiceButton}
+                        onPress={onStartVoice}
+                        activeOpacity={0.85}
+                    >
+                        <Mic size={18} color="#5D45F9" />
+                        <Text style={styles.voiceButtonText}>Bắt đầu bằng giọng nói</Text>
+                    </TouchableOpacity>
+                )}
 
                 <TouchableOpacity
                     style={styles.laterButton}
@@ -273,6 +285,24 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#FFFFFF",
         fontWeight: "800",
+    },
+    voiceButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        height: 52,
+        width: "100%",
+        borderRadius: 100,
+        borderWidth: 1.5,
+        borderColor: "#5D45F9",
+        backgroundColor: "#F5F3FF",
+        marginBottom: 12,
+    },
+    voiceButtonText: {
+        fontSize: 14,
+        fontWeight: "800",
+        color: "#5D45F9",
     },
     laterButton: {
         alignItems: "center",

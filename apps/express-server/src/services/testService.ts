@@ -233,8 +233,13 @@ export class TestService {
 
             
             let correct = 0;
-            const summaries: Array<{ questionId: number; isCorrect: boolean }> =
-                [];
+            const summaries: Array<{
+                questionId: number;
+                isCorrect: boolean;
+                correctAnswerIds?: number[];
+                correctText?: string;
+                correctPairs?: Record<string, string>;
+            }> = [];
 
             const evaluate = (q: any, ans: any) => {
                 if (!ans) return false;
@@ -268,8 +273,9 @@ export class TestService {
                         if (!userString) return false;
                         return q.answers.some(
                             (a: any) =>
-                                (a.correctAnswer ?? "").toLowerCase().trim() ===
-                                userString,
+                                (a.correctAnswer ?? a.content ?? "")
+                                    .toLowerCase()
+                                    .trim() === userString,
                         );
                     }
 
@@ -313,7 +319,29 @@ export class TestService {
                 const ans = answerMap.get(qId) ?? null;
                 const isCorrect = q ? evaluate(q, ans) : false;
                 if (isCorrect) correct++;
-                summaries.push({ questionId: qId, isCorrect });
+
+                const summary: any = { questionId: qId, isCorrect };
+                if (q) {
+                    if (q.type === "CHOOSE") {
+                        summary.correctAnswerIds = q.answers
+                            .filter((a: any) => a.isCorrect)
+                            .map((a: any) => a.id);
+                    } else if (q.type === "FILL") {
+                        summary.correctText =
+                            q.answers.find((a: any) => a.correctAnswer || a.content)?.correctAnswer ??
+                            q.answers[0]?.content ??
+                            "";
+                    } else if (q.type === "MATCH") {
+                        const pairs: Record<string, string> = {};
+                        q.answers.forEach((a: any) => {
+                            if (a.leftText && a.rightText) {
+                                pairs[String(a.id)] = String(a.id);
+                            }
+                        });
+                        summary.correctPairs = pairs;
+                    }
+                }
+                summaries.push(summary);
             }
 
             const total = qIds.length || 1;
