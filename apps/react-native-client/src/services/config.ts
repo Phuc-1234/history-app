@@ -16,7 +16,7 @@ const ENV_API_URL =
     process.env.EXPO_PUBLIC_API_URL_FEATURE ||
     process.env.EXPO_PUBLIC_API_URL_PRODUCTION;
 
-export const API_BASE_URL = __DEV__ ? LOCAL_URL : ENV_API_URL || LOCAL_URL;
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL_FEATURE
 
 // Big bold terminal alert warning about fallback unencrypted web tokens
 if (Platform.OS === "web") {

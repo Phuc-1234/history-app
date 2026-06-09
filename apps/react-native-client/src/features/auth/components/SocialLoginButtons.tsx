@@ -2,10 +2,14 @@ import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-export default function SocialLoginButtons() {
+export default function SocialLoginButtons({ onGooglePress }: { onGooglePress?: () => void }) {
     return (
         <View style={styles.row}>
-            <TouchableOpacity style={styles.socialBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+                style={styles.socialBtn}
+                activeOpacity={0.7}
+                onPress={onGooglePress}
+            >
                 <Svg width="16" height="16" viewBox="0 0 24 24">
                     <Path
                         fill="#EA4335"

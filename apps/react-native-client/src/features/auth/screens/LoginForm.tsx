@@ -30,6 +30,7 @@ export default function LoginForm() {
         navigateToLogin,
         submitAndEnterApp,
         enterAsGuest,
+        handleGoogleLogin,
     } = useAuthForm();
     const insets = useSafeAreaInsets();
 
@@ -112,7 +113,7 @@ export default function LoginForm() {
                         <Text style={styles.dividerText}>HOẶC ĐĂNG NHẬP BẰNG</Text>
                         <View style={styles.line} />
                     </View>
-                    <SocialLoginButtons />
+                    <SocialLoginButtons onGooglePress={handleGoogleLogin} />
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Chưa có tài khoản? </Text>
                         <TouchableOpacity

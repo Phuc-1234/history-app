@@ -79,6 +79,43 @@ export const authApi = apiSlice.injectEndpoints({
             invalidatesTags: ["User"],
         }),
 
+        googleVerify: builder.mutation<LoginResponseBody, { idToken: string }>({
+            query: (body) => ({
+                url: "/api/auth/google/verify",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] googleVerify success, data:", data);
+
+                    if (data && "session" in data && data.session) {
+                        if (Platform.OS === "web") {
+                            try {
+                                localStorage.setItem("access_token", data.session.accessToken);
+                                localStorage.setItem("refresh_token", data.session.refreshToken);
+                            } catch (e) {
+                                console.error("localStorage setItem failed:", e);
+                            }
+                        }
+                        await AsyncStorage.multiSet([
+                            ["access_token", data.session.accessToken],
+                            ["refresh_token", data.session.refreshToken],
+                        ]);
+
+                        dispatch(setProfile(data.profile));
+                    }
+                } catch (error) {
+                    console.error(
+                        "Failed to execute onQueryStarted googleVerify side-effects:",
+                        error,
+                    );
+                }
+            },
+        }),
+
         verifyOtp: builder.mutation<
             VerifyOtpResponseBody,
             { email: string; token: string }
@@ -251,4 +288,5 @@ export const {
     useUpdateUserDataMutation,
     useUpdateUserEmailMutation,
     useUpdateUserPasswordMutation,
+    useGoogleVerifyMutation,
 } = authApi;
