@@ -20,7 +20,8 @@ const text = {
     headline: "Xác thực mã OTP",
     sent: "Mã xác thực đã được gửi đến email",
     enter: "Nhập mã OTP",
-    subtitle: (length: number) => `Vui lòng nhập mã ${length} số để khôi phục mật khẩu.`,
+    subtitle: (length: number) =>
+        `Vui lòng nhập mã ${length} số để khôi phục mật khẩu.`,
     confirm: "Xác nhận",
     confirming: "Đang xác thực...",
     noCode: "Chưa nhận được mã?",
@@ -31,7 +32,9 @@ interface ForgotPasswordOtpScreenProps {
     length?: number;
 }
 
-export default function ForgotPasswordOtpScreen({ length = 6 }: ForgotPasswordOtpScreenProps = {}) {
+export default function ForgotPasswordOtpScreen({
+    length = 6,
+}: ForgotPasswordOtpScreenProps = {}) {
     const { email: paramEmail } = useLocalSearchParams<{ email: string }>();
     const emailToShow = paramEmail || "example@gmail.com";
 
@@ -55,8 +58,9 @@ export default function ForgotPasswordOtpScreen({ length = 6 }: ForgotPasswordOt
     const paddingHorizontal = 16;
     const marginHorizontal = 14;
     const totalGaps = length - 1;
-    const availableWidth = screenWidth - (marginHorizontal * 2) - (paddingHorizontal * 2);
-    const calculatedWidth = (availableWidth - (totalGaps * gap)) / length;
+    const availableWidth =
+        screenWidth - marginHorizontal * 2 - paddingHorizontal * 2;
+    const calculatedWidth = (availableWidth - totalGaps * gap) / length;
     const boxWidth = Math.min(42, calculatedWidth);
     const boxHeight = boxWidth * 1.3;
     const fontSize = Math.max(14, Math.min(20, Math.floor(boxWidth * 0.5)));
@@ -108,91 +112,103 @@ export default function ForgotPasswordOtpScreen({ length = 6 }: ForgotPasswordOt
     };
 
     return (
-        <TopBarWrapper>
-            <View style={styles.container}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    style={styles.keyboardAvoid}
+        <View style={styles.container}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={styles.keyboardAvoid}
+            >
+                <ScrollView
+                    contentContainerStyle={styles.screen}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-                        <View style={styles.hero}>
-                            <View style={styles.heroIcon}>
-                                <Image
-                                    source={require("../assets/ic_lock.png")}
-                                    style={styles.heroImage}
-                                    resizeMode="contain"
+                    <View style={styles.hero}>
+                        <View style={styles.heroIcon}>
+                            <Image
+                                source={require("../assets/ic_lock.png")}
+                                style={styles.heroImage}
+                                resizeMode="contain"
+                            />
+                        </View>
+                        <Text style={styles.headline}>{text.headline}</Text>
+                        <Text style={styles.heroDescription}>
+                            {text.sent}
+                            {"\n"}
+                            <Text style={styles.emailText}>{emailToShow}</Text>
+                        </Text>
+                    </View>
+
+                    <View
+                        style={[
+                            styles.card,
+                            { paddingBottom: Math.max(insets.bottom, 20) },
+                        ]}
+                    >
+                        <Text style={styles.cardTitle}>{text.enter}</Text>
+                        <Text style={styles.cardSubtitle}>
+                            {text.subtitle(length)}
+                        </Text>
+
+                        <View style={[styles.otpRow, { gap }]}>
+                            {otp.map((digit, index) => (
+                                <TextInput
+                                    key={index}
+                                    ref={(ref) => {
+                                        refs.current[index] = ref;
+                                    }}
+                                    value={digit}
+                                    onChangeText={(value) =>
+                                        onChange(value, index)
+                                    }
+                                    onKeyPress={(e) => onKeyPress(e, index)}
+                                    keyboardType="numeric"
+                                    maxLength={length}
+                                    style={[
+                                        styles.otpBox,
+                                        {
+                                            width: boxWidth,
+                                            height: boxHeight,
+                                            fontSize,
+                                        },
+                                        digit && styles.otpBoxFilled,
+                                    ]}
                                 />
-                            </View>
-                            <Text style={styles.headline}>{text.headline}</Text>
-                            <Text style={styles.heroDescription}>
-                                {text.sent}
-                                {"\n"}
-                                <Text style={styles.emailText}>{emailToShow}</Text>
-                            </Text>
+                            ))}
                         </View>
 
-                        <View style={[styles.card, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-                            <Text style={styles.cardTitle}>{text.enter}</Text>
-                            <Text style={styles.cardSubtitle}>{text.subtitle(length)}</Text>
+                        {otpError ? (
+                            <Text style={styles.errorText}>{otpError}</Text>
+                        ) : null}
 
-                            <View style={[styles.otpRow, { gap }]}>
-                                {otp.map((digit, index) => (
-                                    <TextInput
-                                        key={index}
-                                        ref={(ref) => {
-                                            refs.current[index] = ref;
-                                        }}
-                                        value={digit}
-                                        onChangeText={(value) =>
-                                            onChange(value, index)
-                                        }
-                                        onKeyPress={(e) => onKeyPress(e, index)}
-                                        keyboardType="numeric"
-                                        maxLength={length}
-                                        style={[
-                                            styles.otpBox,
-                                            { width: boxWidth, height: boxHeight, fontSize },
-                                            digit && styles.otpBoxFilled,
-                                        ]}
-                                    />
-                                ))}
-                            </View>
+                        <Pressable
+                            style={[
+                                styles.primaryButton,
+                                isLoading && styles.disabled,
+                            ]}
+                            onPress={handleVerifyOtp}
+                            disabled={isLoading}
+                        >
+                            <Text style={styles.primaryText}>
+                                {isLoading ? text.confirming : text.confirm}
+                            </Text>
+                        </Pressable>
 
-                            {otpError ? (
-                                <Text style={styles.errorText}>{otpError}</Text>
-                            ) : null}
-
+                        <View style={styles.resendRow}>
+                            <Text style={styles.resendText}>{text.noCode}</Text>
                             <Pressable
-                                style={[
-                                    styles.primaryButton,
-                                    isLoading && styles.disabled,
-                                ]}
-                                onPress={handleVerifyOtp}
-                                disabled={isLoading}
+                                onPress={handleResendOtp}
+                                disabled={otpCountdown > 0 || isLoading}
                             >
-                                <Text style={styles.primaryText}>
-                                    {isLoading ? text.confirming : text.confirm}
+                                <Text style={styles.resendLink}>
+                                    {otpCountdown > 0
+                                        ? `${text.resend} (${formatCountdown()})`
+                                        : text.resend}
                                 </Text>
                             </Pressable>
-
-                            <View style={styles.resendRow}>
-                                <Text style={styles.resendText}>{text.noCode}</Text>
-                                <Pressable
-                                    onPress={handleResendOtp}
-                                    disabled={otpCountdown > 0 || isLoading}
-                                >
-                                    <Text style={styles.resendLink}>
-                                        {otpCountdown > 0
-                                            ? `${text.resend} (${formatCountdown()})`
-                                            : text.resend}
-                                    </Text>
-                                </Pressable>
-                            </View>
                         </View>
-                    </ScrollView>
-                </KeyboardAvoidingView>
-            </View>
-        </TopBarWrapper>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </View>
     );
 }
 

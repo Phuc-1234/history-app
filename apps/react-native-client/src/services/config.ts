@@ -11,12 +11,25 @@ const LOCAL_URL = Platform.select({
     default: `http://${LOCAL_COMPUTER_IP}:5000`,
 });
 
-const ENV_API_URL =
-    process.env.EXPO_PUBLIC_API_URL ||
-    process.env.EXPO_PUBLIC_API_URL_FEATURE ||
-    process.env.EXPO_PUBLIC_API_URL_PRODUCTION;
+const getApiUrl = () => {
+    const appEnv = process.env.EXPO_PUBLIC_APP_ENV;
+    if (appEnv === "feature") {
+        return process.env.EXPO_PUBLIC_API_URL_FEATURE || LOCAL_URL;
+    }
+    if (appEnv === "dev" || appEnv === "production") {
+        return process.env.EXPO_PUBLIC_API_URL_PRODUCTION || LOCAL_URL;
+    }
+    if (appEnv === "local") {
+        return LOCAL_URL;
+    }
+    const ENV_API_URL =
+        process.env.EXPO_PUBLIC_API_URL ||
+        process.env.EXPO_PUBLIC_API_URL_FEATURE ||
+        process.env.EXPO_PUBLIC_API_URL_PRODUCTION;
+    return __DEV__ ? LOCAL_URL : ENV_API_URL || LOCAL_URL;
+};
 
-export const API_BASE_URL = __DEV__ ? LOCAL_URL : ENV_API_URL || LOCAL_URL;
+export const API_BASE_URL = getApiUrl();
 
 // Big bold terminal alert warning about fallback unencrypted web tokens
 if (Platform.OS === "web") {

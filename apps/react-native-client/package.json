@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:local": "cross-env EXPO_PUBLIC_APP_ENV=local expo start",
+    "start:feature": "cross-env EXPO_PUBLIC_APP_ENV=feature expo start",
+    "start:dev": "cross-env EXPO_PUBLIC_APP_ENV=dev expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -49,6 +52,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "cross-env": "^10.1.0",
     "typescript": "~6.0.3"
   },
   "overrides": {},

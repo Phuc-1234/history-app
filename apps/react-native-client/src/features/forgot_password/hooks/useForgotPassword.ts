@@ -144,9 +144,7 @@ export function useForgotPassword(initialEmail = "", initialToken = "", length =
                 token: initialToken,
                 newPassword,
             }).unwrap();
-            Alert.alert("Thành công", "Mật khẩu của bạn đã được đặt lại thành công.", [
-                { text: "OK", onPress: () => router.replace("/(1_auth)/1_1_login") }
-            ]);
+            router.replace("/(1_auth)/1_1_login");
             return true;
         } catch (error: any) {
             const backendError = error?.data?.error || "Không thể đặt lại mật khẩu vào lúc này.";
