@@ -1,15 +1,23 @@
 // hooks/useAuthForm.tsx
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { useLoginMutation } from "../services/authApi";
+import { useLoginMutation, useGoogleVerifyMutation } from "../services/authApi";
 import { useAppDispatch } from "@/store/storeHook"; // Standard typed useDispatch hook
 import { setProfile } from "@/features/auth/store/authSlice";
 import { Alert } from "react-native";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+
+// Configure Google Sign-In client options
+GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
+    offlineAccess: true,
+});
 
 export function useAuthForm() {
     const router = useRouter();
     const dispatch = useAppDispatch();
     const [login, { isLoading }] = useLoginMutation();
+    const [googleVerify, { isLoading: isGoogleLoading }] = useGoogleVerifyMutation();
 
     // Local form element bindings
     const [email, setEmail] = useState("");
@@ -79,6 +87,37 @@ export function useAuthForm() {
         }
     }, [email, password, login, router]);
 
+    const handleGoogleLogin = useCallback(async () => {
+        try {
+            await GoogleSignin.hasPlayServices();
+            const userInfo = await GoogleSignin.signIn();
+            if (userInfo.type !== "success") {
+                return;
+            }
+            const idToken = userInfo.data.idToken;
+            if (!idToken) {
+                Alert.alert("Lỗi", "Không lấy được Google ID Token.");
+                return;
+            }
+
+            const response = await googleVerify({ idToken }).unwrap();
+
+            if (response.status === "error") {
+                Alert.alert("Lỗi đăng nhập", response.error);
+                return;
+            }
+
+            if ("session" in response && response.session) {
+                router.replace("/(tabs)/2_1_lessons");
+            }
+        } catch (error: any) {
+            console.error("Google Sign-in attempt failure:", error);
+            if (error.code !== "SIGN_IN_CANCELLED") {
+                Alert.alert("Đăng nhập Google thất bại", error.message || "Đã xảy ra lỗi.");
+            }
+        }
+    }, [googleVerify, router]);
+
     const enterAsGuest = useCallback(() => {
         router.replace("/(tabs)/2_1_lessons");
     }, [router]);
@@ -88,7 +127,9 @@ export function useAuthForm() {
         setEmail,
         password,
         setPassword,
-        isLoading,
+        isLoading: isLoading || isGoogleLoading,
+        isGoogleLoading,
+        handleGoogleLogin,
         navigateToRegister,
         navigateToLogin,
         submitAndEnterApp,
