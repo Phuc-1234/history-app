@@ -123,7 +123,7 @@ export default function LoginForm() {
                         </TouchableOpacity>
                     </View>
                 </View>
-            </View>
+            
             </ScrollView>
         </KeyboardAvoidingView>
     );
