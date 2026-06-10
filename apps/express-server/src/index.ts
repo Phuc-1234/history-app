@@ -17,6 +17,7 @@ import gamificationRoutes from "./routes/gamificationRoutes";
 import testsRoutes from "./routes/testsRoutes";
 import testLogsRoutes from "./routes/testLogsRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import flashcardRoutes from "./routes/flashcardRoutes";
 
 
 
@@ -44,6 +45,7 @@ app.use("/api/gamification", gamificationRoutes);
 app.use("/api/tests", testsRoutes);
 app.use("/api/test-logs", testLogsRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/flashcards", flashcardRoutes);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {
