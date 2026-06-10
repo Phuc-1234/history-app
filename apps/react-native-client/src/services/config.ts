@@ -24,9 +24,9 @@ const getApiUrl = () => {
     }
     const ENV_API_URL =
         process.env.EXPO_PUBLIC_API_URL ||
-        process.env.EXPO_PUBLIC_API_URL_FEATURE ||
-        process.env.EXPO_PUBLIC_API_URL_PRODUCTION;
-    return __DEV__ ? LOCAL_URL : ENV_API_URL || LOCAL_URL;
+        process.env.EXPO_PUBLIC_API_URL_PRODUCTION ||
+        process.env.EXPO_PUBLIC_API_URL_FEATURE;
+    return ENV_API_URL || LOCAL_URL;
 };
 
 export const API_BASE_URL = getApiUrl();
