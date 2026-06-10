@@ -10,7 +10,7 @@ import {
 } from "@history-app/shared";
 import { supabase, getSupabaseUserClient } from "../config/supabaseClient";
 
-const getBearerToken = (req: Request) => {
+export const getBearerToken = (req: Request) => {
     const authHeader = req.headers.authorization;
     return authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
 };
@@ -46,11 +46,10 @@ const updateSupabaseAuthUser = async (req: Request, updates: any) => {
 };
 
 export const getUserProfile = async (
-    req: Request<{}, UserProfileResponseBody, {}>, // 👈 PathParams = {}, ReqBody = {}
+    req: Request<{}, UserProfileResponseBody, {}>,
     res: Response<UserProfileResponseBody>,
 ): Promise<Response<UserProfileResponseBody>> => {
     try {
-        // 1. GUEST CHECK: If middleware didn't find a user, return a peaceful guest state
         if (!req.user) {
             return res.status(200).json({
                 isGuest: true,
@@ -58,12 +57,11 @@ export const getUserProfile = async (
                 totalGold: 0,
                 totalXp: 0,
                 tierName: null,
-                badgeImgUrl: null, // Default fallback asset link
+                badgeImgUrl: null,
                 profileImgUrl: null,
             });
         }
 
-        // 2. STUDENT CHECK: A token existed, so fetch their actual database metrics
         const fullProfile = await prisma.user.findUnique({
             where: { id: req.user.id },
             select: {
@@ -83,7 +81,6 @@ export const getUserProfile = async (
             },
         });
 
-        // Handle edge case where token is valid but DB row was manually deleted
         if (!fullProfile) {
             return res.status(200).json({
                 isGuest: true,
@@ -96,9 +93,8 @@ export const getUserProfile = async (
             });
         }
 
-        // 3. Return the fully loaded student payload
         return res.status(200).json({
-            isGuest: false, // 👈 Frontend uses this to toggle UI states instantly
+            isGuest: false,
             id: fullProfile.id,
             name: fullProfile.name,
             email: fullProfile.email,
@@ -126,7 +122,7 @@ export const updateUserProfile = async (
             return res.status(401).json({ error: "Access denied. Valid session missing." });
         }
 
-        const { name, email } = req.body;
+        const { name, email, profileImgUrl } = req.body;
         const trimmedName = name?.trim();
         const trimmedEmail = email?.trim();
 
@@ -137,7 +133,6 @@ export const updateUserProfile = async (
             return res.status(400).json({ error: "Email không được để trống." });
         }
 
-        // Check if email already exists in public.users to avoid uniqueness constraint violation
         if (trimmedEmail && trimmedEmail !== req.user.email) {
             const existingUser = await prisma.user.findUnique({
                 where: { email: trimmedEmail },
@@ -149,8 +144,6 @@ export const updateUserProfile = async (
             }
         }
 
-        // 1. Update in Supabase Auth via admin API. The request is already scoped
-        // to req.user by requireStudent; auth.updateUser() needs an in-memory session.
         const authUpdates: any = {};
         if (trimmedEmail) authUpdates.email = trimmedEmail;
         if (trimmedName) authUpdates.data = { name: trimmedName };
@@ -162,10 +155,10 @@ export const updateUserProfile = async (
             }
         }
 
-        // 2. Update in Prisma DB
         const dbUpdates: any = {};
         if (trimmedName) dbUpdates.name = trimmedName;
         if (trimmedEmail) dbUpdates.email = trimmedEmail;
+        if (profileImgUrl !== undefined) dbUpdates.profileImgUrl = profileImgUrl;
 
         const updatedProfile = await prisma.user.update({
             where: { id: req.user.id },
@@ -250,7 +243,6 @@ export const changeUserPassword = async (
             return res.status(401).json({ error: "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại." });
         }
 
-        // 1. Verify old password against the Supabase Auth email for this token.
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email: authUserData.user.email,
             password: currentPassword,
@@ -270,7 +262,6 @@ export const changeUserPassword = async (
             return res.status(400).json({ error: sessionError.message });
         }
 
-        // 2. Change password using the verified fresh session.
         const { error: updateError } = await userSupabase.auth.updateUser({
             password: newPassword,
             current_password: currentPassword,
@@ -298,14 +289,13 @@ export const updateUserData = async (
             return res.status(401).json({ error: "Access denied. Valid session missing." });
         }
 
-        const { name } = req.body;
+        const { name, profileImgUrl } = req.body;
         const trimmedName = name?.trim();
 
         if (trimmedName === "") {
             return res.status(400).json({ error: "Tên không được để trống." });
         }
 
-        // 1. Update in Supabase Auth metadata
         if (trimmedName) {
             const { error: authError } = await updateSupabaseAuthUser(req, { data: { name: trimmedName } });
             if (authError) {
@@ -313,9 +303,9 @@ export const updateUserData = async (
             }
         }
 
-        // 2. Update in Prisma DB
         const dbUpdates: any = {};
         if (trimmedName) dbUpdates.name = trimmedName;
+        if (profileImgUrl !== undefined) dbUpdates.profileImgUrl = profileImgUrl;
 
         if (Object.keys(dbUpdates).length > 0) {
             await prisma.user.update({
@@ -355,7 +345,6 @@ export const updateUserEmail = async (
             return res.status(400).json({ error: "Email mới phải khác email hiện tại." });
         }
 
-        // Check email uniqueness
         const existingUser = await prisma.user.findUnique({
             where: { email: trimmedEmail },
         });
@@ -365,13 +354,11 @@ export const updateUserEmail = async (
             });
         }
 
-        // 1. Update in Supabase Auth
         const { error: authError } = await updateSupabaseAuthUser(req, { email: trimmedEmail });
         if (authError) {
             return res.status(400).json({ error: authError.message });
         }
 
-        // 2. Update in Prisma DB
         await prisma.user.update({
             where: { id: req.user.id },
             data: { email: trimmedEmail },
