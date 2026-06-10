@@ -812,6 +812,90 @@
             }
           },
           "response": []
+<<<<<<< Updated upstream
+=======
+        },
+        {
+          "name": "flash card node id",
+          "id": "7d0091d1-e31b-43ec-81db-07977c4ee24b",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/node/:nodeId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "node",
+                ":nodeId"
+              ],
+              "variable": [
+                {
+                  "key": "nodeId",
+                  "value": "35"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "flash card sction",
+          "id": "9b3e188f-43ee-4571-b60d-d0347337b112",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/section/:sectionId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "section",
+                ":sectionId"
+              ],
+              "variable": [
+                {
+                  "key": "sectionId",
+                  "value": "17"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "flash card sction Copy",
+          "id": "ba41a2ae-4754-40e6-aa67-c24260298433",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/section/:sectionId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "section",
+                ":sectionId"
+              ],
+              "variable": [
+                {
+                  "key": "sectionId",
+                  "value": "17"
+                }
+              ]
+            }
+          },
+          "response": []
+>>>>>>> Stashed changes
         }
       ],
       "id": "cf37593e-8491-4510-83b3-1bf4cb71773a"
