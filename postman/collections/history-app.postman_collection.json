@@ -767,7 +767,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base-url}}/api/content/mindmap?lessonId=1",
+              "raw": "{{base-url}}/api/content/mindmap?lessonId=15",
               "host": [
                 "{{base-url}}"
               ],
@@ -779,7 +779,8 @@
               "query": [
                 {
                   "key": "lessonId",
-                  "value": "1"
+                  "value": "15",
+                  "uuid": "0e6bba21-9969-48fe-b7a8-d5c55df38036"
                 }
               ]
             }
@@ -812,8 +813,6 @@
             }
           },
           "response": []
-<<<<<<< Updated upstream
-=======
         },
         {
           "name": "flash card node id",
@@ -835,7 +834,8 @@
               "variable": [
                 {
                   "key": "nodeId",
-                  "value": "35"
+                  "value": "35",
+                  "uuid": "36f6dca2-27df-45a8-931e-6a1bf4b1e29a"
                 }
               ]
             }
@@ -862,40 +862,13 @@
               "variable": [
                 {
                   "key": "sectionId",
-                  "value": "17"
+                  "value": "17",
+                  "uuid": "04ad9a34-78af-4d06-95ff-3d87a2ccdcbe"
                 }
               ]
             }
           },
           "response": []
-        },
-        {
-          "name": "flash card sction Copy",
-          "id": "ba41a2ae-4754-40e6-aa67-c24260298433",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base-url}}/api/flashcards/section/:sectionId",
-              "host": [
-                "{{base-url}}"
-              ],
-              "path": [
-                "api",
-                "flashcards",
-                "section",
-                ":sectionId"
-              ],
-              "variable": [
-                {
-                  "key": "sectionId",
-                  "value": "17"
-                }
-              ]
-            }
-          },
-          "response": []
->>>>>>> Stashed changes
         }
       ],
       "id": "cf37593e-8491-4510-83b3-1bf4cb71773a"
