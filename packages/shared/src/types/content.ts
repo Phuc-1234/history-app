@@ -54,6 +54,8 @@ export type GetSectionsResponse =
     | { sections: SectionDto[] }
     | { error: string };
 
+export type GetNodesResponse = { nodes: NodeDto[] } | { error: string };
+
 
 
 // ---- Mind Map Types ----

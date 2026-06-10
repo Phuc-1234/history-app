@@ -133,6 +133,7 @@ export const updateUserProfile = async (
             return res.status(400).json({ error: "Email không được để trống." });
         }
 
+        // Check if email already exists in public.users to avoid uniqueness constraint violation
         if (trimmedEmail && trimmedEmail !== req.user.email) {
             const existingUser = await prisma.user.findUnique({
                 where: { email: trimmedEmail },
@@ -144,6 +145,8 @@ export const updateUserProfile = async (
             }
         }
 
+        // 1. Update in Supabase Auth via admin API. The request is already scoped
+        // to req.user by requireStudent; auth.updateUser() needs an in-memory session.
         const authUpdates: any = {};
         if (trimmedEmail) authUpdates.email = trimmedEmail;
         if (trimmedName) authUpdates.data = { name: trimmedName };
@@ -155,6 +158,7 @@ export const updateUserProfile = async (
             }
         }
 
+        // 2. Update in Prisma DB
         const dbUpdates: any = {};
         if (trimmedName) dbUpdates.name = trimmedName;
         if (trimmedEmail) dbUpdates.email = trimmedEmail;
@@ -243,6 +247,7 @@ export const changeUserPassword = async (
             return res.status(401).json({ error: "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại." });
         }
 
+        // 1. Verify old password against the Supabase Auth email for this token.
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email: authUserData.user.email,
             password: currentPassword,
@@ -262,6 +267,7 @@ export const changeUserPassword = async (
             return res.status(400).json({ error: sessionError.message });
         }
 
+        // 2. Change password using the verified fresh session.
         const { error: updateError } = await userSupabase.auth.updateUser({
             password: newPassword,
             current_password: currentPassword,
@@ -296,6 +302,7 @@ export const updateUserData = async (
             return res.status(400).json({ error: "Tên không được để trống." });
         }
 
+        // 1. Update in Supabase Auth metadata
         if (trimmedName) {
             const { error: authError } = await updateSupabaseAuthUser(req, { data: { name: trimmedName } });
             if (authError) {
@@ -303,6 +310,7 @@ export const updateUserData = async (
             }
         }
 
+        // 2. Update in Prisma DB
         const dbUpdates: any = {};
         if (trimmedName) dbUpdates.name = trimmedName;
         if (profileImgUrl !== undefined) dbUpdates.profileImgUrl = profileImgUrl;
@@ -345,6 +353,7 @@ export const updateUserEmail = async (
             return res.status(400).json({ error: "Email mới phải khác email hiện tại." });
         }
 
+        // Check email uniqueness
         const existingUser = await prisma.user.findUnique({
             where: { email: trimmedEmail },
         });
@@ -354,11 +363,13 @@ export const updateUserEmail = async (
             });
         }
 
+        // 1. Update in Supabase Auth
         const { error: authError } = await updateSupabaseAuthUser(req, { email: trimmedEmail });
         if (authError) {
             return res.status(400).json({ error: authError.message });
         }
 
+        // 2. Update in Prisma DB
         await prisma.user.update({
             where: { id: req.user.id },
             data: { email: trimmedEmail },

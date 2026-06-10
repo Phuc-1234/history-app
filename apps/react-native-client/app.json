@@ -2,7 +2,6 @@
   "expo": {
     "name": "history-app",
     "slug": "history-app",
-    
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -48,7 +47,8 @@
           "microphonePermission": "Allow this app to access the microphone to listen to your speech answers during automated testing workflows.",
           "speechRecognitionPermission": "Allow this app to use speech recognition to process your voice commands during tests."
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -220,7 +220,76 @@
           "response": []
         },
         {
-          "name": "login Copy",
+          "name": "google",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "98412896-ba54-4947-87d0-7b9968904d2e",
+                "exec": [
+                  "// 1. Parse the incoming response JSON payload\r",
+                  "const responseData = pm.response.json();\r",
+                  "\r",
+                  "// 2. Extract the access token (adjust the path based on your exact response structure)\r",
+                  "const token = responseData.accessToken || responseData.session?.accessToken;\r",
+                  "const ref_token = responseData.refreshToken || responseData.session?.refreshToken;\r",
+                  "if (token && ref_token) {\r",
+                  "    // 3. Save it automatically into your current active environment vault\r",
+                  "    pm.environment.set(\"accessToken\", token);\r",
+                  "    pm.environment.set(\"refreshToken\", ref_token); // Save refresh token as well if needed\r",
+                  "    console.log(\"Token successfully captured and saved to environment!\");\r",
+                  "} else {\r",
+                  "    console.warn(\"Could not find access_token in the response payload.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "73d96024-ecec-4011-94b1-f61bc030f712",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "9ce8a0bd-a550-4d6d-b665-05a3ed4e1855",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"idToken\": \"{{idToken}}\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/google/verify",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "google",
+                "verify"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "forgot 1 send otp",
           "event": [
             {
               "listen": "test",
@@ -266,7 +335,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"idToken\": {{idToken}}\r\n\r\n}",
+              "raw": "{\r\n    \"email\": \"{{my_email}}\"\r\n\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -274,15 +343,120 @@
               }
             },
             "url": {
-              "raw": "{{base-url}}/api/auth/google/verify",
+              "raw": "{{base-url}}/api/auth/forgot-password",
               "host": [
                 "{{base-url}}"
               ],
               "path": [
                 "api",
                 "auth",
-                "google",
-                "verify"
+                "forgot-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "forgot 2 submit otp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "98412896-ba54-4947-87d0-7b9968904d2e",
+                "exec": [
+                  "// 1. Parse the incoming response JSON payload\r",
+                  "const responseData = pm.response.json();\r",
+                  "\r",
+                  "// 2. Extract the access token (adjust the path based on your exact response structure)\r",
+                  "const token = responseData.accessToken || responseData.session?.accessToken;\r",
+                  "const ref_token = responseData.refreshToken || responseData.session?.refreshToken;\r",
+                  "if (token) {\r",
+                  "    // 3. Save it automatically into your current active environment vault\r",
+                  "    pm.environment.set(\"accessToken\", token);\r",
+                  "    console.log(\"Token successfully captured and saved to environment!\");\r",
+                  "} else {\r",
+                  "    console.warn(\"Could not find access_token in the response payload.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "73d96024-ecec-4011-94b1-f61bc030f712",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "96289834-a1e7-44fd-a771-ce3b51659a8a",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"{{my_email}}\",\r\n    \"token\": \"{{otp}}\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/verify-forgot-otp",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-forgot-otp"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "forgot 3 new pass",
+          "id": "216b79f0-289b-4565-9bc5-58c441e39235",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"newPassword\": \"{{my_password}}\"\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base-url}}/api/auth/complete-reset",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "complete-reset"
               ]
             }
           },
@@ -593,7 +767,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base-url}}/api/content/mindmap?lessonId=1",
+              "raw": "{{base-url}}/api/content/mindmap?lessonId=15",
               "host": [
                 "{{base-url}}"
               ],
@@ -605,7 +779,8 @@
               "query": [
                 {
                   "key": "lessonId",
-                  "value": "1"
+                  "value": "15",
+                  "uuid": "0e6bba21-9969-48fe-b7a8-d5c55df38036"
                 }
               ]
             }
@@ -633,6 +808,62 @@
                 {
                   "key": "gradeId",
                   "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "flash card node id",
+          "id": "7d0091d1-e31b-43ec-81db-07977c4ee24b",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/node/:nodeId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "node",
+                ":nodeId"
+              ],
+              "variable": [
+                {
+                  "key": "nodeId",
+                  "value": "35",
+                  "uuid": "36f6dca2-27df-45a8-931e-6a1bf4b1e29a"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "flash card sction",
+          "id": "9b3e188f-43ee-4571-b60d-d0347337b112",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/section/:sectionId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "section",
+                ":sectionId"
+              ],
+              "variable": [
+                {
+                  "key": "sectionId",
+                  "value": "17",
+                  "uuid": "04ad9a34-78af-4d06-95ff-3d87a2ccdcbe"
                 }
               ]
             }
