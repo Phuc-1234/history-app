@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -10,7 +10,11 @@ import {
 import { useRouter } from "expo-router";
 import { User, Mail } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { useAppSelector } from "@/store/storeHook";
+import {
+    useUpdateUserDataMutation,
+    useUpdateUserEmailMutation,
+} from "@/features/auth/services/authApi";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import ProfileAvatar from "../components/ProfileAvatar";
@@ -19,12 +23,55 @@ import SubPageHeader from "../components/SubPageHeader";
 export default function ProfileEditScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [name, setName] = useState("Nguyễn Văn A");
-    const [email, setEmail] = useState("nguyenvana@example.com");
+    const profile = useAppSelector((state) => state.auth.profile);
+    const [name, setName] = useState(profile?.name ?? "");
+    const [email, setEmail] = useState(profile?.email ?? "");
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [updateUserData] = useUpdateUserDataMutation();
+    const [updateUserEmail] = useUpdateUserEmailMutation();
 
-    const handleSave = () => {
-        // TODO: Save profile changes via API
-        router.back();
+    useEffect(() => {
+        setName(profile?.name ?? "");
+        setEmail(profile?.email ?? "");
+    }, [profile?.email, profile?.name]);
+
+    const handleSave = async () => {
+        const trimmedName = name.trim();
+        const trimmedEmail = email.trim();
+
+        if (trimmedName === "") {
+            setErrorMsg("Tên không được để trống");
+            return;
+        }
+        if (trimmedEmail === "") {
+            setErrorMsg("Email không được để trống");
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            setErrorMsg("Email không đúng định dạng");
+            return;
+        }
+
+        setErrorMsg(null);
+        setIsLoading(true);
+
+        try {
+            // Update name if changed
+            if (trimmedName !== profile?.name) {
+                await updateUserData({ name: trimmedName }).unwrap();
+            }
+            // Update email if changed
+            if (trimmedEmail !== profile?.email) {
+                await updateUserEmail({ newEmail: trimmedEmail }).unwrap();
+            }
+            router.back();
+        } catch (err: any) {
+            setErrorMsg(err?.data?.error || "Cập nhật thông tin thất bại");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -36,7 +83,7 @@ export default function ProfileEditScreen() {
 
             <KeyboardAvoidingView
                 style={styles.flex}
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
                 <ScrollView
                     style={styles.flex}
@@ -47,7 +94,11 @@ export default function ProfileEditScreen() {
                 >
                     <View style={styles.card}>
                         <View style={styles.avatarSection}>
-                            <ProfileAvatar size={78} onEditPress={() => {}} />
+                            <ProfileAvatar
+                                uri={profile?.profileImgUrl}
+                                size={78}
+                                onEditPress={() => {}}
+                            />
                         </View>
 
                         <View style={styles.formSection}>
@@ -56,7 +107,10 @@ export default function ProfileEditScreen() {
                                 icon={User}
                                 placeholder="Nhập họ và tên"
                                 value={name}
-                                onChangeText={setName}
+                                onChangeText={(text) => {
+                                    setName(text);
+                                    if (errorMsg) setErrorMsg(null);
+                                }}
                             />
 
                             <Text style={styles.fieldLabel}>Email</Text>
@@ -64,14 +118,20 @@ export default function ProfileEditScreen() {
                                 icon={Mail}
                                 placeholder="Nhập email"
                                 value={email}
-                                onChangeText={setEmail}
                                 keyboardType="email-address"
-                                autoCapitalize="none"
+                                onChangeText={(text) => {
+                                    setEmail(text);
+                                    if (errorMsg) setErrorMsg(null);
+                                }}
                             />
+
+                            {errorMsg && (
+                                <Text style={styles.errorText}>{errorMsg}</Text>
+                            )}
                         </View>
                     </View>
                 </ScrollView>
-
+ 
                 <View
                     style={[
                         styles.buttonContainer,
@@ -81,7 +141,10 @@ export default function ProfileEditScreen() {
                         },
                     ]}
                 >
-                    <Button title="Lưu" onPress={handleSave} />
+                    <Button
+                        title={isLoading ? "Đang lưu..." : "Lưu"}
+                        onPress={isLoading ? () => {} : handleSave}
+                    />
                 </View>
             </KeyboardAvoidingView>
         </View>
@@ -137,6 +200,14 @@ const styles = StyleSheet.create({
         color: "#374151",
         marginBottom: 6,
         marginTop: 8,
+    },
+
+    errorText: {
+        color: "#EF4444",
+        fontSize: 13,
+        fontWeight: "500",
+        marginTop: 8,
+        marginLeft: 4,
     },
 
     buttonContainer: {

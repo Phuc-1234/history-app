@@ -5,8 +5,15 @@ import {
     loginUser,
     verifyOtp,
     refreshSessionToken,
-    resendOtp
+    resendOtp,
+    verifyGoogleSession,
+    forgotPassword,
+    verifyOtpOnly,
+    completeReset
 } from "../controllers/authController";
+import { requireStudent } from "../middlewares/authMiddleware";
+
+
 
 const router = Router();
 
@@ -21,5 +28,13 @@ router.post("/verify-otp", verifyOtp);
 router.post("/refresh-token", refreshSessionToken);
 
 router.post('/resend-otp', resendOtp);
+
+router.post("/google/verify", verifyGoogleSession);
+
+router.post("/forgot-password", forgotPassword);
+
+router.post("/verify-forgot-otp", verifyOtpOnly);
+
+router.post("/complete-reset", completeReset);
 
 export default router;

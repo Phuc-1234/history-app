@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ActivityIndicator } from "react-native";
 import {
     StyleSheet,
     Text,
@@ -7,22 +8,45 @@ import {
     ScrollView,
     Modal,
     Dimensions,
-    Image
+    Image,
 } from "react-native";
-import { ArrowLeft, Clock, Grid, RotateCcw, Award, CheckCircle2, AlertCircle, X, HelpCircle, Check, Star } from "lucide-react-native";
+import {
+    ArrowLeft,
+    Clock,
+    Grid,
+    RotateCcw,
+    Award,
+    CheckCircle2,
+    AlertCircle,
+    X,
+    HelpCircle,
+    Check,
+    Star,
+    Mic,
+    Volume2,
+    Zap,
+    Coins,
+} from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { TopBarWrapper } from "../../top_bar";
 import { useTestRunner } from "../hooks/useTestRunner";
+import { useVoiceTestController } from "../hooks/useVoiceTestController";
 import SingleChoiceQuestion from "./SingleChoiceQuestion";
 import MultipleChoiceQuestion from "./MultipleChoiceQuestion";
 import FillInBlankQuestion from "./FillInBlankQuestion";
 import MatchingQuestion from "./MatchingQuestion";
 import TestIntro from "./TestIntro";
 
-export default function TestContainer() {
+interface TestContainerProps {
+    testId?: string;
+}
+
+export default function TestContainer({ testId = "1" }: TestContainerProps) {
     const router = useRouter();
+    const testRunner = useTestRunner(testId, 900); // 15 mins
     const {
         questions,
+        totalQuestionCount,
         currentQuestionIndex,
         currentQuestion,
         answers,
@@ -30,27 +54,70 @@ export default function TestContainer() {
         status,
         result,
         lastAttemptId,
+        error,
         actions,
-        isQuestionAnswered
-    } = useTestRunner(900); // 15 mins
+        isQuestionAnswered,
+    } = testRunner;
+
+    const [isVoiceMode, setIsVoiceMode] = useState(false);
+    const { voiceStatus, spokenText, ttsText } = useVoiceTestController(testRunner, isVoiceMode);
 
     const [isListModalVisible, setIsListModalVisible] = useState(false);
-    const [viewMode, setViewMode] = useState<"celebration" | "review">("celebration");
+    const [viewMode, setViewMode] = useState<"celebration" | "review">(
+        "celebration",
+    );
 
     const handleBack = () => {
         router.back();
     };
 
     const activeQuestionNumber = currentQuestionIndex + 1;
-    const totalQuestions = questions.length;
-    const progressPercent = (activeQuestionNumber / totalQuestions) * 100;
+    const totalQuestions = totalQuestionCount || questions.length;
+    const progressPercent =
+        totalQuestions > 0 ? (activeQuestionNumber / totalQuestions) * 100 : 0;
+
+    // Tính toán % câu đúng cho màn hình chúc mừng
+    const successPercent = totalQuestions > 0 && result 
+        ? (result.correctAnswersCount / totalQuestions) * 100 
+        : 0;
 
     return (
         <TopBarWrapper>
             <View style={styles.container}>
                 {status === "not-started" ? (
-                    <TestIntro onStart={actions.start} onBack={handleBack} />
-                ) : status === "running" ? (
+                    <TestIntro
+                        onStart={actions.start}
+                        onBack={handleBack}
+                        onStartVoice={() => {
+                            setIsVoiceMode(true);
+                            actions.start();
+                        }}
+                    />
+                ) : status === "loading" ? (
+                    <View
+                        style={{
+                            flex: 1,
+                            justifyContent: "center",
+                            alignItems: "center",
+                        }}
+                    >
+                        <ActivityIndicator size="large" color="#5D45F9" />
+                        <Text
+                            style={{
+                                marginTop: 12,
+                                color: "#718096",
+                                fontWeight: "600",
+                            }}
+                        >
+                            Đang tải bài kiểm tra...
+                        </Text>
+                        {error ? (
+                            <Text style={{ marginTop: 8, color: "#E53E3E" }}>
+                                {error}
+                            </Text>
+                        ) : null}
+                    </View>
+                ) : status === "running" || status === "submitting" ? (
                     <>
                         {/* Header bar */}
                         <View style={styles.header}>
@@ -63,33 +130,44 @@ export default function TestContainer() {
                             </TouchableOpacity>
 
                             <View style={styles.titleContainer}>
-                                <Text style={styles.headerTitle}>Kiểm tra Chủ đề 1</Text>
+                                <Text style={styles.headerTitle}>
+                                    Kiểm tra Chủ đề 1
+                                </Text>
                                 <View style={styles.timerContainer}>
                                     <Clock size={14} color="#5D45F9" />
-                                    <Text style={styles.timerText}>{formattedTime}</Text>
+                                    <Text style={styles.timerText}>
+                                        {formattedTime}
+                                    </Text>
                                 </View>
                             </View>
 
                             <TouchableOpacity
                                 style={styles.submitButton}
-                                onPress={actions.submit}
+                                onPress={() => actions.submit()}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.submitButtonText}>Nộp bài</Text>
+                                <Text style={styles.submitButtonText}>
+                                    Nộp bài
+                                </Text>
                             </TouchableOpacity>
                         </View>
 
                         {/* Progress Bar Area */}
                         <View style={styles.progressArea}>
                             <View style={styles.progressTextRow}>
-                                <Text style={styles.progressLabel}>Tiến độ</Text>
+                                <Text style={styles.progressLabel}>
+                                    Tiến độ
+                                </Text>
                                 <Text style={styles.progressValue}>
                                     Câu {activeQuestionNumber}/{totalQuestions}
                                 </Text>
                             </View>
                             <View style={styles.progressBarBg}>
                                 <View
-                                    style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
+                                    style={[
+                                        styles.progressBarFill,
+                                        { width: `${progressPercent}%` },
+                                    ]}
                                 />
                             </View>
                         </View>
@@ -99,58 +177,105 @@ export default function TestContainer() {
                             showsVerticalScrollIndicator={false}
                             contentContainerStyle={styles.scrollContent}
                         >
-                            {currentQuestion.type === "single-choice" && (
+                            {!currentQuestion ? (
+                                <View
+                                    style={{
+                                        padding: 40,
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <ActivityIndicator
+                                        size="small"
+                                        color="#5D45F9"
+                                    />
+                                </View>
+                            ) : currentQuestion.type === "single-choice" ? (
                                 <SingleChoiceQuestion
                                     question={currentQuestion}
                                     selectedAnswer={answers[currentQuestion.id]}
-                                    onSelect={(idx) => actions.answerSingle(currentQuestion.id, idx)}
+                                    onSelect={(idx) =>
+                                        actions.answerSingle(
+                                            currentQuestion.id,
+                                            idx,
+                                        )
+                                    }
                                 />
-                            )}
-
-                            {currentQuestion.type === "multiple-choice" && (
+                            ) : currentQuestion.type === "multiple-choice" ? (
                                 <MultipleChoiceQuestion
                                     question={currentQuestion}
-                                    selectedAnswers={answers[currentQuestion.id]}
-                                    onSelect={(idx) => actions.answerMultiple(currentQuestion.id, idx)}
+                                    selectedAnswers={
+                                        answers[currentQuestion.id]
+                                    }
+                                    onSelect={(idx) =>
+                                        actions.answerMultiple(
+                                            currentQuestion.id,
+                                            idx,
+                                        )
+                                    }
                                 />
-                            )}
-
-                            {currentQuestion.type === "fill-in-blank" && (
+                            ) : currentQuestion.type === "fill-in-blank" ? (
                                 <FillInBlankQuestion
                                     question={currentQuestion}
                                     value={answers[currentQuestion.id]}
-                                    onChange={(txt) => actions.answerFill(currentQuestion.id, txt)}
+                                    onChange={(txt) =>
+                                        actions.answerFill(
+                                            currentQuestion.id,
+                                            txt,
+                                        )
+                                    }
                                 />
-                            )}
-
-                            {currentQuestion.type === "matching" && (
+                            ) : currentQuestion.type === "matching" ? (
                                 <MatchingQuestion
                                     question={currentQuestion}
                                     selectedPairs={answers[currentQuestion.id]}
-                                    onMatch={(lId, rId) => actions.answerMatching(currentQuestion.id, lId, rId)}
-                                    onRemoveMatch={(lId) => actions.removeMatch(currentQuestion.id, lId)}
+                                    onMatch={(lId, rId) =>
+                                        actions.answerMatching(
+                                            currentQuestion.id,
+                                            lId,
+                                            rId,
+                                        )
+                                    }
+                                    onRemoveMatch={(lId) =>
+                                        actions.removeMatch(
+                                            currentQuestion.id,
+                                            lId,
+                                        )
+                                    }
                                 />
-                            )}
+                            ) : null}
 
                             {/* Indicators representing all questions under options */}
                             <View style={styles.blockIndicatorsRow}>
-                                {questions.map((q, idx) => {
-                                    const isActive = idx === currentQuestionIndex;
-                                    const isAnswered = isQuestionAnswered(q.id);
+                                {Array.from(
+                                    { length: totalQuestions },
+                                    (_, idx) => {
+                                        const q = questions[idx];
+                                        const isActive =
+                                            idx === currentQuestionIndex;
+                                        const isAnswered = q
+                                            ? isQuestionAnswered(q.id)
+                                            : false;
 
-                                    return (
-                                        <TouchableOpacity
-                                            key={q.id}
-                                            style={[
-                                                styles.blockIndicator,
-                                                isAnswered && styles.blockIndicatorAnswered,
-                                                isActive && styles.blockIndicatorActive
-                                            ]}
-                                            onPress={() => actions.setQuestionIndex(idx)}
-                                            activeOpacity={0.7}
-                                        />
-                                    );
-                                })}
+                                        return (
+                                            <TouchableOpacity
+                                                key={idx}
+                                                style={[
+                                                    styles.blockIndicator,
+                                                    isAnswered &&
+                                                    styles.blockIndicatorAnswered,
+                                                    isActive &&
+                                                    styles.blockIndicatorActive,
+                                                ]}
+                                                onPress={() =>
+                                                    actions.setQuestionIndex(
+                                                        idx,
+                                                    )
+                                                }
+                                                activeOpacity={0.7}
+                                            />
+                                        );
+                                    },
+                                )}
                             </View>
                         </ScrollView>
 
@@ -161,29 +286,34 @@ export default function TestContainer() {
                                     style={[
                                         styles.navButton,
                                         styles.navButtonPrev,
-                                        currentQuestionIndex === 0 && styles.navButtonDisabled
+                                        currentQuestionIndex === 0 &&
+                                        styles.navButtonDisabled,
                                     ]}
-                                    onPress={actions.goPrev}
+                                    onPress={() => actions.goPrev()}
                                     disabled={currentQuestionIndex === 0}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.navButtonTextPrev}>‹ Câu trước</Text>
+                                    <Text style={styles.navButtonTextPrev}>
+                                        ‹ Câu trước
+                                    </Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
                                     style={[
                                         styles.navButton,
-                                        styles.navButtonNext
+                                        styles.navButtonNext,
                                     ]}
-                                    onPress={
-                                        currentQuestionIndex === totalQuestions - 1
-                                            ? actions.submit
-                                            : actions.goNext
-                                    }
+                                    onPress={() => {
+                                        currentQuestionIndex ===
+                                            totalQuestions - 1
+                                            ? actions.submit()
+                                            : actions.goNext(); // <-- Safely invoked without parameters
+                                    }}
                                     activeOpacity={0.8}
                                 >
                                     <Text style={styles.navButtonTextNext}>
-                                        {currentQuestionIndex === totalQuestions - 1
+                                        {currentQuestionIndex ===
+                                            totalQuestions - 1
                                             ? "Nộp bài ›"
                                             : "Câu tiếp ›"}
                                     </Text>
@@ -201,6 +331,76 @@ export default function TestContainer() {
                                 </Text>
                             </TouchableOpacity>
                         </View>
+
+                        {isVoiceMode && (
+                            <View style={styles.voicePanel}>
+                                <View style={styles.voiceHeader}>
+                                    <View style={styles.voiceStatusIndicator}>
+                                        <View
+                                            style={[
+                                                styles.voiceStatusDot,
+                                                voiceStatus === "listening" && styles.voiceStatusDotListening,
+                                                voiceStatus === "speaking" && styles.voiceStatusDotSpeaking,
+                                                voiceStatus === "processing" && styles.voiceStatusDotProcessing,
+                                                voiceStatus === "submitted" && styles.voiceStatusDotSubmitted,
+                                                voiceStatus === "error" && styles.voiceStatusDotError,
+                                            ]}
+                                        />
+                                        <Text style={styles.voiceStatusText}>
+                                            {voiceStatus === "listening" && "Đang lắng nghe..."}
+                                            {voiceStatus === "speaking" && "Đang đọc câu hỏi..."}
+                                            {voiceStatus === "processing" && "Đang xử lý đáp án..."}
+                                            {voiceStatus === "submitted" && "Đã ghi đáp án ✓"}
+                                            {voiceStatus === "idle" && "Chờ..."}
+                                            {voiceStatus === "error" && "Lỗi micro / quyền truy cập"}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.voiceCloseButton}
+                                        onPress={() => setIsVoiceMode(false)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <X size={12} color="#E53E3E" />
+                                        <Text style={styles.voiceCloseButtonText}>Tắt</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.voiceBody}>
+                                    <View style={[
+                                        styles.voiceIconContainer,
+                                        voiceStatus === "listening" && styles.voiceIconContainerListening,
+                                        voiceStatus === "speaking" && styles.voiceIconContainerSpeaking,
+                                        voiceStatus === "submitted" && styles.voiceIconContainerSubmitted,
+                                    ]}>
+                                        {voiceStatus === "listening" ? <Mic size={18} color="#FFFFFF" />
+                                            : voiceStatus === "speaking" ? <Volume2 size={18} color="#FFFFFF" />
+                                                : voiceStatus === "processing" ? <ActivityIndicator size="small" color="#FFFFFF" />
+                                                    : <Mic size={18} color="#A0AEC0" />}
+                                    </View>
+                                    <View style={styles.voiceTextContainer}>
+                                        <Text style={styles.voiceLabel}>
+                                            {voiceStatus === "listening" ? "Bạn đang nói:" : "Bạn đã nói:"}
+                                        </Text>
+                                        <Text style={styles.voiceSpokenText} numberOfLines={3}>
+                                            {spokenText
+                                                ? `"${spokenText}"`
+                                                : voiceStatus === "speaking"
+                                                    ? "Đang phát âm thanh..."
+                                                    : "Hãy nói đáp án của bạn..."}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {voiceStatus === "speaking" && ttsText ? (
+                                    <View style={styles.voiceSubtitles}>
+                                        <Text style={styles.voiceSubtitlesText} numberOfLines={3}>
+                                            {ttsText}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                            </View>
+                        )}
+
                     </>
                 ) : viewMode === "celebration" ? (
                     /* Lesson Progress Celebration View */
@@ -215,7 +415,9 @@ export default function TestContainer() {
                                 <X size={20} color="#1A202C" />
                             </TouchableOpacity>
 
-                            <Text style={styles.headerTitle}>Lesson Progress</Text>
+                            <Text style={styles.headerTitle}>
+                                Lesson Progress
+                            </Text>
 
                             <TouchableOpacity
                                 style={styles.helpButton}
@@ -227,7 +429,9 @@ export default function TestContainer() {
 
                         <ScrollView
                             showsVerticalScrollIndicator={false}
-                            contentContainerStyle={styles.completedScrollContent}
+                            contentContainerStyle={
+                                styles.completedScrollContent
+                            }
                         >
                             {/* Circle Celebration Hero Illustration */}
                             <View style={styles.completedHeroOuter}>
@@ -240,47 +444,131 @@ export default function TestContainer() {
                                 </View>
                                 {/* Medal Badge Overlay */}
                                 <View style={styles.completedBadgeOverlay}>
-                                    <Award size={20} color="#5D45F9" fill="#E8E5FF" />
+                                    <Award
+                                        size={20}
+                                        color="#5D45F9"
+                                        fill="#E8E5FF"
+                                    />
                                 </View>
                             </View>
 
                             {/* Congratulatory Typography */}
-                            <Text style={styles.completedTitle}>Tuyệt vời!</Text>
-                            <Text style={styles.completedSubtitle}>Bạn đã hoàn thành bài học.</Text>
+                            <Text style={styles.completedTitle}>
+                                Tuyệt vời!
+                            </Text>
+                            <Text style={styles.completedSubtitle}>
+                                Bạn đã hoàn thành bài học.
+                            </Text>
 
                             {/* Two Stats Cards */}
-                            <View style={styles.completedStatsRow}>
+                            <View style={[styles.completedStatsRow, { marginBottom: 16 }]}>
                                 {/* Score card */}
                                 <View style={styles.completedStatCard}>
-                                    <View style={[styles.completedStatIconBg, styles.statBlueBg]}>
-                                        <Star size={18} color="#3182CE" fill="#90CDF4" />
+                                    <View
+                                        style={[
+                                            styles.completedStatIconBg,
+                                            styles.statBlueBg,
+                                        ]}
+                                    >
+                                        <Star
+                                            size={18}
+                                            color="#3182CE"
+                                            fill="#90CDF4"
+                                        />
                                     </View>
                                     <Text style={styles.completedStatValue}>
-                                        {result ? result.score * 10 : 0}/100
+                                        {result ? result.score : 0}/100
                                     </Text>
-                                    <Text style={styles.completedStatLabel}>ĐIỂM</Text>
+                                    <Text style={styles.completedStatLabel}>
+                                        ĐIỂM
+                                    </Text>
                                 </View>
 
                                 {/* Correct answers count card */}
                                 <View style={styles.completedStatCard}>
-                                    <View style={[styles.completedStatIconBg, styles.statIndigoBg]}>
-                                        <Check size={18} color="#5D45F9" strokeWidth={3} />
+                                    <View
+                                        style={[
+                                            styles.completedStatIconBg,
+                                            styles.statIndigoBg,
+                                        ]}
+                                    >
+                                        <Check
+                                            size={18}
+                                            color="#5D45F9"
+                                            strokeWidth={3}
+                                        />
                                     </View>
                                     <Text style={styles.completedStatValue}>
-                                        {result?.correctAnswersCount}/{totalQuestions}
+                                        {result?.correctAnswersCount}/
+                                        {totalQuestions}
                                     </Text>
-                                    <Text style={styles.completedStatLabel}>CÂU ĐÚNG</Text>
+                                    <Text style={styles.completedStatLabel}>
+                                        CÂU ĐÚNG
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* XP and Gold Stats Row */}
+                            <View style={[styles.completedStatsRow, { marginTop: 0 }]}>
+                                {/* XP Card */}
+                                <View style={styles.completedStatCard}>
+                                    <View
+                                        style={[
+                                            styles.completedStatIconBg,
+                                            styles.statOrangeBg,
+                                        ]}
+                                    >
+                                        <Zap
+                                            size={18}
+                                            color="#DD6B20"
+                                            fill="#FBD38D"
+                                        />
+                                    </View>
+                                    <Text style={styles.completedStatValue}>
+                                        +{result?.xpEarned ?? 0}
+                                    </Text>
+                                    <Text style={styles.completedStatLabel}>
+                                        KINH NGHIỆM (XP)
+                                    </Text>
+                                </View>
+
+                                {/* Gold Card */}
+                                <View style={styles.completedStatCard}>
+                                    <View
+                                        style={[
+                                            styles.completedStatIconBg,
+                                            styles.statYellowBg,
+                                        ]}
+                                    >
+                                        <Coins
+                                            size={18}
+                                            color="#D69E2E"
+                                            fill="#F6E05E"
+                                        />
+                                    </View>
+                                    <Text style={styles.completedStatValue}>
+                                        +{result?.goldEarned ?? 0}
+                                    </Text>
+                                    <Text style={styles.completedStatLabel}>
+                                        VÀNG NHẬN ĐƯỢC
+                                    </Text>
                                 </View>
                             </View>
 
                             {/* Progress bar area */}
                             <View style={styles.completedProgressArea}>
                                 <View style={styles.completedProgressBarBg}>
-                                    <View style={styles.completedProgressBarFill} />
+                                    <View
+                                        style={styles.completedProgressBarFill}
+                                    />
                                 </View>
                                 <View style={styles.completedProgressTextRow}>
-                                    <Text style={styles.completedProgressLabel}>Tiến độ</Text>
-                                    <Text style={styles.completedProgressValue}>100%</Text>
+                                    <Text style={styles.completedProgressLabel}>
+                                        Tiến độ
+                                    </Text>
+                                    <Text style={styles.completedProgressValue}>
+                                        100%
+                                    </Text>
                                 </View>
                             </View>
                         </ScrollView>
@@ -292,7 +580,9 @@ export default function TestContainer() {
                                 onPress={handleBack}
                                 activeOpacity={0.85}
                             >
-                                <Text style={styles.continueButtonText}>Tiếp tục chương sau</Text>
+                                <Text style={styles.continueButtonText}>
+                                    Tiếp tục chương sau
+                                </Text>
                                 <Text style={styles.continueArrow}>➔</Text>
                             </TouchableOpacity>
 
@@ -301,8 +591,11 @@ export default function TestContainer() {
                                 onPress={() => {
                                     if (lastAttemptId) {
                                         router.push({
-                                            pathname: "/(10_proflie)/10_5_test_detail",
-                                            params: { attemptId: lastAttemptId }
+                                            pathname:
+                                                "/(10_proflie)/10_5_test_detail",
+                                            params: {
+                                                attemptId: lastAttemptId,
+                                            },
                                         });
                                     } else {
                                         setViewMode("review");
@@ -310,7 +603,9 @@ export default function TestContainer() {
                                 }}
                                 activeOpacity={0.7}
                             >
-                                <Text style={styles.reviewButtonText}>Xem lại bài</Text>
+                                <Text style={styles.reviewButtonText}>
+                                    Xem lại bài
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -327,7 +622,9 @@ export default function TestContainer() {
                                 <ArrowLeft size={20} color="#1A202C" />
                             </TouchableOpacity>
 
-                            <Text style={styles.headerTitle}>Chi tiết bài làm</Text>
+                            <Text style={styles.headerTitle}>
+                                Chi tiết bài làm
+                            </Text>
 
                             <View style={{ width: 40 }} />
                         </View>
@@ -337,19 +634,27 @@ export default function TestContainer() {
                             contentContainerStyle={styles.reviewScrollContent}
                         >
                             <View style={styles.reviewList}>
-                                {questions.map((q, idx) => {
-                                    const isCorrect = result?.gradedAnswers[q.id];
+                                {questions.filter(Boolean).map((q, idx) => {
+                                    const isCorrect =
+                                        result?.gradedAnswers[q.id];
 
                                     return (
-                                        <View key={q.id} style={styles.reviewCard}>
+                                        <View
+                                            key={q.id}
+                                            style={styles.reviewCard}
+                                        >
                                             <View style={styles.reviewHeader}>
-                                                <Text style={styles.reviewIndex}>Câu {idx + 1}</Text>
+                                                <Text
+                                                    style={styles.reviewIndex}
+                                                >
+                                                    Câu {idx + 1}
+                                                </Text>
                                                 <View
                                                     style={[
                                                         styles.gradingBadge,
                                                         isCorrect
                                                             ? styles.gradingBadgeCorrect
-                                                            : styles.gradingBadgeIncorrect
+                                                            : styles.gradingBadgeIncorrect,
                                                     ]}
                                                 >
                                                     <Text
@@ -357,14 +662,18 @@ export default function TestContainer() {
                                                             styles.gradingBadgeText,
                                                             isCorrect
                                                                 ? styles.gradingBadgeTextCorrect
-                                                                : styles.gradingBadgeTextIncorrect
+                                                                : styles.gradingBadgeTextIncorrect,
                                                         ]}
                                                     >
-                                                        {isCorrect ? "Đúng" : "Sai"}
+                                                        {isCorrect
+                                                            ? "Đúng"
+                                                            : "Sai"}
                                                     </Text>
                                                 </View>
                                             </View>
-                                            <Text style={styles.reviewText}>{q.text}</Text>
+                                            <Text style={styles.reviewText}>
+                                                {q.text}
+                                            </Text>
                                         </View>
                                     );
                                 })}
@@ -378,7 +687,9 @@ export default function TestContainer() {
                                 onPress={() => setViewMode("celebration")}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.continueButtonText}>Quay lại</Text>
+                                <Text style={styles.continueButtonText}>
+                                    Quay lại
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -394,49 +705,68 @@ export default function TestContainer() {
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContainer}>
                             <View style={styles.modalDragIndicator} />
-                            
+
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Danh sách câu hỏi</Text>
+                                <Text style={styles.modalTitle}>
+                                    Danh sách câu hỏi
+                                </Text>
                                 <TouchableOpacity
                                     style={styles.modalCloseButton}
                                     onPress={() => setIsListModalVisible(false)}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.modalCloseText}>Đóng</Text>
+                                    <Text style={styles.modalCloseText}>
+                                        Đóng
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
 
                             <View style={styles.modalGrid}>
-                                {questions.map((q, idx) => {
-                                    const isActive = idx === currentQuestionIndex;
-                                    const isAnswered = isQuestionAnswered(q.id);
+                                {Array.from(
+                                    { length: totalQuestions },
+                                    (_, idx) => {
+                                        const q = questions[idx];
+                                        const isActive =
+                                            idx === currentQuestionIndex;
+                                        const isAnswered = q
+                                            ? isQuestionAnswered(q.id)
+                                            : false;
 
-                                    return (
-                                        <TouchableOpacity
-                                            key={q.id}
-                                            style={[
-                                                styles.gridItem,
-                                                isAnswered && styles.gridItemAnswered,
-                                                isActive && styles.gridItemActive
-                                            ]}
-                                            onPress={() => {
-                                                actions.setQuestionIndex(idx);
-                                                setIsListModalVisible(false);
-                                            }}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Text
+                                        return (
+                                            <TouchableOpacity
+                                                key={idx}
                                                 style={[
-                                                    styles.gridItemText,
-                                                    isAnswered && styles.gridItemTextAnswered,
-                                                    isActive && styles.gridItemTextActive
+                                                    styles.gridItem,
+                                                    isAnswered &&
+                                                    styles.gridItemAnswered,
+                                                    isActive &&
+                                                    styles.gridItemActive,
                                                 ]}
+                                                onPress={() => {
+                                                    actions.setQuestionIndex(
+                                                        idx,
+                                                    );
+                                                    setIsListModalVisible(
+                                                        false,
+                                                    );
+                                                }}
+                                                activeOpacity={0.7}
                                             >
-                                                {idx + 1}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                                                <Text
+                                                    style={[
+                                                        styles.gridItemText,
+                                                        isAnswered &&
+                                                        styles.gridItemTextAnswered,
+                                                        isActive &&
+                                                        styles.gridItemTextActive,
+                                                    ]}
+                                                >
+                                                    {idx + 1}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    },
+                                )}
                             </View>
                         </View>
                     </View>
@@ -546,12 +876,12 @@ const styles = StyleSheet.create({
     blockIndicatorsRow: {
         flexDirection: "row",
         justifyContent: "center",
-        gap: 8,
+        gap: 5,
         marginTop: 36,
     },
     blockIndicator: {
-        width: 32,
-        height: 6,
+        width: 15,
+        height: 3,
         borderRadius: 100,
         backgroundColor: "#E2E8F0",
     },
@@ -560,7 +890,7 @@ const styles = StyleSheet.create({
     },
     blockIndicatorActive: {
         backgroundColor: "#5D45F9",
-        width: 48,
+        width: 28,
     },
     footer: {
         backgroundColor: "#FFFFFF",
@@ -619,7 +949,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#718096",
     },
-    // Modal Styles
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(15, 12, 38, 0.45)",
@@ -703,113 +1032,321 @@ const styles = StyleSheet.create({
     gridItemTextActive: {
         color: "#FFFFFF",
     },
-    // Result Screen Styles
-    resultScrollContent: {
+    completedContainer: {
+        flex: 1,
+        backgroundColor: "#FFFFFF",
+    },
+    helpButton: {
+        padding: 8,
+    },
+    completedScrollContent: {
+        alignItems: "center",
+        paddingHorizontal: 24,
+        paddingTop: 32,
         paddingBottom: 40,
     },
-    resultHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 16,
-        backgroundColor: "#FFFFFF",
-        borderBottomWidth: 1,
-        borderBottomColor: "#EDF2F7",
-    },
-    resultHeaderTitle: {
-        fontSize: 16,
-        fontWeight: "800",
-        color: "#1A202C",
-    },
-    resultCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 24,
-        padding: 28,
-        margin: 20,
-        alignItems: "center",
-        shadowColor: "#5D45F9",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: "#F1F5F9",
-    },
-    awardIconContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 100,
-        backgroundColor: "#F5F3FF",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 20,
-    },
-    resultScoreText: {
-        fontSize: 28,
-        fontWeight: "900",
-        color: "#5D45F9",
-        marginBottom: 10,
-    },
-    resultFeedbackText: {
-        fontSize: 14,
-        color: "#4A5568",
-        textAlign: "center",
-        lineHeight: 20,
-        fontWeight: "600",
+    completedHeroOuter: {
+        position: "relative",
         marginBottom: 24,
-        paddingHorizontal: 10,
     },
-    statsContainer: {
-        flexDirection: "row",
+    completedHeroCircle: {
+        width: 140,
+        height: 140,
+        borderRadius: 100,
+        backgroundColor: "#F8FAFC",
+        overflow: "hidden",
+        borderWidth: 4,
+        borderColor: "#EEF2FF",
+    },
+    completedHeroImage: {
         width: "100%",
-        gap: 16,
-        marginBottom: 28,
+        height: "100%",
     },
-    statBox: {
+    completedBadgeOverlay: {
+        position: "absolute",
+        bottom: 0,
+        right: 4,
+        backgroundColor: "#FFFFFF",
+        padding: 10,
+        borderRadius: 100,
+        shadowColor: "#5D45F9",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    completedTitle: {
+        fontSize: 26,
+        fontWeight: "900",
+        color: "#1A202C",
+        textAlign: "center",
+        marginBottom: 6,
+    },
+    completedSubtitle: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: "#718096",
+        textAlign: "center",
+        marginBottom: 32,
+    },
+    completedStatsRow: {
+        flexDirection: "row",
+        gap: 16,
+        width: "100%",
+        marginBottom: 32,
+    },
+    completedStatCard: {
         flex: 1,
         backgroundColor: "#F8FAFC",
+        borderRadius: 20,
+        padding: 20,
+        alignItems: "center",
         borderWidth: 1,
         borderColor: "#EDF2F7",
-        borderRadius: 18,
-        padding: 16,
-        alignItems: "center",
     },
-    statValue: {
+    completedStatIconBg: {
+        width: 38,
+        height: 38,
+        borderRadius: 100,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 12,
+    },
+    statBlueBg: {
+        backgroundColor: "#EBF8FF",
+    },
+    statIndigoBg: {
+        backgroundColor: "#EEF2FF",
+    },
+    statOrangeBg: {
+        backgroundColor: "#FFF5F5",
+    },
+    statYellowBg: {
+        backgroundColor: "#FEFCBF",
+    },
+    completedStatValue: {
         fontSize: 20,
         fontWeight: "800",
-        color: "#2D3748",
-        marginTop: 6,
-        marginBottom: 2,
+        color: "#1A202C",
+        marginBottom: 4,
     },
-    statLabel: {
-        fontSize: 12,
+    completedStatLabel: {
+        fontSize: 11,
+        fontWeight: "800",
+        color: "#A0AEC0",
+        letterSpacing: 0.5,
+    },
+    completedProgressArea: {
+        width: "100%",
+        backgroundColor: "#F8FAFC",
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: "#EDF2F7",
+    },
+    completedProgressBarBg: {
+        height: 8,
+        backgroundColor: "#E2E8F0",
+        borderRadius: 100,
+        overflow: "hidden",
+        marginBottom: 12,
+    },
+    completedProgressBarFill: {
+        height: "100%",
+        backgroundColor: "#5D45F9",
+        borderRadius: 100,
+    },
+    completedProgressTextRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    completedProgressLabel: {
+        fontSize: 13,
+        fontWeight: "700",
         color: "#718096",
-        fontWeight: "600",
     },
-    restartButton: {
+    completedProgressValue: {
+        fontSize: 14,
+        fontWeight: "800",
+        color: "#5D45F9",
+    },
+    completedFooter: {
+        paddingHorizontal: 24,
+        paddingTop: 16,
+        paddingBottom: 24,
+        borderTopWidth: 1,
+        borderTopColor: "#F1F5F9",
+        backgroundColor: "#FFFFFF",
+    },
+    continueButton: {
+        height: 54,
+        backgroundColor: "#5D45F9",
+        borderRadius: 100,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        backgroundColor: "#5D45F9",
-        borderRadius: 100,
-        paddingVertical: 14,
-        paddingHorizontal: 28,
-        width: "100%",
+        marginBottom: 12,
         shadowColor: "#5D45F9",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
-        elevation: 2,
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    restartButtonText: {
-        fontSize: 15,
+    continueButtonText: {
+        fontSize: 16,
         fontWeight: "800",
         color: "#FFFFFF",
     },
-    reviewTitle: {
+    continueArrow: {
+        fontSize: 16,
+        color: "#FFFFFF",
+    },
+    reviewButtonOutline: {
+        height: 54,
+        borderRadius: 100,
+        borderWidth: 1.5,
+        borderColor: "#E2E8F0",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+    },
+    reviewButtonText: {
+        fontSize: 15,
+        fontWeight: "800",
+        color: "#4A5568",
+    },
+    reviewScrollContent: {
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        paddingBottom: 40,
+    },
+    // Voice Mode HUD Styles
+    voicePanel: {
+        position: "absolute",
+        bottom: 125, // Positioned above the bottom footer
+        left: 20,
+        right: 20,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1.5,
+        borderColor: "#E2E8F0",
+        shadowColor: "#5D45F9",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    voiceHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        borderBottomWidth: 1,
+        borderBottomColor: "#EDF2F7",
+        paddingBottom: 8,
+        marginBottom: 12,
+    },
+    voiceStatusIndicator: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    voiceStatusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 100,
+        backgroundColor: "#A0AEC0",
+    },
+    voiceStatusDotListening: {
+        backgroundColor: "#E53E3E",
+    },
+    voiceStatusDotSpeaking: {
+        backgroundColor: "#3182CE",
+    },
+    voiceStatusDotProcessing: {
+        backgroundColor: "#5D45F9",
+    },
+    voiceStatusDotSubmitted: {
+        backgroundColor: "#38A169",
+    },
+    voiceStatusDotError: {
+        backgroundColor: "#E53E3E",
+    },
+    voiceStatusText: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: "#4A5568",
+    },
+    voiceCloseButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: "#FFF5F5",
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 100,
+        borderWidth: 1,
+        borderColor: "#FED7D7",
+    },
+    voiceCloseButtonText: {
+        fontSize: 11,
+        fontWeight: "800",
+        color: "#C53030",
+    },
+    voiceBody: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    voiceIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 100,
+        backgroundColor: "#E2E8F0",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    voiceIconContainerListening: {
+        backgroundColor: "#E53E3E",
+    },
+    voiceIconContainerSpeaking: {
+        backgroundColor: "#3182CE",
+    },
+    voiceIconContainerSubmitted: {
+        backgroundColor: "#38A169",
+    },
+    voiceTextContainer: {
+        flex: 1,
+    },
+    voiceLabel: {
+        fontSize: 11,
+        fontWeight: "800",
+        color: "#718096",
+        textTransform: "uppercase",
+        marginBottom: 2,
+    },
+    voiceSpokenText: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#1A202C",
+    },
+    voiceSubtitles: {
+        marginTop: 12,
+        backgroundColor: "#F7FAFC",
+        borderRadius: 12,
+        padding: 10,
+        borderLeftWidth: 3,
+        borderLeftColor: "#3182CE",
+    },
+    voiceSubtitlesText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#4A5568",
+        fontStyle: "italic",
+    },
+     reviewTitle: {
         fontSize: 16,
         fontWeight: "800",
         color: "#1A202C",
@@ -865,201 +1402,5 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#2D3748",
         lineHeight: 20,
-    },
-    // Completed Screen Styles
-    completedContainer: {
-        flex: 1,
-        backgroundColor: "#FFFFFF",
-    },
-    completedScrollContent: {
-        paddingHorizontal: 24,
-        paddingTop: 36,
-        paddingBottom: 40,
-        alignItems: "center",
-    },
-    completedHeroOuter: {
-        position: "relative",
-        marginBottom: 36,
-    },
-    completedHeroCircle: {
-        width: 240,
-        height: 240,
-        borderRadius: 120,
-        borderWidth: 8,
-        borderColor: "#F5F3FF",
-        overflow: "hidden",
-        shadowColor: "#5D45F9",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 6,
-    },
-    completedHeroImage: {
-        width: "100%",
-        height: "100%",
-    },
-    completedBadgeOverlay: {
-        position: "absolute",
-        bottom: 8,
-        right: 8,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 100,
-        padding: 10,
-        borderWidth: 4,
-        borderColor: "#F5F3FF",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 3,
-    },
-    completedTitle: {
-        fontSize: 26,
-        fontWeight: "900",
-        color: "#1A202C",
-        textAlign: "center",
-        marginBottom: 8,
-    },
-    completedSubtitle: {
-        fontSize: 14,
-        color: "#718096",
-        fontWeight: "600",
-        textAlign: "center",
-        marginBottom: 36,
-    },
-    completedStatsRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        gap: 16,
-        width: "100%",
-        marginBottom: 36,
-    },
-    completedStatCard: {
-        flex: 1,
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1.5,
-        borderColor: "#F1F5F9",
-        borderRadius: 24,
-        padding: 20,
-        alignItems: "center",
-        shadowColor: "#1A202C",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.02,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    completedStatIconBg: {
-        width: 38,
-        height: 38,
-        borderRadius: 100,
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 10,
-    },
-    statBlueBg: {
-        backgroundColor: "#EBF8FF",
-    },
-    statIndigoBg: {
-        backgroundColor: "#F5F3FF",
-    },
-    completedStatValue: {
-        fontSize: 20,
-        fontWeight: "900",
-        color: "#1A202C",
-        marginBottom: 4,
-    },
-    completedStatLabel: {
-        fontSize: 11,
-        fontWeight: "800",
-        color: "#A0AEC0",
-        letterSpacing: 0.5,
-    },
-    completedProgressArea: {
-        width: "100%",
-        paddingHorizontal: 4,
-    },
-    completedProgressBarBg: {
-        height: 8,
-        backgroundColor: "#F1F5F9",
-        borderRadius: 100,
-        overflow: "hidden",
-        width: "100%",
-        marginBottom: 10,
-    },
-    completedProgressBarFill: {
-        height: "100%",
-        backgroundColor: "#5D45F9",
-        borderRadius: 100,
-        width: "100%",
-    },
-    completedProgressTextRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        width: "100%",
-    },
-    completedProgressLabel: {
-        fontSize: 13,
-        fontWeight: "700",
-        color: "#718096",
-    },
-    completedProgressValue: {
-        fontSize: 13,
-        fontWeight: "800",
-        color: "#5D45F9",
-    },
-    completedFooter: {
-        backgroundColor: "#FFFFFF",
-        borderTopWidth: 1,
-        borderTopColor: "#EDF2F7",
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 24,
-        gap: 12,
-    },
-    continueButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        backgroundColor: "#5D45F9",
-        borderRadius: 100,
-        height: 56,
-        width: "100%",
-        shadowColor: "#5D45F9",
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 4,
-    },
-    continueButtonText: {
-        fontSize: 15,
-        fontWeight: "800",
-        color: "#FFFFFF",
-    },
-    continueArrow: {
-        fontSize: 14,
-        color: "#FFFFFF",
-        fontWeight: "800",
-    },
-    reviewButtonOutline: {
-        alignItems: "center",
-        justifyContent: "center",
-        height: 48,
-        borderRadius: 100,
-        borderWidth: 1.5,
-        borderColor: "#E2E8F0",
-        backgroundColor: "#FFFFFF",
-    },
-    reviewButtonText: {
-        fontSize: 14,
-        fontWeight: "800",
-        color: "#4A5568",
-    },
-    helpButton: {
-        padding: 8,
-    },
-    reviewScrollContent: {
-        paddingBottom: 40,
     },
 });

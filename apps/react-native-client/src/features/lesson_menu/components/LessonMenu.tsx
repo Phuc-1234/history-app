@@ -8,11 +8,12 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useLessonMenu, Topic, Lesson } from "../hooks/useLessonMenu";
+import { useLessonMenu } from "../hooks/useLessonMenu";
+import { TopBarWrapper } from "@/features/top_bar";
 
 interface LessonMenuProps {
-    onLessonPress: (id: string) => void;
-    onMindmapPress: (topicId: string) => void;
+    onLessonPress: (id: number) => void;
+    onMindmapPress: (topicId: number) => void;
     onTestPress: (testId: string) => void;
 }
 
@@ -26,7 +27,8 @@ export function LessonMenu({
         setSelectedGrade,
         expandedTopicId,
         toggleTopic,
-        currentGradeData,
+        topics,
+        finalTest,
         loading,
     } = useLessonMenu();
 
@@ -41,200 +43,185 @@ export function LessonMenu({
     }
 
     return (
-        <View style={styles.container}>
-            {/* --- Grade Selector Tab Bar --- */}
-            <View style={styles.gradeTabsContainer}>
-                {[10, 11, 12].map((grade) => {
-                    const isActive = selectedGrade === grade;
-                    return (
-                        <TouchableOpacity
-                            key={grade}
-                            style={[
-                                styles.gradeTab,
-                                isActive && styles.activeGradeTab,
-                            ]}
-                            onPress={() => setSelectedGrade(grade)}
-                            activeOpacity={0.8}
-                        >
-                            <Text
-                                style={[
-                                    styles.gradeTabText,
-                                    isActive && styles.activeGradeTabText,
-                                ]}
-                            >
-                                Lớp {grade}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {currentGradeData?.topics.map((topic, idx) => {
-                    const isExpanded = expandedTopicId === topic.id;
-
-                    return (
-                        <View key={topic.id} style={styles.topicWrapper}>
-                            {/* Accordion Trigger Header */}
+        <TopBarWrapper>
+            <View style={styles.container}>
+                {/* --- Grade Selector Tab Bar --- */}
+                <View style={styles.gradeTabsContainer}>
+                    {[10, 11, 12].map((grade) => {
+                        const isActive = selectedGrade === grade;
+                        return (
                             <TouchableOpacity
+                                key={grade}
                                 style={[
-                                    styles.topicHeader,
-                                    isExpanded && styles.expandedTopicHeader,
+                                    styles.gradeTab,
+                                    isActive && styles.activeGradeTab,
                                 ]}
-                                onPress={() => toggleTopic(topic.id)}
-                                activeOpacity={0.9}
+                                onPress={() => setSelectedGrade(grade)}
+                                activeOpacity={0.8}
                             >
-                                <View style={styles.topicHeaderLeft}>
-                                    <Text
-                                        style={[
-                                            styles.topicTitle,
-                                            isExpanded && styles.whiteText,
-                                        ]}
-                                    >
-                                        {topic.title}
-                                    </Text>
-                                    <Text
-                                        style={[
-                                            styles.topicDesc,
-                                            isExpanded &&
-                                                styles.lightPurpleText,
-                                        ]}
-                                    >
-                                        {topic.description}
-                                    </Text>
-                                </View>
-                                <Ionicons
-                                    name={
-                                        isExpanded
-                                            ? "chevron-up"
-                                            : "chevron-forward"
-                                    }
-                                    size={20}
-                                    color={isExpanded ? "#FFF" : "#8E8E93"}
-                                />
+                                <Text
+                                    style={[
+                                        styles.gradeTabText,
+                                        isActive && styles.activeGradeTabText,
+                                    ]}
+                                >
+                                    Lớp {grade}
+                                </Text>
                             </TouchableOpacity>
+                        );
+                    })}
+                </View>
 
-                            {/* Accordion Node Map Content */}
-                            {isExpanded && (
-                                <View style={styles.mapContainer}>
-                                    {/* Spine Connector Line running through nodes */}
-                                    <View style={styles.verticalSpine} />
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {topics.map((topic) => {
+                        const isExpanded = expandedTopicId === topic.id;
 
-                                    {/* Mindmap Node */}
-                                    <TouchableOpacity
-                                        style={styles.mindmapButton}
-                                        onPress={() => onMindmapPress(topic.id)}
-                                    >
-                                        <Ionicons
-                                            name="git-network-outline"
-                                            size={18}
-                                            color="#5856D6"
-                                        />
-                                        <Text style={styles.mindmapText}>
-                                            XEM MINDMAP TOÀN CHỦ ĐỀ
+                        return (
+                            <View key={topic.id} style={styles.topicWrapper}>
+                                {/* Accordion Trigger Header */}
+                                <TouchableOpacity
+                                    accessible={true}
+                                    accessibilityLabel={isExpanded ? `Thu gọn chủ đề ${topic.position}: ${topic.name}` : `Mở rộng chủ đề ${topic.position}: ${topic.name}`}
+                                    accessibilityRole="button"
+                                    style={[
+                                        styles.topicHeader,
+                                        isExpanded && styles.expandedTopicHeader,
+                                    ]}
+                                    onPress={() => toggleTopic(topic.id)}
+                                    activeOpacity={0.9}
+                                >
+                                    <View style={styles.topicHeaderLeft}>
+                                        <Text style={[styles.topicTitle, isExpanded && styles.whiteText]}>
+                                            CHỦ ĐỀ {topic.position}: {topic.name}
                                         </Text>
-                                    </TouchableOpacity>
-
-                                    {/* Lesson Nodes */}
-                                    {topic.lessons.map((lesson, idx) => (
-                                        <View
-                                            key={lesson.id}
-                                            style={styles.nodeItem}
-                                        >
-                                            <TouchableOpacity
-                                                style={[
-                                                    styles.nodeCircle,
-                                                    styles.lessonNodeCircle,
-                                                ]}
-                                                onPress={() =>
-                                                    onLessonPress(lesson.id)
-                                                }
-                                            >
-                                                <Ionicons
-                                                    name={
-                                                        idx === 0
-                                                            ? "checkmark"
-                                                            : "book"
-                                                    }
-                                                    size={28}
-                                                    color={
-                                                        idx === 0
-                                                            ? "#FFF"
-                                                            : "#5856D6"
-                                                    }
-                                                />
-                                            </TouchableOpacity>
-                                            <Text style={styles.nodeLabel}>
-                                                Bài {lesson.lessonNumber}:{" "}
-                                                {lesson.title}
-                                            </Text>
-                                        </View>
-                                    ))}
-
-                                    {/* Topic-Level Milestone Test Node */}
-                                    <View style={styles.nodeItem}>
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.nodeCircle,
-                                                styles.topicTestCircle,
-                                            ]}
-                                            onPress={() =>
-                                                onTestPress(topic.topicTestId)
-                                            }
-                                        >
-                                            <Ionicons
-                                                name="trophy"
-                                                size={28}
-                                                color="#FF9500"
-                                            />
-                                        </TouchableOpacity>
-                                        <Text style={styles.testLabel}>
-                                            KIỂM TRA CHỦ ĐỀ{" "}
-                                            {idx + 1}
+                                        <Text style={[styles.topicDesc, isExpanded && styles.lightPurpleText]}>
+                                            Khám phá kiến thức của chủ đề này
                                         </Text>
                                     </View>
-                                </View>
-                            )}
-                        </View>
-                    );
-                })}
-
-                {/* --- Grade Level Finale Test Section --- */}
-                {currentGradeData && (
-                    <View style={styles.finalExamSection}>
-                        <View style={styles.finalExamBadgeContainer}>
-                            <View style={styles.finalExamOuterRing}>
-                                <View style={styles.finalExamInnerCircle}>
                                     <Ionicons
-                                        name="ribbon"
-                                        size={42}
-                                        color="#FFF"
+                                        name={(isExpanded ? "chevron-up" : "chevron-forward") as any}
+                                        size={20}
+                                        color={isExpanded ? "#FFF" : "#8E8E93"}
                                     />
+                                </TouchableOpacity>
+
+                                {/* Accordion Node Map Content */}
+                                {isExpanded && (
+                                    <View style={styles.mapContainer}>
+                                        {/* Spine Connector Line thẳng chạy dọc ở giữa làm trục nối */}
+                                        <View style={styles.verticalSpine} />
+
+                                        {/* Mindmap Node trên cùng trục */}
+                                        <TouchableOpacity
+                                            style={styles.mindmapButton}
+                                            onPress={() => onMindmapPress(topic.id)}
+                                        >
+                                            <Ionicons
+                                                name={"git-network-outline" as any}
+                                                size={18}
+                                                color="#5856D6"
+                                            />
+                                            <Text style={styles.mindmapText}>
+                                                XEM MINDMAP TOÀN CHỦ ĐỀ
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        {/* Lesson Nodes (Xen kẽ Trái - Phải) */}
+                                        {topic.lessons.map((lesson, lessonIdx) => {
+                                            const isDone = lessonIdx === 0; 
+                                            const isLeft = lessonIdx % 2 === 0;
+
+                                            return (
+                                                <View
+                                                    key={lesson.id}
+                                                    style={[
+                                                        styles.nodeItem,
+                                                        isLeft ? styles.nodeLeft : styles.nodeRight
+                                                    ]}
+                                                >
+                                                    <TouchableOpacity
+                                                        style={[
+                                                            styles.nodeCircle,
+                                                            isDone ? styles.lessonNodeCircleDone : styles.lessonNodeCircleTodo,
+                                                        ]}
+                                                        onPress={() => onLessonPress(lesson.id)}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons
+                                                            name={(isDone ? "checkmark" : "book") as any}
+                                                            size={26}
+                                                            color={isDone ? "#FFF" : "#A2A2A7"}
+                                                        />
+                                                    </TouchableOpacity>
+                                                    <Text style={[styles.nodeLabel, !isDone && styles.textDisabled]}>
+                                                        Bài {lesson.position}: {lesson.name}
+                                                    </Text>
+                                                </View>
+                                            );
+                                        })}
+
+                                        {/* Topic-Level Milestone Test Node (Cúp luôn nằm ở giữa cuối luồng tự nhiên) */}
+                                        {topic.firstTest && (
+                                            <View style={[styles.nodeItem, styles.nodeCenter]}>
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.nodeCircle,
+                                                        styles.topicTestCircle,
+                                                    ]}
+                                                    onPress={() => onTestPress(topic.firstTest!.id)}
+                                                >
+                                                    <Ionicons
+                                                        name={"trophy" as any}
+                                                        size={28}
+                                                        color="#FF9500"
+                                                    />
+                                                </TouchableOpacity>
+                                                <Text style={styles.testLabel}>
+                                                    {topic.firstTest.title}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                            </View>
+                        );
+                    })}
+
+                    {/* --- Grade Level Finale Test Section --- */}
+                    {finalTest && (
+                        <View style={styles.finalExamSection}>
+                            <View style={styles.finalExamBadgeContainer}>
+                                <View style={styles.finalExamOuterRing}>
+                                    <View style={styles.finalExamInnerCircle}>
+                                        <Ionicons
+                                            name={"ribbon" as any}
+                                            size={42}
+                                            color="#FFF"
+                                        />
+                                    </View>
                                 </View>
                             </View>
-                        </View>
-                        <Text style={styles.finalExamTitle}>THI CUỐI KỲ</Text>
-                        <Text style={styles.finalExamSubtitle}>
-                            Kiểm tra kiến thức lớp {selectedGrade}
-                        </Text>
-
-                        <TouchableOpacity
-                            style={styles.finalExamButton}
-                            onPress={() =>
-                                onTestPress(currentGradeData.finalTestId)
-                            }
-                        >
-                            <Text style={styles.finalExamButtonText}>
-                                BẮT ĐẦU THI NGAY
+                            <Text style={styles.finalExamTitle}>{finalTest.title}</Text>
+                            <Text style={styles.finalExamSubtitle}>
+                                Kiểm tra kiến thức tổng hợp lớp {selectedGrade}
                             </Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </ScrollView>
-        </View>
+
+                            <TouchableOpacity
+                                style={styles.finalExamButton}
+                                onPress={() => onTestPress(finalTest.id)}
+                            >
+                                <Text style={styles.finalExamButtonText}>
+                                    BẮT ĐẦU THI NGAY
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </ScrollView>
+            </View>
+        </TopBarWrapper>
     );
 }
 
@@ -284,21 +271,24 @@ const styles = StyleSheet.create({
 
     /* Map View Tree Styling */
     mapContainer: {
-        alignItems: "center",
         paddingVertical: 16,
         position: "relative",
+        width: "100%",
     },
     verticalSpine: {
         position: "absolute",
-        top: 0,
-        bottom: 0,
-        width: 3,
+        top: 40,
+        bottom: 50, // Chừa khoảng cách an toàn ở đáy để không dính trục
+        left: "50%",
+        width: 4,
+        marginLeft: -2,
         backgroundColor: "#E5E5EA",
         zIndex: 0,
     },
     mindmapButton: {
         flexDirection: "row",
         alignItems: "center",
+        alignSelf: "center",
         backgroundColor: "#EAEAFE",
         borderColor: "#D2D1F7",
         borderWidth: 1,
@@ -307,15 +297,29 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         gap: 6,
         zIndex: 1,
-        marginBottom: 24,
+        marginBottom: 32,
     },
     mindmapText: { fontSize: 12, fontWeight: "700", color: "#5856D6" },
+    
     nodeItem: {
         alignItems: "center",
-        marginBottom: 24,
-        width: "80%",
+        marginBottom: 32,
+        width: "50%",
         zIndex: 1,
     },
+    nodeLeft: {
+        alignSelf: "flex-start",
+        paddingLeft: 24, // Tăng nhẹ để đẩy nút lệch hẳn sang trái tâm trục
+    },
+    nodeRight: {
+        alignSelf: "flex-end",
+        paddingRight: 24, // Tăng nhẹ để đẩy nút lệch hẳn sang phải tâm trục
+    },
+    nodeCenter: {
+        alignSelf: "center",
+        marginBottom: 10, // Điều chỉnh margin bot của cúp cuối cùng
+    },
+
     nodeCircle: {
         width: 64,
         height: 64,
@@ -329,9 +333,14 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 3,
     },
-    lessonNodeCircle: {
-        backgroundColor: "#5856D6", // Using first-node style color for active checks
+    lessonNodeCircleDone: {
+        backgroundColor: "#5856D6",
         borderColor: "#E8E8FC",
+    },
+    lessonNodeCircleTodo: {
+        backgroundColor: "#E5E5EA",
+        borderColor: "#F2F2F7",
+        opacity: 0.8,
     },
     topicTestCircle: {
         backgroundColor: "#FFF",
@@ -343,6 +352,11 @@ const styles = StyleSheet.create({
         color: "#1C1C1E",
         textAlign: "center",
         marginTop: 8,
+        paddingHorizontal: 10,
+    },
+    textDisabled: {
+        color: "#AEAEB2",
+        fontWeight: "500",
     },
     testLabel: {
         fontSize: 13,

@@ -10,6 +10,8 @@ export interface SingleChoiceQuestion extends BaseQuestion {
     type: "single-choice";
     options: string[];
     correctOptionIndex: number;
+    answerIds?: number[];
+    optionsWithLabels?: OptionWithLabel[]; // ADD THIS
 }
 
 export interface MultipleChoiceQuestion extends BaseQuestion {
@@ -36,6 +38,12 @@ export interface MatchingQuestion extends BaseQuestion {
     correctPairs: Record<string, string>; // Maps left ID -> right ID
 }
 
+interface OptionWithLabel {
+    label: string;
+    text: string;
+    id: string | number; // Match this to whatever type a.id actually is
+}
+
 export type Question =
     | SingleChoiceQuestion
     | MultipleChoiceQuestion
@@ -47,4 +55,6 @@ export interface TestResult {
     totalQuestions: number;
     correctAnswersCount: number;
     gradedAnswers: Record<string, boolean>; // Maps questionId -> isCorrect
+    xpEarned?: number;
+    goldEarned?: number;
 }

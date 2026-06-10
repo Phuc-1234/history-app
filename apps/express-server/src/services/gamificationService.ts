@@ -14,6 +14,9 @@ export class GamificationService {
                 : { totalXp: "desc" as const };
 
         const users = await prisma.user.findMany({
+            where: {
+                isVerified: true, // Only returns users who have verified their emails in Supabase
+            },
             orderBy,
             skip: (pageNum - 1) * pageSize,
             take: pageSize,

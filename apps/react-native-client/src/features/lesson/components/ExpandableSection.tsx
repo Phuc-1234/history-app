@@ -15,7 +15,7 @@ export function ExpandableSection({
     const [isExpanded, setIsExpanded] = useState(isTopLevel ? false : true); // Top levels closed, deeper nested default open
 
     const hasSubsections =
-        section.subsections && section.subsections.length > 0;
+        section.children && section.children.length > 0;
     const hasNodes = section.nodes && section.nodes.length > 0;
 
     return (
@@ -37,7 +37,7 @@ export function ExpandableSection({
                         isTopLevel ? styles.topLevelTitle : styles.nestedTitle,
                     ]}
                 >
-                    {section.title}
+                    {section.name}
                 </Text>
 
                 <View style={styles.headerRight}>
@@ -67,13 +67,13 @@ export function ExpandableSection({
                         section.nodes?.map((node) => (
                             <View key={node.id} style={styles.nodeRow}>
                                 <View style={styles.bulletPoint} />
-                                <Text style={styles.nodeText}>{node.text}</Text>
+                                <Text style={styles.nodeText}>{node.body}</Text>
                             </View>
                         ))}
 
                     {/* 2. RECURSIVE STEP: Render child sections using this exact component */}
                     {hasSubsections &&
-                        section.subsections?.map((sub) => (
+                        section.children?.map((sub) => (
                             <ExpandableSection
                                 key={sub.id}
                                 section={sub}

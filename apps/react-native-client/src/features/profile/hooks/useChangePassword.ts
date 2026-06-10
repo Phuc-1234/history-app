@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { router } from "expo-router";
+import { useChangePasswordMutation } from "@/features/auth/services/authApi";
 
 const message = {
-    currentRequired: "Vui l\u00f2ng nh\u1eadp m\u1eadt kh\u1ea9u c\u0169.",
-    newRequired: "Vui l\u00f2ng nh\u1eadp m\u1eadt kh\u1ea9u m\u1edbi.",
-    newMin: "M\u1eadt kh\u1ea9u m\u1edbi ph\u1ea3i c\u00f3 \u00edt nh\u1ea5t 8 k\u00fd t\u1ef1.",
-    newSame: "M\u1eadt kh\u1ea9u m\u1edbi kh\u00f4ng \u0111\u01b0\u1ee3c tr\u00f9ng m\u1eadt kh\u1ea9u c\u0169.",
-    confirmRequired: "Vui l\u00f2ng x\u00e1c nh\u1eadn m\u1eadt kh\u1ea9u m\u1edbi.",
-    confirmMismatch: "M\u1eadt kh\u1ea9u x\u00e1c nh\u1eadn kh\u00f4ng kh\u1edbp.",
-    success: "C\u1eadp nh\u1eadt m\u1eadt kh\u1ea9u th\u00e0nh c\u00f4ng.",
+    currentRequired: "Vui lòng nhập mật khẩu cũ.",
+    newRequired: "Vui lòng nhập mật khẩu mới.",
+    newMin: "Mật khẩu mới phải có ít nhất 8 ký tự.",
+    newSame: "Mật khẩu mới không được trùng mật khẩu cũ.",
+    confirmRequired: "Vui lòng xác nhận mật khẩu mới.",
+    confirmMismatch: "Mật khẩu xác nhận không khớp.",
+    success: "Cập nhật mật khẩu thành công.",
 };
 
 export function useChangePassword() {
@@ -21,6 +22,7 @@ export function useChangePassword() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState("");
+    const [changePasswordApi] = useChangePasswordMutation();
 
     const validateFields = () => {
         let isValid = true;
@@ -63,20 +65,29 @@ export function useChangePassword() {
 
         setIsLoading(true);
         setFeedbackMessage("");
-        await new Promise((resolve) => setTimeout(resolve, 400));
-
-        setIsSuccess(true);
-        setFeedbackMessage(message.success);
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setIsLoading(false);
-
-        setTimeout(() => {
-            if (router.canGoBack()) router.back();
-        }, 900);
-
-        return true;
+        
+        try {
+            await changePasswordApi({
+                currentPassword,
+                oldPassword: currentPassword,
+                newPassword,
+            }).unwrap();
+            setIsSuccess(true);
+            setFeedbackMessage(message.success);
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+            setTimeout(() => {
+                if (router.canGoBack()) router.back();
+            }, 900);
+            return true;
+        } catch (err: any) {
+            setIsSuccess(false);
+            setFeedbackMessage(err?.data?.error || "Cập nhật mật khẩu thất bại.");
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return {

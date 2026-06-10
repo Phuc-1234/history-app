@@ -1,41 +1,64 @@
 // services/authApi.ts
 import { apiSlice } from "@/services/apiSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import {
     LoginRequestBody,
-    LoginSuccessResponse,
+    LoginResponseBody,
     RegisterRequestBody, // Imported from shared contract packages
     RegisterResponseBody,
     VerifyOtpResponseBody, // Map to your backend types
     ResendOtpRequestBody, // Map to your backend types
     ResendOtpResponseBody, // Imported from shared contract packages
+    UserProfileResponseBody,
+    UserProfileSummary,
+    UpdateProfileRequestBody,
+    ChangePasswordRequestBody,
+    UpdateUserDataRequestBody,
+    UpdateUserEmailRequestBody,
 } from "@history-app/shared";
 import { setProfile } from "../store/authSlice";
+import type { RootState } from "@/store/store";
 
 export const authApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        // --- Existing Login Mutation ---
-        login: builder.mutation<LoginSuccessResponse, LoginRequestBody>({
+        // --- Refactored Login Mutation ---
+        login: builder.mutation<LoginResponseBody, LoginRequestBody>({
             query: (credentials) => ({
                 url: "/api/auth/login",
                 method: "POST",
                 body: credentials,
             }),
-            // Invalidate 'User' cache tag on login to force refetching fresh state
             invalidatesTags: ["User"],
-            // Seamlessly save the token to storage immediately on success
-            async onQueryStarted(_, { queryFulfilled }) {
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    if (data?.session?.accessToken) {
-                        await AsyncStorage.setItem(
-                            "user_token",
-                            data.session.accessToken,
-                        );
+                    console.log("[authApi] login success, data:", data);
+
+                    if (data && "session" in data && data.session) {
+                        console.log("[authApi] login saving access_token:", data.session.accessToken);
+                        // Persist BOTH tokens safely
+                        if (Platform.OS === "web") {
+                            try {
+                                localStorage.setItem("access_token", data.session.accessToken);
+                                localStorage.setItem("refresh_token", data.session.refreshToken);
+                            } catch (e) {
+                                console.error("localStorage setItem failed:", e);
+                            }
+                        }
+                        await AsyncStorage.multiSet([
+                            ["access_token", data.session.accessToken],
+                            ["refresh_token", data.session.refreshToken],
+                        ]);
+
+                        // Automatically sync global profile store instantly
+                        dispatch(setProfile(data.profile));
+                    } else {
+                        console.warn("[authApi] login response does not contain session:", data);
                     }
                 } catch (error) {
                     console.error(
-                        "Failed to persist auth token on login:",
+                        "Failed to execute onQueryStarted login side-effects:",
                         error,
                     );
                 }
@@ -56,6 +79,43 @@ export const authApi = apiSlice.injectEndpoints({
             invalidatesTags: ["User"],
         }),
 
+        googleVerify: builder.mutation<LoginResponseBody, { idToken: string }>({
+            query: (body) => ({
+                url: "/api/auth/google/verify",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] googleVerify success, data:", data);
+
+                    if (data && "session" in data && data.session) {
+                        if (Platform.OS === "web") {
+                            try {
+                                localStorage.setItem("access_token", data.session.accessToken);
+                                localStorage.setItem("refresh_token", data.session.refreshToken);
+                            } catch (e) {
+                                console.error("localStorage setItem failed:", e);
+                            }
+                        }
+                        await AsyncStorage.multiSet([
+                            ["access_token", data.session.accessToken],
+                            ["refresh_token", data.session.refreshToken],
+                        ]);
+
+                        dispatch(setProfile(data.profile));
+                    }
+                } catch (error) {
+                    console.error(
+                        "Failed to execute onQueryStarted googleVerify side-effects:",
+                        error,
+                    );
+                }
+            },
+        }),
+
         verifyOtp: builder.mutation<
             VerifyOtpResponseBody,
             { email: string; token: string }
@@ -69,14 +129,22 @@ export const authApi = apiSlice.injectEndpoints({
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    if ("session" in data && data.session?.accessToken) {
-                        // 1. Persist the clean session token strings
-                        await AsyncStorage.setItem(
-                            "user_token",
-                            data.session.accessToken,
-                        );
 
-                        // 2. Set the global profile cache to switch guest TopBar screens instantly
+                    // Type Guard: Make sure we have a success response (contains session and profile)
+                    if (data && "session" in data && data.session) {
+                        // FIX HERE: Persist BOTH tokens safely upon verification success
+                        if (Platform.OS === "web") {
+                            try {
+                                localStorage.setItem("access_token", data.session.accessToken);
+                                localStorage.setItem("refresh_token", data.session.refreshToken);
+                            } catch (e) {
+                                console.error("localStorage setItem failed:", e);
+                            }
+                        }
+                        await AsyncStorage.multiSet([
+                            ["access_token", data.session.accessToken],
+                            ["refresh_token", data.session.refreshToken],
+                        ]);
                         dispatch(setProfile(data.profile));
                     }
                 } catch (error) {
@@ -98,6 +166,139 @@ export const authApi = apiSlice.injectEndpoints({
                 body,
             }),
         }),
+
+        getProfile: builder.query<UserProfileResponseBody, void>({
+            query: () => ({
+                url: "/api/user/profile",
+                method: "GET",
+            }),
+            providesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled, getState }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] getProfile success, data:", data);
+                    if (data && !("error" in data)) {
+                        if ("isGuest" in data && data.isGuest) {
+                            // Race condition guard: if login already set a profile in Redux,
+                            // do NOT override it with null from a stale getProfile response
+                            // that fired before the token was written to storage.
+                            const currentProfile = (getState() as RootState).auth.profile;
+                            if (currentProfile) {
+                                console.log("[authApi] getProfile: got guest response but profile already set in Redux — skipping override");
+                                return;
+                            }
+                            console.log("[authApi] getProfile: user is guest, setting profile to null");
+                            dispatch(setProfile(null));
+                        } else {
+                            console.log("[authApi] getProfile: user is logged in, setting profile:", data);
+                            dispatch(setProfile(data as UserProfileSummary));
+                        }
+                    }
+                } catch (error) {
+                    console.error("[authApi] Failed to sync profile query error:", error);
+                }
+            },
+        }),
+
+        updateProfile: builder.mutation<UserProfileSummary, UpdateProfileRequestBody>({
+            query: (body) => ({
+                url: "/api/user/profile",
+                method: "PUT",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] updateProfile success, data:", data);
+                    dispatch(setProfile(data));
+                } catch (error) {
+                    console.error("[authApi] Failed to update profile:", error);
+                }
+            },
+        }),
+
+        changePassword: builder.mutation<{ message: string }, ChangePasswordRequestBody>({
+            query: (body) => ({
+                url: "/api/user/change-password",
+                method: "PUT",
+                body,
+            }),
+        }),
+
+        updateUserData: builder.mutation<{ message: string }, UpdateUserDataRequestBody>({
+            query: (body) => ({
+                url: "/api/user/data",
+                method: "PUT",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] updateUserData success, data:", data);
+                    // Refresh profile
+                    dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+                } catch (error) {
+                    console.error("[authApi] Failed to update user data:", error);
+                }
+            },
+        }),
+
+        updateUserEmail: builder.mutation<{ message: string }, UpdateUserEmailRequestBody>({
+            query: (body) => ({
+                url: "/api/user/email",
+                method: "PUT",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] updateUserEmail success, data:", data);
+                    // Refresh profile
+                    dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+                } catch (error) {
+                    console.error("[authApi] Failed to update email:", error);
+                }
+            },
+        }),
+
+        updateUserPassword: builder.mutation<{ message: string }, ChangePasswordRequestBody>({
+            query: (body) => ({
+                url: "/api/user/password",
+                method: "PUT",
+                body,
+            }),
+        }),
+
+        forgotPassword: builder.mutation<{ message: string }, { email: string }>({
+            query: (body) => ({
+                url: "/api/auth/forgot-password",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        verifyForgotOtp: builder.mutation<{ message: string; accessToken: string }, { email: string; token: string }>({
+            query: (body) => ({
+                url: "/api/auth/verify-forgot-otp",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        completeReset: builder.mutation<{ message: string }, { token: string; newPassword: string }>({
+            query: ({ token, newPassword }) => ({
+                url: "/api/auth/complete-reset",
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: { newPassword },
+            }),
+        }),
+
     }),
     overrideExisting: __DEV__, // Safe hot-reloading for Expo local servers
 });
@@ -108,4 +309,14 @@ export const {
     useRegisterUserMutation,
     useVerifyOtpMutation,
     useResendOtpMutation,
+    useGetProfileQuery,
+    useUpdateProfileMutation,
+    useChangePasswordMutation,
+    useUpdateUserDataMutation,
+    useUpdateUserEmailMutation,
+    useUpdateUserPasswordMutation,
+    useGoogleVerifyMutation,
+    useForgotPasswordMutation,
+    useVerifyForgotOtpMutation,
+    useCompleteResetMutation,
 } = authApi;

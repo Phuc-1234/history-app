@@ -17,6 +17,8 @@ export interface QuestionDto {
     answers?: QuestionAnswerDto[];
 }
 
+
+
 export interface StartTestResponse {
     userTestLogId: string;
     totalQuestionCount: number;
@@ -61,5 +63,8 @@ export interface FinishTestResponse {
         questionId: number;
         isCorrect: boolean;
         earnedXp?: number;
+        correctAnswerIds?: number[];
+        correctText?: string;
+        correctPairs?: Record<string, string>;
     }>;
 }

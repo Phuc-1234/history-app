@@ -6,10 +6,14 @@ import {
     GetTopicsResponse,
     GetLessonsResponse,
     GetSectionsResponse,
+    GetNodesResponse,
     GetLessonTreeResponse,
     GetMindMapResponse,
     MindMapRequestQuery,
-} from "@history-app/shared";
+    GetGradeStructureParams,
+    GetGradeStructureResponse,
+    GetLessonTreeParams
+} from "@history-app/shared"; 
 
 export const getAllGrades = async (
     req: Request<{}, GetGradesResponse, {}>,
@@ -58,6 +62,24 @@ export const getLessonsByTopic = async (
     }
 };
 
+export const getGradeStructure = async (
+    req: Request<GetGradeStructureParams, GetGradeStructureResponse, {}>,
+    res: Response<GetGradeStructureResponse>,
+) => {
+    try {
+        const gradeId = Number(req.params.gradeId);
+        if (Number.isNaN(gradeId)) {
+            return res.status(400).json({ error: "Invalid gradeId" });
+        }
+
+        const gradeStructure = await contentService.getGradeStructure(gradeId);
+        return res.status(200).json(gradeStructure);
+    } catch (err) {
+        console.error("Fetch grade structure error:", err);
+        return res.status(500).json({ error: "Failed to fetch grade structure." });
+    }
+};
+
 export const getSectionsByLesson = async (
     req: Request<{ lessonId: string }, GetSectionsResponse, {}>,
     res: Response<GetSectionsResponse>,
@@ -75,17 +97,25 @@ export const getSectionsByLesson = async (
     }
 };
 
+
+
 export const getLessonTree = async (
-    req: Request<{ lessonId: string }, GetLessonTreeResponse, {}>,
+    req: Request<GetLessonTreeParams, GetLessonTreeResponse, {}>,
     res: Response<GetLessonTreeResponse>,
 ) => {
     try {
         const lessonId = Number(req.params.lessonId);
-        if (Number.isNaN(lessonId))
+        if (Number.isNaN(lessonId)) {
             return res.status(400).json({ error: "Invalid lessonId" });
+        }
 
         const tree = await contentService.getLessonTree(lessonId);
-        return res.status(200).json({ tree });
+        if (!tree) {
+            return res.status(404).json({ error: "Lesson not found." });
+        }
+
+        // Return the object directly to match LessonWithContentDto contract
+        return res.status(200).json(tree);
     } catch (err) {
         console.error("Fetch lesson tree error:", err);
         return res.status(500).json({ error: "Failed to fetch lesson tree." });
@@ -127,6 +157,23 @@ export const getMindMap = async (
             return res.status(404).json({ error: err.message });
         }
         return res.status(500).json({ error: "Failed to fetch mind map." });
+    }
+};
+
+export const getNodesBySection = async (
+    req: Request<{ sectionId: string }, GetNodesResponse, {}>,
+    res: Response<GetNodesResponse>,
+) => {
+    try {
+        const sectionId = Number(req.params.sectionId);
+        if (Number.isNaN(sectionId))
+            return res.status(400).json({ error: "Invalid sectionId" });
+
+        const nodes = await contentService.getNodesBySection(sectionId);
+        return res.status(200).json({ nodes });
+    } catch (err) {
+        console.error("Fetch nodes error:", err);
+        return res.status(500).json({ error: "Failed to fetch nodes." });
     }
 };
 

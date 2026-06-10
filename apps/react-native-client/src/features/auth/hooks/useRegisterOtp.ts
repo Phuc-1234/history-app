@@ -4,11 +4,11 @@ import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import { useVerifyOtpMutation, useResendOtpMutation } from "../services/authApi";
 
-export function useRegisterOtp(email: string, autoSend?: boolean) {
+export function useRegisterOtp(email: string, autoSend?: boolean, length: number = 8) {
     const router = useRouter();
     
     // Core state configurations scaled up matching Supabase 8-digit criteria
-    const [otp, setOtp] = useState<string[]>(Array(8).fill(""));
+    const [otp, setOtp] = useState<string[]>(Array(length).fill(""));
     const [otpError, setOtpError] = useState<string | null>(null);
     const [otpCountdown, setOtpCountdown] = useState<number>(60);
 
@@ -38,8 +38,8 @@ export function useRegisterOtp(email: string, autoSend?: boolean) {
         const fullTokenCode = otp.join("");
         setOtpError(null);
 
-        if (fullTokenCode.length < 8) {
-            setOtpError("Vui lòng nhập đầy đủ mã 8 số OTP.");
+        if (fullTokenCode.length < length) {
+            setOtpError(`Vui lòng nhập đầy đủ mã ${length} số OTP.`);
             return;
         }
 
@@ -59,7 +59,7 @@ export function useRegisterOtp(email: string, autoSend?: boolean) {
             const backendError = error?.data?.error || "Mã xác thực không chính xác.";
             setOtpError(backendError);
         }
-    }, [otp, email, verifyOtp, router]);
+    }, [otp, email, verifyOtp, router, length]);
 
     const handleResendOtp = useCallback(async () => {
         if (otpCountdown > 0 || isLoading) return;
@@ -74,14 +74,14 @@ export function useRegisterOtp(email: string, autoSend?: boolean) {
 
             Alert.alert("Đã gửi lại", "Mã xác thực mới đã được chuyển tới email của bạn.");
             
-            setOtp(Array(8).fill(""));
+            setOtp(Array(length).fill(""));
             setOtpCountdown(60); 
             setOtpError(null);
         } catch (error: any) {
             const backendMsg = error?.data?.error || "Không thể gửi lại mã vào lúc này.";
             Alert.alert("Lỗi hệ thống", backendMsg);
         }
-    }, [email, otpCountdown, isLoading, resendOtp]);
+    }, [email, otpCountdown, isLoading, resendOtp, length]);
 
     // FIX: Handled autoSend safely by placing it AFTER function definitions, 
     // and using a tracking ref so it only executes precisely once on mount.
