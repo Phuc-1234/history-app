@@ -41,7 +41,7 @@ export default function LessonSummaryScreen() {
                         `Action triggers profile route pipeline: ${actionType} for Lesson ID: ${id}`,
                     );
                     if (actionType === "flashcard") {
-                        router.push(`/(3_4_lessons)/4_4_fcard`);
+                        router.push(`/(3_4_lessons)/4_4_fcard?lessonId=${id}`);
                     } else if (actionType === "mindmap") {
                         router.push(`/(3_4_lessons)/4_6_mind_map`);
                     } else if (actionType === "quiz") {
