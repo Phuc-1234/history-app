@@ -14,6 +14,7 @@
     "server": "npm run build:shared && npm run dev --workspace=express-server",
     "nuke": "rimraf node_modules package-lock.json apps/react-native-client/node_modules apps/express-server/node_modules apps/react-native-client/android apps/react-native-client/ios packages/shared/src/generated",
     "setup": "npm run nuke && npm install && npx prisma generate --schema=packages/shared/prisma/schema.prisma && cd apps/react-native-client && npx expo prebuild",
+    "build": "npm run build:render",
     "build:shared": "npm run build --workspace=@history-app/shared",
     "build:server": "npm run build --workspace=express-server",
     "build:render": "npm install && npx prisma generate --schema=packages/shared/prisma/schema.prisma && npm run build:shared && npm run build:server",
