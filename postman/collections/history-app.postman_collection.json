@@ -767,7 +767,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base-url}}/api/content/mindmap?lessonId=1",
+              "raw": "{{base-url}}/api/content/mindmap?lessonId=15",
               "host": [
                 "{{base-url}}"
               ],
@@ -779,7 +779,8 @@
               "query": [
                 {
                   "key": "lessonId",
-                  "value": "1"
+                  "value": "15",
+                  "uuid": "0e6bba21-9969-48fe-b7a8-d5c55df38036"
                 }
               ]
             }
@@ -807,6 +808,62 @@
                 {
                   "key": "gradeId",
                   "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "flash card node id",
+          "id": "7d0091d1-e31b-43ec-81db-07977c4ee24b",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/node/:nodeId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "node",
+                ":nodeId"
+              ],
+              "variable": [
+                {
+                  "key": "nodeId",
+                  "value": "35",
+                  "uuid": "36f6dca2-27df-45a8-931e-6a1bf4b1e29a"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "flash card sction",
+          "id": "9b3e188f-43ee-4571-b60d-d0347337b112",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/section/:sectionId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "section",
+                ":sectionId"
+              ],
+              "variable": [
+                {
+                  "key": "sectionId",
+                  "value": "17",
+                  "uuid": "04ad9a34-78af-4d06-95ff-3d87a2ccdcbe"
                 }
               ]
             }
