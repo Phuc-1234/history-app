@@ -9,6 +9,7 @@ import type { MindMapNode } from "./types";
 export type MindMapQuery = { lessonId: number };
 
 function getQueryPath(query: MindMapQuery): string {
+    
     return `/api/content/mindmap?lessonId=${encodeURIComponent(query.lessonId)}`;
 }
 

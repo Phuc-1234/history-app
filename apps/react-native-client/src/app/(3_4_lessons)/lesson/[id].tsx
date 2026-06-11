@@ -43,7 +43,7 @@ export default function LessonSummaryScreen() {
                     if (actionType === "flashcard") {
                         router.push(`/(3_4_lessons)/4_4_fcard?lessonId=${id}`);
                     } else if (actionType === "mindmap") {
-                        router.push(`/(3_4_lessons)/4_6_mind_map`);
+                        router.push(`/(3_4_lessons)/4_6_mind_map?lessonId=${id}`);
                     } else if (actionType === "quiz") {
                         router.push(`/(6_tests)/6_2_ques_choose`);
                     }
