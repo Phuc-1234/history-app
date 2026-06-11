@@ -101,21 +101,31 @@ export default function ProfileEditScreen() {
         
         formData.append('upload_preset', uploadPreset);
 
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-            {
-                method: 'POST',
-                body: formData,
-            }
-        );
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData?.error?.message || "Lỗi tải ảnh lên Cloudinary");
-        }
-
-        const data = await response.json();
-        return data.secure_url;
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resolve(response.secure_url);
+                    } catch (err) {
+                        reject(new Error("Lỗi đọc phản hồi từ Cloudinary"));
+                    }
+                } else {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        reject(new Error(errorData?.error?.message || "Lỗi tải ảnh lên Cloudinary"));
+                    } catch {
+                        reject(new Error("Lỗi tải ảnh lên Cloudinary"));
+                    }
+                }
+            };
+            xhr.onerror = () => {
+                reject(new Error("Lỗi kết nối mạng khi tải ảnh"));
+            };
+            xhr.send(formData);
+        });
     };
 
     const handleSave = async () => {
