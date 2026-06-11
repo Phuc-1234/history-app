@@ -6,6 +6,8 @@ import {
     ScrollView,
     KeyboardAvoidingView,
     Platform,
+    ActivityIndicator,
+    Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { User, Mail } from "lucide-react-native";
@@ -19,6 +21,7 @@ import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import ProfileAvatar from "../components/ProfileAvatar";
 import SubPageHeader from "../components/SubPageHeader";
+import * as ImagePicker from "expo-image-picker";
 
 export default function ProfileEditScreen() {
     const router = useRouter();
@@ -26,8 +29,10 @@ export default function ProfileEditScreen() {
     const profile = useAppSelector((state) => state.auth.profile);
     const [name, setName] = useState(profile?.name ?? "");
     const [email, setEmail] = useState(profile?.email ?? "");
+    const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [updateUserData] = useUpdateUserDataMutation();
     const [updateUserEmail] = useUpdateUserEmailMutation();
 
@@ -35,6 +40,83 @@ export default function ProfileEditScreen() {
         setName(profile?.name ?? "");
         setEmail(profile?.email ?? "");
     }, [profile?.email, profile?.name]);
+
+    const handlePickImage = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (permissionResult.granted === false) {
+            if (Platform.OS === 'web') {
+                alert("Bạn cần cấp quyền truy cập thư viện ảnh để thay đổi ảnh đại diện!");
+            } else {
+                Alert.alert(
+                    "Quyền truy cập",
+                    "Bạn cần cấp quyền truy cập thư viện ảnh để thay đổi ảnh đại diện!"
+                );
+            }
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            const selectedImage = result.assets[0];
+            setSelectedImageUri(selectedImage.uri); // Only preview locally
+        }
+    };
+
+    const handleUploadImage = async (imageUri: string): Promise<string> => {
+        const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+        if (!cloudName || !uploadPreset) {
+            throw new Error("Chưa cấu hình Cloudinary Cloud Name hoặc Upload Preset trong file .env!");
+        }
+
+        const formData = new FormData();
+        
+        const uriParts = imageUri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        const fileName = imageUri.split('/').pop() || `avatar.${fileType}`;
+
+        if (Platform.OS === 'web') {
+            if (imageUri.startsWith('data:')) {
+                formData.append('file', imageUri);
+            } else {
+                const res = await fetch(imageUri);
+                const blob = await res.blob();
+                formData.append('file', blob, fileName);
+            }
+        } else {
+            formData.append('file', {
+                uri: Platform.OS === 'ios' ? imageUri.replace('file://', '') : imageUri,
+                name: fileName,
+                type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+            } as any);
+        }
+        
+        formData.append('upload_preset', uploadPreset);
+
+        const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+            {
+                method: 'POST',
+                body: formData,
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData?.error?.message || "Lỗi tải ảnh lên Cloudinary");
+        }
+
+        const data = await response.json();
+        return data.secure_url;
+    };
 
     const handleSave = async () => {
         const trimmedName = name.trim();
@@ -58,17 +140,38 @@ export default function ProfileEditScreen() {
         setIsLoading(true);
 
         try {
-            // Update name if changed
-            if (trimmedName !== profile?.name) {
-                await updateUserData({ name: trimmedName }).unwrap();
+            let finalProfileImgUrl = profile?.profileImgUrl;
+
+            // 1. Upload to Cloudinary if new image selected
+            if (selectedImageUri) {
+                setIsUploading(true);
+                finalProfileImgUrl = await handleUploadImage(selectedImageUri);
+                setIsUploading(false);
             }
-            // Update email if changed
+
+            // 2. Save updates to database
+            if (trimmedName !== profile?.name || finalProfileImgUrl !== profile?.profileImgUrl) {
+                await updateUserData({ 
+                    name: trimmedName, 
+                    profileImgUrl: finalProfileImgUrl 
+                }).unwrap();
+            }
+
             if (trimmedEmail !== profile?.email) {
                 await updateUserEmail({ newEmail: trimmedEmail }).unwrap();
             }
+
+            if (Platform.OS === 'web') {
+                alert("Đã cập nhật thông tin thành công!");
+            } else {
+                Alert.alert("Thành công", "Đã cập nhật thông tin thành công!");
+            }
+
             router.back();
         } catch (err: any) {
-            setErrorMsg(err?.data?.error || "Cập nhật thông tin thất bại");
+            console.error("Save error:", err);
+            setErrorMsg(err.message || err?.data?.error || "Cập nhật thông tin thất bại");
+            setIsUploading(false);
         } finally {
             setIsLoading(false);
         }
@@ -94,11 +197,19 @@ export default function ProfileEditScreen() {
                 >
                     <View style={styles.card}>
                         <View style={styles.avatarSection}>
-                            <ProfileAvatar
-                                uri={profile?.profileImgUrl}
-                                size={78}
-                                onEditPress={() => {}}
-                            />
+                            <View style={{ position: "relative" }}>
+                                <ProfileAvatar
+                                    uri={selectedImageUri || profile?.profileImgUrl}
+                                    size={78}
+                                    onEditPress={isUploading ? undefined : handlePickImage}
+                                    showEditButton={!isUploading}
+                                />
+                                {isUploading && (
+                                    <View style={[StyleSheet.absoluteFill, styles.loaderContainer]}>
+                                        <ActivityIndicator size="small" color="#5856D6" />
+                                    </View>
+                                )}
+                            </View>
                         </View>
 
                         <View style={styles.formSection}>
@@ -188,6 +299,13 @@ const styles = StyleSheet.create({
     avatarSection: {
         alignItems: "center",
         marginBottom: 24,
+    },
+
+    loaderContainer: {
+        backgroundColor: "rgba(255, 255, 255, 0.7)",
+        justifyContent: "center",
+        alignItems: "center",
+        borderRadius: 39,
     },
 
     formSection: {

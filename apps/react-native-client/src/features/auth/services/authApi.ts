@@ -298,7 +298,6 @@ export const authApi = apiSlice.injectEndpoints({
                 body: { newPassword },
             }),
         }),
-
     }),
     overrideExisting: __DEV__, // Safe hot-reloading for Expo local servers
 });
