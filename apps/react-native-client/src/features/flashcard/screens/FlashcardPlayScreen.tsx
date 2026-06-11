@@ -1,31 +1,47 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Text, Alert } from "react-native";
+import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 
 import { FlashcardCard } from "../components/FlashcardCard";
 import { FlashcardControls } from "../components/FlashcardControls";
 import { FlashcardProgress } from "../components/FlashcardProgress";
-import { HISTORICAL_FLASHCARDS } from "../data/flashcards";
+import { useGetFlashcardsByLessonQuery } from "../flashcardApiSlice";
 import { CardState } from "../types";
 
-export default function FlashcardPlayScreen() {
+interface FlashcardPlayScreenProps {
+    lessonId?: number;
+}
+
+export default function FlashcardPlayScreen({ lessonId }: FlashcardPlayScreenProps) {
     const router = useRouter();
+
+    // Fetch flashcards from API
+    const {
+        data: flashcards,
+        isLoading,
+        isError,
+        error,
+    } = useGetFlashcardsByLessonQuery(lessonId!, {
+        skip: !lessonId,
+    });
 
     // Initialize 20 cards with 0 memorized count
     const [deck, setDeck] = useState<CardState[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
 
-    // Initialize deck on mount
+    // Initialize deck when API data arrives
     useEffect(() => {
-        const initialDeck = HISTORICAL_FLASHCARDS.map((card) => ({
-            card,
-            memorizedCount: 0,
-        }));
-        setDeck(initialDeck);
-        setCurrentIndex(0);
-        setIsFlipped(false);
-    }, []);
+        if (flashcards && flashcards.length > 0) {
+            const initialDeck = flashcards.map((card) => ({
+                card,
+                memorizedCount: 0,
+            }));
+            setDeck(initialDeck);
+            setCurrentIndex(0);
+            setIsFlipped(false);
+        }
+    }, [flashcards]);
 
     // Filter cards that are not completed (memorized < 2 times)
     const incompleteCards = deck.filter((item) => item.memorizedCount < 2);
@@ -96,6 +112,41 @@ export default function FlashcardPlayScreen() {
         }, 150);
     };
 
+    // --- Loading state ---
+    if (isLoading) {
+        return (
+            <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color="#5856D6" />
+                <Text style={styles.loadingText}>Đang tải thẻ lật...</Text>
+            </View>
+        );
+    }
+
+    // --- Error state ---
+    if (isError) {
+        return (
+            <View style={styles.centerContainer}>
+                <Text style={styles.errorIcon}>⚠️</Text>
+                <Text style={styles.errorTitle}>Không thể tải dữ liệu</Text>
+                <Text style={styles.errorText}>
+                    Vui lòng kiểm tra kết nối mạng và thử lại.
+                </Text>
+            </View>
+        );
+    }
+
+    // --- Empty state (API returns []) ---
+    if (!flashcards || flashcards.length === 0) {
+        return (
+            <View style={styles.centerContainer}>
+                <Text style={styles.emptyIcon}>📭</Text>
+                <Text style={styles.emptyTitle}>Chưa có thẻ lật</Text>
+                <Text style={styles.emptyText}>
+                    Bài học này chưa có thẻ lật nào. Hãy thử bài học khác nhé!
+                </Text>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -111,8 +162,8 @@ export default function FlashcardPlayScreen() {
                         {/* Shows micro-indicator of memorized count for active card */}
                         <Text style={styles.cardHintText}>
                             {currentCardState.memorizedCount === 1
-                                                        ? "Đã thuộc 1 lần (Cần thuộc thêm 1 lần)"
-                                                        : "Chưa thuộc lần nào"}
+                                                ? "Đã thuộc 1 lần (Cần thuộc thêm 1 lần)"
+                                                : "Chưa thuộc lần nào"}
                         </Text>
                     </View>
                 ) : (
@@ -165,13 +216,54 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 8,
     },
+    centerContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 32,
+        backgroundColor: "#F8F9FA",
+    },
+    loadingText: {
+        fontSize: 15,
+        color: "#8E8E93",
+        marginTop: 16,
+        fontWeight: "500",
+    },
+    errorIcon: {
+        fontSize: 48,
+        marginBottom: 16,
+    },
+    errorTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#1C1C1E",
+        marginBottom: 8,
+    },
+    errorText: {
+        fontSize: 14,
+        color: "#8E8E93",
+        textAlign: "center",
+        lineHeight: 20,
+    },
+    emptyIcon: {
+        fontSize: 48,
+        marginBottom: 16,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#1C1C1E",
+        marginBottom: 8,
+    },
+    emptyText: {
+        fontSize: 14,
+        color: "#8E8E93",
+        textAlign: "center",
+        lineHeight: 20,
+    },
     emptyContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-    },
-    emptyText: {
-        fontSize: 16,
-        color: "#8E8E93",
     },
 });
