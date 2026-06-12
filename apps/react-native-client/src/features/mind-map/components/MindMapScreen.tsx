@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import Svg, {
     Path,
-    Rect,
     Defs,
     LinearGradient as SvgLinearGradient,
     Stop,
@@ -292,6 +291,24 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
             />
+            <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+                <Path
+                    d="M 0 140 C 120 80, 280 210, 420 130 C 540 70, 700 150, 900 110"
+                    stroke="#DDD6FE"
+                    strokeWidth={2}
+                    fill="none"
+                    opacity={0.42}
+                />
+                <Path
+                    d="M -40 680 C 140 580, 320 760, 520 700 C 700 650, 860 760, 1040 690"
+                    stroke="#BAE6FD"
+                    strokeWidth={2}
+                    fill="none"
+                    opacity={0.36}
+                />
+            </Svg>
+            <View style={styles.bgGlowTop} pointerEvents="none" />
+            <View style={styles.bgGlowBottom} pointerEvents="none" />
 
             {!query && (
                 <View style={styles.stateBox}>
@@ -353,39 +370,12 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                             viewBox={`0 0 ${bounds.width} ${bounds.height}`}
                         >
                             <Defs>
-                                <SvgLinearGradient id="canvasGrad" x1="0" y1="0" x2="1" y2="1">
-                                    <Stop offset="0" stopColor="#F8FAFC" />
-                                    <Stop offset="0.48" stopColor="#FDFBFF" />
-                                    <Stop offset="1" stopColor="#F0F9FF" />
-                                </SvgLinearGradient>
                                 <SvgLinearGradient id="rootGrad" x1="0" y1="0" x2="1" y2="1">
                                     <Stop offset="0" stopColor="#7C3AED" />
                                     <Stop offset="0.5" stopColor="#6D28D9" />
                                     <Stop offset="1" stopColor="#4F46E5" />
                                 </SvgLinearGradient>
                             </Defs>
-
-                            <Rect
-                                x={0}
-                                y={0}
-                                width={bounds.width}
-                                height={bounds.height}
-                                fill="url(#canvasGrad)"
-                            />
-                            <Path
-                                d={`M 0 ${bounds.height * 0.18} C ${bounds.width * 0.25} ${bounds.height * 0.08}, ${bounds.width * 0.48} ${bounds.height * 0.3}, ${bounds.width} ${bounds.height * 0.16}`}
-                                stroke="#DDD6FE"
-                                strokeWidth={2}
-                                fill="none"
-                                opacity={0.42}
-                            />
-                            <Path
-                                d={`M 0 ${bounds.height * 0.82} C ${bounds.width * 0.28} ${bounds.height * 0.7}, ${bounds.width * 0.6} ${bounds.height * 0.92}, ${bounds.width} ${bounds.height * 0.76}`}
-                                stroke="#BAE6FD"
-                                strokeWidth={2}
-                                fill="none"
-                                opacity={0.36}
-                            />
 
                             {connections.map((conn) => (
                                 <EdgePath
@@ -447,6 +437,28 @@ const styles = StyleSheet.create({
     mapContainer: {
         alignItems: "center",
         justifyContent: "center",
+    },
+    bgGlowTop: {
+        position: "absolute",
+        top: -80,
+        right: -60,
+        width: 280,
+        height: 280,
+        borderRadius: 140,
+        backgroundColor: "#DDD6FE",
+        opacity: 0.18,
+        pointerEvents: "none",
+    },
+    bgGlowBottom: {
+        position: "absolute",
+        bottom: -60,
+        left: -40,
+        width: 240,
+        height: 240,
+        borderRadius: 120,
+        backgroundColor: "#BAE6FD",
+        opacity: 0.15,
+        pointerEvents: "none",
     },
     toolbar: {
         position: "absolute",
