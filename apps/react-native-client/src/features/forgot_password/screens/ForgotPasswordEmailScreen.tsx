@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { ArrowLeft, Mail } from "lucide-react-native";
-import { TopBarWrapper } from "@/features/top_bar";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";

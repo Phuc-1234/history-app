@@ -1,11 +1,11 @@
 import React from "react";
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { InventoryView } from "../../features/inventory";
 
 export default function InventoryScreen() {
     return (
-        <TopBarWrapper>
+        <ScreenWrapper style={{ backgroundColor: "#FAF8F5" }}>
             <InventoryView />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }
