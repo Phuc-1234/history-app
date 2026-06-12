@@ -126,7 +126,7 @@ model Test {
   id             String         @id @default(dbgenerated("gen_random_uuid()"))
   isManual       Boolean        @default(false) @map("is_manual")
   isNationalTest Boolean        @default(false) @map("is_national_test")
-  questionNumber Int            @map("question_number")
+  questionNumber Int            @default(10) @map("question_number")
   timeLimit      Int?           @map("time_limit")
   xpReward       Int            @default(0) @map("xp_reward")
   goldReward     Int            @default(0) @map("gold_reward")
