@@ -9,7 +9,10 @@ import {
     getMindMap,
     getGradeStructure,
     getNodesBySection,
+    getNodeDetail,
+    finishStudyNode,
 } from "../controllers/contentController";
+import { optionalAuth, requireStudent } from "../middlewares/authMiddleware";
 
 const router = Router();
 
@@ -28,14 +31,19 @@ router.get("/lessons/:lessonId/sections", getSectionsByLesson);
 // GET /api/content/sections/:sectionId/nodes
 router.get("/sections/:sectionId/nodes", getNodesBySection);
 
-// GET /api/content/lessons/:lessonId/tree
-router.get("/lessons/:lessonId/tree", getLessonTree);
+// GET /api/content/lessons/:lessonId/tree — optionalAuth for progress %
+router.get("/lessons/:lessonId/tree", optionalAuth, getLessonTree);
 
 // GET /api/content/mindmap
 router.get("/mindmap", getMindMap);
 
-// GET /api/content/grade-struct/:gradeId
-router.get("/grade-struct/:gradeId", getGradeStructure);
+// GET /api/content/grade-struct/:gradeId — optionalAuth for progress %
+router.get("/grade-struct/:gradeId", optionalAuth, getGradeStructure);
+
+// GET /api/content/nodes/:nodeId — full node detail
+router.get("/nodes/:nodeId", optionalAuth, getNodeDetail);
+
+// POST /api/content/nodes/:nodeId/finish-study — mark node as studied
+router.post("/nodes/:nodeId/finish-study", requireStudent, finishStudyNode);
 
 export default router;
- 

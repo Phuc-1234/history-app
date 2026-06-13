@@ -1,11 +1,11 @@
 import * as React from "react";
 import { RankingView } from "../../features/leaderboard";
-import { TopBarWrapper } from "@/features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 
 export default function LeaderboardScreen() {
     return (
-        <TopBarWrapper>
+        <ScreenWrapper>
             <RankingView></RankingView>
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

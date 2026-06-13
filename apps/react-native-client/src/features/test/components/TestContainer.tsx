@@ -28,7 +28,6 @@ import {
     Coins,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { TopBarWrapper } from "../../top_bar";
 import { useTestRunner } from "../hooks/useTestRunner";
 import { useVoiceTestController } from "../hooks/useVoiceTestController";
 import SingleChoiceQuestion from "./SingleChoiceQuestion";
@@ -82,7 +81,7 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
         : 0;
 
     return (
-        <TopBarWrapper>
+        <>
             <View style={styles.container}>
                 {status === "not-started" ? (
                     <TestIntro
@@ -772,7 +771,7 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                     </View>
                 </Modal>
             </View>
-        </TopBarWrapper>
+        </>
     );
 }
 

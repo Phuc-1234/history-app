@@ -1,6 +1,7 @@
 // controllers/contentController.ts
 import { Request, Response } from "express";
 import { contentService } from "../services/contentService";
+import { progressEngine } from "../services/progressEngine";
 import {
     GetGradesResponse,
     GetTopicsResponse,
@@ -63,8 +64,8 @@ export const getLessonsByTopic = async (
 };
 
 export const getGradeStructure = async (
-    req: Request<GetGradeStructureParams, GetGradeStructureResponse, {}>,
-    res: Response<GetGradeStructureResponse>,
+    req: Request<GetGradeStructureParams, any, {}>,
+    res: Response,
 ) => {
     try {
         const gradeId = Number(req.params.gradeId);
@@ -72,7 +73,8 @@ export const getGradeStructure = async (
             return res.status(400).json({ error: "Invalid gradeId" });
         }
 
-        const gradeStructure = await contentService.getGradeStructure(gradeId);
+        const userId = req.user?.id ?? null;
+        const gradeStructure = await contentService.getGradeStructure(gradeId, userId);
         return res.status(200).json(gradeStructure);
     } catch (err) {
         console.error("Fetch grade structure error:", err);
@@ -100,8 +102,8 @@ export const getSectionsByLesson = async (
 
 
 export const getLessonTree = async (
-    req: Request<GetLessonTreeParams, GetLessonTreeResponse, {}>,
-    res: Response<GetLessonTreeResponse>,
+    req: Request<GetLessonTreeParams, any, {}>,
+    res: Response,
 ) => {
     try {
         const lessonId = Number(req.params.lessonId);
@@ -109,7 +111,8 @@ export const getLessonTree = async (
             return res.status(400).json({ error: "Invalid lessonId" });
         }
 
-        const tree = await contentService.getLessonTree(lessonId);
+        const userId = req.user?.id ?? null;
+        const tree = await contentService.getLessonTree(lessonId, userId);
         if (!tree) {
             return res.status(404).json({ error: "Lesson not found." });
         }
@@ -177,3 +180,45 @@ export const getNodesBySection = async (
     }
 };
 
+// ---- V2 Node APIs ----
+
+export const getNodeDetail = async (
+    req: Request<{ nodeId: string }>,
+    res: Response,
+) => {
+    try {
+        const nodeId = Number(req.params.nodeId);
+        if (Number.isNaN(nodeId))
+            return res.status(400).json({ error: "Invalid nodeId" });
+
+        const userId = req.user?.id ?? null;
+        const detail = await contentService.getNodeDetail(nodeId, userId);
+        if (!detail) {
+            return res.status(404).json({ error: "Node not found." });
+        }
+
+        return res.status(200).json(detail);
+    } catch (err) {
+        console.error("Fetch node detail error:", err);
+        return res.status(500).json({ error: "Failed to fetch node detail." });
+    }
+};
+
+export const finishStudyNode = async (
+    req: Request<{ nodeId: string }>,
+    res: Response,
+) => {
+    try {
+        const nodeId = Number(req.params.nodeId);
+        if (Number.isNaN(nodeId))
+            return res.status(400).json({ error: "Invalid nodeId" });
+
+        const userId = req.user!.id;
+        const consequences = await progressEngine.finishStudy(nodeId, userId);
+
+        return res.status(200).json({ consequences });
+    } catch (err) {
+        console.error("Finish study error:", err);
+        return res.status(500).json({ error: "Failed to record study progress." });
+    }
+};

@@ -1,10 +1,10 @@
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { PasswordChangeScreen } from "../../features/profile";
 
 export default function PasswordChangeRoute() {
     return (
-        <TopBarWrapper>
+        <ScreenWrapper>
             <PasswordChangeScreen />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

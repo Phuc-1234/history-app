@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import {
     FlashcardPlayScreen,
     FlashcardFreePlayScreen,
@@ -38,7 +38,7 @@ export default function FlashcardRoute() {
     };
 
     return (
-        <TopBarWrapper
+        <ScreenWrapper
             branchConfig={{
                 hierarchy: "LỚP SỬ 10 > CHƯƠNG I",
                 title: "Sử học và đời sống",
@@ -59,6 +59,6 @@ export default function FlashcardRoute() {
             {selectedMode === "free" && (
                 <FlashcardFreePlayScreen lessonId={numericLessonId} />
             )}
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TopBarWrapper } from "@/features/top_bar";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 
 const text = {

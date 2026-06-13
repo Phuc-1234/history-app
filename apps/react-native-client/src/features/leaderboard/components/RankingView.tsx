@@ -8,7 +8,6 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { PodiumSection } from "./PodiumSection";
 import { RankingList } from "./RankingList";
@@ -26,7 +25,7 @@ export const RankingView: React.FC = () => {
     } = useLeaderboard();
 
     return (
-        <SafeAreaView style={styles.container} edges={["left", "right"]}>
+        <View style={styles.container}>
             {/* Navigation Tabs Header */}
             <View style={styles.tabContainer}>
                 <TouchableOpacity
@@ -118,7 +117,7 @@ export const RankingView: React.FC = () => {
                     )}
                 </ScrollView>
             )}
-        </SafeAreaView>
+        </View>
     );
 };
 

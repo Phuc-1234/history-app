@@ -28,6 +28,7 @@ export interface NodeDto {
     body: string;
     imgUrl?: string | null;
     sectionId: number | null;
+    isComplete?: boolean | null;
 }
 
 export interface SectionDto {

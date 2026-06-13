@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { TopBarWrapper } from "../../../features/top_bar";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { LessonSummary, useLessonSummary } from "../../../features/lesson";
 
 export default function LessonSummaryScreen() {
@@ -26,7 +26,7 @@ export default function LessonSummaryScreen() {
     }
 
     return (
-        <TopBarWrapper
+        <ScreenWrapper
             branchConfig={{
                 hierarchy: `Bài ${summaryData.position}`,
                 title: summaryData.name,
@@ -36,6 +36,9 @@ export default function LessonSummaryScreen() {
             <LessonSummary
                 data={summaryData}
                 sections={rootSections}
+                onNodePress={(nodeId) => {
+                    router.push(`/(3_4_lessons)/lesson/node/${nodeId}`);
+                }}
                 onActionPress={(actionType) => {
                     console.log(
                         `Action triggers profile route pipeline: ${actionType} for Lesson ID: ${id}`,
@@ -49,6 +52,6 @@ export default function LessonSummaryScreen() {
                     }
                 }}
             />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }
