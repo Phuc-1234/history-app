@@ -42,8 +42,18 @@ model Lesson {
   sections   Section[]
   tests      Test[]
   videos     Video[]
+  mindMap    MindMap?
 
   @@map("lessons")
+}
+
+model MindMap {
+  id        Int     @id @default(autoincrement())
+  lessonId  Int     @unique @map("lesson_id")
+  data      Json
+  lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@map("mind_maps")
 }
 
 model Video {

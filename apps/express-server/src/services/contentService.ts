@@ -225,119 +225,26 @@ export class ContentService {
         };
     }
 
-    async getMindMap(params: {
-        gradeId?: number;
-        topicId?: number;
-        lessonId?: number;
-    }): Promise<MindMapNode> {
-        const { gradeId, topicId, lessonId } = params;
+    async generateMindMapForLesson(lessonId: number): Promise<MindMapNode> {
+        const lesson = await prisma.lesson.findUnique({
+            where: { id: lessonId },
+        });
+        if (!lesson) throw new Error("Lesson not found");
 
-        let topics: any[] = [];
-        let lessons: any[] = [];
-        let sections: any[] = [];
-        let nodes: any[] = [];
-        let rootNode: MindMapNode;
+        const sections = await prisma.section.findMany({
+            where: { lessonId },
+            orderBy: { position: "asc" },
+        });
+        const sectionIds = sections.map((s) => s.id);
 
-        if (gradeId !== undefined) {
-            const grade = await prisma.grade.findUnique({
-                where: { id: gradeId },
-            });
-            if (!grade) throw new Error("Grade not found");
-
-            topics = await prisma.topic.findMany({
-                where: { gradeId },
-                orderBy: { position: "asc" },
-            });
-            const topicIds = topics.map((t) => t.id);
-
-            lessons = await prisma.lesson.findMany({
-                where: { topicId: { in: topicIds } },
-                orderBy: { position: "asc" },
-            });
-            const lessonIds = lessons.map((l) => l.id);
-
-            sections = await prisma.section.findMany({
-                where: { lessonId: { in: lessonIds } },
-                orderBy: { position: "asc" },
-            });
-            const sectionIds = sections.map((s) => s.id);
-
-            nodes = await prisma.node.findMany({
-                where: { sectionId: { in: sectionIds } },
-                orderBy: { position: "asc" },
-            });
-
-            rootNode = {
-                id: grade.id,
-                type: "grade",
-                name: `Grade ${grade.id}`,
-                children: [],
-            };
-        } else if (topicId !== undefined) {
-            const topic = await prisma.topic.findUnique({
-                where: { id: topicId },
-            });
-            if (!topic) throw new Error("Topic not found");
-
-            topics = [topic];
-
-            lessons = await prisma.lesson.findMany({
-                where: { topicId },
-                orderBy: { position: "asc" },
-            });
-            const lessonIds = lessons.map((l) => l.id);
-
-            sections = await prisma.section.findMany({
-                where: { lessonId: { in: lessonIds } },
-                orderBy: { position: "asc" },
-            });
-            const sectionIds = sections.map((s) => s.id);
-
-            nodes = await prisma.node.findMany({
-                where: { sectionId: { in: sectionIds } },
-                orderBy: { position: "asc" },
-            });
-
-            rootNode = {
-                id: topic.id,
-                type: "topic",
-                name: topic.name,
-                children: [],
-            };
-        } else if (lessonId !== undefined) {
-            const lesson = await prisma.lesson.findUnique({
-                where: { id: lessonId },
-            });
-            if (!lesson) throw new Error("Lesson not found");
-
-            lessons = [lesson];
-
-            sections = await prisma.section.findMany({
-                where: { lessonId },
-                orderBy: { position: "asc" },
-            });
-            const sectionIds = sections.map((s) => s.id);
-
-            nodes = await prisma.node.findMany({
-                where: { sectionId: { in: sectionIds } },
-                orderBy: { position: "asc" },
-            });
-
-            rootNode = {
-                id: lesson.id,
-                type: "lesson",
-                name: lesson.name,
-                children: [],
-            };
-        } else {
-            throw new Error("Invalid parameters");
-        }
+        const nodes = await prisma.node.findMany({
+            where: { sectionId: { in: sectionIds } },
+            orderBy: { position: "asc" },
+        });
 
         // Maps
         const nodeMap = new Map<number, MindMapNode>();
         const sectionMap = new Map<number, MindMapNode>();
-        const lessonMap = new Map<number, MindMapNode>();
-        const topicMap = new Map<number, MindMapNode>();
 
         // 1. Nodes
         for (const n of nodes) {
@@ -359,26 +266,6 @@ export class ContentService {
             });
         }
 
-        // 3. Lessons
-        for (const l of lessons) {
-            lessonMap.set(l.id, {
-                id: l.id,
-                type: "lesson",
-                name: l.name,
-                children: [],
-            });
-        }
-
-        // 4. Topics
-        for (const t of topics) {
-            topicMap.set(t.id, {
-                id: t.id,
-                type: "topic",
-                name: t.name,
-                children: [],
-            });
-        }
-
         // Link them up:
         // A. Nodes to Sections
         for (const n of nodes) {
@@ -390,6 +277,7 @@ export class ContentService {
         }
 
         // B. Sections to parent Sections or Lessons
+        const lessonChildren: MindMapNode[] = [];
         for (const s of sections) {
             const secObj = sectionMap.get(s.id);
             if (!secObj) continue;
@@ -399,50 +287,148 @@ export class ContentService {
                 if (parentSecObj) {
                     parentSecObj.children!.push(secObj);
                 } else {
-                    const lessonObj = lessonMap.get(s.lessonId);
-                    if (lessonObj) {
-                        lessonObj.children!.push(secObj);
-                    }
+                    lessonChildren.push(secObj);
                 }
             } else {
-                const lessonObj = lessonMap.get(s.lessonId);
-                if (lessonObj) {
-                    lessonObj.children!.push(secObj);
-                }
+                lessonChildren.push(secObj);
             }
         }
 
-        // C. Lessons to Topics
-        for (const l of lessons) {
-            const lessonObj = lessonMap.get(l.id);
-            const topicObj = topicMap.get(l.topicId);
-            if (lessonObj && topicObj) {
-                topicObj.children!.push(lessonObj);
+        return {
+            id: lesson.id,
+            type: "lesson",
+            name: lesson.name,
+            children: lessonChildren,
+        };
+    }
+
+    async getMindMap(params: {
+        gradeId?: number;
+        topicId?: number;
+        lessonId?: number;
+    }): Promise<MindMapNode> {
+        const { gradeId, topicId, lessonId } = params;
+
+        if (lessonId !== undefined) {
+            const lesson = await prisma.lesson.findUnique({
+                where: { id: lessonId },
+            });
+            if (!lesson) throw new Error("Lesson not found");
+
+            const cachedMindMap = await prisma.mindMap.findUnique({
+                where: { lessonId },
+            });
+
+            if (cachedMindMap) {
+                return cachedMindMap.data as unknown as MindMapNode;
             }
+
+            const generatedTree = await this.generateMindMapForLesson(lessonId);
+
+            await prisma.mindMap.create({
+                data: {
+                    lessonId,
+                    data: generatedTree as any,
+                },
+            });
+
+            return generatedTree;
         }
 
-        // D. Topics to Grade
-        for (const t of topics) {
-            const topicObj = topicMap.get(t.id);
-            if (topicObj && gradeId !== undefined) {
-                rootNode.children!.push(topicObj);
-            }
-        }
-
-        // E. Special case for root node linking:
         if (topicId !== undefined) {
-            const topicObj = topicMap.get(topicId);
-            if (topicObj) {
-                rootNode.children = topicObj.children;
+            const topic = await prisma.topic.findUnique({
+                where: { id: topicId },
+            });
+            if (!topic) throw new Error("Topic not found");
+
+            const lessonsList = await prisma.lesson.findMany({
+                where: { topicId },
+                orderBy: { position: "asc" },
+            });
+
+            const lessonNodes: MindMapNode[] = [];
+            for (const l of lessonsList) {
+                let lessonMindMap = await prisma.mindMap.findUnique({
+                    where: { lessonId: l.id },
+                });
+                let data: MindMapNode;
+                if (lessonMindMap) {
+                    data = lessonMindMap.data as unknown as MindMapNode;
+                } else {
+                    data = await this.generateMindMapForLesson(l.id);
+                    await prisma.mindMap.create({
+                        data: {
+                            lessonId: l.id,
+                            data: data as any,
+                        },
+                    });
+                }
+                lessonNodes.push(data);
             }
-        } else if (lessonId !== undefined) {
-            const lessonObj = lessonMap.get(lessonId);
-            if (lessonObj) {
-                rootNode.children = lessonObj.children;
-            }
+
+            return {
+                id: topic.id,
+                type: "topic",
+                name: topic.name,
+                children: lessonNodes,
+            };
         }
 
-        return rootNode;
+        if (gradeId !== undefined) {
+            const grade = await prisma.grade.findUnique({
+                where: { id: gradeId },
+            });
+            if (!grade) throw new Error("Grade not found");
+
+            const topicsList = await prisma.topic.findMany({
+                where: { gradeId },
+                orderBy: { position: "asc" },
+            });
+
+            const topicNodes: MindMapNode[] = [];
+            for (const t of topicsList) {
+                const lessonsList = await prisma.lesson.findMany({
+                    where: { topicId: t.id },
+                    orderBy: { position: "asc" },
+                });
+
+                const lessonNodes: MindMapNode[] = [];
+                for (const l of lessonsList) {
+                    let lessonMindMap = await prisma.mindMap.findUnique({
+                        where: { lessonId: l.id },
+                    });
+                    let data: MindMapNode;
+                    if (lessonMindMap) {
+                        data = lessonMindMap.data as unknown as MindMapNode;
+                    } else {
+                        data = await this.generateMindMapForLesson(l.id);
+                        await prisma.mindMap.create({
+                            data: {
+                                lessonId: l.id,
+                                data: data as any,
+                            },
+                        });
+                    }
+                    lessonNodes.push(data);
+                }
+
+                topicNodes.push({
+                    id: t.id,
+                    type: "topic",
+                    name: t.name,
+                    children: lessonNodes,
+                });
+            }
+
+            return {
+                id: grade.id,
+                type: "grade",
+                name: `Grade ${grade.id}`,
+                children: topicNodes,
+            };
+        }
+
+        throw new Error("Invalid parameters");
     }
 
     async getGradeStructure(gradeId: number): Promise<GradeStructureDto> {
