@@ -207,6 +207,15 @@ model User {
   highestStreak    Int             @default(0) @map("highest_streak")
   lastTestPassedAt DateTime?       @map("last_test_passed_at")
   currentTierIndex Int             @default(1) @map("current_tier_index")
+  isPrivate        Boolean         @default(false) @map("is_private")
+  allowFollow      Boolean         @default(true) @map("allow_follow")
+  allowFriendRequest Boolean       @default(true) @map("allow_friend_request")
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
+  friendshipsAsUser      Friendship[]    @relation("FriendshipUser")
+  friendshipsAsFriend    Friendship[]    @relation("FriendshipFriend")
+  following              Follow[]        @relation("FollowFollower")
+  followers              Follow[]        @relation("FollowFollowing")
   pendingRewards   PendingReward[]
   userFlashcards   UserFlashcard[]
   userItems        UserItem[]
@@ -214,6 +223,48 @@ model User {
   tier             Tier            @relation(fields: [currentTierIndex], references: [index])
   isVerified       Boolean         @default(false) @map("is_verified")
   @@map("users")
+}
+
+model FriendRequest {
+  id         String              @id @default(uuid())
+  senderId   String              @map("sender_id")
+  receiverId String              @map("receiver_id")
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+  sender     User                @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User                @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+  @@index([senderId, status])
+  @@map("friend_requests")
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  friendId  String   @map("friend_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([friendId])
+  @@map("friendships")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  follower    User     @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
 }
 
 model Tier {
@@ -348,6 +399,13 @@ enum UserRole {
   STUDENT
   ADMIN
   SUPER_ADMIN
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
 }
 
 enum ItemType {
