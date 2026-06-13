@@ -8,22 +8,25 @@ import {
     View,
     useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInventory, InventoryItem } from "../hooks/useInventory";
 
 export const InventoryView: React.FC = () => {
     const { inventory, selectedItem, setSelectedItemId, handleUseItem } =
         useInventory();
     const { width } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
 
     // Grid spacing math
     const paddingHorizontal = 20;
     const gap = 12;
-    const gridWidth = width - paddingHorizontal * 2;
-    const cellWidth = (gridWidth - gap * 2) / 3;
+    const gridWidth = width - paddingHorizontal * 2 - insets.left - insets.right;
+    const cellWidth = Math.floor((gridWidth - gap * 2) / 3) - 1;
 
     return (
         <ScrollView
             showsVerticalScrollIndicator={false}
+            style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
         >
             {/* 1. Featured Item Preview Card */}
@@ -111,6 +114,10 @@ export const InventoryView: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+    scrollView: {
+        flex: 1,
+        backgroundColor: "#FAF8F5",
+    },
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 20,
