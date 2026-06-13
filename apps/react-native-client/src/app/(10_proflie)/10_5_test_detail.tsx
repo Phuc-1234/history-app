@@ -1,13 +1,13 @@
 import React from "react";
 import { useRouter } from "expo-router";
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { TestDetailScreen } from "../../features/test";
 
 export default function TestDetailRoute() {
     const router = useRouter();
 
     return (
-        <TopBarWrapper
+        <ScreenWrapper
             branchConfig={{
                 hierarchy: "LỊCH SỬ > CHI TIẾT",
                 title: "Chi tiết bài làm",
@@ -15,6 +15,6 @@ export default function TestDetailRoute() {
             }}
         >
             <TestDetailScreen />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

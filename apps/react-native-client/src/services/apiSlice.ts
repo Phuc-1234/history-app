@@ -72,11 +72,18 @@ const clearAuthTokens = async (): Promise<void> => {
 const baseQuery = fetchBaseQuery({
   baseUrl: API_BASE_URL,
 
-  prepareHeaders: async (headers) => {
+  prepareHeaders: async (headers, { endpoint }) => {
     const token = await getStorageItem(ACCESS_TOKEN_KEY);
 
     if (token) {
       headers.set('authorization', `Bearer ${token}`);
+    }
+
+    if (['updateProfile', 'updateUserData', 'updateUserEmail'].includes(endpoint)) {
+      const refreshToken = await getStorageItem(REFRESH_TOKEN_KEY);
+      if (refreshToken) {
+        headers.set('x-refresh-token', refreshToken);
+      }
     }
 
     return headers;
@@ -216,6 +223,7 @@ const baseQueryWithReauth: BaseQueryFn<
 
 export const apiSlice = createApi({
   reducerPath: 'api',
+  // Tag types are used for automatic caching and invalidation later
   baseQuery: baseQueryWithReauth,
 
   tagTypes: ['User', 'History'],

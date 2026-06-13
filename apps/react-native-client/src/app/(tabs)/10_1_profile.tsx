@@ -1,10 +1,10 @@
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { ProfileMainScreen } from "../../features/profile";
 
 export default function ProfileTab() {
     return (
-        <TopBarWrapper>
+        <ScreenWrapper>
             <ProfileMainScreen />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

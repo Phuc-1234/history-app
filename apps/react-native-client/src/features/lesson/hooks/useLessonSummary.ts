@@ -7,6 +7,7 @@ export interface LessonNode {
     header: string | null; // From backend schema [cite: 11]
     body: string; // From backend schema [cite: 11]
     imgUrl: string | null; // From backend schema [cite: 11]
+    isComplete?: boolean | null;
 }
 
 export interface LessonSection {
@@ -16,6 +17,7 @@ export interface LessonSection {
     position: number; // From backend schema [cite: 8]
     children: LessonSection[]; // Self-referencing recursive section tree layout [cite: 10]
     nodes: LessonNode[]; // Bound database node contents [cite: 11]
+    progress?: { totalNodes: number; completedNodes: number } | null;
 }
 
 export interface LessonSummaryData {

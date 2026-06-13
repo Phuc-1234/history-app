@@ -28,7 +28,6 @@ import {
     Coins,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { TopBarWrapper } from "../../top_bar";
 import { useTestRunner } from "../hooks/useTestRunner";
 import { useVoiceTestController } from "../hooks/useVoiceTestController";
 import SingleChoiceQuestion from "./SingleChoiceQuestion";
@@ -82,7 +81,7 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
         : 0;
 
     return (
-        <TopBarWrapper>
+        <>
             <View style={styles.container}>
                 {status === "not-started" ? (
                     <TestIntro
@@ -772,7 +771,7 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
                     </View>
                 </Modal>
             </View>
-        </TopBarWrapper>
+        </>
     );
 }
 
@@ -1345,5 +1344,62 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#4A5568",
         fontStyle: "italic",
+    },
+     reviewTitle: {
+        fontSize: 16,
+        fontWeight: "800",
+        color: "#1A202C",
+        paddingHorizontal: 20,
+        marginBottom: 14,
+    },
+    reviewList: {
+        paddingHorizontal: 20,
+        gap: 12,
+    },
+    reviewCard: {
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#EDF2F7",
+        borderRadius: 18,
+        padding: 16,
+    },
+    reviewHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    reviewIndex: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: "#A0AEC0",
+        textTransform: "uppercase",
+    },
+    gradingBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 100,
+    },
+    gradingBadgeCorrect: {
+        backgroundColor: "#ECFDF5",
+    },
+    gradingBadgeIncorrect: {
+        backgroundColor: "#FEF2F2",
+    },
+    gradingBadgeText: {
+        fontSize: 11,
+        fontWeight: "800",
+    },
+    gradingBadgeTextCorrect: {
+        color: "#059669",
+    },
+    gradingBadgeTextIncorrect: {
+        color: "#DC2626",
+    },
+    reviewText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#2D3748",
+        lineHeight: 20,
     },
 });

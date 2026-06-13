@@ -1,11 +1,11 @@
 import React from "react";
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { ShopView } from "../../features/shop";
 
 export default function ShopScreen() {
   return (
-    <TopBarWrapper>
+    <ScreenWrapper>
       <ShopView />
-    </TopBarWrapper>
+    </ScreenWrapper>
   );
 }

@@ -5,20 +5,14 @@ import {
   View,
   Image,
   TouchableOpacity,
-  Dimensions,
-} from 'react-native'; 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// 1. Import useRouter của Expo Router để điều hướng
-import { useRouter } from 'expo-router'; 
-
-const { width } = Dimensions.get('window');
+import { useRouter } from 'expo-router';
 
 export default function OnboardingScreen1() {
-  // 2. Khai báo router (Thay thế hoàn toàn cho prop navigation cũ)
-  const router = useRouter(); 
-  
-  // Hàm lưu trạng thái "đã xem onboarding" vào máy
+  const router = useRouter();
+
   const setOnboardingComplete = async () => {
     try {
       await AsyncStorage.setItem('hasSeenOnboarding', 'true');
@@ -28,55 +22,45 @@ export default function OnboardingScreen1() {
   };
 
   const handleSkip = async () => {
-    console.log('Bỏ qua onboarding');
-    await setOnboardingComplete(); 
-    // 3. Chuyển hướng thẳng sang luồng đăng nhập auth của bạn bằng replace
-    // router.replace('/(1_auth)'); 
+    await setOnboardingComplete();
+    router.replace('/(routing)/welcome');
   };
 
   const handleNext = () => {
-    console.log('Chuyển sang màn hình tiếp theo');
-    // 4. Đẩy sang màn hình 2 nằm chung thư mục nhóm
-     router.push('/(routing)/screen2'); 
+    router.push('/(routing)/screen2');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Nút Bỏ qua nằm ở góc trên bên phải */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleSkip}>
           <Text style={styles.skipText}>Bỏ qua</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Khu vực chứa hình minh họa chính */}
       <View style={styles.imageContainer}>
         <Image
-          // 5. Đường dẫn nhảy ra 2 cấp (từ app/(routing) -> app -> src -> gốc chứa assets)
-          source={require('../../../assets/images/onboarding1.png')} 
+          source={require('../../../assets/images/onboarding1.png')}
           style={styles.illustrationImage}
           resizeMode="contain"
         />
       </View>
 
-      {/* Phần bo góc màu trắng phía dưới */}
       <View style={styles.contentContainer}>
         <Text style={styles.title}>Học Lịch sử thông minh</Text>
-        
+
         <Text style={styles.description}>
           Hệ thống bài học được biên soạn theo chương trình THPT. Làm đề trắc nghiệm và theo dõi tiến trình học tập của bạn.
         </Text>
 
-        {/* Thống kê dấu chấm */}
         <View style={styles.paginationContainer}>
           <View style={[styles.dot, styles.activeDot]} />
           <View style={styles.dot} />
           <View style={styles.dot} />
         </View>
 
-        {/* Nút Tiếp tục */}
         <TouchableOpacity style={styles.button} onPress={handleNext}>
-          <Text style={styles.buttonText}>Tiếp tục  ➔</Text>
+          <Text style={styles.buttonText}>Tiếp tục ➔</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
