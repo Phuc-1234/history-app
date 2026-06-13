@@ -57,6 +57,7 @@ model Video {
   status    VideoStatus @default(PENDING)
   createdAt DateTime    @default(now()) @map("created_at")
   lesson    Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  nodes     Node[]
 
   @@map("videos")
 }
@@ -80,15 +81,18 @@ model Section {
 }
 
 model Node {
-  id         Int         @id @default(autoincrement())
-  position   Int
-  header     String?
-  body       String
-  imgUrl     String?     @map("img_url")
-  sectionId  Int         @map("section_id")
-  flashcards Flashcard[]
-  section    Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  questions  Question[]
+  id             Int                @id @default(autoincrement())
+  position       Int
+  header         String?
+  body           String
+  imgUrl         String?            @map("img_url")
+  sectionId      Int                @map("section_id")
+  videoId        String?            @map("video_id")
+  flashcards     Flashcard[]
+  section        Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  questions      Question[]
+  video          Video?             @relation(fields: [videoId], references: [id])
+  nodeProgresses UserNodeProgress[]
 
   @@map("nodes")
 }
@@ -198,21 +202,22 @@ model User {
   id               String          @id @default(uuid())
   role             UserRole        @default(STUDENT)
   name             String
-  email            String          @unique
-  totalXp          Int             @default(0) @map("total_xp")
-  totalGold        Int             @default(0) @map("total_gold")
-  isHidden         Boolean         @default(false) @map("is_hidden")
-  profileImgUrl    String?         @map("profile_img_url")
-  currentStreak    Int             @default(0) @map("current_streak")
-  highestStreak    Int             @default(0) @map("highest_streak")
-  lastTestPassedAt DateTime?       @map("last_test_passed_at")
-  currentTierIndex Int             @default(1) @map("current_tier_index")
+  email            String             @unique
+  totalXp          Int                @default(0) @map("total_xp")
+  totalGold        Int                @default(0) @map("total_gold")
+  isHidden         Boolean            @default(false) @map("is_hidden")
+  profileImgUrl    String?            @map("profile_img_url")
+  currentStreak    Int                @default(0) @map("current_streak")
+  highestStreak    Int                @default(0) @map("highest_streak")
+  lastTestPassedAt DateTime?          @map("last_test_passed_at")
+  currentTierIndex Int                @default(1) @map("current_tier_index")
   pendingRewards   PendingReward[]
   userFlashcards   UserFlashcard[]
   userItems        UserItem[]
   testLogs         UserTestLog[]
-  tier             Tier            @relation(fields: [currentTierIndex], references: [index])
-  isVerified       Boolean         @default(false) @map("is_verified")
+  nodeProgresses   UserNodeProgress[]
+  tier             Tier               @relation(fields: [currentTierIndex], references: [index])
+  isVerified       Boolean            @default(false) @map("is_verified")
   @@map("users")
 }
 
@@ -367,4 +372,18 @@ enum RewardType {
   ITEM
   XP
   GOLD
+}
+
+model UserNodeProgress {
+  userId          String    @map("user_id")
+  nodeId          Int       @map("node_id")
+  studiedAt       DateTime? @map("studied_at")
+  threshold       Float?    @map("threshold")
+  allTestPassedAt DateTime? @map("all_test_passed_at")
+  nodeCompletedAt DateTime? @map("node_completed_at")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  node            Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, nodeId])
+  @@map("user_node_progress")
 }
