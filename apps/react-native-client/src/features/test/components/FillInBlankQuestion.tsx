@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View, TouchableOpacity } from "react-nativ
 import { X, Type } from "lucide-react-native";
 import { FillInBlankQuestion as FillInBlankQuestionType } from "../types";
 
+
 interface Props {
     question: FillInBlankQuestionType;
     value: string | undefined;

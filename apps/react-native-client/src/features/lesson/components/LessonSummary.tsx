@@ -18,12 +18,14 @@ interface LessonSummaryProps {
     onActionPress: (
         actionType: "flashcard" | "mindmap" | "slide" | "quiz",
     ) => void;
+    onNodePress?: (nodeId: number) => void;
 }
 
 export function LessonSummary({
     data,
     sections,
     onActionPress,
+    onNodePress,
 }: LessonSummaryProps) {
     return (
         <ScrollView
@@ -140,6 +142,7 @@ export function LessonSummary({
                         key={section.id}
                         section={section}
                         isTopLevel={true}
+                        onNodePress={onNodePress}
                     />
                 ))}
             </View>
