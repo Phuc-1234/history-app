@@ -1,179 +1,351 @@
 # History App
 
-Ứng dụng học tập Lịch sử theo phong cách Duolingo — gamified learning platform được xây dựng dưới dạng **monorepo** với React Native (Expo) client và Express.js backend, sử dụng Supabase Auth + PostgreSQL (Prisma ORM).
+Ứng dụng học Lịch sử theo phong cách gamification, được tổ chức theo dạng monorepo với:
 
-## Tổng quan kiến trúc
+- `apps/react-native-client`: ứng dụng mobile/web bằng Expo, React Native, Expo Router.
+- `apps/express-server`: REST API bằng Express.js và TypeScript.
+- `packages/shared`: Prisma client, database schema và kiểu dữ liệu dùng chung giữa client/server.
 
-```
+## Kiến trúc tổng quan
+
+```text
 history-app/
 ├── apps/
-│   ├── react-native-client/    # Mobile app (Expo SDK 56, React Native 0.85)
-│   └── express-server/         # REST API backend (Express + TypeScript)
+│   ├── react-native-client/       # Expo Router app
+│   └── express-server/            # Express REST API
 ├── packages/
-│   └── shared/                 # Shared Prisma client (Prisma 7 + PostgreSQL)
-├── package.json                # Monorepo root (npm workspaces)
-└── app.json                    # Expo Router plugin config
+│   └── shared/                    # Prisma + shared DTO/type contracts
+├── json/                          # Seed SQL/JSON theo bài học
+├── postman/                       # Collection và environment test API
+├── package.json                   # npm workspaces
+└── app.json
 ```
 
-## Tech Stack
+## Nguyên tắc tổ chức client
 
-| Layer | Công nghệ |
-|-------|-----------|
-| **Mobile Client** | React Native 0.85, Expo SDK 56, Expo Router, TypeScript |
-| **Backend API** | Express.js, TypeScript, ts-node-dev |
-| **Auth** | Supabase Auth (email/password + OTP verification) |
-| **Database** | PostgreSQL (Prisma 7 với `@prisma/adapter-pg`) |
-| **UI Libraries** | `lucide-react-native`, `expo-linear-gradient`, `react-native-svg` |
+Phần code tính năng của React Native client nằm trong:
 
-## Tính năng chính
-
-### Hệ thống học tập
-- **Bài học (Lessons)** — Nội dung được tổ chức theo cấu trúc phân cấp: `Grade → Topic → Lesson → Section → Node`
-- **Slide bài học** — Mixed slides kết hợp nội dung và câu hỏi tương tác
-- **Flashcard** — Thẻ ghi nhớ với hệ thống ôn tập (spaced repetition qua `UserFlashcard`)
-- **Bài kiểm tra (Tests)** — Hỗ trợ 3 loại câu hỏi: Trắc nghiệm (CHOOSE), Điền đáp án (FILL), Nối cột (MATCH)
-- **Đề thi quốc gia** — National tests với giới hạn thời gian
-
-### Gamification
-- **XP & Vàng (Gold)** — Hệ thống điểm kinh nghiệm và tiền tệ
-- **Chuỗi học tập (Streak)** — Theo dõi chuỗi ngày học liên tục với milestone rewards
-- **Hệ thống Tier** — Cấp bậc dựa trên XP tích lũy
-- **Leaderboard** — Bảng xếp hạng người dùng
-- **Cửa hàng (Store)** — Mua vật phẩm bằng vàng (frame, boost XP, boost gold)
-- **Hành trang (Inventory)** — Quản lý vật phẩm đã sở hữu
-- **Phần thưởng (Pending Rewards)** — Phần thưởng từ streak/tier chờ nhận
-
-### Xác thực
-- Đăng ký / Đăng nhập (email + password)
-- Xác thực OTP qua email
-- Đăng nhập xã hội (Google, Facebook — UI sẵn)
-- Quên mật khẩu + đặt lại mật khẩu
-- Thay đổi mật khẩu trong hồ sơ
-
-## Cấu trúc Screen (React Native Client)
-
+```text
+apps/react-native-client/src/features
 ```
+
+Thư mục:
+
+```text
+apps/react-native-client/src/app
+```
+
+chủ yếu chỉ dùng cho Expo Router: khai báo route, tab, stack, lấy params và kết nối sang màn hình/hook/component trong `features`. Khi thêm hoặc sửa nghiệp vụ, UI chính, hook, API slice, state hoặc component của một tính năng, ưu tiên đặt trong `src/features/<feature-name>` thay vì nhồi logic vào file route trong `src/app`.
+
+Ví dụ:
+
+- `src/app/(tabs)/2_1_lessons.tsx` chỉ điều hướng và render `LessonMenu`.
+- `src/app/(3_4_lessons)/lesson/[id].tsx` lấy `id`, bọc `TopBarWrapper`, rồi render `LessonSummary`.
+- `src/app/(6_tests)/6_2_ques_choose.tsx` lấy `testId`, rồi render `TestContainer`.
+
+## Tech stack
+
+| Phần | Công nghệ |
+| --- | --- |
+| Client | Expo SDK 56, React Native 0.85, React 19, TypeScript, Expo Router |
+| State/API client | Redux Toolkit, RTK Query, Redux Persist, AsyncStorage |
+| UI/mobile | React Native SVG, Reanimated, Gesture Handler, Safe Area Context, Expo Linear Gradient, Expo Image, lucide-react-native, Ionicons |
+| Backend | Express.js, TypeScript, ts-node-dev |
+| Auth | Supabase Auth/session flow, JWT middleware, Google verify endpoint |
+| Database | PostgreSQL, Prisma 7, `@prisma/adapter-pg`, `pg` |
+| Shared contracts | `@history-app/shared` package |
+
+## Tính năng client hiện có
+
+Các feature chính trong `apps/react-native-client/src/features`:
+
+| Feature | Vai trò |
+| --- | --- |
+| `auth` | Đăng nhập, đăng ký, xác thực OTP, Google verify, lưu session, sync profile |
+| `forgot_password` | Quên mật khẩu, xác thực OTP quên mật khẩu, đặt mật khẩu mới |
+| `lesson_menu` | Cấu trúc lớp/chủ đề/bài học từ API `grade-struct` |
+| `lesson` | Tổng quan bài học, cây lesson/section/node |
+| `mind-map` | Sơ đồ tư duy từ API `/api/content/mindmap`, layout node/edge bằng SVG |
+| `flashcard` | Màn hình học flashcard và màn hình hoàn thành |
+| `test` | Engine làm bài, câu hỏi chọn đáp án/điền/nối cột, lịch sử và chi tiết bài làm |
+| `leaderboard` | Bảng xếp hạng từ API gamification |
+| `profile` | Hồ sơ, sửa hồ sơ, đổi mật khẩu |
+| `top_bar` | Top bar dùng chung, dữ liệu XP/gold/streak/profile |
+| `streak` | Modal phần thưởng, streak và celebration |
+| `reward-popup` | UI popup phần thưởng/tier path |
+| `videostream` | Video lesson, player, loading/error state |
+| `shop` | Cửa hàng hiện đang dùng mock data phía client |
+| `inventory` | Hành trang hiện đang dùng mock data phía client |
+| `national-tests` | Danh sách đề thi quốc gia hiện đang dùng mock data phía client |
+
+## Route client
+
+```text
 src/app/
-├── index.tsx                          # Redirect → /login
-├── _layout.tsx                        # Root Stack layout
-├── (1_auth)/
-│   ├── 1_1_login.tsx                  # Đăng nhập
-│   ├── 1_2_register.tsx               # Đăng ký
-│   ├── 1_3_forgot.tsx                 # Quên mật khẩu
-│   ├── 1_4_otp_forgot.tsx             # OTP xác minh (quên MK)
-│   ├── 1_5_new_pass_forgot.tsx        # Đặt mật khẩu mới
-│   └── 1_6_otp_confirm.tsx            # OTP xác minh (đăng ký)
-├── (tabs)/
-│   ├── _layout.tsx                    # Bottom tab navigation
-│   ├── 2_1_lessons.tsx                # Danh sách bài học
-│   ├── 5_1_national_tests.tsx         # Đề thi quốc gia
-│   ├── 7_1_inventory.tsx              # Hành trang
-│   ├── 8_1_store.tsx                  # Cửa hàng
-│   ├── 9_1_leaderboard.tsx            # Bảng xếp hạng
-│   └── 10_1_profile.tsx               # Hồ sơ cá nhân
-├── (3_4_lessons)/
-│   ├── 3_1_lesson_summary.tsx         # Tổng quan bài học
-│   ├── 4_1_mixed_slide.tsx            # Slide học tập
-│   ├── 4_2_mixed_ques.tsx             # Câu hỏi trong slide
-│   ├── 4_3_mixed_complete.tsx         # Hoàn thành bài học
-│   ├── 4_4_fcard.tsx                  # Flashcard học tập
-│   ├── 4_5_fcard_complete.tsx         # Hoàn thành flashcard
-│   └── 4_6_mind_map.tsx              # Sơ đồ tư duy (zoom/pan, collapse/expand)
+├── index.tsx                         # Redirect sang onboarding screen1
+├── _layout.tsx                       # Root providers: Redux, PersistGate, SafeArea, Stack
+├── (routing)/                        # Onboarding + welcome
+│   ├── screen1.tsx
+│   ├── screen2.tsx
+│   └── welcome.tsx
+├── (1_auth)/                         # Auth routes
+│   ├── 1_1_login.tsx
+│   ├── 1_2_register.tsx
+│   ├── 1_3_forgot.tsx
+│   ├── 1_4_otp_forgot.tsx
+│   ├── 1_5_new_pass_forgot.tsx
+│   └── 1_6_otp_confirm.tsx
+├── (tabs)/                           # Bottom tabs
+│   ├── 2_1_lessons.tsx
+│   ├── 5_1_national_tests.tsx
+│   ├── 7_1_inventory.tsx
+│   ├── 8_1_store.tsx
+│   ├── 9_1_leaderboard.tsx
+│   └── 10_1_profile.tsx
+├── (3_4_lessons)/                    # Lesson detail flow
+│   ├── lesson/[id].tsx
+│   ├── 4_4_fcard.tsx
+│   ├── 4_5_fcard_complete.tsx
+│   └── 4_6_mind_map.tsx
 ├── (6_tests)/
-│   ├── 6_1_test_summary.tsx           # Tổng quan bài test
-│   └── 6_2_ques_choose.tsx            # Làm bài trắc nghiệm
-└── (10_proflie)/
-    ├── 10_2_profile_edit.tsx          # Chỉnh sửa hồ sơ
-    └── 10_3_password_change.tsx       # Đổi mật khẩu
+│   └── 6_2_ques_choose.tsx
+└── (10_proflie)/                     # Giữ nguyên tên folder hiện tại trong code
+    ├── 10_2_profile_edit.tsx
+    ├── 10_3_password_change.tsx
+    ├── 10_4_test_history.tsx
+    └── 10_5_test_detail.tsx
 ```
 
-## API Endpoints (Express Server)
+Lưu ý: một số route placeholder như `4_1_mixed_slide.tsx`, `4_2_mixed_ques.tsx`, `4_3_mixed_complete.tsx` đang tồn tại nhưng chưa có nội dung đáng kể.
 
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| `POST` | `/api/auth/register` | Đăng ký tài khoản mới |
-| `POST` | `/api/auth/login` | Đăng nhập (trả về session + user profile) |
-| `POST` | `/api/auth/verify-otp` | Xác minh OTP email |
-| `GET`  | `/api/healthcheck` | Health check endpoint |
+## Backend API
 
-## Database Schema (Prisma)
+Server mount các route chính trong `apps/express-server/src/index.ts`:
 
-Sơ đồ thực thể chính:
+| Prefix | Chức năng |
+| --- | --- |
+| `/api/auth` | Auth, OTP, refresh token, Google verify, forgot password |
+| `/api/user` | Profile, cập nhật dữ liệu người dùng, đổi mật khẩu/email |
+| `/api/content` | Grade/topic/lesson/section/node tree, mind map |
+| `/api/gamification` | Leaderboard, tier, milestone reward, item |
+| `/api/tests` | Start test, lấy summary test |
+| `/api/test-logs` | Jump câu hỏi, submit answer, finish test |
+| `/api/admin` | CRUD grade/topic/lesson/section/node/user/video/question/test cho admin |
+| `/api/healthcheck` | Health check |
 
+Một số endpoint đang được client gọi:
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/verify-otp
+POST /api/auth/resend-otp
+POST /api/auth/refresh-token
+POST /api/auth/google/verify
+POST /api/auth/forgot-password
+POST /api/auth/verify-forgot-otp
+POST /api/auth/complete-reset
+
+GET  /api/user/profile
+PUT  /api/user/profile
+PUT  /api/user/data
+PUT  /api/user/email
+PUT  /api/user/change-password
+PUT  /api/user/password
+
+GET  /api/content/grade-struct/:gradeId
+GET  /api/content/lessons/:lessonId/tree
+GET  /api/content/mindmap?lessonId=:lessonId
+
+GET  /api/gamification/leaderboard?limit=20&page=1&sort=xp
+
+POST /api/tests/:testId/start
+GET  /api/tests/:testId/summary
+POST /api/test-logs/:logId/jump
+POST /api/test-logs/:logId/submit-answer
+POST /api/test-logs/:logId/finish
 ```
-Grade → Topic → Lesson → Section → Node
-                  ↓         ↓        ↓
-             Flashcard  Flashcard  Flashcard
-                  ↓         ↓
-              Test (scoped to Grade/Topic/Lesson/Section)
-                  ↓
-           Question → QuestionAnswer
-                  ↓
-           TestQuestion (pivot: Test ↔ Question)
 
-User ←→ Tier (current tier by XP)
-  ├── UserTestLog → UserAnswerLog
-  ├── UserFlashcard
-  ├── UserItem → Item
-  └── PendingReward → Item
+## Database
 
-Item types: FRAME, BOOST_XP_TIME, BOOST_GOLD_TIME, BOOST_XP_PASS, BOOST_GOLD_PASS
-Question types: CHOOSE, FILL, MATCH
+Prisma schema nằm ở:
+
+```text
+packages/shared/prisma/schema.prisma
 ```
 
-## Cài đặt & Chạy dự án
+Các nhóm model chính:
 
-### Yêu cầu
+```text
+Grade -> Topic -> Lesson -> Section -> Node
+                       ├── Video
+                       ├── Flashcard
+                       └── Question
+
+Test -> TestQuestion -> Question -> QuestionAnswer
+User -> UserTestLog -> UserAnswerLog
+User -> UserFlashcard
+User -> UserItem -> Item
+User -> PendingReward
+User -> Tier
+MilestoneReward -> Item
+```
+
+Enum chính:
+
+- `QuestionType`: `CHOOSE`, `FILL`, `MATCH`
+- `UserRole`: `STUDENT`, `ADMIN`, `SUPER_ADMIN`
+- `ItemType`: `FRAME`, `BOOST_XP_TIME`, `BOOST_GOLD_TIME`, `BOOST_XP_PASS`, `BOOST_GOLD_PASS`
+- `RewardSourceType`: `STREAK`, `TIER`
+- `RewardType`: `ITEM`, `XP`, `GOLD`
+- `VideoStatus`: `PENDING`, `PROCESSING`, `READY`, `FAILED`
+
+## Cài đặt
+
+Yêu cầu:
+
 - Node.js
-- PostgreSQL database
-- Supabase project (cho authentication)
+- PostgreSQL
+- Supabase project cho auth/session
 
-### Environment Variables
+Cài dependencies ở root:
 
-Tạo file `.env` ở thư mục root:
+```bash
+npm install
+```
+
+Generate Prisma client:
+
+```bash
+npx prisma generate --schema=packages/shared/prisma/schema.prisma
+```
+
+Chạy migration:
+
+```bash
+npx prisma migrate dev --schema=packages/shared/prisma/schema.prisma
+```
+
+Build package shared:
+
+```bash
+npm run build:shared
+```
+
+## Environment variables
+
+Backend/shared cần các biến môi trường sau. Tùy cách chạy, đặt `.env` ở vị trí mà process đọc được; code hiện tại có đọc `.env` từ package/server và fallback theo `dotenv.config()`.
 
 ```env
-# Supabase (cho Express Server)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# PostgreSQL (cho Prisma — dùng Session/Transaction pooler)
 DATABASE_URL=postgresql://user:password@host:6543/dbname
 MIGRATION_DATABASE_URL=postgresql://user:password@host:5432/dbname
+
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 PORT=5000
 ```
 
-### Cài đặt
+Client dùng:
 
-```bash
-# Cài đặt tất cả dependencies (tự chạy prisma generate)
-npm install
-
-# Chạy migration
-npx prisma migrate dev --schema=packages/shared/prisma/schema.prisma
+```env
+EXPO_PUBLIC_APP_ENV=local
+EXPO_PUBLIC_API_URL=http://localhost:5000
+EXPO_PUBLIC_API_URL_FEATURE=https://your-feature-server.example.com
+EXPO_PUBLIC_API_URL_PRODUCTION=https://your-production-server.example.com
 ```
 
-### Chạy development
+Với thiết bị Android/iOS thật, kiểm tra `apps/react-native-client/src/services/config.ts` và đổi `LOCAL_COMPUTER_IP` sang IPv4 của máy chạy backend.
+
+## Chạy development
+
+Chạy server từ root:
 
 ```bash
-# Khởi động React Native client (Expo)
-cd apps/react-native-client && npx expo start
-
-# Khởi động Express server
-cd apps/express-server && npm run dev
+npm run server
 ```
 
-## Components tái sử dụng
+Chạy client từ root:
 
-| Component | Mô tả |
-|-----------|-------|
-| `Button` | Nút bấm với variant primary/outline, gradient shadow |
-| `Input` | TextInput với icon bên trái, toggle ẩn/hiện password |
-| `SocialLoginButtons` | Nút đăng nhập Google + Facebook |
-| `RewardModal` | Popup phần thưởng (vàng + huy hiệu) với animation |
-| `StreakModal` | Bottom sheet chi tiết chuỗi học tập + milestones |
-| `StreakCelebrationModal` | Popup ăn mừng chuỗi ngày với flame animation |
+```bash
+npm run client
+```
+
+Các mode client:
+
+```bash
+npm run client:local
+npm run client:feature
+npm run client:dev
+```
+
+Hoặc chạy trực tiếp trong client:
+
+```bash
+cd apps/react-native-client
+npx expo start
+```
+
+## Build/deploy
+
+Build shared:
+
+```bash
+npm run build:shared
+```
+
+Build server:
+
+```bash
+npm run build:server
+```
+
+Build cho Render:
+
+```bash
+npm run build:render
+```
+
+Start server build output:
+
+```bash
+npm run start:render
+```
+
+## Seed/content
+
+Repo có dữ liệu học tập và seed trong:
+
+```text
+json/
+bai1_lien_hop_quoc_file_moi_seed.md
+bai2_den_bai4_seed.md
+bai2_den_bai9_full_noi_dung.md
+bai5_den_bai9_docx_full_noi_dung/
+```
+
+Ngoài ra server có script:
+
+```text
+apps/express-server/src/scripts/seeds.ts
+```
+
+## Postman
+
+Collection và environment nằm trong:
+
+```text
+postman/
+```
+
+Dùng để test nhanh các endpoint auth, content, test và gamification.
+
+## Ghi chú hiện trạng
+
+- README cũ bị lỗi encoding tiếng Việt; file này đã được viết lại bằng UTF-8.
+- `src/app` nên giữ vai trò routing/kết nối, còn code tính năng nên tiếp tục nằm trong `src/features`.
+- `shop`, `inventory`, `national-tests` hiện đang dùng dữ liệu mock phía client, chưa phải luồng API đầy đủ.
+- Một số comment/text trong source đang bị mojibake; README này không sửa source code ngoài tài liệu.
 
 ## Giấy phép
 
