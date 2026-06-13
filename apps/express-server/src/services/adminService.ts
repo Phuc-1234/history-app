@@ -27,8 +27,12 @@ import {
     CreateTestBody,
     UpdateTestBody,
     AdminTestDto,
+    FlashcardDto,
+    CreateFlashcardBody,
+    UpdateFlashcardBody,
 } from "@history-app/shared";
 import { supabase } from "../config/supabaseClient";
+import { contentService } from "./contentService";
 
 
 export class AdminService {
@@ -146,6 +150,21 @@ export class AdminService {
         return true;
     }
 
+    // ─────────────────────────────── MINDMAP SYNC ──────────────────────────────
+
+    async syncMindMapForLesson(lessonId: number): Promise<void> {
+        try {
+            const tree = await contentService.generateMindMapForLesson(lessonId);
+            await prisma.mindMap.upsert({
+                where: { lessonId },
+                update: { data: tree as any },
+                create: { lessonId, data: tree as any },
+            });
+        } catch (err) {
+            console.error(`Error syncing mind map for lesson ${lessonId}:`, err);
+        }
+    }
+
     // ─────────────────────────────── SECTION ──────────────────────────────────
 
     async createSection(data: CreateSectionBody): Promise<SectionDto> {
@@ -158,6 +177,7 @@ export class AdminService {
                 parentSectionId: data.parentSectionId ?? null,
             },
         });
+        await this.syncMindMapForLesson(section.lessonId);
         return {
             id: section.id,
             name: section.name,
@@ -183,6 +203,7 @@ export class AdminService {
                 }),
             },
         });
+        await this.syncMindMapForLesson(section.lessonId);
         return {
             id: section.id,
             name: section.name,
@@ -197,6 +218,7 @@ export class AdminService {
         const existing = await prisma.section.findUnique({ where: { id } });
         if (!existing) return false;
         await prisma.section.delete({ where: { id } });
+        await this.syncMindMapForLesson(existing.lessonId);
         return true;
     }
 
@@ -212,6 +234,10 @@ export class AdminService {
                 sectionId: data.sectionId,
             },
         });
+        const section = await prisma.section.findUnique({ where: { id: node.sectionId } });
+        if (section) {
+            await this.syncMindMapForLesson(section.lessonId);
+        }
         return {
             id: node.id,
             position: node.position,
@@ -223,7 +249,10 @@ export class AdminService {
     }
 
     async updateNode(id: number, data: UpdateNodeBody): Promise<NodeDto | null> {
-        const existing = await prisma.node.findUnique({ where: { id } });
+        const existing = await prisma.node.findUnique({
+            where: { id },
+            include: { section: true },
+        });
         if (!existing) return null;
 
         const node = await prisma.node.update({
@@ -235,6 +264,7 @@ export class AdminService {
                 ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
             },
         });
+        await this.syncMindMapForLesson(existing.section.lessonId);
         return {
             id: node.id,
             position: node.position,
@@ -246,9 +276,13 @@ export class AdminService {
     }
 
     async deleteNode(id: number): Promise<boolean> {
-        const existing = await prisma.node.findUnique({ where: { id } });
+        const existing = await prisma.node.findUnique({
+            where: { id },
+            include: { section: true },
+        });
         if (!existing) return false;
         await prisma.node.delete({ where: { id } });
+        await this.syncMindMapForLesson(existing.section.lessonId);
         return true;
     }
 
@@ -730,6 +764,162 @@ export class AdminService {
         if (!existing) return false;
         await prisma.test.delete({ where: { id } });
         return true;
+    }
+
+    // ─────────────────────────────── FLASHCARD ────────────────────────────────────
+
+    async listFlashcards(lessonId?: number): Promise<FlashcardDto[]> {
+        let flashcards;
+        if (lessonId) {
+            flashcards = await prisma.flashcard.findMany({
+                where: {
+                    OR: [
+                        { lessonId },
+                        { section: { lessonId } },
+                        { node: { section: { lessonId } } },
+                    ],
+                },
+                orderBy: { id: "asc" },
+            });
+        } else {
+            flashcards = await prisma.flashcard.findMany({
+                orderBy: { id: "asc" },
+            });
+        }
+
+        return flashcards.map((f) => ({
+            id: f.id,
+            frontText: f.frontText,
+            backText: f.backText,
+            lessonId: f.lessonId,
+            sectionId: f.sectionId,
+            nodeId: f.nodeId,
+        }));
+    }
+
+    async createFlashcard(data: CreateFlashcardBody): Promise<FlashcardDto> {
+        const count = [data.lessonId, data.sectionId, data.nodeId].filter(
+            (id) => id !== undefined && id !== null
+        ).length;
+        if (count !== 1) {
+            throw new Error("A flashcard must belong to exactly one of: lessonId, sectionId, or nodeId.");
+        }
+
+        // Verify entity exists
+        if (data.lessonId) {
+            const lesson = await prisma.lesson.findUnique({ where: { id: data.lessonId } });
+            if (!lesson) throw new Error("Lesson not found.");
+        } else if (data.sectionId) {
+            const section = await prisma.section.findUnique({ where: { id: data.sectionId } });
+            if (!section) throw new Error("Section not found.");
+        } else if (data.nodeId) {
+            const node = await prisma.node.findUnique({ where: { id: data.nodeId } });
+            if (!node) throw new Error("Node not found.");
+        }
+
+        const flashcard = await prisma.flashcard.create({
+            data: {
+                frontText: data.frontText,
+                backText: data.backText,
+                lessonId: data.lessonId ?? null,
+                sectionId: data.sectionId ?? null,
+                nodeId: data.nodeId ?? null,
+            },
+        });
+
+        return {
+            id: flashcard.id,
+            frontText: flashcard.frontText,
+            backText: flashcard.backText,
+            lessonId: flashcard.lessonId,
+            sectionId: flashcard.sectionId,
+            nodeId: flashcard.nodeId,
+        };
+    }
+
+    async updateFlashcard(id: number, data: UpdateFlashcardBody): Promise<FlashcardDto | null> {
+        const existing = await prisma.flashcard.findUnique({ where: { id } });
+        if (!existing) return null;
+
+        // Merge inputs
+        const targetLessonId = data.lessonId !== undefined ? data.lessonId : existing.lessonId;
+        const targetSectionId = data.sectionId !== undefined ? data.sectionId : existing.sectionId;
+        const targetNodeId = data.nodeId !== undefined ? data.nodeId : existing.nodeId;
+
+        const count = [targetLessonId, targetSectionId, targetNodeId].filter(
+            (id) => id !== undefined && id !== null
+        ).length;
+        if (count !== 1) {
+            throw new Error("A flashcard must belong to exactly one of: lessonId, sectionId, or nodeId.");
+        }
+
+        // Verify entity exists
+        if (data.lessonId) {
+            const lesson = await prisma.lesson.findUnique({ where: { id: data.lessonId } });
+            if (!lesson) throw new Error("Lesson not found.");
+        } else if (data.sectionId) {
+            const section = await prisma.section.findUnique({ where: { id: data.sectionId } });
+            if (!section) throw new Error("Section not found.");
+        } else if (data.nodeId) {
+            const node = await prisma.node.findUnique({ where: { id: data.nodeId } });
+            if (!node) throw new Error("Node not found.");
+        }
+
+        const flashcard = await prisma.flashcard.update({
+            where: { id },
+            data: {
+                ...(data.frontText !== undefined && { frontText: data.frontText }),
+                ...(data.backText !== undefined && { backText: data.backText }),
+                lessonId: targetLessonId,
+                sectionId: targetSectionId,
+                nodeId: targetNodeId,
+            },
+        });
+
+        return {
+            id: flashcard.id,
+            frontText: flashcard.frontText,
+            backText: flashcard.backText,
+            lessonId: flashcard.lessonId,
+            sectionId: flashcard.sectionId,
+            nodeId: flashcard.nodeId,
+        };
+    }
+
+    async deleteFlashcard(id: number): Promise<boolean> {
+        const existing = await prisma.flashcard.findUnique({ where: { id } });
+        if (!existing) return false;
+        await prisma.flashcard.delete({ where: { id } });
+        return true;
+    }
+
+    async bulkCreateFlashcards(lessonId: number, flashcards: { frontText: string; backText: string }[]): Promise<void> {
+        const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+        if (!lesson) throw new Error("Lesson not found.");
+
+        await prisma.$transaction(async (tx) => {
+            // Delete all existing flashcards for lesson structure (direct lesson, or sections/nodes of this lesson)
+            await tx.flashcard.deleteMany({
+                where: {
+                    OR: [
+                        { lessonId },
+                        { section: { lessonId } },
+                        { node: { section: { lessonId } } },
+                    ],
+                },
+            });
+
+            // Create new ones directly under lesson
+            if (flashcards.length > 0) {
+                await tx.flashcard.createMany({
+                    data: flashcards.map((f) => ({
+                        frontText: f.frontText,
+                        backText: f.backText,
+                        lessonId,
+                    })),
+                });
+            }
+        });
     }
 }
 
