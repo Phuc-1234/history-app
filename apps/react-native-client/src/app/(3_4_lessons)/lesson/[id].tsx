@@ -36,6 +36,9 @@ export default function LessonSummaryScreen() {
             <LessonSummary
                 data={summaryData}
                 sections={rootSections}
+                onNodePress={(nodeId) => {
+                    router.push(`/(3_4_lessons)/lesson/node/${nodeId}`);
+                }}
                 onActionPress={(actionType) => {
                     console.log(
                         `Action triggers profile route pipeline: ${actionType} for Lesson ID: ${id}`,

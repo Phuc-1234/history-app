@@ -12,6 +12,17 @@ import {
     CompactTestDto,
     LessonWithContentDto
 } from "@history-app/shared";
+import {
+    ProgressCounts,
+    NodeDetailResponse,
+} from "../types/progressTypes";
+
+// Extended section type with progress for tree building
+type SectionWithProgress = SectionDto & {
+    children: SectionWithProgress[];
+    nodes: NodeDto[];
+    progress: ProgressCounts | null;
+};
 
 export class ContentService {
     async getAllGrades(): Promise<GradeDto[]> {
@@ -117,7 +128,8 @@ export class ContentService {
 
     async getLessonTree(
         lessonId: number,
-    ): Promise<LessonWithContentDto | null> {
+        userId?: string | null,
+    ): Promise<(LessonWithContentDto & { progress?: ProgressCounts | null }) | null> {
         // 1. Fetch lesson details along with its nested videos and sections in parallel
         const [lessonData, sections] = await Promise.all([
             prisma.lesson.findUnique({
@@ -169,11 +181,22 @@ export class ContentService {
             },
         });
 
+        // 2b. Fetch user progress if logged in
+        const completedNodeIds = new Set<number>();
+        if (userId) {
+            const progresses = await prisma.userNodeProgress.findMany({
+                where: {
+                    userId,
+                    nodeId: { in: nodes.map((n) => n.id) },
+                    nodeCompletedAt: { not: null },
+                },
+                select: { nodeId: true },
+            });
+            for (const p of progresses) completedNodeIds.add(p.nodeId);
+        }
+
         // 3. Reconstruct tree elements using map mapping structures
-        const map = new Map<
-            number,
-            SectionDto & { children: SectionDto[]; nodes: NodeDto[] }
-        >();
+        const map = new Map<number, SectionWithProgress>();
 
         for (const s of sections) {
             map.set(s.id, {
@@ -185,6 +208,7 @@ export class ContentService {
                 parentSectionId: s.parentSectionId ?? null,
                 children: [],
                 nodes: [],
+                progress: null,
             });
         }
 
@@ -196,13 +220,14 @@ export class ContentService {
                 body: n.body,
                 imgUrl: n.imgUrl ?? null,
                 sectionId: n.sectionId ?? null,
+                isComplete: completedNodeIds.has(n.id),
             };
             if (n.sectionId && map.has(n.sectionId)) {
                 map.get(n.sectionId)!.nodes!.push(nd);
             }
         }
 
-        const roots: SectionDto[] = [];
+        const roots: SectionWithProgress[] = [];
         for (const s of map.values()) {
             if (s.parentSectionId == null) {
                 roots.push(s);
@@ -211,6 +236,44 @@ export class ContentService {
                 if (parent) parent.children!.push(s);
                 else roots.push(s);
             }
+        }
+
+        // 3b. Calculate progress counts bottom-up if user is logged in
+        if (userId) {
+            const calcProgress = (section: SectionWithProgress): ProgressCounts => {
+                let total = section.nodes.length;
+                let completed = section.nodes.filter((n) =>
+                    completedNodeIds.has(n.id),
+                ).length;
+
+                for (const child of section.children) {
+                    const childProgress = calcProgress(child);
+                    total += childProgress.totalNodes;
+                    completed += childProgress.completedNodes;
+                }
+
+                section.progress = { totalNodes: total, completedNodes: completed };
+                return section.progress;
+            };
+
+            let lessonTotal = 0;
+            let lessonCompleted = 0;
+            for (const root of roots) {
+                const p = calcProgress(root);
+                lessonTotal += p.totalNodes;
+                lessonCompleted += p.completedNodes;
+            }
+
+            return {
+                id: lessonData.id,
+                name: lessonData.name,
+                summary: lessonData.summary ?? null,
+                position: lessonData.position,
+                topicId: lessonData.topicId,
+                videos: lessonData.videos,
+                sections: roots,
+                progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
+            };
         }
 
         // 4. Return parent lesson wrapper along with attached nested lists
@@ -222,6 +285,7 @@ export class ContentService {
             topicId: lessonData.topicId,
             videos: lessonData.videos,
             sections: roots,
+            progress: null,
         };
     }
 
@@ -431,7 +495,10 @@ export class ContentService {
         throw new Error("Invalid parameters");
     }
 
-    async getGradeStructure(gradeId: number): Promise<GradeStructureDto> {
+    async getGradeStructure(
+        gradeId: number,
+        userId?: string | null,
+    ): Promise<GradeStructureDto & { progress?: ProgressCounts | null }> {
         const gradeTest = await prisma.test.findFirst({
             where: { gradeId },
             orderBy: { id: "asc" },
@@ -443,6 +510,11 @@ export class ContentService {
             include: {
                 lessons: {
                     orderBy: { position: "asc" },
+                    include: {
+                        sections: {
+                            select: { id: true },
+                        },
+                    },
                 },
                 tests: {
                     where: { topicId: { not: null } },
@@ -451,21 +523,90 @@ export class ContentService {
             },
         });
 
-        const formattedTopics: TopicWithContentsDto[] = topics.map((topic) => {
+        // Collect all sectionIds across the grade to batch-fetch nodes
+        const allSectionIds: number[] = [];
+        for (const topic of topics) {
+            for (const lesson of topic.lessons) {
+                for (const section of lesson.sections) {
+                    allSectionIds.push(section.id);
+                }
+            }
+        }
+
+        // Batch-fetch all nodes in the grade
+        const allNodes = await prisma.node.findMany({
+            where: { sectionId: { in: allSectionIds } },
+            select: { id: true, sectionId: true },
+        });
+
+        // Build sectionId -> nodeIds map
+        const sectionNodeMap = new Map<number, number[]>();
+        for (const n of allNodes) {
+            if (!sectionNodeMap.has(n.sectionId)) {
+                sectionNodeMap.set(n.sectionId, []);
+            }
+            sectionNodeMap.get(n.sectionId)!.push(n.id);
+        }
+
+        // Fetch completed node IDs if logged in
+        const completedNodeIds = new Set<number>();
+        if (userId) {
+            const progresses = await prisma.userNodeProgress.findMany({
+                where: {
+                    userId,
+                    nodeId: { in: allNodes.map((n) => n.id) },
+                    nodeCompletedAt: { not: null },
+                },
+                select: { nodeId: true },
+            });
+            for (const p of progresses) completedNodeIds.add(p.nodeId);
+        }
+
+        let gradeTotal = 0;
+        let gradeCompleted = 0;
+
+        const formattedTopics: (TopicWithContentsDto & { progress?: ProgressCounts | null })[] = topics.map((topic) => {
             const firstTopicTest = topic.tests[0] || null;
+
+            let topicTotal = 0;
+            let topicCompleted = 0;
+
+            const lessonsWithProgress = topic.lessons.map((lesson) => {
+                let lessonTotal = 0;
+                let lessonCompleted = 0;
+
+                for (const section of lesson.sections) {
+                    const nodeIds = sectionNodeMap.get(section.id) ?? [];
+                    lessonTotal += nodeIds.length;
+                    lessonCompleted += nodeIds.filter((id) =>
+                        completedNodeIds.has(id),
+                    ).length;
+                }
+
+                topicTotal += lessonTotal;
+                topicCompleted += lessonCompleted;
+
+                return {
+                    id: lesson.id,
+                    name: lesson.name,
+                    summary: lesson.summary ?? null,
+                    position: lesson.position,
+                    topicId: lesson.topicId,
+                    progress: userId
+                        ? { totalNodes: lessonTotal, completedNodes: lessonCompleted }
+                        : null,
+                };
+            });
+
+            gradeTotal += topicTotal;
+            gradeCompleted += topicCompleted;
 
             return {
                 id: topic.id,
                 name: topic.name,
                 position: topic.position,
                 gradeId: topic.gradeId,
-                lessons: topic.lessons.map((lesson) => ({
-                    id: lesson.id,
-                    name: lesson.name,
-                    summary: lesson.summary ?? null,
-                    position: lesson.position,
-                    topicId: lesson.topicId,
-                })),
+                lessons: lessonsWithProgress,
                 firstTest: firstTopicTest
                     ? {
                           id: firstTopicTest.id,
@@ -473,6 +614,9 @@ export class ContentService {
                           questionNumber: firstTopicTest.questionNumber,
                           timeLimit: firstTopicTest.timeLimit,
                       }
+                    : null,
+                progress: userId
+                    ? { totalNodes: topicTotal, completedNodes: topicCompleted }
                     : null,
             };
         });
@@ -487,6 +631,67 @@ export class ContentService {
                       timeLimit: gradeTest.timeLimit,
                   }
                 : null,
+            progress: userId
+                ? { totalNodes: gradeTotal, completedNodes: gradeCompleted }
+                : null,
+        };
+    }
+
+    /**
+     * Returns full node detail with video info and whether relevant questions exist.
+     */
+    async getNodeDetail(
+        nodeId: number,
+        userId?: string | null,
+    ): Promise<NodeDetailResponse | null> {
+        const node = await prisma.node.findUnique({
+            where: { id: nodeId },
+            include: {
+                video: {
+                    select: {
+                        id: true,
+                        hlsUrl: true,
+                        duration: true,
+                    },
+                },
+            },
+        });
+
+        if (!node) return null;
+
+        const questionCount = await prisma.question.count({
+            where: { nodeId },
+        });
+
+        let isStudied: boolean | null = null;
+        let isCompleted: boolean | null = null;
+
+        if (userId) {
+            const progress = await prisma.userNodeProgress.findUnique({
+                where: { userId_nodeId: { userId, nodeId } },
+            });
+            isStudied = progress?.studiedAt != null;
+            isCompleted = progress?.nodeCompletedAt != null;
+        }
+
+        return {
+            id: node.id,
+            position: node.position,
+            header: node.header,
+            body: node.body,
+            imgUrl: node.imgUrl,
+            sectionId: node.sectionId,
+            videoId: node.videoId,
+            video: node.video
+                ? {
+                      id: node.video.id,
+                      hlsUrl: node.video.hlsUrl,
+                      duration: node.video.duration,
+                  }
+                : null,
+            hasRelevantQuestions: questionCount > 0,
+            isStudied,
+            isCompleted,
         };
     }
 }
