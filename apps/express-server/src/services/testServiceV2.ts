@@ -385,7 +385,17 @@ export class TestServiceV2 {
         if (testId) {
             const test = await prisma.test.findUnique({
                 where: { id: testId },
-                include: { testQuestions: { orderBy: { position: "asc" } }, preset: true },
+                include: {
+                    testQuestions: {
+                        where: {
+                            question: {
+                                isActive: true,
+                            },
+                        },
+                        orderBy: { position: "asc" },
+                    },
+                    preset: true,
+                },
             });
             if (!test) throw serviceError("Test not found", "NOT_FOUND");
 
@@ -704,7 +714,7 @@ export class TestServiceV2 {
     private async fetchQuestionDtos(ids: number[]): Promise<QuestionV2Dto[]> {
         if (!ids.length) return [];
         const questions = await prisma.question.findMany({
-            where: { id: { in: ids } },
+            where: { id: { in: ids }, isActive: true },
             select: {
                 id: true,
                 type: true,
