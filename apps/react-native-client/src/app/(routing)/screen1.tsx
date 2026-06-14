@@ -9,35 +9,28 @@ import {
 } from 'react-native'; 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// 1. Import useRouter của Expo Router để điều hướng
 import { useRouter } from 'expo-router'; 
 
 const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen1() {
-  // 2. Khai báo router (Thay thế hoàn toàn cho prop navigation cũ)
   const router = useRouter(); 
   
-  // Hàm lưu trạng thái "đã xem onboarding" vào máy
-  const setOnboardingComplete = async () => {
+  // Hàm xử lý khi bấm Bỏ qua: lưu trạng thái đã xem và nhảy phắt sang Welcome luồng chính
+  const handleSkip = async () => {
     try {
+      console.log('Bỏ qua onboarding từ màn 1');
       await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+      router.replace("/(1_auth)/1_1_login")
     } catch (error) {
-      console.log('Lỗi lưu trạng thái Onboarding:', error);
+      console.log('Lỗi lưu trạng thái:', error);
     }
   };
 
-  const handleSkip = async () => {
-    console.log('Bỏ qua onboarding');
-    await setOnboardingComplete(); 
-    // 3. Chuyển hướng thẳng sang luồng đăng nhập auth của bạn bằng replace
-    // router.replace('/(1_auth)'); 
-  };
-
+  // Hàm xử lý khi bấm Tiếp tục: chuyển sang màn hình số 2 ngang hàng
   const handleNext = () => {
-    console.log('Chuyển sang màn hình tiếp theo');
-    // 4. Đẩy sang màn hình 2 nằm chung thư mục nhóm
-     router.push('/(routing)/screen2'); 
+    console.log('Chuyển sang onboarding 2');
+    router.push('/(routing)/screen2'); 
   };
 
   return (
@@ -49,10 +42,9 @@ export default function OnboardingScreen1() {
         </TouchableOpacity>
       </View>
 
-      {/* Khu vực chứa hình minh họa chính */}
+      {/* Khu vực chứa hình minh họa chính (Đã căn chuẩn không bị khoảng trống) */}
       <View style={styles.imageContainer}>
         <Image
-          // 5. Đường dẫn nhảy ra 2 cấp (từ app/(routing) -> app -> src -> gốc chứa assets)
           source={require('../../../assets/images/onboarding1.png')} 
           style={styles.illustrationImage}
           resizeMode="contain"
@@ -67,7 +59,7 @@ export default function OnboardingScreen1() {
           Hệ thống bài học được biên soạn theo chương trình THPT. Làm đề trắc nghiệm và theo dõi tiến trình học tập của bạn.
         </Text>
 
-        {/* Thống kê dấu chấm */}
+        {/* Cụm dấu chấm chuyển trang */}
         <View style={styles.paginationContainer}>
           <View style={[styles.dot, styles.activeDot]} />
           <View style={styles.dot} />
@@ -83,6 +75,7 @@ export default function OnboardingScreen1() {
   );
 }
 
+// 📦 TOÀN BỘ CSS ĐÃ ĐƯỢC DUỖI THẲNG THEO CHIỀU DỌC ĐÚNG Ý HỒNG NÈ:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -100,15 +93,16 @@ const styles = StyleSheet.create({
     color: '#4B49E7',
   },
   imageContainer: {
-    flex: 1.2,
+    flex: 1.4,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    width: '100%',
+    paddingHorizontal: 0,
+    marginTop: 10,
   },
   illustrationImage: {
-    width: '100%',
-    height: '90%',
-    borderRadius: 16,
+    width: '90%',
+    height: '100%',
   },
   contentContainer: {
     flex: 1,
@@ -120,7 +114,10 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 5,
@@ -167,7 +164,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     shadowColor: '#5346E0',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,

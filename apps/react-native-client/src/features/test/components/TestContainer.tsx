@@ -1345,5 +1345,63 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#4A5568",
         fontStyle: "italic",
-    },
+},
+    reviewList: {
+    gap: 16,
+},
+
+reviewCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+},
+
+reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+},
+
+reviewIndex: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A202C",
+},
+
+gradingBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+},
+
+gradingBadgeCorrect: {
+    backgroundColor: "#C6F6D5",
+},
+
+gradingBadgeIncorrect: {
+    backgroundColor: "#FED7D7",
+},
+
+gradingBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+},
+
+gradingBadgeTextCorrect: {
+    color: "#22543D",
+},
+
+gradingBadgeTextIncorrect: {
+    color: "#C53030",
+},
+
+reviewText: {
+    fontSize: 14,
+    color: "#4A5568",
+    lineHeight: 22,
+},
+
 });

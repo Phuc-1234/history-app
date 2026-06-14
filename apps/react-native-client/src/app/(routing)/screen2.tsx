@@ -28,14 +28,13 @@ export default function OnboardingScreen2() {
   const handleSkip = async () => {
     console.log('Bỏ qua onboarding ở màn 2');
     await setOnboardingComplete(); 
-    // router.replace('/(1_auth)'); // Chuyển thẳng tới cụm chức năng đăng nhập
-  };
+    // Đưa về màn hình welcome tổng của luồng auth thay vì chỉ vào thẳng form login đơn lẻ
+    router.replace("/(tabs)/2_1_lessons");
+  }; 
 
   const handleNext = () => {
-    console.log('Chuyển sang màn hình onboarding 3');
-    // Khi bấm tiếp tục, hệ thống sẽ đẩy sang màn hình 3. 
-    // Sau khi tạo xong file screen3.tsx trong cùng thư mục (routing), lệnh này sẽ tự động liên kết mượt mà.
-    router.push('/(routing)/welcome'); 
+    console.log('Chuyển sang màn hình welcome ');
+   router.push('/(routing)/welcome'); 
   };
 
   return (
@@ -80,6 +79,7 @@ export default function OnboardingScreen2() {
   );
 }
 
+// 📦 STYLE ĐÃ ĐƯỢC DUỖI DỌC TOÀN BỘ THEO Ý HỒNG:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -97,17 +97,16 @@ const styles = StyleSheet.create({
     color: '#4B49E7',
   },
   imageContainer: {
-   flex: 1.4,               
+    flex: 1.4,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',           
-    paddingHorizontal: 0,    
+    width: '100%',
+    paddingHorizontal: 0,
     marginTop: 10,
   },
   illustrationImage: {
     width: '90%',
     height: '100%',
-    // borderRadius: 16,
   },
   contentContainer: {
     flex: 1,
@@ -119,7 +118,10 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 5,
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
   },
   activeDot: {
     width: 20,
-    backgroundColor: '#5346E0', // Màu xanh tím đồng bộ với nút bấm theo thiết kế UI của bạn
+    backgroundColor: '#5346E0',
   },
   button: {
     width: '100%',
@@ -166,7 +168,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     shadowColor: '#5346E0',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
