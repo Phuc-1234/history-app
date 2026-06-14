@@ -1,20 +1,22 @@
 import React from "react";
 import { useRouter } from "expo-router";
-import { TopBarWrapper } from "../../features/top_bar";
-import { TestDetailScreen } from "../../features/test";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
+// import { TestDetailScreen } from "../../features/test";
+import { TestDetailScreen } from "../../features/test_v2";
 
 export default function TestDetailRoute() {
     const router = useRouter();
 
     return (
-        <TopBarWrapper
+        <ScreenWrapper
             branchConfig={{
                 hierarchy: "LỊCH SỬ > CHI TIẾT",
                 title: "Chi tiết bài làm",
                 onBackPress: () => router.back(),
             }}
         >
+            {/* <TestDetailScreen /> */}
             <TestDetailScreen />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

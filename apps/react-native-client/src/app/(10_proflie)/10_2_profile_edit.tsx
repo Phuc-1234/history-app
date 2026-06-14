@@ -1,10 +1,10 @@
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { ProfileEditScreen } from "../../features/profile";
 
 export default function ProfileEditRoute() {
     return (
-        <TopBarWrapper>
+        <ScreenWrapper>
             <ProfileEditScreen />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

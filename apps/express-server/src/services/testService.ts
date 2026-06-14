@@ -1,4 +1,5 @@
 import { prisma } from "@history-app/shared";
+import { progressEngine } from "./progressEngine";
 import {
     StartTestResponse,
     QuestionDto,
@@ -455,6 +456,17 @@ export class TestService {
                 }
             }
 
+            let consequences: any[] = [];
+            if (isPassed) {
+                consequences = await progressEngine.onTestPassed(
+                    userId,
+                    log.test?.scopeType || log.scopeType || null,
+                    log.test?.scopeId || log.scopeId || null,
+                    log.test?.title || undefined,
+                    tx,
+                );
+            }
+
             return {
                 score,
                 isPassed,
@@ -467,6 +479,7 @@ export class TestService {
                     ...s,
                     earnedXp: 0,
                 })),
+                consequences,
             };
         });
     }

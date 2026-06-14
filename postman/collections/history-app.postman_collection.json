@@ -461,6 +461,39 @@
             }
           },
           "response": []
+        },
+        {
+          "name": " https://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_post_json/",
+          "id": "bc66b573-918e-4e68-9625-26bcd77b8ab7",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"ApiKey\": \"{{smsApiKey}}\",\r\n    \"Content\": \"XXXX la ma xac minh dang ky Baotrixemay cua ban\",\r\n    \"Phone\": \"0338464712\",\r\n    \"SecretKey\": \"{{smsApiSecret}}\",\r\n    \"Brandname\": \"Baotrixemay\",\r\n    \"SmsType\": \"2\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_post_json/",
+              "protocol": "https",
+              "host": [
+                "rest",
+                "esms",
+                "vn"
+              ],
+              "path": [
+                "MainService.svc",
+                "json",
+                "SendMultipleMessage_V4_post_json",
+                ""
+              ]
+            }
+          },
+          "response": []
         }
       ],
       "id": "8033d6d8-5b20-4e93-ad35-b0cc361edbad"
@@ -767,7 +800,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base-url}}/api/content/mindmap?lessonId=1",
+              "raw": "{{base-url}}/api/content/mindmap?lessonId=15",
               "host": [
                 "{{base-url}}"
               ],
@@ -779,7 +812,8 @@
               "query": [
                 {
                   "key": "lessonId",
-                  "value": "1"
+                  "value": "15",
+                  "uuid": "0e6bba21-9969-48fe-b7a8-d5c55df38036"
                 }
               ]
             }
@@ -807,6 +841,60 @@
                 {
                   "key": "gradeId",
                   "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "flash card node id",
+          "id": "7d0091d1-e31b-43ec-81db-07977c4ee24b",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/node/:nodeId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "node",
+                ":nodeId"
+              ],
+              "variable": [
+                {
+                  "key": "nodeId",
+                  "value": "35"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "flash card sction",
+          "id": "9b3e188f-43ee-4571-b60d-d0347337b112",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base-url}}/api/flashcards/section/:sectionId",
+              "host": [
+                "{{base-url}}"
+              ],
+              "path": [
+                "api",
+                "flashcards",
+                "section",
+                ":sectionId"
+              ],
+              "variable": [
+                {
+                  "key": "sectionId",
+                  "value": "17"
                 }
               ]
             }

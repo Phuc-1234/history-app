@@ -1,8 +1,8 @@
 import React from "react";
-import { G, Rect, Circle, Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText, Line } from "react-native-svg";
+import { G, Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import type { LayoutNode } from "../types";
 import { NODE_CONFIGS } from "../constants";
-import { wrapText, buildBezierPath } from "../utils/layout";
+import { wrapText } from "../utils/layout";
 
 // ─── Plus/Minus Icon ────────────────────────────────────────────────────────
 

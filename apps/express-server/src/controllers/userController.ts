@@ -46,11 +46,10 @@ const updateSupabaseAuthUser = async (req: Request, updates: any) => {
 };
 
 export const getUserProfile = async (
-    req: Request<{}, UserProfileResponseBody, {}>, // 👈 PathParams = {}, ReqBody = {}
+    req: Request<{}, UserProfileResponseBody, {}>,
     res: Response<UserProfileResponseBody>,
 ): Promise<Response<UserProfileResponseBody>> => {
     try {
-        // 1. GUEST CHECK: If middleware didn't find a user, return a peaceful guest state
         if (!req.user) {
             return res.status(200).json({
                 isGuest: true,
@@ -58,12 +57,11 @@ export const getUserProfile = async (
                 totalGold: 0,
                 totalXp: 0,
                 tierName: null,
-                badgeImgUrl: null, // Default fallback asset link
+                badgeImgUrl: null,
                 profileImgUrl: null,
             });
         }
 
-        // 2. STUDENT CHECK: A token existed, so fetch their actual database metrics
         const fullProfile = await prisma.user.findUnique({
             where: { id: req.user.id },
             select: {
@@ -83,7 +81,6 @@ export const getUserProfile = async (
             },
         });
 
-        // Handle edge case where token is valid but DB row was manually deleted
         if (!fullProfile) {
             return res.status(200).json({
                 isGuest: true,
@@ -96,9 +93,8 @@ export const getUserProfile = async (
             });
         }
 
-        // 3. Return the fully loaded student payload
         return res.status(200).json({
-            isGuest: false, // 👈 Frontend uses this to toggle UI states instantly
+            isGuest: false,
             id: fullProfile.id,
             name: fullProfile.name,
             email: fullProfile.email,
@@ -126,7 +122,7 @@ export const updateUserProfile = async (
             return res.status(401).json({ error: "Access denied. Valid session missing." });
         }
 
-        const { name, email } = req.body;
+        const { name, email, profileImgUrl } = req.body;
         const trimmedName = name?.trim();
         const trimmedEmail = email?.trim();
 
@@ -166,6 +162,7 @@ export const updateUserProfile = async (
         const dbUpdates: any = {};
         if (trimmedName) dbUpdates.name = trimmedName;
         if (trimmedEmail) dbUpdates.email = trimmedEmail;
+        if (profileImgUrl !== undefined) dbUpdates.profileImgUrl = profileImgUrl;
 
         const updatedProfile = await prisma.user.update({
             where: { id: req.user.id },
@@ -298,7 +295,7 @@ export const updateUserData = async (
             return res.status(401).json({ error: "Access denied. Valid session missing." });
         }
 
-        const { name } = req.body;
+        const { name, profileImgUrl } = req.body;
         const trimmedName = name?.trim();
 
         if (trimmedName === "") {
@@ -316,6 +313,7 @@ export const updateUserData = async (
         // 2. Update in Prisma DB
         const dbUpdates: any = {};
         if (trimmedName) dbUpdates.name = trimmedName;
+        if (profileImgUrl !== undefined) dbUpdates.profileImgUrl = profileImgUrl;
 
         if (Object.keys(dbUpdates).length > 0) {
             await prisma.user.update({
