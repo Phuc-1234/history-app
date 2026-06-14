@@ -416,7 +416,7 @@ export class TestServiceV2 {
             if (!preset && scopeType) {
                 preset = await prisma.testPreset.findFirst({
                     where: {
-                        scopeType: scopeType as any,
+                        
                         purposeType: purposeType as any,
                     },
                 });
