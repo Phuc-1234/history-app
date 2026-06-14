@@ -67,4 +67,5 @@ export interface FinishTestResponse {
         correctText?: string;
         correctPairs?: Record<string, string>;
     }>;
+    consequences?: any[];
 }

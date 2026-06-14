@@ -12,8 +12,8 @@ type RelationStatus =
 const userSelect = {
     id: true,
     name: true,
-    email: true,
-    profileImgUrl: true,
+    email: true, 
+    profileImgUrl: true, 
     totalXp: true,
     currentStreak: true,
     isPrivate: true,
