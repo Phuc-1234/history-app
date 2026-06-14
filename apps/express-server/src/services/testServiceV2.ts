@@ -440,7 +440,7 @@ export class TestServiceV2 {
                     timeLimit: purposeType === "EXAM" ? 15 : null,
                     difficultyRatioJson: { 1: 40, 2: 30, 3: 20, 4: 10 },
                     purposeType,
-                    scopeType,
+                    
                 };
             }
 
@@ -456,7 +456,7 @@ export class TestServiceV2 {
             if (sequence.length === 0) {
                 throw serviceError("No questions available in this scope", "NO_QUESTIONS");
             }
-        }
+        } 
 
         // Compute attempt number
         const prevCount = testId
