@@ -1,5 +1,5 @@
 import React from "react";
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { LessonMenu } from "../../features/lesson_menu";
 import { useRouter } from "expo-router";
 
@@ -20,12 +20,12 @@ export default function LessonsScreen() {
     };
 
     return (
-        
+        <ScreenWrapper>
             <LessonMenu
                 onLessonPress={handleLessonNavigation}
                 onMindmapPress={handleMindmapView}
                 onTestPress={handleTestEngine}
             />
-       
+        </ScreenWrapper>
     );
 }

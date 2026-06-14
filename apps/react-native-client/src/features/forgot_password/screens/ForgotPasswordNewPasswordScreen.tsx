@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { CheckCircle2, Eye, EyeOff, Lock } from "lucide-react-native";
-import { TopBarWrapper } from "@/features/top_bar";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";

@@ -78,7 +78,7 @@ export default function ProfileEditScreen() {
         }
 
         const formData = new FormData();
-        
+
         const uriParts = imageUri.split('.');
         const fileType = uriParts[uriParts.length - 1];
         const fileName = imageUri.split('/').pop() || `avatar.${fileType}`;
@@ -98,24 +98,34 @@ export default function ProfileEditScreen() {
                 type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
             } as any);
         }
-        
+
         formData.append('upload_preset', uploadPreset);
 
-        const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-            {
-                method: 'POST',
-                body: formData,
-            }
-        );
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData?.error?.message || "Lỗi tải ảnh lên Cloudinary");
-        }
-
-        const data = await response.json();
-        return data.secure_url;
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resolve(response.secure_url);
+                    } catch (err) {
+                        reject(new Error("Lỗi đọc phản hồi từ Cloudinary"));
+                    }
+                } else {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        reject(new Error(errorData?.error?.message || "Lỗi tải ảnh lên Cloudinary"));
+                    } catch {
+                        reject(new Error("Lỗi tải ảnh lên Cloudinary"));
+                    }
+                }
+            };
+            xhr.onerror = () => {
+                reject(new Error("Lỗi kết nối mạng khi tải ảnh"));
+            };
+            xhr.send(formData);
+        });
     };
 
     const handleSave = async () => {
@@ -151,9 +161,9 @@ export default function ProfileEditScreen() {
 
             // 2. Save updates to database
             if (trimmedName !== profile?.name || finalProfileImgUrl !== profile?.profileImgUrl) {
-                await updateUserData({ 
-                    name: trimmedName, 
-                    profileImgUrl: finalProfileImgUrl 
+                await updateUserData({
+                    name: trimmedName,
+                    profileImgUrl: finalProfileImgUrl
                 }).unwrap();
             }
 
@@ -242,7 +252,7 @@ export default function ProfileEditScreen() {
                         </View>
                     </View>
                 </ScrollView>
- 
+
                 <View
                     style={[
                         styles.buttonContainer,
@@ -254,7 +264,7 @@ export default function ProfileEditScreen() {
                 >
                     <Button
                         title={isLoading ? "Đang lưu..." : "Lưu"}
-                        onPress={isLoading ? () => {} : handleSave}
+                        onPress={isLoading ? () => { } : handleSave}
                     />
                 </View>
             </KeyboardAvoidingView>
@@ -335,7 +345,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         paddingHorizontal: 16,
         paddingTop: 12,
-        
+
         backgroundColor: "#F8F7FF",
     },
 });

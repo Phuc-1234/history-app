@@ -11,13 +11,14 @@ dotenv.config({
 import cors from "cors";
 
 import authRoutes from "./routes/authRoutes";
-import userRoutes from "./routes/userRoutes"; 
+import userRoutes from "./routes/userRoutes";
 import contentRoutes from "./routes/contentRoutes";
 import gamificationRoutes from "./routes/gamificationRoutes";
 import testsRoutes from "./routes/testsRoutes";
 import testLogsRoutes from "./routes/testLogsRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import flashcardRoutes from "./routes/flashcardRoutes";
+import socialRoutes from "./routes/socialRoutes";
 
 
 
@@ -30,7 +31,7 @@ const PORT = process.env.PORT || 5000;
 // ==========================================
 // Allow your frontend origins to talk to the backend
 app.use(cors({
-  origin: '*', // For development, this allows web browsers and mobile apps to pass through freely
+    origin: '*', // For development, this allows web browsers and mobile apps to pass through freely
 }));
 app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies onto req.body
 
@@ -46,6 +47,7 @@ app.use("/api/tests", testsRoutes);
 app.use("/api/test-logs", testLogsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/flashcards", flashcardRoutes);
+app.use("/api/social", socialRoutes);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {
