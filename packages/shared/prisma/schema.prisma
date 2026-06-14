@@ -446,7 +446,7 @@ model ScopeTestPresetDefault {
 
 model TestPreset {
   id                  String                   @id @default(uuid())
-  scope_type          ScopeType
+  
   name                String
   purposeType         PurposeType              @map("purpose_type")
   questionCount       Int?                     @map("question_count")
