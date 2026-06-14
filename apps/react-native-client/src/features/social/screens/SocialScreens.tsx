@@ -17,6 +17,8 @@ import {
     useAcceptFriendRequestMutation,
     useCancelFriendRequestMutation,
     useFollowUserMutation,
+    useGetFollowersQuery,
+    useGetFollowingQuery,
     useGetFriendsQuery,
     useGetIncomingFriendRequestsQuery,
     useGetOutgoingFriendRequestsQuery,
@@ -27,6 +29,8 @@ import {
     useUnfollowUserMutation,
 } from "../services/socialApi";
 import type { SocialProfile, SocialUser as ApiSocialUser } from "../types/socialApiTypes";
+import { useGetProfileQuery } from "@/features/auth/services/authApi";
+import { useAppSelector } from "@/store/storeHook";
 
 type SocialUser = {
     id: string;
@@ -168,10 +172,10 @@ function toViewUser(user: ApiSocialUser): SocialUser {
         user.relationStatus === "friend"
             ? "friend"
             : user.relationStatus === "outgoing_request"
-              ? "pending"
-              : user.isFollowing
-                ? "following"
-                : "none";
+                ? "pending"
+                : user.isFollowing
+                    ? "following"
+                    : "none";
 
     return {
         id: user.id,
@@ -232,13 +236,13 @@ function SocialBottomBar() {
         activeIcon: keyof typeof Ionicons.glyphMap;
         active?: boolean;
     }> = [
-        { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
-        { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
-        { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
-        { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
-        { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
-        { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
-    ];
+            { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
+            { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
+            { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
+            { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
+            { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
+            { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
+        ];
 
     return (
         <View
@@ -479,9 +483,9 @@ export function SearchUsersScreen() {
                     onChange={setSelectedTab}
                 />
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>G?i ? k?t n?i</Text>
+                    <Text style={styles.sectionTitle}>Gợi ý kết nối</Text>
                     <Text style={styles.sectionHint}>
-                        {isFetching ? "Đang tải" : `${filteredUsers.length} ng??i`}
+                        {isFetching ? "Đang tải" : `${filteredUsers.length} người`}
                     </Text>
                 </View>
                 {isError ? (
@@ -527,20 +531,26 @@ export function OtherProfileScreen() {
     const [unfollowUser] = useUnfollowUserMutation();
 
     const apiProfile = data?.profile;
-    const profile = apiProfile ? toViewUser(apiProfile) : users[0];
-    const relation = apiProfile?.relationStatus ?? profile.relation;
-    const isFollowing = apiProfile?.isFollowing ?? profile.relation === "following";
+    const profile = apiProfile ? toViewUser(apiProfile) : null;
+    const relation = apiProfile?.relationStatus ?? "none";
+    const isFollowing = apiProfile?.isFollowing ?? false;
 
     const friendLabel =
         relation === "friend"
             ? "Bạn bè"
-            : relation === "outgoing_request" || relation === "incoming_request" || profile.relation === "pending"
-              ? "Đang chờ"
-              : "Kết bạn";
+            : relation === "outgoing_request" || relation === "incoming_request"
+                ? "Đang chờ"
+                : "Kết bạn";
 
     return (
         <ScreenShell title="Hồ sơ" rightLabel="Báo cáo">
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                {!userId ? (
+                    <EmptyState title="Thiếu thông tin người dùng." />
+                ) : null}
+                {isFetching ? (
+                    <EmptyState title="Đang tải hồ sơ..." />
+                ) : null}
                 {isError ? (
                     <EmptyState
                         title="Không tải được hồ sơ người dùng."
@@ -548,64 +558,71 @@ export function OtherProfileScreen() {
                         onAction={refetch}
                     />
                 ) : null}
-                <View style={styles.profileHero}>
-                    <Avatar user={profile} size={88} />
-                    <Text style={styles.profileName}>{isFetching ? "Đang tải..." : profile.name}</Text>
-                    <Text style={styles.profileSubtitle}>Lv. {profile.level} - {profile.title}</Text>
-                    <View style={styles.profileStats}>
-                        <StatCard value={String(apiProfile?.stats.friends ?? 0)} label="Bạn bè" />
-                        <StatCard value={String(apiProfile?.stats.followers ?? 0)} label="Người theo dõi" />
-                        <StatCard value={profile.winRate ? `${profile.winRate}%` : "--"} label="Thắng" />
-                    </View>
-                    <View style={styles.actionRow}>
-                        <PrimaryButton
-                            label={friendLabel}
-                            icon={relation === "none" || profile.relation === "none" ? "person-add" : "checkmark"}
-                            onPress={() => {
-                                if (userId && (relation === "none" || profile.relation === "none")) {
-                                    sendFriendRequest({ receiverId: userId });
-                                }
-                            }}
-                        />
-                        <PrimaryButton
-                            label={isFollowing ? "Bỏ theo dõi" : "Theo dõi"}
-                            icon={isFollowing ? "notifications-off" : "notifications"}
-                            variant="outline"
-                            onPress={() => {
-                                if (!userId) return;
-                                if (isFollowing) {
-                                    unfollowUser(userId);
-                                } else {
-                                    followUser(userId);
-                                }
-                            }}
-                        />
-                    </View>
-                    <PrimaryButton
-                        label="Thách đấu"
-                        icon="flash"
-                        onPress={() => pushRoute(router, `/(social)/challenge-create?userId=${profile.id}`)}
-                    />
-                </View>
-
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Th?nh t?ch n?i b?t</Text>
-                    <View style={styles.badgeGrid}>
-                        <View style={styles.badgeCard}>
-                            <Ionicons name="trophy" size={24} color={colors.amber} />
-                            <Text style={styles.badgeTitle}>{profile.xp.toLocaleString()} XP</Text>
+                {!isFetching && !isError && !profile ? (
+                    <EmptyState title="Không tìm thấy hồ sơ người dùng." />
+                ) : null}
+                {profile ? (
+                    <>
+                        <View style={styles.profileHero}>
+                            <Avatar user={profile} size={88} />
+                            <Text style={styles.profileName}>{profile.name}</Text>
+                            <Text style={styles.profileSubtitle}>Lv. {profile.level} - {profile.title}</Text>
+                            <View style={styles.profileStats}>
+                                <StatCard value={String(apiProfile?.stats.friends ?? 0)} label="Bạn bè" />
+                                <StatCard value={String(apiProfile?.stats.followers ?? 0)} label="Người theo dõi" />
+                                <StatCard value={profile.winRate ? `${profile.winRate}%` : "--"} label="Thắng" />
+                            </View>
+                            <View style={styles.actionRow}>
+                                <PrimaryButton
+                                    label={friendLabel}
+                                    icon={relation === "none" ? "person-add" : "checkmark"}
+                                    onPress={() => {
+                                        if (userId && relation === "none") {
+                                            sendFriendRequest({ receiverId: userId });
+                                        }
+                                    }}
+                                />
+                                <PrimaryButton
+                                    label={isFollowing ? "Bỏ theo dõi" : "Theo dõi"}
+                                    icon={isFollowing ? "notifications-off" : "notifications"}
+                                    variant="outline"
+                                    onPress={() => {
+                                        if (!userId) return;
+                                        if (isFollowing) {
+                                            unfollowUser(userId);
+                                        } else {
+                                            followUser(userId);
+                                        }
+                                    }}
+                                />
+                            </View>
+                            <PrimaryButton
+                                label="Thách đấu"
+                                icon="flash"
+                                onPress={() => pushRoute(router, `/(social)/challenge-create?userId=${profile.id}`)}
+                            />
                         </View>
-                        <View style={styles.badgeCard}>
-                            <Ionicons name="flame" size={24} color={colors.rose} />
-                            <Text style={styles.badgeTitle}>Chu?i h?c {apiProfile?.currentStreak ?? 0}</Text>
-                        </View>
-                    </View>
-                </View>
 
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Bạn chung</Text>
-                    <EmptyState title="API bạn chung chưa được bật." />
-                </View>
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>Thành tích nổi bật</Text>
+                            <View style={styles.badgeGrid}>
+                                <View style={styles.badgeCard}>
+                                    <Ionicons name="trophy" size={24} color={colors.amber} />
+                                    <Text style={styles.badgeTitle}>{profile.xp.toLocaleString()} XP</Text>
+                                </View>
+                                <View style={styles.badgeCard}>
+                                    <Ionicons name="flame" size={24} color={colors.rose} />
+                                    <Text style={styles.badgeTitle}>Chuỗi học {apiProfile?.currentStreak ?? 0}</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>Bạn chung</Text>
+                            <EmptyState title="Chưa có dữ liệu bạn chung." />
+                        </View>
+                    </>
+                ) : null}
             </ScrollView>
         </ScreenShell>
     );
@@ -614,16 +631,45 @@ export function OtherProfileScreen() {
 export function FriendsAndFollowScreen() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("Bạn bè");
-    const { data, isFetching, isError, refetch } = useGetFriendsQuery();
-    const friends = data?.friends.map((item) => toViewUser(item.user)) ?? [];
+    useGetProfileQuery();
+    const currentUserId = useAppSelector((state) => state.auth.profile?.id);
+    const friendsQuery = useGetFriendsQuery();
+    const followersQuery = useGetFollowersQuery(currentUserId ?? "", {
+        skip: !currentUserId,
+    });
+    const followingQuery = useGetFollowingQuery(currentUserId ?? "", {
+        skip: !currentUserId,
+    });
+
+    const friends = friendsQuery.data?.friends.map((item) => toViewUser(item.user)) ?? [];
+    const followers = followersQuery.data?.followers.map((item) => toViewUser(item.user)) ?? [];
+    const following = followingQuery.data?.following.map((item) => toViewUser(item.user)) ?? [];
+    const activeUsers =
+        activeTab === "Bạn bè"
+            ? friends
+            : activeTab === "Đang theo dõi"
+                ? following
+                : followers;
+    const activeQuery =
+        activeTab === "Bạn bè"
+            ? friendsQuery
+            : activeTab === "Đang theo dõi"
+                ? followingQuery
+                : followersQuery;
+    const activeEmptyTitle =
+        activeTab === "Bạn bè"
+            ? "Bạn chưa có bạn bè nào."
+            : activeTab === "Đang theo dõi"
+                ? "Bạn chưa theo dõi ai."
+                : "Chưa có người theo dõi.";
 
     return (
         <ScreenShell title="Bạn bè & Theo dõi" rightLabel="Tìm bạn">
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.summaryGrid}>
-                    <StatCard value={String(friends.length)} label="Bạn bè" />
-                    <StatCard value="--" label="Người theo dõi" />
-                    <StatCard value="--" label="Đang theo dõi" />
+                    <StatCard value={friendsQuery.isFetching ? "--" : String(friends.length)} label="Bạn bè" />
+                    <StatCard value={followersQuery.isFetching ? "--" : String(followers.length)} label="Người theo dõi" />
+                    <StatCard value={followingQuery.isFetching ? "--" : String(following.length)} label="Đang theo dõi" />
                 </View>
                 <SegmentTabs
                     tabs={["Bạn bè", "Đang theo dõi", "Người theo dõi"]}
@@ -644,20 +690,20 @@ export function FriendsAndFollowScreen() {
                         onPress={() => pushRoute(router, "/(social)/requests")}
                     />
                 </View>
-                {isError ? (
+                {!currentUserId ? (
+                    <EmptyState title="Đang tải thông tin đăng nhập..." />
+                ) : null}
+                {activeQuery.isError ? (
                     <EmptyState
-                        title="Không tải được danh sách bạn bè. Hãy kiểm tra đăng nhập hoặc server."
+                        title="Không tải được danh sách. Hãy kiểm tra đăng nhập hoặc server."
                         actionLabel="Tải lại"
-                        onAction={refetch}
+                        onAction={activeQuery.refetch}
                     />
                 ) : null}
-                {activeTab !== "Bạn bè" ? (
-                    <EmptyState title="Tab này cần API lấy followers/following của chính người dùng. Hiện đã có endpoint theo userId." />
+                {currentUserId && !activeQuery.isFetching && !activeQuery.isError && activeUsers.length === 0 ? (
+                    <EmptyState title={activeEmptyTitle} actionLabel="Tìm bạn" onAction={() => pushRoute(router, "/(social)/search")} />
                 ) : null}
-                {activeTab === "Bạn bè" && !isFetching && !isError && friends.length === 0 ? (
-                    <EmptyState title="Bạn chưa có bạn bè nào." actionLabel="Tìm bạn" onAction={() => pushRoute(router, "/(social)/search")} />
-                ) : null}
-                {activeTab === "Bạn bè" && friends.map((user) => (
+                {activeUsers.map((user) => (
                     <UserCard
                         key={user.id}
                         user={user}
@@ -772,7 +818,7 @@ export function ChallengeHubScreen() {
                                 icon={challenge.status === "incoming" ? "play" : "time"}
                                 onPress={() => pushRoute(router, "/(social)/battle")}
                             />
-                            <PrimaryButton label="Tu choi" icon="close" variant="outline" />
+                            <PrimaryButton label="Từ chối" icon="close" variant="outline" />
                         </View>
                     </View>
                 ))}
@@ -874,7 +920,7 @@ export function BattleScreen() {
         ["A", "Trần Hưng Đạo"],
         ["B", "Trần Quang Khải"],
         ["C", "Phạm Ngũ Lão"],
-        ["D", "Yet Kieu"],
+        ["D", "Yết Kiêu"],
     ];
 
     return (
@@ -887,7 +933,7 @@ export function BattleScreen() {
                         <Text style={styles.scoreText}>4</Text>
                     </View>
                     <View style={styles.roundPill}>
-                        <Text style={styles.roundPillText}>Cau 5/10</Text>
+                        <Text style={styles.roundPillText}>Câu 5/10</Text>
                     </View>
                     <View style={styles.playerScore}>
                         <Avatar user={users[0]} size={44} />

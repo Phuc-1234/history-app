@@ -75,7 +75,11 @@ export function TopBar({ data, branchConfig, onOpenStreak }: TopBarProps) {
                             </View>
 
                             {/* Gold Chip */}
-                            <View style={styles.chip}>
+                            <TouchableOpacity
+                                style={styles.chip}
+                                activeOpacity={0.7}
+                                onPress={() => router.push("/(tabs)/8_2_buy_gold")}
+                            >
                                 <Ionicons
                                     name="logo-usd"
                                     size={14}
@@ -83,7 +87,8 @@ export function TopBar({ data, branchConfig, onOpenStreak }: TopBarProps) {
                                     style={styles.goldIcon}
                                 />
                                 <Text style={styles.chipText}>{data.totalGold}</Text>
-                            </View>
+                            </TouchableOpacity>
+
 
                             {/* Streak Chip */}
                             <TouchableOpacity

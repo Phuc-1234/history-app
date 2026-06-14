@@ -8,12 +8,13 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Circle } from "react-native-svg";
 import { useLessonMenu } from "../hooks/useLessonMenu";
 
 interface LessonMenuProps {
     onLessonPress: (id: number) => void;
     onMindmapPress: (topicId: number) => void;
-    onTestPress: (testId: string) => void;
+    onTestPress: (scopeType: string, scopeId: number) => void;
 }
 
 // ---- Sub-components for progress visualisations ----
@@ -149,83 +150,48 @@ function ProgressRing({
     const RING_SIZE = 64; // inner circle size
     const RING_PADDING = 6; // space between inner circle and ring
     const outerSize = RING_SIZE + RING_PADDING * 2;
-    const half = outerSize / 2;
-
-    const deg = pct * 360;
-
-    // Split into two halves — left and right
-    // Right half: always show filled if pct > 0
-    // Left half: show filled only if pct > 0.5
-    const rightDeg = Math.min(deg, 180);
-    const leftDeg = Math.max(deg - 180, 0);
+    const strokeWidth = 6;
+    const radius = (outerSize - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    // Limit percentage between 0 and 1
+    const clampedPct = Math.max(0, Math.min(1, pct));
+    const strokeDashoffset = circumference - clampedPct * circumference;
 
     return (
-        <View
+        <Svg
+            width={outerSize}
+            height={outerSize}
             style={{
-                width: outerSize,
-                height: outerSize,
-                borderRadius: half,
-                backgroundColor: empty,
-                overflow: "hidden",
                 position: "absolute",
                 top: -RING_PADDING,
                 left: -RING_PADDING,
             }}
         >
-            {/* Right half */}
-            <View
-                style={{
-                    position: "absolute",
-                    width: half,
-                    height: outerSize,
-                    left: half,
-                    top: 0,
-                    overflow: "hidden",
-                }}
-            >
-                <View
-                    style={{
-                        width: outerSize,
-                        height: outerSize,
-                        borderRadius: half,
-                        backgroundColor: filled,
-                        position: "absolute",
-                        right: 0,
-                        top: 0,
-                        transform: [{ rotate: `${rightDeg - 180}deg` }],
-                        transformOrigin: `${-half}px 50%` as any,
-                    }}
+            {/* Empty base circle */}
+            <Circle
+                cx={outerSize / 2}
+                cy={outerSize / 2}
+                r={radius}
+                stroke={empty}
+                strokeWidth={strokeWidth}
+                fill="none"
+            />
+            {/* Filled progress segment */}
+            {clampedPct > 0 && (
+                <Circle
+                    cx={outerSize / 2}
+                    cy={outerSize / 2}
+                    r={radius}
+                    stroke={filled}
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                    strokeDasharray={`${circumference} ${circumference}`}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    transform={`rotate(-90 ${outerSize / 2} ${outerSize / 2})`}
                 />
-            </View>
-
-            {/* Left half */}
-            <View
-                style={{
-                    position: "absolute",
-                    width: half,
-                    height: outerSize,
-                    left: 0,
-                    top: 0,
-                    overflow: "hidden",
-                }}
-            >
-                {leftDeg > 0 && (
-                    <View
-                        style={{
-                            width: outerSize,
-                            height: outerSize,
-                            borderRadius: half,
-                            backgroundColor: filled,
-                            position: "absolute",
-                            left: 0,
-                            top: 0,
-                            transform: [{ rotate: `${leftDeg}deg` }],
-                            transformOrigin: `${outerSize}px 50%` as any,
-                        }}
-                    />
-                )}
-            </View>
-        </View>
+            )}
+        </Svg>
     );
 }
 
@@ -303,9 +269,9 @@ export function LessonMenu({
                         const topicAny = topic as any;
                         const topicPct =
                             topicAny.progress != null &&
-                            topicAny.progress.totalNodes > 0
+                                topicAny.progress.totalNodes > 0
                                 ? topicAny.progress.completedNodes /
-                                  topicAny.progress.totalNodes
+                                topicAny.progress.totalNodes
                                 : null;
 
                         return (
@@ -349,7 +315,7 @@ export function LessonMenu({
                                             style={[
                                                 styles.topicDesc,
                                                 isExpanded &&
-                                                    styles.lightPurpleText,
+                                                styles.lightPurpleText,
                                             ]}
                                         >
                                             Khám phá kiến thức của chủ đề này
@@ -358,17 +324,6 @@ export function LessonMenu({
                                         <TopicProgressBar pct={topicPct} />
                                     </View>
                                     <View style={styles.topicHeaderRight}>
-                                        {topicPct != null && (
-                                            <Text
-                                                style={[
-                                                    styles.topicPctText,
-                                                    isExpanded &&
-                                                        styles.whiteText,
-                                                ]}
-                                            >
-                                                {Math.round(topicPct * 100)}%
-                                            </Text>
-                                        )}
                                         <Ionicons
                                             name={
                                                 (isExpanded
@@ -413,11 +368,11 @@ export function LessonMenu({
                                             const lessonAny = lesson as any;
                                             const lessonPct =
                                                 lessonAny.progress != null &&
-                                                lessonAny.progress.totalNodes > 0
+                                                    lessonAny.progress.totalNodes > 0
                                                     ? lessonAny.progress
-                                                          .completedNodes /
-                                                      lessonAny.progress
-                                                          .totalNodes
+                                                        .completedNodes /
+                                                    lessonAny.progress
+                                                        .totalNodes
                                                     : null;
                                             const isDone =
                                                 lessonPct != null && lessonPct >= 1;
@@ -442,36 +397,29 @@ export function LessonMenu({
                                                             )
                                                         }
                                                     >
-                                                        {lessonPct !== null && lessonPct > 0 && !isDone ? (
-                                                            <Text style={styles.lessonPctInsideText}>
-                                                                {Math.round(lessonPct * 100)}%
-                                                            </Text>
-                                                        ) : (
-                                                            <Ionicons
-                                                                name={
-                                                                    (isDone
-                                                                        ? "trophy"
-                                                                        : "book") as any
-                                                                }
-                                                                size={26}
-                                                                color={
-                                                                    isDone
-                                                                        ? "#FFD700"
-                                                                        : "#007AFF"
-                                                                }
-                                                            />
-                                                        )}
+                                                        <Ionicons
+                                                            name={
+                                                                (isDone
+                                                                    ? "trophy"
+                                                                    : "book") as any
+                                                            }
+                                                            size={26}
+                                                            color={
+                                                                isDone
+                                                                    ? "#FFD700"
+                                                                    : "#007AFF"
+                                                            }
+                                                        />
                                                     </LessonCircle>
                                                     <Text
                                                         style={[
                                                             styles.nodeLabel,
                                                             !isDone &&
-                                                                styles.textDisabled,
+                                                            styles.textDisabled,
                                                         ]}
                                                     >
                                                         Bài {lesson.position}:{" "}
                                                         {lesson.name}
-                                                        {lessonPct !== null && ` (${Math.round(lessonPct * 100)}%)`}
                                                     </Text>
                                                 </View>
                                             );
@@ -492,7 +440,8 @@ export function LessonMenu({
                                                     ]}
                                                     onPress={() =>
                                                         onTestPress(
-                                                            topic.firstTest!.id,
+                                                            "TOPIC",
+                                                            topic.id
                                                         )
                                                     }
                                                 >
@@ -536,7 +485,7 @@ export function LessonMenu({
 
                             <TouchableOpacity
                                 style={styles.finalExamButton}
-                                onPress={() => onTestPress(finalTest.id)}
+                                onPress={() => onTestPress("GRADE", selectedGrade)}
                             >
                                 <Text style={styles.finalExamButtonText}>
                                     BẮT ĐẦU THI NGAY

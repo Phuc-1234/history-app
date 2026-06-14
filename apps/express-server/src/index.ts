@@ -19,6 +19,9 @@ import testLogsRoutes from "./routes/testLogsRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import flashcardRoutes from "./routes/flashcardRoutes";
 import socialRoutes from "./routes/socialRoutes";
+import testRoutesV2 from "./routes/testRoutesV2";
+import paymentRoutes from "./routes/paymentRoutes";
+
 
 
 
@@ -48,6 +51,9 @@ app.use("/api/test-logs", testLogsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/flashcards", flashcardRoutes);
 app.use("/api/social", socialRoutes);
+app.use("/api/tests-v2", testRoutesV2);
+app.use("/api/payment", paymentRoutes);
+
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {
