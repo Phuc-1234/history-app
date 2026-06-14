@@ -461,6 +461,39 @@
             }
           },
           "response": []
+        },
+        {
+          "name": " https://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_post_json/",
+          "id": "bc66b573-918e-4e68-9625-26bcd77b8ab7",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"ApiKey\": \"{{smsApiKey}}\",\r\n    \"Content\": \"XXXX la ma xac minh dang ky Baotrixemay cua ban\",\r\n    \"Phone\": \"0338464712\",\r\n    \"SecretKey\": \"{{smsApiSecret}}\",\r\n    \"Brandname\": \"Baotrixemay\",\r\n    \"SmsType\": \"2\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_post_json/",
+              "protocol": "https",
+              "host": [
+                "rest",
+                "esms",
+                "vn"
+              ],
+              "path": [
+                "MainService.svc",
+                "json",
+                "SendMultipleMessage_V4_post_json",
+                ""
+              ]
+            }
+          },
+          "response": []
         }
       ],
       "id": "8033d6d8-5b20-4e93-ad35-b0cc361edbad"
@@ -834,8 +867,7 @@
               "variable": [
                 {
                   "key": "nodeId",
-                  "value": "35",
-                  "uuid": "36f6dca2-27df-45a8-931e-6a1bf4b1e29a"
+                  "value": "35"
                 }
               ]
             }
@@ -862,8 +894,7 @@
               "variable": [
                 {
                   "key": "sectionId",
-                  "value": "17",
-                  "uuid": "04ad9a34-78af-4d06-95ff-3d87a2ccdcbe"
+                  "value": "17"
                 }
               ]
             }

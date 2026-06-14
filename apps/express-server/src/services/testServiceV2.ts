@@ -385,7 +385,17 @@ export class TestServiceV2 {
         if (testId) {
             const test = await prisma.test.findUnique({
                 where: { id: testId },
-                include: { testQuestions: { orderBy: { position: "asc" } }, preset: true },
+                include: {
+                    testQuestions: {
+                        where: {
+                            question: {
+                                isActive: true,
+                            },
+                        },
+                        orderBy: { position: "asc" },
+                    },
+                    preset: true,
+                },
             });
             if (!test) throw serviceError("Test not found", "NOT_FOUND");
 
@@ -416,7 +426,7 @@ export class TestServiceV2 {
             if (!preset && scopeType) {
                 preset = await prisma.testPreset.findFirst({
                     where: {
-                        scopeType: scopeType as any,
+                        
                         purposeType: purposeType as any,
                     },
                 });
@@ -430,7 +440,7 @@ export class TestServiceV2 {
                     timeLimit: purposeType === "EXAM" ? 15 : null,
                     difficultyRatioJson: { 1: 40, 2: 30, 3: 20, 4: 10 },
                     purposeType,
-                    scopeType,
+                    
                 };
             }
 
@@ -446,7 +456,7 @@ export class TestServiceV2 {
             if (sequence.length === 0) {
                 throw serviceError("No questions available in this scope", "NO_QUESTIONS");
             }
-        }
+        } 
 
         // Compute attempt number
         const prevCount = testId
@@ -704,7 +714,7 @@ export class TestServiceV2 {
     private async fetchQuestionDtos(ids: number[]): Promise<QuestionV2Dto[]> {
         if (!ids.length) return [];
         const questions = await prisma.question.findMany({
-            where: { id: { in: ids } },
+            where: { id: { in: ids }, isActive: true },
             select: {
                 id: true,
                 type: true,

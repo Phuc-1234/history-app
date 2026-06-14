@@ -38,11 +38,11 @@ model Lesson {
   topicId    Int         @map("topic_id")
   flashcards Flashcard[]
   topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  mindMap    MindMap?
   questions  Question[]
   sections   Section[]
   tests      Test[]
   videos     Video[]
-  mindMap    MindMap?
 
   @@map("lessons")
 }
@@ -66,8 +66,8 @@ model Video {
   duration  Float?
   status    VideoStatus @default(PENDING)
   createdAt DateTime    @default(now()) @map("created_at")
-  lesson    Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   nodes     Node[]
+  lesson    Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@map("videos")
 }
@@ -95,13 +95,13 @@ model Node {
   position       Int
   header         String?
   body           String
-  imgUrl         String?            @map("img_url")
   sectionId      Int                @map("section_id")
+  imgUrl         String?            @map("img_url")
   videoId        String?            @map("video_id")
   flashcards     Flashcard[]
   section        Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  questions      Question[]
   video          Video?             @relation(fields: [videoId], references: [id])
+  questions      Question[]
   nodeProgresses UserNodeProgress[]
 
   @@map("nodes")
@@ -138,26 +138,26 @@ model UserFlashcard {
 
 model Test {
   id             String         @id @default(dbgenerated("gen_random_uuid()"))
-  isManual       Boolean        @default(false) @map("is_manual")
   isNationalTest Boolean        @default(false) @map("is_national_test")
-  questionNumber Int            @default(10) @map("question_number")
-  timeLimit      Int?           @map("time_limit")
-  xpReward       Int            @default(0) @map("xp_reward")
-  goldReward     Int            @default(0) @map("gold_reward")
-  passThreshold  Int            @default(70) @map("pass_threshold")
   gradeId        Int?           @map("grade_id")
   topicId        Int?           @map("topic_id")
   lessonId       Int?           @map("lesson_id")
   sectionId      Int?           @map("section_id")
   title          String
   summary        String?        @default("Kiểm tra kiến thức của bạn")
+  goldReward     Int            @default(0) @map("gold_reward")
+  isManual       Boolean        @default(false) @map("is_manual")
+  passThreshold  Int            @default(70) @map("pass_threshold")
+  questionNumber Int            @default(10) @map("question_number")
+  timeLimit      Int?           @map("time_limit")
+  xpReward       Int            @default(0) @map("xp_reward")
   presetId       String?        @map("preset_id")
-  scopeType      ScopeType?     @map("scope_type")
   scopeId        Int?           @map("scope_id")
-  preset         TestPreset?    @relation(fields: [presetId], references: [id])
+  scopeType      ScopeType?     @map("scope_type")
   testQuestions  TestQuestion[]
   grade          Grade?         @relation(fields: [gradeId], references: [id])
   lesson         Lesson?        @relation(fields: [lessonId], references: [id])
+  preset         TestPreset?    @relation(fields: [presetId], references: [id])
   section        Section?       @relation(fields: [sectionId], references: [id])
   topic          Topic?         @relation(fields: [topicId], references: [id])
   userTestLogs   UserTestLog[]
@@ -176,11 +176,11 @@ model Question {
   sectionId      Int?             @map("section_id")
   nodeId         Int?             @map("node_id")
   document       String?
+  answerDataJson Json?            @map("answer_data_json")
   explanation    String?
   isActive       Boolean          @default(true) @map("is_active")
-  scopeType      ScopeType?       @map("scope_type")
   scopeId        Int?             @map("scope_id")
-  answerDataJson Json?            @map("answer_data_json")
+  scopeType      ScopeType?       @map("scope_type")
   answers        QuestionAnswer[]
   grade          Grade?           @relation(fields: [gradeId], references: [id])
   lesson         Lesson?          @relation(fields: [lessonId], references: [id])
@@ -230,22 +230,23 @@ model User {
   highestStreak          Int                @default(0) @map("highest_streak")
   lastTestPassedAt       DateTime?          @map("last_test_passed_at")
   currentTierIndex       Int                @default(1) @map("current_tier_index")
+  isVerified             Boolean            @default(false) @map("is_verified")
   isPrivate              Boolean            @default(false) @map("is_private")
   allowFollow            Boolean            @default(true) @map("allow_follow")
   allowFriendRequest     Boolean            @default(true) @map("allow_friend_request")
-  sentFriendRequests     FriendRequest[]    @relation("FriendRequestSender")
-  receivedFriendRequests FriendRequest[]    @relation("FriendRequestReceiver")
-  friendshipsAsUser      Friendship[]       @relation("FriendshipUser")
-  friendshipsAsFriend    Friendship[]       @relation("FriendshipFriend")
   following              Follow[]           @relation("FollowFollower")
   followers              Follow[]           @relation("FollowFollowing")
+  receivedFriendRequests FriendRequest[]    @relation("FriendRequestReceiver")
+  sentFriendRequests     FriendRequest[]    @relation("FriendRequestSender")
+  friendshipsAsFriend    Friendship[]       @relation("FriendshipFriend")
+  friendshipsAsUser      Friendship[]       @relation("FriendshipUser")
+  gold_purchases         gold_purchases[]
   pendingRewards         PendingReward[]
   userFlashcards         UserFlashcard[]
   userItems              UserItem[]
-  testLogs               UserTestLog[]
   nodeProgresses         UserNodeProgress[]
+  testLogs               UserTestLog[]
   tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
-  isVerified             Boolean            @default(false) @map("is_verified")
 
   @@map("users")
 }
@@ -257,8 +258,8 @@ model FriendRequest {
   status     FriendRequestStatus @default(PENDING)
   createdAt  DateTime            @default(now()) @map("created_at")
   updatedAt  DateTime            @updatedAt @map("updated_at")
-  sender     User                @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
   receiver   User                @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User                @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@unique([senderId, receiverId])
   @@index([receiverId, status])
@@ -271,8 +272,8 @@ model Friendship {
   userId    String   @map("user_id")
   friendId  String   @map("friend_id")
   createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
   friend    User     @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+  user      User     @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, friendId])
   @@index([friendId])
@@ -309,30 +310,30 @@ model UserTestLog {
   startedAt             DateTime        @default(now()) @map("started_at")
   submittedAt           DateTime?       @map("submitted_at")
   isPassed              Boolean?        @map("is_passed")
-  goldEarned            Int             @default(0) @map("gold_earned")
-  xpEarned              Int             @default(0) @map("xp_earned")
   attemptNumber         Int             @map("attempt_number")
   testId                String?         @map("test_id")
   userId                String          @map("user_id")
   questionSequenceJson  Json?           @map("question_sequence_json")
   timezoneOffsetMinutes Int             @map("timezone_offset_minutes")
-  purposeType           PurposeType?    @map("purpose_type")
-  status                TestStatus?     @map("status")
-  generatedFromPresetId String?         @map("generated_from_preset_id")
-  scoreAwarded          Float?          @map("score_awarded")
-  maxScore              Float?          @map("max_score")
-  expiresAt             DateTime?       @map("expires_at")
-  questionCount         Int?            @map("question_count")
-  passThreshold         Int?            @map("pass_threshold")
-  timeLimit             Int?            @map("time_limit")
-  scopeType             ScopeType?      @map("scope_type")
-  scopeId               Int?            @map("scope_id")
+  goldEarned            Int             @default(0) @map("gold_earned")
+  xpEarned              Int             @default(0) @map("xp_earned")
   currentQuestionIndex  Int?            @default(0) @map("current_question_index")
   draftAnswerJson       Json?           @map("draft_answer_json")
+  expiresAt             DateTime?       @map("expires_at")
+  generatedFromPresetId String?         @map("generated_from_preset_id")
+  maxScore              Float?          @map("max_score")
+  passThreshold         Int?            @map("pass_threshold")
+  purposeType           PurposeType?    @map("purpose_type")
+  questionCount         Int?            @map("question_count")
+  scopeId               Int?            @map("scope_id")
+  scopeType             ScopeType?      @map("scope_type")
+  scoreAwarded          Float?          @map("score_awarded")
+  status                TestStatus?     @map("status")
+  timeLimit             Int?            @map("time_limit")
   answerLogs            UserAnswerLog[]
+  generatedFromPreset   TestPreset?     @relation(fields: [generatedFromPresetId], references: [id])
   test                  Test?           @relation(fields: [testId], references: [id], onDelete: Cascade)
   user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  generatedFromPreset   TestPreset?     @relation(fields: [generatedFromPresetId], references: [id])
 
   @@index([userId])
   @@map("user_test_logs")
@@ -344,9 +345,9 @@ model UserAnswerLog {
   questionId     Int          @map("question_id")
   type           QuestionType
   answerDataJson Json         @map("answer_data_json")
-  scoreAwarded   Float?       @map("score_awarded")
-  maxScore       Float?       @map("max_score")
   answeredAt     DateTime?    @default(now()) @map("answered_at")
+  maxScore       Float?       @map("max_score")
+  scoreAwarded   Float?       @map("score_awarded")
   question       Question     @relation(fields: [questionId], references: [id])
   testLog        UserTestLog  @relation(fields: [userTestLogId], references: [id], onDelete: Cascade)
 
@@ -419,6 +420,60 @@ model MilestoneReward {
   @@map("milestone_rewards")
 }
 
+model UserNodeProgress {
+  userId          String    @map("user_id")
+  nodeId          Int       @map("node_id")
+  studiedAt       DateTime? @map("studied_at")
+  threshold       Float?    @map("threshold")
+  allTestPassedAt DateTime? @map("all_test_passed_at")
+  nodeCompletedAt DateTime? @map("node_completed_at")
+  node            Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, nodeId])
+  @@map("user_node_progress")
+}
+
+model ScopeTestPresetDefault {
+  scopeType           ScopeType   @map("scope_type")
+  purposeType         PurposeType @map("purpose_type")
+  defaultTestPresetId String      @map("default_test_preset_id")
+  defaultTestPreset   TestPreset  @relation(fields: [defaultTestPresetId], references: [id])
+
+  @@id([scopeType, purposeType])
+  @@map("scope_test_preset_defaults")
+}
+
+model TestPreset {
+  id                  String                   @id @default(uuid())
+  
+  name                String
+  purposeType         PurposeType              @map("purpose_type")
+  questionCount       Int?                     @map("question_count")
+  passThreshold       Int                      @default(80) @map("pass_threshold")
+  timeLimit           Int?                     @map("time_limit")
+  difficultyRatioJson Json?                    @map("difficulty_ratio_json")
+  defaultTestPresets  ScopeTestPresetDefault[]
+  tests               Test[]
+  userTestLogs        UserTestLog[]
+
+  @@map("test_presets")
+}
+
+model gold_purchases {
+  id                String          @id
+  user_id           String
+  gold_amount       Int
+  amount_vnd        Int
+  provider          PaymentProvider
+  status            PaymentStatus   @default(PENDING)
+  provider_order_id String          @unique
+  provider_trans_id String?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime
+  users             User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
 enum HierachyState {
   PUBLIC
   PRIVATE
@@ -469,46 +524,6 @@ enum RewardType {
   GOLD
 }
 
-model UserNodeProgress {
-  userId          String    @map("user_id")
-  nodeId          Int       @map("node_id")
-  studiedAt       DateTime? @map("studied_at")
-  threshold       Float?    @map("threshold")
-  allTestPassedAt DateTime? @map("all_test_passed_at")
-  nodeCompletedAt DateTime? @map("node_completed_at")
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  node            Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-
-  @@id([userId, nodeId])
-  @@map("user_node_progress")
-}
-
-model ScopeTestPresetDefault {
-  scopeType           ScopeType   @map("scope_type")
-  purposeType         PurposeType @map("purpose_type")
-  defaultTestPresetId String      @map("default_test_preset_id")
-  defaultTestPreset   TestPreset  @relation(fields: [defaultTestPresetId], references: [id])
-
-  @@id([scopeType, purposeType])
-  @@map("scope_test_preset_defaults")
-}
-
-model TestPreset {
-  id                  String                   @id @default(uuid())
-  scopeType           ScopeType                @map("scope_type")
-  name                String
-  purposeType         PurposeType              @map("purpose_type")
-  questionCount       Int?                     @map("question_count")
-  passThreshold       Int                      @default(80) @map("pass_threshold")
-  timeLimit           Int?                     @map("time_limit")
-  difficultyRatioJson Json?                    @map("difficulty_ratio_json")
-  defaultTestPresets  ScopeTestPresetDefault[]
-  tests               Test[]
-  userTestLogs        UserTestLog[]
-
-  @@map("test_presets")
-}
-
 enum ScopeType {
   GRADE
   TOPIC
@@ -528,4 +543,15 @@ enum TestStatus {
   COMPLETED
   EXPIRED
   ABANDONED
+}
+
+enum PaymentProvider {
+  MOMO
+  ZALOPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
