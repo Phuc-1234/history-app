@@ -11,8 +11,11 @@ import {
     useWindowDimensions,
 } from "react-native";
 import { useShop, ShopItem } from "../hooks/useShop";
+import { useRouter } from "expo-router";
 
 export const ShopView: React.FC = () => {
+    const router = useRouter();
+
     const {
         searchQuery,
         setSearchQuery,
@@ -46,6 +49,23 @@ export const ShopView: React.FC = () => {
                         onChangeText={setSearchQuery}
                     />
                 </View>
+
+                {/* Buy Gold Promo Banner */}
+                <TouchableOpacity
+                    style={styles.buyGoldBanner}
+                    activeOpacity={0.8}
+                    onPress={() => router.push("/(tabs)/8_2_buy_gold")}
+                >
+                    <View style={styles.buyGoldBannerLeft}>
+                        <Text style={styles.buyGoldBannerIcon}>🪙</Text>
+                        <View>
+                            <Text style={styles.buyGoldBannerTitle}>Nạp thêm Gold</Text>
+                            <Text style={styles.buyGoldBannerSub}>Mua vật phẩm đặc biệt trong cửa hàng</Text>
+                        </View>
+                    </View>
+                    <Text style={styles.buyGoldBannerButton}>Nạp ngay</Text>
+                </TouchableOpacity>
+
 
                 {/* Mock Filter Controls Dropdown Row */}
                 <View style={styles.filterRow}>
@@ -365,4 +385,46 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
     },
+    buyGoldBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#FFF4E5",
+        borderRadius: 16,
+        padding: 14,
+        marginBottom: 16,
+        borderWidth: 1.5,
+        borderColor: "#FFE0B2",
+    },
+    buyGoldBannerLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        flex: 1,
+    },
+    buyGoldBannerIcon: {
+        fontSize: 28,
+    },
+    buyGoldBannerTitle: {
+        fontSize: 15,
+        fontWeight: "800",
+        color: "#E65100",
+    },
+    buyGoldBannerSub: {
+        fontSize: 11,
+        color: "#F57C00",
+        fontWeight: "500",
+        marginTop: 2,
+    },
+    buyGoldBannerButton: {
+        fontSize: 13,
+        fontWeight: "800",
+        color: "#FFFFFF",
+        backgroundColor: "#FF9800",
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        overflow: "hidden",
+    },
 });
+

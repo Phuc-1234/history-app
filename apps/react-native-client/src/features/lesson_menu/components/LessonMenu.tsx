@@ -340,112 +340,112 @@ export function LessonMenu({
                             />
                         }
                     >
-                    {topics.map((topic) => {
-                        const isExpanded = expandedTopicId === topic.id;
-                        const topicAny = topic as any;
-                        const topicPct =
-                            topicAny.progress != null &&
-                            topicAny.progress.totalNodes > 0
-                                ? topicAny.progress.completedNodes /
-                                  topicAny.progress.totalNodes
-                                : null;
+                        {topics.map((topic) => {
+                            const isExpanded = expandedTopicId === topic.id;
+                            const topicAny = topic as any;
+                            const topicPct =
+                                topicAny.progress != null &&
+                                    topicAny.progress.totalNodes > 0
+                                    ? topicAny.progress.completedNodes /
+                                    topicAny.progress.totalNodes
+                                    : null;
 
-                        return (
-                            <View key={topic.id} style={styles.topicWrapper}>
-                                {/* Accordion Trigger Header */}
-                                <TouchableOpacity
-                                    accessible={true}
-                                    accessibilityLabel={
-                                        isExpanded
-                                            ? `Thu gọn chủ đề ${topic.position}: ${topic.name}`
-                                            : `Mở rộng chủ đề ${topic.position}: ${topic.name}`
-                                    }
-                                    accessibilityRole="button"
-                                    style={[
-                                        styles.topicHeader,
-                                        isExpanded && styles.expandedTopicHeader,
-                                    ]}
-                                    onPress={() => toggleTopic(topic.id)}
-                                    activeOpacity={0.9}
-                                >
-                                    <TopicProgressFill pct={topicPct} isExpanded={isExpanded} />
+                            return (
+                                <View key={topic.id} style={styles.topicWrapper}>
+                                    {/* Accordion Trigger Header */}
+                                    <TouchableOpacity
+                                        accessible={true}
+                                        accessibilityLabel={
+                                            isExpanded
+                                                ? `Thu gọn chủ đề ${topic.position}: ${topic.name}`
+                                                : `Mở rộng chủ đề ${topic.position}: ${topic.name}`
+                                        }
+                                        accessibilityRole="button"
+                                        style={[
+                                            styles.topicHeader,
+                                            isExpanded && styles.expandedTopicHeader,
+                                        ]}
+                                        onPress={() => toggleTopic(topic.id)}
+                                        activeOpacity={0.9}
+                                    >
+                                        <TopicProgressFill pct={topicPct} isExpanded={isExpanded} />
 
-                                    <View style={styles.topicHeaderInner}>
-                                        <View style={styles.topicHeaderLeft}>
-                                            <Text
-                                                style={[
-                                                    styles.topicTitle,
-                                                    isExpanded && styles.whiteText,
-                                                ]}
-                                            >
-                                                CHỦ ĐỀ {topic.position}: {topic.name}
-                                            </Text>
-                                            <Text
-                                                style={[
-                                                    styles.topicDesc,
-                                                    isExpanded &&
-                                                        styles.lightPurpleText,
-                                                ]}
-                                            >
-                                                Khám phá kiến thức của chủ đề này
-                                            </Text>
-                                        </View>
-                                        <View style={styles.topicHeaderRight}>
-                                            <Ionicons
-                                                name={
-                                                    (isExpanded
-                                                        ? "chevron-up"
-                                                        : "chevron-forward") as any
-                                                }
-                                                size={20}
-                                                color={
-                                                    isExpanded ? "#FFF" : "#8E8E93"
-                                                }
-                                            />
-                                        </View>
-                                    </View>
-                                </TouchableOpacity>
-
-                                {/* Accordion Node Map Content */}
-                                {isExpanded && (
-                                    <View style={styles.mapContainer}>
-                                        {/* Spine Connector Line */}
-                                        <View style={styles.verticalSpine} />
-
-                                        {/* Lesson Nodes (alternating left/right) */}
-                                        {topic.lessons.map((lesson, lessonIdx) => {
-                                            const lessonAny = lesson as any;
-                                            const lessonPct =
-                                                lessonAny.progress != null &&
-                                                lessonAny.progress.totalNodes > 0
-                                                    ? lessonAny.progress
-                                                          .completedNodes /
-                                                      lessonAny.progress
-                                                          .totalNodes
-                                                    : null;
-                                            const isDone =
-                                                lessonPct != null && lessonPct >= 1;
-                                            const isLeft = lessonIdx % 2 === 0;
-
-                                            return (
-                                                <View
-                                                    key={lesson.id}
+                                        <View style={styles.topicHeaderInner}>
+                                            <View style={styles.topicHeaderLeft}>
+                                                <Text
                                                     style={[
-                                                        styles.nodeItem,
-                                                        isLeft
-                                                            ? styles.nodeLeft
-                                                            : styles.nodeRight,
+                                                        styles.topicTitle,
+                                                        isExpanded && styles.whiteText,
                                                     ]}
                                                 >
-                                                    <LessonCircle
-                                                        isDone={isDone}
-                                                        pct={lessonPct}
-                                                        onPress={() =>
-                                                            onLessonPress(
-                                                                lesson.id,
-                                                            )
-                                                        }
+                                                    CHỦ ĐỀ {topic.position}: {topic.name}
+                                                </Text>
+                                                <Text
+                                                    style={[
+                                                        styles.topicDesc,
+                                                        isExpanded &&
+                                                        styles.lightPurpleText,
+                                                    ]}
+                                                >
+                                                    Khám phá kiến thức của chủ đề này
+                                                </Text>
+                                            </View>
+                                            <View style={styles.topicHeaderRight}>
+                                                <Ionicons
+                                                    name={
+                                                        (isExpanded
+                                                            ? "chevron-up"
+                                                            : "chevron-forward") as any
+                                                    }
+                                                    size={20}
+                                                    color={
+                                                        isExpanded ? "#FFF" : "#8E8E93"
+                                                    }
+                                                />
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    {/* Accordion Node Map Content */}
+                                    {isExpanded && (
+                                        <View style={styles.mapContainer}>
+                                            {/* Spine Connector Line */}
+                                            <View style={styles.verticalSpine} />
+
+                                            {/* Lesson Nodes (alternating left/right) */}
+                                            {topic.lessons.map((lesson, lessonIdx) => {
+                                                const lessonAny = lesson as any;
+                                                const lessonPct =
+                                                    lessonAny.progress != null &&
+                                                        lessonAny.progress.totalNodes > 0
+                                                        ? lessonAny.progress
+                                                            .completedNodes /
+                                                        lessonAny.progress
+                                                            .totalNodes
+                                                        : null;
+                                                const isDone =
+                                                    lessonPct != null && lessonPct >= 1;
+                                                const isLeft = lessonIdx % 2 === 0;
+
+                                                return (
+                                                    <View
+                                                        key={lesson.id}
+                                                        style={[
+                                                            styles.nodeItem,
+                                                            isLeft
+                                                                ? styles.nodeLeft
+                                                                : styles.nodeRight,
+                                                        ]}
                                                     >
+                                                        <LessonCircle
+                                                            isDone={isDone}
+                                                            pct={lessonPct}
+                                                            onPress={() =>
+                                                                onLessonPress(
+                                                                    lesson.id,
+                                                                )
+                                                            }
+                                                        >
                                                             <Ionicons
                                                                 name={
                                                                     (isDone
@@ -459,22 +459,22 @@ export function LessonMenu({
                                                                         : "#007AFF"
                                                                 }
                                                             />
-                                                    </LessonCircle>
-                                                    <Text
-                                                        style={[
-                                                            styles.nodeLabel,
-                                                            !isDone &&
+                                                        </LessonCircle>
+                                                        <Text
+                                                            style={[
+                                                                styles.nodeLabel,
+                                                                !isDone &&
                                                                 styles.textDisabled,
-                                                        ]}
-                                                    >
-                                                        Bài {lesson.position}:{" "}
-                                                        {lesson.name}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        })}
+                                                            ]}
+                                                        >
+                                                            Bài {lesson.position}:{" "}
+                                                            {lesson.name}
+                                                        </Text>
+                                                    </View>
+                                                );
+                                            })}
 
-                                        {/* Topic-Level Milestone Test Node (Cúp luôn nằm ở giữa cuối luồng tự nhiên) */}
+                                        {/* Topic-Level Milestone Test Node */}
                                         {topic.firstTest && (
                                             <View
                                                 style={[
@@ -511,41 +511,41 @@ export function LessonMenu({
                         );
                     })}
 
-                    {/* --- Grade Level Finale Test Section --- */}
-                    {finalTest && (
-                        <View style={styles.finalExamSection}>
-                            <View style={styles.finalExamBadgeContainer}>
-                                <View style={styles.finalExamOuterRing}>
-                                    <View style={styles.finalExamInnerCircle}>
-                                        <Ionicons
-                                            name={"ribbon" as any}
-                                            size={42}
-                                            color="#FFF"
-                                        />
+                        {/* --- Grade Level Finale Test Section --- */}
+                        {finalTest && (
+                            <View style={styles.finalExamSection}>
+                                <View style={styles.finalExamBadgeContainer}>
+                                    <View style={styles.finalExamOuterRing}>
+                                        <View style={styles.finalExamInnerCircle}>
+                                            <Ionicons
+                                                name={"ribbon" as any}
+                                                size={42}
+                                                color="#FFF"
+                                            />
+                                        </View>
                                     </View>
                                 </View>
-                            </View>
-                            <Text style={styles.finalExamTitle}>
-                                {finalTest.title}
-                            </Text>
-                            <Text style={styles.finalExamSubtitle}>
-                                Kiểm tra kiến thức tổng hợp lớp {selectedGrade}
-                            </Text>
-
-                            <TouchableOpacity
-                                style={styles.finalExamButton}
-                                onPress={() => onTestPress("GRADE", selectedGrade)}
-                            >
-                                <Text style={styles.finalExamButtonText}>
-                                    BẮT ĐẦU THI NGAY
+                                <Text style={styles.finalExamTitle}>
+                                    {finalTest.title}
                                 </Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </ScrollView>
-            )}
-        </View>
-    </ScreenWrapper>
+                                <Text style={styles.finalExamSubtitle}>
+                                    Kiểm tra kiến thức tổng hợp lớp {selectedGrade}
+                                </Text>
+
+                                <TouchableOpacity
+                                    style={styles.finalExamButton}
+                                    onPress={() => onTestPress("GRADE", selectedGrade)}
+                                >
+                                    <Text style={styles.finalExamButtonText}>
+                                        BẮT ĐẦU THI NGAY
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </ScrollView>
+                )}
+            </View>
+        </ScreenWrapper>
     );
 }
 

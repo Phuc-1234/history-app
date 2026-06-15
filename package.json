@@ -7,11 +7,13 @@
     "packages/*"
   ],
   "scripts": {
+    "db:push": "prisma db push --schema=packages/shared/prisma/schema.prisma",
     "client": "npm start --workspace=react-native-client",
     "client:local": "npm run start:local --workspace=react-native-client",
     "client:feature": "npm run start:feature --workspace=react-native-client",
     "client:dev": "npm run start:dev --workspace=react-native-client",
     "server": "npm run build:shared && npm run dev --workspace=express-server",
+    "download-sdks": "node apps/react-native-client/scripts/downloadSDKs.js",
     "nuke": "rimraf node_modules package-lock.json apps/react-native-client/node_modules apps/express-server/node_modules apps/react-native-client/android apps/react-native-client/ios packages/shared/src/generated",
     "setup": "npm run nuke && npm install && npx prisma generate --schema=packages/shared/prisma/schema.prisma && cd apps/react-native-client && npx expo prebuild",
     "build": "npm run build:render",

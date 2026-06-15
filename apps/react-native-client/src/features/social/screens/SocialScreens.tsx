@@ -172,10 +172,10 @@ function toViewUser(user: ApiSocialUser): SocialUser {
         user.relationStatus === "friend"
             ? "friend"
             : user.relationStatus === "outgoing_request"
-              ? "pending"
-              : user.isFollowing
-                ? "following"
-                : "none";
+                ? "pending"
+                : user.isFollowing
+                    ? "following"
+                    : "none";
 
     return {
         id: user.id,
@@ -236,13 +236,13 @@ function SocialBottomBar() {
         activeIcon: keyof typeof Ionicons.glyphMap;
         active?: boolean;
     }> = [
-        { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
-        { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
-        { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
-        { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
-        { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
-        { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
-    ];
+            { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
+            { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
+            { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
+            { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
+            { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
+            { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
+        ];
 
     return (
         <View
@@ -539,8 +539,8 @@ export function OtherProfileScreen() {
         relation === "friend"
             ? "Bạn bè"
             : relation === "outgoing_request" || relation === "incoming_request"
-              ? "Đang chờ"
-              : "Kết bạn";
+                ? "Đang chờ"
+                : "Kết bạn";
 
     return (
         <ScreenShell title="Hồ sơ" rightLabel="Báo cáo">
@@ -562,66 +562,66 @@ export function OtherProfileScreen() {
                     <EmptyState title="Không tìm thấy hồ sơ người dùng." />
                 ) : null}
                 {profile ? (
-                <>
-                <View style={styles.profileHero}>
-                    <Avatar user={profile} size={88} />
-                    <Text style={styles.profileName}>{profile.name}</Text>
-                    <Text style={styles.profileSubtitle}>Lv. {profile.level} - {profile.title}</Text>
-                    <View style={styles.profileStats}>
-                        <StatCard value={String(apiProfile?.stats.friends ?? 0)} label="Bạn bè" />
-                        <StatCard value={String(apiProfile?.stats.followers ?? 0)} label="Người theo dõi" />
-                        <StatCard value={profile.winRate ? `${profile.winRate}%` : "--"} label="Thắng" />
-                    </View>
-                    <View style={styles.actionRow}>
-                        <PrimaryButton
-                            label={friendLabel}
-                            icon={relation === "none" ? "person-add" : "checkmark"}
-                            onPress={() => {
-                                if (userId && relation === "none") {
-                                    sendFriendRequest({ receiverId: userId });
-                                }
-                            }}
-                        />
-                        <PrimaryButton
-                            label={isFollowing ? "Bỏ theo dõi" : "Theo dõi"}
-                            icon={isFollowing ? "notifications-off" : "notifications"}
-                            variant="outline"
-                            onPress={() => {
-                                if (!userId) return;
-                                if (isFollowing) {
-                                    unfollowUser(userId);
-                                } else {
-                                    followUser(userId);
-                                }
-                            }}
-                        />
-                    </View>
-                    <PrimaryButton
-                        label="Thách đấu"
-                        icon="flash"
-                        onPress={() => pushRoute(router, `/(social)/challenge-create?userId=${profile.id}`)}
-                    />
-                </View>
-
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Thành tích nổi bật</Text>
-                    <View style={styles.badgeGrid}>
-                        <View style={styles.badgeCard}>
-                            <Ionicons name="trophy" size={24} color={colors.amber} />
-                            <Text style={styles.badgeTitle}>{profile.xp.toLocaleString()} XP</Text>
+                    <>
+                        <View style={styles.profileHero}>
+                            <Avatar user={profile} size={88} />
+                            <Text style={styles.profileName}>{profile.name}</Text>
+                            <Text style={styles.profileSubtitle}>Lv. {profile.level} - {profile.title}</Text>
+                            <View style={styles.profileStats}>
+                                <StatCard value={String(apiProfile?.stats.friends ?? 0)} label="Bạn bè" />
+                                <StatCard value={String(apiProfile?.stats.followers ?? 0)} label="Người theo dõi" />
+                                <StatCard value={profile.winRate ? `${profile.winRate}%` : "--"} label="Thắng" />
+                            </View>
+                            <View style={styles.actionRow}>
+                                <PrimaryButton
+                                    label={friendLabel}
+                                    icon={relation === "none" ? "person-add" : "checkmark"}
+                                    onPress={() => {
+                                        if (userId && relation === "none") {
+                                            sendFriendRequest({ receiverId: userId });
+                                        }
+                                    }}
+                                />
+                                <PrimaryButton
+                                    label={isFollowing ? "Bỏ theo dõi" : "Theo dõi"}
+                                    icon={isFollowing ? "notifications-off" : "notifications"}
+                                    variant="outline"
+                                    onPress={() => {
+                                        if (!userId) return;
+                                        if (isFollowing) {
+                                            unfollowUser(userId);
+                                        } else {
+                                            followUser(userId);
+                                        }
+                                    }}
+                                />
+                            </View>
+                            <PrimaryButton
+                                label="Thách đấu"
+                                icon="flash"
+                                onPress={() => pushRoute(router, `/(social)/challenge-create?userId=${profile.id}`)}
+                            />
                         </View>
-                        <View style={styles.badgeCard}>
-                            <Ionicons name="flame" size={24} color={colors.rose} />
-                            <Text style={styles.badgeTitle}>Chuỗi học {apiProfile?.currentStreak ?? 0}</Text>
-                        </View>
-                    </View>
-                </View>
 
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Bạn chung</Text>
-                    <EmptyState title="Chưa có dữ liệu bạn chung." />
-                </View>
-                </>
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>Thành tích nổi bật</Text>
+                            <View style={styles.badgeGrid}>
+                                <View style={styles.badgeCard}>
+                                    <Ionicons name="trophy" size={24} color={colors.amber} />
+                                    <Text style={styles.badgeTitle}>{profile.xp.toLocaleString()} XP</Text>
+                                </View>
+                                <View style={styles.badgeCard}>
+                                    <Ionicons name="flame" size={24} color={colors.rose} />
+                                    <Text style={styles.badgeTitle}>Chuỗi học {apiProfile?.currentStreak ?? 0}</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.card}>
+                            <Text style={styles.sectionTitle}>Bạn chung</Text>
+                            <EmptyState title="Chưa có dữ liệu bạn chung." />
+                        </View>
+                    </>
                 ) : null}
             </ScrollView>
         </ScreenShell>
@@ -648,20 +648,20 @@ export function FriendsAndFollowScreen() {
         activeTab === "Bạn bè"
             ? friends
             : activeTab === "Đang theo dõi"
-              ? following
-              : followers;
+                ? following
+                : followers;
     const activeQuery =
         activeTab === "Bạn bè"
             ? friendsQuery
             : activeTab === "Đang theo dõi"
-              ? followingQuery
-              : followersQuery;
+                ? followingQuery
+                : followersQuery;
     const activeEmptyTitle =
         activeTab === "Bạn bè"
             ? "Bạn chưa có bạn bè nào."
             : activeTab === "Đang theo dõi"
-              ? "Bạn chưa theo dõi ai."
-              : "Chưa có người theo dõi.";
+                ? "Bạn chưa theo dõi ai."
+                : "Chưa có người theo dõi.";
 
     return (
         <ScreenShell title="Bạn bè & Theo dõi" rightLabel="Tìm bạn">

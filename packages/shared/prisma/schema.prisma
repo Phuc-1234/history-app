@@ -247,6 +247,8 @@ model User {
   nodeProgresses         UserNodeProgress[]
   testLogs               UserTestLog[]
   tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
+  isVerified             Boolean            @default(false) @map("is_verified")
+  goldPurchases          GoldPurchase[]
 
   @@map("users")
 }
@@ -545,6 +547,22 @@ enum TestStatus {
   ABANDONED
 }
 
+model GoldPurchase {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  goldAmount      Int             @map("gold_amount")
+  amountVnd       Int             @map("amount_vnd")
+  provider        PaymentProvider
+  status          PaymentStatus   @default(PENDING)
+  providerOrderId String          @unique @map("provider_order_id")
+  providerTransId String?         @map("provider_trans_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("gold_purchases")
+}
+
 enum PaymentProvider {
   MOMO
   ZALOPAY
@@ -555,3 +573,4 @@ enum PaymentStatus {
   SUCCESS
   FAILED
 }
+
