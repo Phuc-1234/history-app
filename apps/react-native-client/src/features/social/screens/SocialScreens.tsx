@@ -31,6 +31,7 @@ import {
 import type { SocialProfile, SocialUser as ApiSocialUser } from "../types/socialApiTypes";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useAppSelector } from "@/store/storeHook";
+import type { ViewStyle } from "react-native";
 
 type SocialUser = {
     id: string;
@@ -39,6 +40,7 @@ type SocialUser = {
     avatar: string;
     title: string;
     xp: number;
+    streak: number;
     mutualFriends: number;
     relation: "friend" | "following" | "none" | "pending";
     winRate: number;
@@ -77,6 +79,7 @@ const users: SocialUser[] = [
         avatar: "https://i.pravatar.cc/160?img=47",
         title: "Chuyên gia Nhà Trần",
         xp: 8640,
+        streak: 30,
         mutualFriends: 5,
         relation: "friend",
         winRate: 68,
@@ -88,6 +91,7 @@ const users: SocialUser[] = [
         avatar: "https://i.pravatar.cc/160?img=32",
         title: "Đang ôn thi THPT",
         xp: 7210,
+        streak: 18,
         mutualFriends: 3,
         relation: "following",
         winRate: 54,
@@ -99,6 +103,7 @@ const users: SocialUser[] = [
         avatar: "https://i.pravatar.cc/160?img=12",
         title: "Yêu thích chiến dịch lịch sử",
         xp: 6780,
+        streak: 5,
         mutualFriends: 2,
         relation: "pending",
         winRate: 61,
@@ -110,6 +115,7 @@ const users: SocialUser[] = [
         avatar: "https://i.pravatar.cc/160?img=44",
         title: "Mới tham gia",
         xp: 4120,
+        streak: 2,
         mutualFriends: 0,
         relation: "none",
         winRate: 49,
@@ -172,35 +178,57 @@ function toViewUser(user: ApiSocialUser): SocialUser {
         user.relationStatus === "friend"
             ? "friend"
             : user.relationStatus === "outgoing_request"
-                ? "pending"
-                : user.isFollowing
-                    ? "following"
-                    : "none";
+              ? "pending"
+              : user.isFollowing
+                ? "following"
+                : "none";
 
     return {
         id: user.id,
         name: user.name,
         level: Math.max(1, Math.floor((user.totalXp ?? 0) / 1000) + 1),
-        avatar: user.profileImgUrl || `https://i.pravatar.cc/160?u=${user.id}`,
+        avatar: user.profileImgUrl ?? "",
         title: user.tierName || "Người học lịch sử",
         xp: user.totalXp ?? 0,
+        streak: user.currentStreak ?? 0,
         mutualFriends: 0,
         relation,
         winRate: 0,
     };
 }
 
-function relationButton(user: SocialUser) {
+type CardAction = {
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    variant: "primary" | "outline" | "soft" | "danger" | "disabled" | "secondary" | "ghost";
+};
+
+function searchActions(user: SocialUser): {
+    primary: CardAction;
+    secondary?: CardAction;
+} {
     if (user.relation === "friend") {
-        return { label: "Bạn bè", icon: "checkmark" as const };
+        return {
+            primary: { label: "Thách đấu", icon: "flash", variant: "secondary" },
+            secondary: { label: "Hồ sơ", icon: "person-outline", variant: "ghost" },
+        };
     }
     if (user.relation === "pending") {
-        return { label: "Đang chờ", icon: "time" as const };
+        return {
+            primary: { label: "Đã gửi", icon: "time", variant: "disabled" },
+            secondary: { label: "Theo dõi", icon: "person-add", variant: "outline" },
+        };
     }
     if (user.relation === "following") {
-        return { label: "Đã theo dõi", icon: "notifications" as const };
+        return {
+            primary: { label: "Kết bạn", icon: "person-add", variant: "primary" },
+            secondary: { label: "Đang theo dõi", icon: "checkmark", variant: "outline" },
+        };
     }
-    return { label: "Theo dõi", icon: "person-add" as const };
+    return {
+        primary: { label: "Kết bạn", icon: "person-add", variant: "primary" },
+        secondary: { label: "Theo dõi", icon: "person-add", variant: "outline" },
+    };
 }
 
 function EmptyState({
@@ -236,13 +264,13 @@ function SocialBottomBar() {
         activeIcon: keyof typeof Ionicons.glyphMap;
         active?: boolean;
     }> = [
-            { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
-            { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
-            { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
-            { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
-            { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
-            { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
-        ];
+        { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
+        { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
+        { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
+        { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
+        { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
+        { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
+    ];
 
     return (
         <View
@@ -313,7 +341,32 @@ function ScreenShell({
     );
 }
 
+function getInitials(name: string) {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 function Avatar({ user, size = 52 }: { user: SocialUser; size?: number }) {
+    if (!user.avatar) {
+        return (
+            <View
+                style={[
+                    styles.avatarFallback,
+                    {
+                        width: size,
+                        height: size,
+                        borderRadius: size / 2,
+                    },
+                ]}
+            >
+                <Text style={[styles.avatarFallbackText, { fontSize: size * 0.4 }]}>
+                    {getInitials(user.name)}
+                </Text>
+            </View>
+        );
+    }
     return (
         <Image
             source={{ uri: user.avatar }}
@@ -327,11 +380,15 @@ function PrimaryButton({
     icon,
     onPress,
     variant = "primary",
+    style,
+    iconOnly = false,
 }: {
     label: string;
     icon?: keyof typeof Ionicons.glyphMap;
     onPress?: () => void;
     variant?: "primary" | "outline" | "soft" | "danger";
+    style?: ViewStyle;
+    iconOnly?: boolean;
 }) {
     const isPrimary = variant === "primary";
     const isDanger = variant === "danger";
@@ -343,9 +400,12 @@ function PrimaryButton({
                 variant === "outline" && styles.buttonOutline,
                 variant === "soft" && styles.buttonSoft,
                 isDanger && styles.buttonDanger,
+                iconOnly && styles.buttonIconOnly,
+                style,
             ]}
             onPress={onPress}
             activeOpacity={0.82}
+            accessibilityLabel={label}
         >
             {icon ? (
                 <Ionicons
@@ -354,14 +414,17 @@ function PrimaryButton({
                     color={isPrimary || isDanger ? "#FFFFFF" : colors.primary}
                 />
             ) : null}
-            <Text
-                style={[
-                    styles.buttonText,
-                    (isPrimary || isDanger) && styles.buttonTextPrimary,
-                ]}
-            >
-                {label}
-            </Text>
+            {iconOnly ? null : (
+                <Text
+                    style={[
+                        styles.buttonText,
+                        (isPrimary || isDanger) && styles.buttonTextPrimary,
+                    ]}
+                    numberOfLines={1}
+                >
+                    {label}
+                </Text>
+            )}
         </TouchableOpacity>
     );
 }
@@ -407,19 +470,58 @@ function UserCard({
     primaryLabel,
     primaryIcon,
     primaryOnPress,
+    primaryVariant = "soft",
+    secondaryLabel,
+    secondaryIcon,
+    secondaryOnPress,
+    secondaryVariant = "outline",
 }: {
     user: SocialUser;
     onPress?: () => void;
     primaryLabel?: string;
     primaryIcon?: keyof typeof Ionicons.glyphMap;
     primaryOnPress?: () => void;
+    primaryVariant?: "primary" | "outline" | "soft" | "danger";
+    secondaryLabel?: string;
+    secondaryIcon?: keyof typeof Ionicons.glyphMap;
+    secondaryOnPress?: () => void;
+    secondaryVariant?: "primary" | "outline" | "soft" | "danger";
 }) {
+    const actions =
+        primaryLabel && secondaryLabel ? (
+            <View style={styles.cardActionRow}>
+                <PrimaryButton
+                    label={primaryLabel}
+                    icon={primaryIcon}
+                    variant={primaryVariant}
+                    style={styles.cardActionButton}
+                    onPress={primaryOnPress}
+                />
+                <PrimaryButton
+                    label={secondaryLabel}
+                    icon={secondaryIcon}
+                    variant={secondaryVariant}
+                    style={styles.cardActionButton}
+                    onPress={secondaryOnPress}
+                />
+            </View>
+        ) : primaryLabel ? (
+            <PrimaryButton
+                label={primaryLabel}
+                icon={primaryIcon}
+                variant={primaryVariant}
+                onPress={primaryOnPress}
+            />
+        ) : null;
+
     return (
         <TouchableOpacity style={styles.userCard} onPress={onPress} activeOpacity={0.85}>
             <Avatar user={user} />
             <View style={styles.userInfo}>
                 <View style={styles.rowCenter}>
-                    <Text style={styles.userName}>{user.name}</Text>
+                    <Text style={styles.userName} numberOfLines={1}>
+                        {user.name}
+                    </Text>
                     <View style={styles.levelPill}>
                         <Text style={styles.levelText}>Lv. {user.level}</Text>
                     </View>
@@ -431,14 +533,7 @@ function UserCard({
                     {user.xp.toLocaleString()} XP - {user.mutualFriends} bạn chung
                 </Text>
             </View>
-            {primaryLabel ? (
-                <PrimaryButton
-                    label={primaryLabel}
-                    icon={primaryIcon}
-                    variant="soft"
-                    onPress={primaryOnPress}
-                />
-            ) : null}
+            {actions}
         </TouchableOpacity>
     );
 }
@@ -452,6 +547,116 @@ function StatCard({ value, label }: { value: string; label: string }) {
     );
 }
 
+function rankPillFor(user: SocialUser): { label: string; icon: keyof typeof Ionicons.glyphMap } | null {
+    if (user.relation === "friend") {
+        return { label: "Bạn bè", icon: "people" };
+    }
+    const rank = user.title && user.title !== "Người học lịch sử" ? user.title : null;
+    if (!rank) return null;
+    return { label: rank, icon: "ribbon" };
+}
+
+function SearchActionButton({
+    action,
+    onPress,
+}: {
+    action: CardAction;
+    onPress?: () => void;
+}) {
+    const variantStyle =
+        action.variant === "primary"
+            ? styles.searchBtnPrimary
+            : action.variant === "outline"
+              ? styles.searchBtnOutline
+              : action.variant === "disabled"
+                ? styles.searchBtnDisabled
+                : action.variant === "secondary"
+                  ? styles.searchBtnSecondary
+                  : action.variant === "ghost"
+                    ? styles.searchBtnGhost
+                    : styles.searchBtnOutline;
+    const textColor =
+        action.variant === "primary"
+            ? "#FFFFFF"
+            : action.variant === "disabled"
+              ? colors.textMuted
+              : action.variant === "ghost"
+                ? colors.primary
+                : colors.text;
+    const iconColor = textColor;
+    const disabled = action.variant === "disabled";
+    return (
+        <TouchableOpacity
+            style={[styles.searchBtn, variantStyle]}
+            onPress={onPress}
+            activeOpacity={disabled ? 1 : 0.85}
+            disabled={disabled}
+        >
+            <Ionicons name={action.icon} size={17} color={iconColor} />
+            <Text style={[styles.searchBtnText, { color: textColor }]} numberOfLines={1}>
+                {action.label}
+            </Text>
+        </TouchableOpacity>
+    );
+}
+
+function SearchUserCard({
+    user,
+    onOpen,
+    onPrimary,
+    onSecondary,
+}: {
+    user: SocialUser;
+    onOpen: () => void;
+    onPrimary: () => void;
+    onSecondary: () => void;
+}) {
+    const actions = searchActions(user);
+    const rank = rankPillFor(user);
+    const rankColor = user.relation === "friend" ? colors.emerald : colors.amber;
+    return (
+        <View style={styles.searchCard}>
+            <TouchableOpacity
+                style={styles.searchCardHead}
+                onPress={onOpen}
+                activeOpacity={0.85}
+            >
+                <Avatar user={user} size={56} />
+                <View style={styles.userInfo}>
+                    <View style={styles.searchNameRow}>
+                        <Text style={styles.userName} numberOfLines={1}>
+                            {user.name}
+                        </Text>
+                        {rank ? (
+                            <View style={[styles.rankPill, { backgroundColor: `${rankColor}1A` }]}>
+                                <Ionicons name={rank.icon} size={12} color={rankColor} />
+                                <Text style={[styles.rankText, { color: rankColor }]} numberOfLines={1}>
+                                    {rank.label}
+                                </Text>
+                            </View>
+                        ) : null}
+                    </View>
+                    <View style={styles.searchMetaRow}>
+                        <Ionicons name="star" size={14} color={colors.primary} />
+                        <Text style={styles.searchMetaText}>
+                            {user.xp.toLocaleString()} XP
+                        </Text>
+                        <View style={styles.searchMetaDot} />
+                        <Ionicons name="flame" size={14} color={colors.rose} />
+                        <Text style={styles.searchMetaText}>{user.streak} ngày</Text>
+                    </View>
+                </View>
+            </TouchableOpacity>
+            <View style={styles.searchButtonRow}>
+                <SearchActionButton action={actions.primary} onPress={onPrimary} />
+                {actions.secondary ? (
+                    <SearchActionButton action={actions.secondary} onPress={onSecondary} />
+                ) : null}
+            </View>
+        </View>
+    );
+}
+
 export function SearchUsersScreen() {
     const router = useRouter();
     const [query, setQuery] = useState("");
@@ -461,6 +666,7 @@ export function SearchUsersScreen() {
         limit: 20,
     });
     const [followUser] = useFollowUserMutation();
+    const [unfollowUser] = useUnfollowUserMutation();
     const [sendFriendRequest] = useSendFriendRequestMutation();
     const filteredUsers = data?.users.map(toViewUser) ?? [];
 
@@ -499,17 +705,24 @@ export function SearchUsersScreen() {
                     <EmptyState title="Chưa tìm thấy người dùng phù hợp." />
                 ) : null}
                 {filteredUsers.map((user) => (
-                    <UserCard
+                    <SearchUserCard
                         key={user.id}
                         user={user}
-                        onPress={() => pushRoute(router, `/(social)/profile?userId=${user.id}`)}
-                        primaryLabel={relationButton(user).label}
-                        primaryIcon={relationButton(user).icon}
-                        primaryOnPress={() => {
-                            if (user.relation === "none") {
+                        onOpen={() => pushRoute(router, `/(social)/profile?userId=${user.id}`)}
+                        onPrimary={() => {
+                            if (user.relation === "none" || user.relation === "following") {
+                                sendFriendRequest({ receiverId: user.id });
+                            } else if (user.relation === "friend") {
+                                pushRoute(router, `/(social)/challenge-create?userId=${user.id}`);
+                            }
+                        }}
+                        onSecondary={() => {
+                            if (user.relation === "none" || user.relation === "pending") {
                                 followUser(user.id);
                             } else if (user.relation === "following") {
-                                sendFriendRequest({ receiverId: user.id });
+                                unfollowUser(user.id);
+                            } else if (user.relation === "friend") {
+                                pushRoute(router, `/(social)/profile?userId=${user.id}`);
                             }
                         }}
                     />
@@ -526,21 +739,9 @@ export function OtherProfileScreen() {
     const { data, isFetching, isError, refetch } = useGetSocialProfileQuery(userId, {
         skip: !userId,
     });
-    const [sendFriendRequest] = useSendFriendRequestMutation();
-    const [followUser] = useFollowUserMutation();
-    const [unfollowUser] = useUnfollowUserMutation();
 
     const apiProfile = data?.profile;
     const profile = apiProfile ? toViewUser(apiProfile) : null;
-    const relation = apiProfile?.relationStatus ?? "none";
-    const isFollowing = apiProfile?.isFollowing ?? false;
-
-    const friendLabel =
-        relation === "friend"
-            ? "Bạn bè"
-            : relation === "outgoing_request" || relation === "incoming_request"
-                ? "Đang chờ"
-                : "Kết bạn";
 
     return (
         <ScreenShell title="Hồ sơ" rightLabel="Báo cáo">
@@ -562,66 +763,42 @@ export function OtherProfileScreen() {
                     <EmptyState title="Không tìm thấy hồ sơ người dùng." />
                 ) : null}
                 {profile ? (
-                    <>
-                        <View style={styles.profileHero}>
-                            <Avatar user={profile} size={88} />
-                            <Text style={styles.profileName}>{profile.name}</Text>
-                            <Text style={styles.profileSubtitle}>Lv. {profile.level} - {profile.title}</Text>
-                            <View style={styles.profileStats}>
-                                <StatCard value={String(apiProfile?.stats.friends ?? 0)} label="Bạn bè" />
-                                <StatCard value={String(apiProfile?.stats.followers ?? 0)} label="Người theo dõi" />
-                                <StatCard value={profile.winRate ? `${profile.winRate}%` : "--"} label="Thắng" />
-                            </View>
-                            <View style={styles.actionRow}>
-                                <PrimaryButton
-                                    label={friendLabel}
-                                    icon={relation === "none" ? "person-add" : "checkmark"}
-                                    onPress={() => {
-                                        if (userId && relation === "none") {
-                                            sendFriendRequest({ receiverId: userId });
-                                        }
-                                    }}
-                                />
-                                <PrimaryButton
-                                    label={isFollowing ? "Bỏ theo dõi" : "Theo dõi"}
-                                    icon={isFollowing ? "notifications-off" : "notifications"}
-                                    variant="outline"
-                                    onPress={() => {
-                                        if (!userId) return;
-                                        if (isFollowing) {
-                                            unfollowUser(userId);
-                                        } else {
-                                            followUser(userId);
-                                        }
-                                    }}
-                                />
-                            </View>
-                            <PrimaryButton
-                                label="Thách đấu"
-                                icon="flash"
-                                onPress={() => pushRoute(router, `/(social)/challenge-create?userId=${profile.id}`)}
-                            />
-                        </View>
+                <>
+                <View style={styles.profileHero}>
+                    <Avatar user={profile} size={88} />
+                    <Text style={styles.profileName}>{profile.name}</Text>
+                    <Text style={styles.profileSubtitle}>Lv. {profile.level} - {profile.title}</Text>
+                    <View style={styles.profileStats}>
+                        <StatCard value={String(apiProfile?.stats.friends ?? 0)} label="Bạn bè" />
+                        <StatCard value={String(apiProfile?.stats.followers ?? 0)} label="Người theo dõi" />
+                        <StatCard value={profile.winRate ? `${profile.winRate}%` : "--"} label="Thắng" />
+                    </View>
+                    <PrimaryButton
+                        label="Thách đấu"
+                        icon="flash"
+                        onPress={() => pushRoute(router, `/(social)/challenge-create?userId=${profile.id}`)}
+                    />
+                </View>
 
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>Thành tích nổi bật</Text>
-                            <View style={styles.badgeGrid}>
-                                <View style={styles.badgeCard}>
-                                    <Ionicons name="trophy" size={24} color={colors.amber} />
-                                    <Text style={styles.badgeTitle}>{profile.xp.toLocaleString()} XP</Text>
-                                </View>
-                                <View style={styles.badgeCard}>
-                                    <Ionicons name="flame" size={24} color={colors.rose} />
-                                    <Text style={styles.badgeTitle}>Chuỗi học {apiProfile?.currentStreak ?? 0}</Text>
-                                </View>
-                            </View>
+                <View style={styles.card}>
+                    <Text style={styles.sectionTitle}>Thành tích nổi bật</Text>
+                    <View style={styles.badgeGrid}>
+                        <View style={styles.badgeCard}>
+                            <Ionicons name="trophy" size={24} color={colors.amber} />
+                            <Text style={styles.badgeTitle}>{profile.xp.toLocaleString()} XP</Text>
                         </View>
+                        <View style={styles.badgeCard}>
+                            <Ionicons name="flame" size={24} color={colors.rose} />
+                            <Text style={styles.badgeTitle}>Chuỗi học {apiProfile?.currentStreak ?? 0}</Text>
+                        </View>
+                    </View>
+                </View>
 
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>Bạn chung</Text>
-                            <EmptyState title="Chưa có dữ liệu bạn chung." />
-                        </View>
-                    </>
+                <View style={styles.card}>
+                    <Text style={styles.sectionTitle}>Bạn chung</Text>
+                    <EmptyState title="Chưa có dữ liệu bạn chung." />
+                </View>
+                </>
                 ) : null}
             </ScrollView>
         </ScreenShell>
@@ -648,20 +825,20 @@ export function FriendsAndFollowScreen() {
         activeTab === "Bạn bè"
             ? friends
             : activeTab === "Đang theo dõi"
-                ? following
-                : followers;
+              ? following
+              : followers;
     const activeQuery =
         activeTab === "Bạn bè"
             ? friendsQuery
             : activeTab === "Đang theo dõi"
-                ? followingQuery
-                : followersQuery;
+              ? followingQuery
+              : followersQuery;
     const activeEmptyTitle =
         activeTab === "Bạn bè"
             ? "Bạn chưa có bạn bè nào."
             : activeTab === "Đang theo dõi"
-                ? "Bạn chưa theo dõi ai."
-                : "Chưa có người theo dõi.";
+              ? "Bạn chưa theo dõi ai."
+              : "Chưa có người theo dõi.";
 
     return (
         <ScreenShell title="Bạn bè & Theo dõi" rightLabel="Tìm bạn">
@@ -1059,6 +1236,15 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: colors.surface,
     },
+    avatarFallback: {
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: colors.primarySoft,
+    },
+    avatarFallbackText: {
+        fontWeight: "800",
+        color: colors.primary,
+    },
     headerTitle: {
         flex: 1,
         textAlign: "center",
@@ -1177,6 +1363,119 @@ const styles = StyleSheet.create({
     userInfo: {
         flex: 1,
         minWidth: 0,
+    },
+    cardActionRow: {
+        flexDirection: "row",
+        gap: 8,
+        flexShrink: 0,
+    },
+    cardActionButton: {
+        flex: 0,
+        flexShrink: 0,
+    },
+    buttonIconOnly: {
+        paddingHorizontal: 0,
+        width: 40,
+        minHeight: 40,
+        height: 40,
+        borderRadius: 14,
+    },
+    searchCard: {
+        backgroundColor: colors.surface,
+        borderRadius: 18,
+        padding: 16,
+        gap: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        shadowColor: colors.primary,
+        shadowOpacity: 0.05,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 1,
+    },
+    searchCardHead: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+    },
+    searchNameRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+    },
+    rankPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+    },
+    rankText: {
+        fontSize: 11,
+        fontWeight: "800",
+    },
+    searchMetaRow: {
+        marginTop: 6,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+    },
+    searchMetaText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: colors.textMuted,
+    },
+    searchMetaDot: {
+        width: 3,
+        height: 3,
+        borderRadius: 1.5,
+        backgroundColor: colors.border,
+        marginHorizontal: 2,
+    },
+    searchButtonRow: {
+        flexDirection: "row",
+        gap: 12,
+    },
+    searchBtn: {
+        flex: 1,
+        minHeight: 40,
+        paddingVertical: 10,
+        borderRadius: 999,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+    },
+    searchBtnPrimary: {
+        backgroundColor: colors.primary,
+        shadowColor: colors.primary,
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        elevation: 2,
+    },
+    searchBtnOutline: {
+        backgroundColor: "transparent",
+        borderWidth: 2,
+        borderColor: colors.border,
+    },
+    searchBtnDisabled: {
+        backgroundColor: "#F5F5F4",
+    },
+    searchBtnSecondary: {
+        backgroundColor: colors.primarySoft,
+        shadowColor: colors.primary,
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+        elevation: 1,
+    },
+    searchBtnGhost: {
+        backgroundColor: "transparent",
+    },
+    searchBtnText: {
+        fontSize: 13,
+        fontWeight: "800",
     },
     rowCenter: {
         flexDirection: "row",
