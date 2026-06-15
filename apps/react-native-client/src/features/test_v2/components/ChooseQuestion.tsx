@@ -70,8 +70,8 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
                         );
                     }
                 } else if (isSelected) {
-                    optStyle.push(styles.optionSelected);
-                    textStyle.push(styles.textSelected);
+                    optStyle.push(single ? styles.optionSelected : styles.optionSelectedMultiple);
+                    textStyle.push(single ? styles.textSelected : styles.textSelectedMultiple);
                 }
 
                 return (
@@ -85,17 +85,17 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
                         <View style={[styles.optionRow, { justifyContent: "space-between" }]}>
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
                                 <View style={[
-                                    styles.radio,
-                                    isSelected && styles.radioSelected,
-                                    showCorrect && isSelected && isCorrect && styles.radioCorrect,
-                                    showCorrect && isSelected && !isCorrect && styles.radioWrong,
-                                    showCorrect && !isSelected && isCorrect && styles.radioMissing,
+                                    single ? styles.radio : styles.checkbox,
+                                    isSelected && (single ? styles.radioSelected : styles.checkboxSelected),
+                                    showCorrect && isSelected && isCorrect && (single ? styles.radioCorrect : styles.checkboxCorrect),
+                                    showCorrect && isSelected && !isCorrect && (single ? styles.radioWrong : styles.checkboxWrong),
+                                    showCorrect && !isSelected && isCorrect && (single ? styles.radioMissing : styles.checkboxMissing),
                                 ]}>
                                     {isSelected && (
                                         <View style={[
-                                            styles.radioDot,
-                                            showCorrect && isCorrect && styles.radioDotCorrect,
-                                            showCorrect && !isCorrect && styles.radioDotWrong,
+                                            single ? styles.radioDot : styles.checkboxInner,
+                                            showCorrect && isCorrect && (single ? styles.radioDotCorrect : styles.checkboxInnerCorrect),
+                                            showCorrect && !isCorrect && (single ? styles.radioDotWrong : styles.checkboxInnerWrong),
                                         ]} />
                                     )}
                                 </View>
@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
         padding: 14,
     },
     optionSelected: { borderColor: "#5D45F9", backgroundColor: "#F5F3FF" },
+    optionSelectedMultiple: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
     optionCorrect: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
     optionWrong: { borderColor: "#EF4444", backgroundColor: "#FEF2F2" },
     optionMissing: { borderColor: "#F59E0B", backgroundColor: "#FFFBEB", borderStyle: "dashed" },
@@ -138,8 +139,20 @@ const styles = StyleSheet.create({
     radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#5D45F9" },
     radioDotCorrect: { backgroundColor: "#10B981" },
     radioDotWrong: { backgroundColor: "#EF4444" },
+    checkbox: {
+        width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: "#D1D5DB",
+        justifyContent: "center", alignItems: "center",
+    },
+    checkboxSelected: { borderColor: "#2563EB" },
+    checkboxCorrect: { borderColor: "#10B981" },
+    checkboxWrong: { borderColor: "#EF4444" },
+    checkboxMissing: { borderColor: "#F59E0B", borderStyle: "dashed" },
+    checkboxInner: { width: 10, height: 10, borderRadius: 2, backgroundColor: "#2563EB" },
+    checkboxInnerCorrect: { backgroundColor: "#10B981" },
+    checkboxInnerWrong: { backgroundColor: "#EF4444" },
     optionText: { fontSize: 14, fontWeight: "600", color: "#4A5568", flex: 1 },
     textSelected: { color: "#5D45F9" },
+    textSelectedMultiple: { color: "#2563EB" },
     textCorrect: { color: "#065F46" },
     textWrong: { color: "#991B1B" },
     textMissing: { color: "#B45309" },
