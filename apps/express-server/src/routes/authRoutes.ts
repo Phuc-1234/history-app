@@ -7,6 +7,7 @@ import {
     refreshSessionToken,
     resendOtp,
     verifyGoogleSession,
+    verifyFacebookSession,
     forgotPassword,
     verifyOtpOnly,
     completeReset
@@ -30,6 +31,8 @@ router.post("/refresh-token", refreshSessionToken);
 router.post('/resend-otp', resendOtp);
 
 router.post("/google/verify", verifyGoogleSession);
+
+router.post("/facebook/verify", verifyFacebookSession);
 
 router.post("/forgot-password", forgotPassword);
 

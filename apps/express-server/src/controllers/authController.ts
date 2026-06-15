@@ -450,6 +450,91 @@ export const verifyGoogleSession = async (
     }
 };
 
+export const verifyFacebookSession = async (
+    req: Request<{}, LoginResponseBody, { accessToken?: string }>,
+    res: Response<LoginResponseBody>
+): Promise<Response<LoginResponseBody>> => {
+    try {
+        const { accessToken } = req.body;
+
+        if (!accessToken) {
+            return res.status(400).json({
+                status: 'error',
+                error: "Facebook Access Token (accessToken) is required to complete authentication exchange.",
+            });
+        }
+
+        const { data, error } = await authService.getUserViaFacebookToken(accessToken);
+
+        if (error || !data || !data.user) {
+            return res.status(401).json({
+                status: 'error',
+                error: error?.message || "Invalid or expired Facebook authentication session.",
+            });
+        }
+
+        const { user, session } = data;
+
+        const userProfile = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+                id: true,
+                name: true,
+                totalXp: true,
+                totalGold: true,
+                profileImgUrl: true,
+                currentStreak: true,
+                email: true,
+                role: true,
+                tier: {
+                    select: {
+                        name: true,
+                        badgeImgUrl: true,
+                    },
+                },
+            },
+        });
+
+        if (!userProfile) {
+            return res.status(404).json({
+                status: 'error',
+                error: "User gamification state profile not synchronized yet.",
+            });
+        }
+
+        const profile: UserProfileSummary = {
+            id: userProfile.id,
+            name: userProfile.name,
+            totalXp: userProfile.totalXp,
+            email: userProfile.email,
+            totalGold: userProfile.totalGold,
+            profileImgUrl: userProfile.profileImgUrl,
+            currentStreak: userProfile.currentStreak,
+            tierName: userProfile.tier?.name || "Bronze",
+            badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
+            role: userProfile.role as any,
+        };
+
+        return res.status(200).json({
+            status: 'success',
+            message: "Facebook login verified successfully.",
+            session: {
+                accessToken: session?.access_token || "",
+                refreshToken: session?.refresh_token || "", 
+                expiresAt: session?.expires_at || Math.floor(Date.now() / 1000) + 3600,
+            },
+            profile,
+        });
+
+    } catch (error) {
+        console.error("Express Controller Facebook Verify Error:", error);
+        return res.status(500).json({
+            status: 'error',
+            error: "Internal server error processing Facebook login."
+        });
+    }
+};
+
 // POST /api/auth/forgot-password
 export const forgotPassword = async (req, res) => {
     try {

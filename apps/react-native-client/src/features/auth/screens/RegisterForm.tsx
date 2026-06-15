@@ -17,6 +17,7 @@ import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import SocialLoginButtons from "../components/SocialLoginButtons";
 import useRegisterForm from "../hooks/useRegisterForm";
+import useAuthForm from "../hooks/useAuthForm";
 
 export default function RegisterForm() {
     const {
@@ -32,6 +33,9 @@ export default function RegisterForm() {
         navigateToLogin,
         handleRegister,
     } = useRegisterForm(); // Đã gỡ bỏ formError/setFormError của hook để tránh lỗi chặt chẽ của TypeScript
+
+    const { handleGoogleLogin, handleFacebookLogin, isGoogleLoading, isFacebookLoading } = useAuthForm();
+    const isAnyLoading = isLoading || isGoogleLoading || isFacebookLoading;
 
     const insets = useSafeAreaInsets();
 
@@ -147,7 +151,7 @@ export default function RegisterForm() {
                                 setName(text);
                                 if (nameError) setNameError(""); // Người dùng gõ lại thì xóa chữ báo lỗi đi
                             }}
-                            editable={!isLoading}
+                            editable={!isAnyLoading}
                         />
                         {nameError ? (
                             <Text style={styles.fieldErrorText}> {nameError}</Text>
@@ -167,7 +171,7 @@ export default function RegisterForm() {
                                 }}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
-                                editable={!isLoading}
+                                editable={!isAnyLoading}
                             />
 
                             {/* Phần chữ @gmail.com mờ bám đuôi theo tay gõ */}
@@ -195,7 +199,7 @@ export default function RegisterForm() {
                                 if (passwordError) setPasswordError(""); // Người dùng gõ lại thì xóa chữ báo lỗi đi
                             }}
                             autoCapitalize="none"
-                            editable={!isLoading}
+                            editable={!isAnyLoading}
                         />
                         {passwordError ? (
                             <Text style={styles.fieldErrorText}> {passwordError}</Text>
@@ -214,14 +218,17 @@ export default function RegisterForm() {
                                 if (confirmPasswordError) setConfirmPasswordError(""); // Người dùng gõ lại thì xóa chữ báo lỗi đi
                             }}
                             autoCapitalize="none"
-                            editable={!isLoading}
+                            editable={!isAnyLoading}
                         />
                         {confirmPasswordError ? (
                             <Text style={styles.fieldErrorText}> {confirmPasswordError}</Text>
                         ) : null}
                     </View>
 
-                    <Button title="Đăng ký" onPress={onRegisterPress} />
+                    <Button
+                        title={isAnyLoading ? "Đang xử lý..." : "Đăng ký"}
+                        onPress={isAnyLoading ? () => {} : onRegisterPress}
+                    />
 
                     <View style={styles.dividerContainer}>
                         <View style={styles.line} />
@@ -229,14 +236,14 @@ export default function RegisterForm() {
                         <View style={styles.line} />
                     </View>
 
-                    <SocialLoginButtons />
+                    <SocialLoginButtons onGooglePress={handleGoogleLogin} onFacebookPress={handleFacebookLogin} />
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Đã có tài khoản? </Text>
                         <TouchableOpacity
                             activeOpacity={0.6}
                             onPress={navigateToLogin}
-                            disabled={isLoading}
+                            disabled={isAnyLoading}
                         >
                             <Text style={styles.registerText}>Đăng nhập</Text>
                         </TouchableOpacity>
