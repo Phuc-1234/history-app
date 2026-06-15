@@ -77,35 +77,35 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const entryTimeRef = useRef(Date.now());
 
-    const cachedLessonName = useAppSelector((state: any) => {
+    const parentSectionsString = useAppSelector((state: any) => {
         const queries = state.api?.queries || {};
         for (const queryKey of Object.keys(queries)) {
             if (queryKey.startsWith("getLessonTree(")) {
                 const qData = queries[queryKey]?.data;
                 if (qData && qData.sections) {
-                    const checkSection = (sec: any): boolean => {
-                        if (sec.nodes && sec.nodes.some((n: any) => n.id === nodeId)) {
-                            return true;
-                        }
-                        if (sec.children) {
-                            for (const child of sec.children) {
-                                if (checkSection(child)) return true;
+                    const getParentPath = (sections: any[], targetNodeId: number): any[] | null => {
+                        for (const sec of sections) {
+                            if (sec.nodes && sec.nodes.some((n: any) => n.id === targetNodeId)) {
+                                return [sec];
+                            }
+                            if (sec.children && sec.children.length > 0) {
+                                const path = getParentPath(sec.children, targetNodeId);
+                                if (path) {
+                                    return [sec, ...path];
+                                }
                             }
                         }
-                        return false;
+                        return null;
                     };
-                    for (const sec of qData.sections) {
-                        if (checkSection(sec)) {
-                            return qData.name;
-                        }
+                    const path = getParentPath(qData.sections, nodeId);
+                    if (path) {
+                        return path.map((s) => s.name).join(" > ");
                     }
                 }
             }
         }
-        return undefined;
+        return "";
     });
-
-    const displayLessonName = lessonName || cachedLessonName;
 
     // Start the study timer when screen mounts (or node changes)
     useEffect(() => {
@@ -169,9 +169,9 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                     <Ionicons name="arrow-back" size={22} color="#1C1C1E" />
                 </TouchableOpacity>
                 <View style={styles.headerTextContainer}>
-                    {displayLessonName ? (
+                    {parentSectionsString ? (
                         <Text style={styles.headerSubtitle} numberOfLines={1}>
-                            {displayLessonName}
+                            {parentSectionsString}
                         </Text>
                     ) : null}
                     <View style={styles.headerTitleRow}>

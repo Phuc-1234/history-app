@@ -146,3 +146,12 @@ export interface TestAttemptDetailV2Response {
     userTestLog: UserTestLogV2Dto;
     answerLogs: (UserAnswerLogV2Dto & { question: QuestionV2Dto })[];
 }
+
+export interface TestInfoV2Response {
+    title: string;
+    questionCount: number;
+    timeLimit: number | null;
+    scopeType: string | null;
+    scopeId: number | null;
+    purposeType: string;
+}

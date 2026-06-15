@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useGetGradeStructureQuery } from "../contentApiSlice";
 import { TopicWithContentsDto, CompactTestDto } from "@history-app/shared";
 
@@ -7,17 +7,7 @@ export function useLessonMenu() {
     const [expandedTopicId, setExpandedTopicId] = useState<number | null>(null);
 
     // Fetch live data via RTK Query based on selected grade
-    const { data: gradeStructure, isLoading, isFetching, error, refetch } = useGetGradeStructureQuery(selectedGrade);
-
-    const [loadedGrade, setLoadedGrade] = useState<number | null>(null);
-
-    useEffect(() => {
-        if (!isFetching && gradeStructure) {
-            setLoadedGrade(selectedGrade);
-        }
-    }, [isFetching, gradeStructure, selectedGrade]);
-
-    const isGradeSwitching = selectedGrade !== loadedGrade;
+    const { currentData: gradeStructure, error, refetch, isFetching } = useGetGradeStructureQuery(selectedGrade);
 
     const toggleTopic = (topicId: number) => {
         setExpandedTopicId((prev) => (prev === topicId ? null : topicId));
@@ -34,7 +24,7 @@ export function useLessonMenu() {
         toggleTopic,
         topics,
         finalTest,
-        loading: isGradeSwitching,
+        loading: !gradeStructure,
         error,
         refetch,
         isFetching,

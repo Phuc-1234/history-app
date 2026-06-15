@@ -41,14 +41,33 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
 
                 let optStyle: any[] = [styles.option];
                 let textStyle: any[] = [styles.optionText];
+                let badge = null;
 
                 if (showCorrect) {
-                    if (isCorrect) {
+                    if (isSelected && isCorrect) {
                         optStyle.push(styles.optionCorrect);
                         textStyle.push(styles.textCorrect);
+                        badge = (
+                            <View style={[styles.badge, styles.badgeCorrect]}>
+                                <Text style={styles.badgeTextCorrect}>Đúng</Text>
+                            </View>
+                        );
                     } else if (isSelected && !isCorrect) {
                         optStyle.push(styles.optionWrong);
                         textStyle.push(styles.textWrong);
+                        badge = (
+                            <View style={[styles.badge, styles.badgeWrong]}>
+                                <Text style={styles.badgeTextWrong}>Sai</Text>
+                            </View>
+                        );
+                    } else if (!isSelected && isCorrect) {
+                        optStyle.push(styles.optionMissing);
+                        textStyle.push(styles.textMissing);
+                        badge = (
+                            <View style={[styles.badge, styles.badgeMissing]}>
+                                <Text style={styles.badgeTextMissing}>Đáp án đúng</Text>
+                            </View>
+                        );
                     }
                 } else if (isSelected) {
                     optStyle.push(styles.optionSelected);
@@ -63,13 +82,28 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
                         disabled={disabled || (showFeedback && !!evalResult)}
                         activeOpacity={0.7}
                     >
-                        <View style={styles.optionRow}>
-                            <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                                {isSelected && <View style={styles.radioDot} />}
+                        <View style={[styles.optionRow, { justifyContent: "space-between" }]}>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                                <View style={[
+                                    styles.radio,
+                                    isSelected && styles.radioSelected,
+                                    showCorrect && isSelected && isCorrect && styles.radioCorrect,
+                                    showCorrect && isSelected && !isCorrect && styles.radioWrong,
+                                    showCorrect && !isSelected && isCorrect && styles.radioMissing,
+                                ]}>
+                                    {isSelected && (
+                                        <View style={[
+                                            styles.radioDot,
+                                            showCorrect && isCorrect && styles.radioDotCorrect,
+                                            showCorrect && !isCorrect && styles.radioDotWrong,
+                                        ]} />
+                                    )}
+                                </View>
+                                <Text style={textStyle}>
+                                    {String.fromCharCode(65 + idx)}. {option}
+                                </Text>
                             </View>
-                            <Text style={textStyle}>
-                                {String.fromCharCode(65 + idx)}. {option}
-                            </Text>
+                            {badge}
                         </View>
                     </TouchableOpacity>
                 );
@@ -91,15 +125,29 @@ const styles = StyleSheet.create({
     optionSelected: { borderColor: "#5D45F9", backgroundColor: "#F5F3FF" },
     optionCorrect: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
     optionWrong: { borderColor: "#EF4444", backgroundColor: "#FEF2F2" },
+    optionMissing: { borderColor: "#F59E0B", backgroundColor: "#FFFBEB", borderStyle: "dashed" },
     optionRow: { flexDirection: "row", alignItems: "center", gap: 10 },
     radio: {
         width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: "#D1D5DB",
         justifyContent: "center", alignItems: "center",
     },
     radioSelected: { borderColor: "#5D45F9" },
+    radioCorrect: { borderColor: "#10B981" },
+    radioWrong: { borderColor: "#EF4444" },
+    radioMissing: { borderColor: "#F59E0B", borderStyle: "dashed" },
     radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#5D45F9" },
+    radioDotCorrect: { backgroundColor: "#10B981" },
+    radioDotWrong: { backgroundColor: "#EF4444" },
     optionText: { fontSize: 14, fontWeight: "600", color: "#4A5568", flex: 1 },
     textSelected: { color: "#5D45F9" },
     textCorrect: { color: "#065F46" },
     textWrong: { color: "#991B1B" },
+    textMissing: { color: "#B45309" },
+    badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginLeft: 8 },
+    badgeCorrect: { backgroundColor: "#D1FAE5" },
+    badgeWrong: { backgroundColor: "#FEE2E2" },
+    badgeMissing: { backgroundColor: "#FEF3C7" },
+    badgeTextCorrect: { fontSize: 11, fontWeight: "700", color: "#065F46" },
+    badgeTextWrong: { fontSize: 11, fontWeight: "700", color: "#991B1B" },
+    badgeTextMissing: { fontSize: 11, fontWeight: "700", color: "#B45309" },
 });

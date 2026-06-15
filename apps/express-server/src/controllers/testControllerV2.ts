@@ -98,3 +98,15 @@ export const getAttemptDetail = async (req: Request, res: Response) => {
         return res.status(500).json({ error: "Failed to get attempt detail" });
     }
 };
+
+export const getTestInfo = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const resp = await testServiceV2.getTestInfo(req.user.id, req.body);
+        return res.status(200).json(resp);
+    } catch (err: any) {
+        console.error("getTestInfo error:", err?.message ?? err);
+        if (err?.code === "NOT_FOUND") return res.status(404).json({ error: err.message });
+        return res.status(500).json({ error: "Failed to get test info" });
+    }
+};
