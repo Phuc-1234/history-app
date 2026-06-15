@@ -701,12 +701,13 @@ export class ContentService {
 }
 
 function convertSectionsToMindMapNode(lessonId: number, lessonName: string, sections: any[]): MindMapNode {
+    let idCounter = Date.now();
     const walkSection = (s: any): MindMapNode => {
         const children: MindMapNode[] = [];
         if (s.nodes && Array.isArray(s.nodes)) {
             for (const n of s.nodes) {
                 children.push({
-                    id: n.id,
+                    id: n.id || idCounter++,
                     type: "node",
                     header: n.header || null,
                     body: n.body || "",
@@ -719,7 +720,7 @@ function convertSectionsToMindMapNode(lessonId: number, lessonName: string, sect
             }
         }
         return {
-            id: s.id,
+            id: s.id || idCounter++,
             type: "section",
             name: s.name,
             children,
