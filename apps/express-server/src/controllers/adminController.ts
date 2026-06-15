@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { adminService } from "../services/adminService";
 import { prisma } from "@history-app/shared";
 import { aiService } from "../services/aiService";
+import { contentService } from "../services/contentService";
 import {
     CreateGradeBody,
     UpdateGradeBody,
@@ -659,23 +660,49 @@ export const bulkSaveMindMap = async (req: Request<{ lessonId: string }, any, { 
             return res.status(400).json({ error: "sections array is required." });
         }
 
-        await prisma.$transaction(async (tx) => {
-            // Delete all existing sections (cascade will delete nodes)
-            await tx.section.deleteMany({
-                where: { lessonId },
-            });
-
-            // Recursively create new sections and nodes
-            await saveSectionsRecursively(tx, lessonId, sections);
+        // Save directly to MindMap table
+        await prisma.mindMap.upsert({
+            where: { lessonId },
+            update: { data: { sections } as any },
+            create: { lessonId, data: { sections } as any },
         });
-
-        // Sync to MindMap table
-        await adminService.syncMindMapForLesson(lessonId);
 
         return res.status(200).json({ message: "Mind map saved successfully." });
     } catch (err) {
         console.error("Bulk save mind map error:", err);
         return res.status(500).json({ error: "Failed to save mind map in bulk." });
+    }
+};
+
+export const getAdminMindMap = async (req: Request<{ lessonId: string }>, res: Response) => {
+    try {
+        const lessonId = Number(req.params.lessonId);
+        if (Number.isNaN(lessonId)) return res.status(400).json({ error: "Invalid lessonId." });
+
+        const mindMap = await prisma.mindMap.findUnique({
+            where: { lessonId },
+        });
+
+        if (mindMap) {
+            const rawData = mindMap.data as any;
+            if (rawData && Array.isArray(rawData.sections)) {
+                return res.status(200).json({
+                    id: lessonId,
+                    sections: rawData.sections
+                });
+            }
+        }
+
+        // Fallback to generating from current lesson content (Section & Node tables)
+        const defaultTree = await contentService.getLessonTree(lessonId);
+        return res.status(200).json({
+            id: lessonId,
+            name: defaultTree?.name || "",
+            sections: defaultTree?.sections ?? []
+        });
+    } catch (err) {
+        console.error("Get admin mind map error:", err);
+        return res.status(500).json({ error: "Failed to get mind map." });
     }
 };
 
