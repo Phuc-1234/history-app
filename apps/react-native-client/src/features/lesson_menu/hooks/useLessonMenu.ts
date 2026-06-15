@@ -7,7 +7,7 @@ export function useLessonMenu() {
     const [expandedTopicId, setExpandedTopicId] = useState<number | null>(null);
 
     // Fetch live data via RTK Query based on selected grade
-    const { data: gradeStructure, isLoading, error } = useGetGradeStructureQuery(selectedGrade);
+    const { currentData: gradeStructure, error, refetch, isFetching } = useGetGradeStructureQuery(selectedGrade);
 
     const toggleTopic = (topicId: number) => {
         setExpandedTopicId((prev) => (prev === topicId ? null : topicId));
@@ -24,7 +24,9 @@ export function useLessonMenu() {
         toggleTopic,
         topics,
         finalTest,
-        loading: isLoading,
+        loading: !gradeStructure,
         error,
+        refetch,
+        isFetching,
     };
 }

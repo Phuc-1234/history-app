@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import TestIntro from "../../test/components/TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
+import { useGetTestInfoQuery } from "../services/testApi";
 import ChooseQuestion from "./ChooseQuestion";
 import FillQuestion from "./FillQuestion";
 import MatchQuestion from "./MatchQuestion";
@@ -42,6 +43,9 @@ export default function TestContainerV2({
 }: TestContainerV2Props) {
     const runner = useTestRunnerV2(params);
     const router = useRouter();
+    const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(params, {
+        skip: runner.status !== "idle" || params.purposeType !== "EXAM"
+    });
     const {
         session,
         questions,
@@ -113,6 +117,10 @@ export default function TestContainerV2({
         return (
             <ScreenWrapper showTopBar={true}>
                 <TestIntro
+                    title={testInfo?.title}
+                    questionCount={testInfo?.questionCount}
+                    timeLimit={testInfo?.timeLimit}
+                    loading={isInfoLoading}
                     onStart={actions.start}
                     onBack={handleBack}
                 />

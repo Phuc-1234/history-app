@@ -59,9 +59,12 @@ interface NodeScreenProps {
     nodeId: number;
     onBack: () => void;
     onQuizPress?: () => void; // called when user taps the quiz button
+    onPrevPress?: () => void; // navigate to previous sibling node
+    onNextPress?: () => void; // navigate to next sibling node
+    lessonName?: string;
 }
 
-export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
+export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPress, lessonName }: NodeScreenProps) {
     const { width } = useWindowDimensions();
     const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
     const { data: node, isLoading, error } = useGetNodeDetailQuery(nodeId);
@@ -73,6 +76,36 @@ export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
 
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const entryTimeRef = useRef(Date.now());
+
+    const parentSectionsString = useAppSelector((state: any) => {
+        const queries = state.api?.queries || {};
+        for (const queryKey of Object.keys(queries)) {
+            if (queryKey.startsWith("getLessonTree(")) {
+                const qData = queries[queryKey]?.data;
+                if (qData && qData.sections) {
+                    const getParentPath = (sections: any[], targetNodeId: number): any[] | null => {
+                        for (const sec of sections) {
+                            if (sec.nodes && sec.nodes.some((n: any) => n.id === targetNodeId)) {
+                                return [sec];
+                            }
+                            if (sec.children && sec.children.length > 0) {
+                                const path = getParentPath(sec.children, targetNodeId);
+                                if (path) {
+                                    return [sec, ...path];
+                                }
+                            }
+                        }
+                        return null;
+                    };
+                    const path = getParentPath(qData.sections, nodeId);
+                    if (path) {
+                        return path.map((s) => s.name).join(" > ");
+                    }
+                }
+            }
+        }
+        return "";
+    });
 
     // Start the study timer when screen mounts (or node changes)
     useEffect(() => {
@@ -135,25 +168,28 @@ export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
                 <TouchableOpacity onPress={onBack} style={styles.headerBackBtn}>
                     <Ionicons name="arrow-back" size={22} color="#1C1C1E" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle} numberOfLines={1}>
-                    {node.header ?? `Phần ${node.position}`}
-                </Text>
-                {/* Completion badge */}
-                {node.isCompleted && isLoggedIn && (
-                    <View style={styles.completedBadge}>
-                        <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+                <View style={styles.headerTextContainer}>
+                    {parentSectionsString ? (
+                        <Text style={styles.headerSubtitle} numberOfLines={1}>
+                            {parentSectionsString}
+                        </Text>
+                    ) : null}
+                    <View style={styles.headerTitleRow}>
+                        <Text style={styles.headerTitle} numberOfLines={1}>
+                            {node.header ?? `Phần ${node.position}`}
+                        </Text>
+                        {/* Completion badge */}
+                        {node.isCompleted && isLoggedIn && (
+                            <Ionicons name="checkmark-circle" size={18} color="#34C759" />
+                        )}
                     </View>
-                )}
+                </View>
             </View>
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Title */}
-                {node.header && (
-                    <Text style={styles.nodeTitle}>{node.header}</Text>
-                )}
 
                 {/* Body — HTML rendered content */}
                 <View style={{ marginBottom: 24 }}>
@@ -179,15 +215,15 @@ export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
                     </View>
                 )}
 
-                {/* Quiz button — only if relevant questions exist */}
+                {/* Practice test button — only if relevant questions exist */}
                 {node.hasRelevantQuestions && (
                     <TouchableOpacity
                         style={styles.quizButton}
                         onPress={onQuizPress}
                         activeOpacity={0.85}
                     >
-                        <Ionicons name="document-text" size={20} color="#FFF" />
-                        <Text style={styles.quizButtonText}>Làm bài kiểm tra</Text>
+                        <Ionicons name="pencil" size={20} color="#FFF" />
+                        <Text style={styles.quizButtonText}>Luyện tập</Text>
                     </TouchableOpacity>
                 )}
 
@@ -212,6 +248,30 @@ export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
                     </View>
                 )}
             </ScrollView>
+
+            {/* Prev / Next navigation footer */}
+            {(onPrevPress || onNextPress) && (
+                <View style={styles.navFooter}>
+                    <TouchableOpacity
+                        style={[styles.navFooterBtn, !onPrevPress && styles.navFooterBtnDisabled]}
+                        onPress={onPrevPress}
+                        disabled={!onPrevPress}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="chevron-back" size={18} color={onPrevPress ? "#5856D6" : "#D1D1D6"} />
+                        <Text style={[styles.navFooterBtnText, !onPrevPress && styles.navFooterBtnTextDisabled]}>Trước</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.navFooterBtn, !onNextPress && styles.navFooterBtnDisabled]}
+                        onPress={onNextPress}
+                        disabled={!onNextPress}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.navFooterBtnText, !onNextPress && styles.navFooterBtnTextDisabled]}>Sau</Text>
+                        <Ionicons name="chevron-forward" size={18} color={onNextPress ? "#5856D6" : "#D1D1D6"} />
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {/* Toast overlay */}
             <Toast
@@ -343,11 +403,27 @@ const styles = StyleSheet.create({
     headerBackBtn: {
         padding: 4,
     },
-    headerTitle: {
+    headerTextContainer: {
         flex: 1,
-        fontSize: 17,
+    },
+    headerSubtitle: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: "#8E8E93",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        marginBottom: 2,
+    },
+    headerTitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    headerTitle: {
+        fontSize: 16,
         fontWeight: "700",
         color: "#1C1C1E",
+        flexShrink: 1,
     },
     completedBadge: {
         padding: 4,
@@ -421,6 +497,38 @@ const styles = StyleSheet.create({
         color: "#34C759",
         fontWeight: "600",
     },
+
+    /* Prev / Next footer */
+    navFooter: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: "#F2F2F7",
+        backgroundColor: "#FFF",
+    },
+    navFooterBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: "#F2F2F7",
+    },
+    navFooterBtnDisabled: {
+        opacity: 0.35,
+    },
+    navFooterBtnText: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#5856D6",
+    },
+    navFooterBtnTextDisabled: {
+        color: "#D1D1D6",
+    },
+
     table: {
         borderWidth: 1,
         borderColor: "#E5E5EA",

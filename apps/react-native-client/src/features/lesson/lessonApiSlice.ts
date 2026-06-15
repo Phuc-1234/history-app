@@ -28,10 +28,14 @@ export const contentApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         getLessonTree: builder.query<LessonWithContentDto, number>({
             query: (lessonId) => `/api/content/lessons/${lessonId}/tree`,
-            providesTags: (result, error, lessonId) => [{ type: "History", id: lessonId }],
+            providesTags: (result, error, lessonId) => [
+                { type: "History", id: lessonId },
+                "User",
+            ],
         }),
         getNodeDetail: builder.query<NodeDetail, number>({
             query: (nodeId) => `/api/content/nodes/${nodeId}`,
+            providesTags: ["User"],
         }),
         finishStudyNode: builder.mutation<
             { consequences: ProgressConsequence[] },

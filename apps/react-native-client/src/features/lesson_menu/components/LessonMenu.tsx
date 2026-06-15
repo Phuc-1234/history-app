@@ -6,10 +6,12 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
 import { useLessonMenu } from "../hooks/useLessonMenu";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 
 interface LessonMenuProps {
     onLessonPress: (id: number) => void;
@@ -67,20 +69,7 @@ function GradeTabWithProgress({
     );
 }
 
-/** Topic header bar: fills from left to right based on % */
-function TopicProgressBar({ pct }: { pct: number | null }) {
-    if (pct == null) return null;
-    return (
-        <View style={styles.topicProgressBarBg}>
-            <View
-                style={[
-                    styles.topicProgressBarFill,
-                    { width: `${Math.round(pct * 100)}%` as any },
-                ]}
-            />
-        </View>
-    );
-}
+
 
 /** Lesson circle: arc ring showing % via a layered border approach */
 function LessonCircle({
@@ -210,17 +199,9 @@ export function LessonMenu({
         topics,
         finalTest,
         loading,
+        refetch,
+        isFetching,
     } = useLessonMenu();
-
-    if (loading) {
-        return (
-            <ActivityIndicator
-                size="large"
-                color="#5856D6"
-                style={styles.centerLoader}
-            />
-        );
-    }
 
     // Grade-level progress: sum all topic progress if present
     const getGradePct = (): number | null => {
@@ -240,7 +221,7 @@ export function LessonMenu({
     const gradePct = getGradePct();
 
     return (
-        <>
+        <ScreenWrapper>
             <View style={styles.container}>
                 {/* --- Grade Selector Tab Bar --- */}
                 <View style={styles.gradeTabsContainer}>
@@ -260,10 +241,26 @@ export function LessonMenu({
                     })}
                 </View>
 
-                <ScrollView
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
+                {loading ? (
+                    <View style={styles.centerLoader}>
+                        <ActivityIndicator
+                            size="large"
+                            color="#5856D6"
+                        />
+                    </View>
+                ) : (
+                    <ScrollView
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isFetching && !loading}
+                                onRefresh={refetch}
+                                colors={["#5856D6"]}
+                                tintColor="#5856D6"
+                            />
+                        }
+                    >
                     {topics.map((topic) => {
                         const isExpanded = expandedTopicId === topic.id;
                         const topicAny = topic as any;
@@ -297,44 +294,47 @@ export function LessonMenu({
                                             style={[
                                                 styles.topicProgressFill,
                                                 isExpanded && styles.topicProgressFillExpanded,
-                                                { width: `${Math.round(topicPct * 100)}%` },
+                                                {
+                                                    width: topicPct >= 0.99 ? undefined : `${Math.round(topicPct * 100)}%`,
+                                                    right: topicPct >= 0.99 ? 0 : undefined,
+                                                },
                                             ]}
                                         />
                                     )}
 
-                                    <View style={styles.topicHeaderLeft}>
-                                        <Text
-                                            style={[
-                                                styles.topicTitle,
-                                                isExpanded && styles.whiteText,
-                                            ]}
-                                        >
-                                            CHỦ ĐỀ {topic.position}: {topic.name}
-                                        </Text>
-                                        <Text
-                                            style={[
-                                                styles.topicDesc,
-                                                isExpanded &&
-                                                    styles.lightPurpleText,
-                                            ]}
-                                        >
-                                            Khám phá kiến thức của chủ đề này
-                                        </Text>
-                                        {/* Progress bar below description */}
-                                        <TopicProgressBar pct={topicPct} />
-                                    </View>
-                                    <View style={styles.topicHeaderRight}>
-                                        <Ionicons
-                                            name={
-                                                (isExpanded
-                                                    ? "chevron-up"
-                                                    : "chevron-forward") as any
-                                            }
-                                            size={20}
-                                            color={
-                                                isExpanded ? "#FFF" : "#8E8E93"
-                                            }
-                                        />
+                                    <View style={styles.topicHeaderInner}>
+                                        <View style={styles.topicHeaderLeft}>
+                                            <Text
+                                                style={[
+                                                    styles.topicTitle,
+                                                    isExpanded && styles.whiteText,
+                                                ]}
+                                            >
+                                                CHỦ ĐỀ {topic.position}: {topic.name}
+                                            </Text>
+                                            <Text
+                                                style={[
+                                                    styles.topicDesc,
+                                                    isExpanded &&
+                                                        styles.lightPurpleText,
+                                                ]}
+                                            >
+                                                Khám phá kiến thức của chủ đề này
+                                            </Text>
+                                        </View>
+                                        <View style={styles.topicHeaderRight}>
+                                            <Ionicons
+                                                name={
+                                                    (isExpanded
+                                                        ? "chevron-up"
+                                                        : "chevron-forward") as any
+                                                }
+                                                size={20}
+                                                color={
+                                                    isExpanded ? "#FFF" : "#8E8E93"
+                                                }
+                                            />
+                                        </View>
                                     </View>
                                 </TouchableOpacity>
 
@@ -343,25 +343,6 @@ export function LessonMenu({
                                     <View style={styles.mapContainer}>
                                         {/* Spine Connector Line */}
                                         <View style={styles.verticalSpine} />
-
-                                        {/* Mindmap Node */}
-                                        <TouchableOpacity
-                                            style={styles.mindmapButton}
-                                            onPress={() =>
-                                                onMindmapPress(topic.id)
-                                            }
-                                        >
-                                            <Ionicons
-                                                name={
-                                                    "git-network-outline" as any
-                                                }
-                                                size={18}
-                                                color="#5856D6"
-                                            />
-                                            <Text style={styles.mindmapText}>
-                                                XEM MINDMAP TOÀN CHỦ ĐỀ
-                                            </Text>
-                                        </TouchableOpacity>
 
                                         {/* Lesson Nodes (alternating left/right) */}
                                         {topic.lessons.map((lesson, lessonIdx) => {
@@ -494,8 +475,9 @@ export function LessonMenu({
                         </View>
                     )}
                 </ScrollView>
-            </View>
-        </>
+            )}
+        </View>
+    </ScreenWrapper>
     );
 }
 
@@ -543,20 +525,24 @@ const styles = StyleSheet.create({
     scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
     topicWrapper: { marginBottom: 12 },
     topicHeader: {
-        flexDirection: "row",
-        alignItems: "center",
         backgroundColor: "#EAEAEF",
         borderRadius: 16,
-        padding: 16,
         overflow: "hidden",
     },
     expandedTopicHeader: { backgroundColor: "#5856D6" },
-    topicHeaderLeft: { flex: 1, paddingRight: 8, zIndex: 2 },
+    topicHeaderInner: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        flex: 1,
+        width: "100%",
+        zIndex: 2,
+    },
+    topicHeaderLeft: { flex: 1, paddingRight: 8 },
     topicHeaderRight: {
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        zIndex: 2,
     },
     topicTitle: { fontSize: 17, fontWeight: "700", color: "#1C1C1E" },
     topicDesc: { fontSize: 13, color: "#3A3A3C", marginTop: 4 },
@@ -565,24 +551,12 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         top: 0,
-        height: "100%",
+        bottom: 0,
         backgroundColor: "#D0E8FF", // Soft blue progress fill for collapsed topic header
         zIndex: 1,
     },
     topicProgressFillExpanded: {
         backgroundColor: "#403EAE", // Darker purple fill for expanded topic header
-    },
-    topicProgressBarBg: {
-        height: 4,
-        backgroundColor: "rgba(0,0,0,0.08)",
-        borderRadius: 2,
-        marginTop: 8,
-        overflow: "hidden",
-    },
-    topicProgressBarFill: {
-        height: 4,
-        backgroundColor: "#5856D6",
-        borderRadius: 2,
     },
     whiteText: { color: "#FFF" },
     lightPurpleText: { color: "#D2D1F7" },

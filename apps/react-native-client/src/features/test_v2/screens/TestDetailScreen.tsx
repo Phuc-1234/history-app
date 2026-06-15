@@ -101,11 +101,43 @@ function ChooseReview({ answerData, userAnswer }: { answerData: ChooseAnswerData
             {answerData.options.map((opt, idx) => {
                 const isSelected = selected.includes(idx);
                 const isCorrect = answerData.correctOption.includes(idx);
+
+                let optStyle: any[] = [styles.optItem];
+                let textStyle: any[] = [styles.optText];
+                let badge = null;
+
+                if (isSelected && isCorrect) {
+                    optStyle.push(styles.optCorrect);
+                    textStyle.push(styles.optTextCorrect);
+                    badge = (
+                        <View style={[styles.reviewBadge, styles.reviewBadgeCorrect]}>
+                            <Text style={styles.reviewBadgeTextCorrect}>Đúng</Text>
+                        </View>
+                    );
+                } else if (isSelected && !isCorrect) {
+                    optStyle.push(styles.optWrong);
+                    textStyle.push(styles.optTextWrong);
+                    badge = (
+                        <View style={[styles.reviewBadge, styles.reviewBadgeWrong]}>
+                            <Text style={styles.reviewBadgeTextWrong}>Sai</Text>
+                        </View>
+                    );
+                } else if (!isSelected && isCorrect) {
+                    optStyle.push(styles.optMissing);
+                    textStyle.push(styles.optTextMissing);
+                    badge = (
+                        <View style={[styles.reviewBadge, styles.reviewBadgeMissing]}>
+                            <Text style={styles.reviewBadgeTextMissing}>Đáp án đúng</Text>
+                        </View>
+                    );
+                }
+
                 return (
-                    <View key={idx} style={[styles.optItem, isCorrect && styles.optCorrect, isSelected && !isCorrect && styles.optWrong]}>
-                        <Text style={[styles.optText, isCorrect && styles.optTextCorrect, isSelected && !isCorrect && styles.optTextWrong]}>
+                    <View key={idx} style={[...optStyle, { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
+                        <Text style={[...textStyle, { flex: 1 }]}>
                             {String.fromCharCode(65 + idx)}. {opt}
                         </Text>
+                        {badge}
                     </View>
                 );
             })}
@@ -149,17 +181,30 @@ function MatchReview({ answerData, userAnswer }: { answerData: MatchAnswerData; 
     }, [answerData.pairs]);
 
     return (
-        <View style={styles.matchContainer}>
+        <View style={styles.matchReviewContainer}>
             {normalizedPairs.map((correct, idx) => {
                 const userPair = userPairs.find((p) => p.left?.trim().toLowerCase() === correct.left.trim().toLowerCase());
                 const isPairCorrect = userPair?.right?.trim().toLowerCase() === correct.right.trim().toLowerCase();
+
                 return (
-                    <View key={idx} style={[styles.matchRow, isPairCorrect ? styles.matchCorrect : styles.matchWrong]}>
-                        <Text style={styles.matchText}>{correct.left}</Text>
-                        <Text style={styles.matchArrow}>→</Text>
-                        <Text style={styles.matchText}>{userPair?.right ?? "(Không ghép)"}</Text>
+                    <View key={idx} style={[styles.matchReviewRow, isPairCorrect ? styles.matchReviewCorrect : styles.matchReviewWrong]}>
+                        <View style={styles.matchReviewRowTop}>
+                            <Text style={styles.matchReviewLeftText}>{correct.left}</Text>
+                            <Text style={styles.matchReviewArrow}>→</Text>
+                            <Text style={[styles.matchReviewRightText, isPairCorrect ? styles.textGreen : styles.textRed]}>
+                                {userPair?.right ?? "(Chưa ghép)"}
+                            </Text>
+                            <View style={[styles.reviewBadge, isPairCorrect ? styles.reviewBadgeCorrect : styles.reviewBadgeWrong]}>
+                                <Text style={isPairCorrect ? styles.reviewBadgeTextCorrect : styles.reviewBadgeTextWrong}>
+                                    {isPairCorrect ? "Đúng" : userPair ? "Sai" : "Chưa ghép"}
+                                </Text>
+                            </View>
+                        </View>
                         {!isPairCorrect && (
-                            <Text style={styles.matchCorrectHint}> (Đúng: {correct.right})</Text>
+                            <View style={styles.matchReviewCorrectHintRow}>
+                                <Text style={styles.matchReviewHintLabel}>Đáp án đúng: </Text>
+                                <Text style={styles.matchReviewHintValue}>{correct.right}</Text>
+                            </View>
                         )}
                     </View>
                 );
@@ -195,22 +240,35 @@ const styles = StyleSheet.create({
     optItem: { backgroundColor: "#FFF", borderWidth: 1.5, borderColor: "#E5E7EB", borderRadius: 14, padding: 12 },
     optCorrect: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
     optWrong: { borderColor: "#EF4444", backgroundColor: "#FEF2F2" },
+    optMissing: { borderColor: "#F59E0B", backgroundColor: "#FFFBEB", borderStyle: "dashed" },
     optText: { fontSize: 14, fontWeight: "600", color: "#4A5568" },
     optTextCorrect: { color: "#065F46" },
     optTextWrong: { color: "#991B1B" },
+    optTextMissing: { color: "#B45309" },
     fillContainer: { backgroundColor: "#F8FAFC", borderRadius: 14, padding: 12, gap: 8 },
     fillRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
     fillLabel: { fontSize: 13, fontWeight: "600", color: "#718096" },
     fillValue: { fontSize: 14, fontWeight: "700" },
     textGreen: { color: "#059669" },
     textRed: { color: "#DC2626" },
-    matchContainer: { gap: 8 },
-    matchRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#F8FAFC", borderRadius: 12, padding: 10, borderWidth: 1, gap: 6, flexWrap: "wrap" },
-    matchCorrect: { borderColor: "#10B981" },
-    matchWrong: { borderColor: "#EF4444" },
-    matchText: { fontSize: 13, fontWeight: "600", color: "#4A5568" },
-    matchArrow: { fontSize: 14, color: "#718096" },
-    matchCorrectHint: { fontSize: 11, color: "#059669", fontWeight: "600" },
+    reviewBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginLeft: 8 },
+    reviewBadgeCorrect: { backgroundColor: "#D1FAE5" },
+    reviewBadgeWrong: { backgroundColor: "#FEE2E2" },
+    reviewBadgeMissing: { backgroundColor: "#FEF3C7" },
+    reviewBadgeTextCorrect: { fontSize: 11, fontWeight: "700", color: "#065F46" },
+    reviewBadgeTextWrong: { fontSize: 11, fontWeight: "700", color: "#991B1B" },
+    reviewBadgeTextMissing: { fontSize: 11, fontWeight: "700", color: "#B45309" },
+    matchReviewContainer: { gap: 8, marginTop: 4 },
+    matchReviewRow: { borderRadius: 12, padding: 12, borderWidth: 1, gap: 6 },
+    matchReviewCorrect: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
+    matchReviewWrong: { borderColor: "#EF4444", backgroundColor: "#FEF2F2" },
+    matchReviewRowTop: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+    matchReviewLeftText: { fontSize: 13, fontWeight: "600", color: "#4A5568" },
+    matchReviewArrow: { fontSize: 14, color: "#718096" },
+    matchReviewRightText: { fontSize: 13, fontWeight: "700" },
+    matchReviewCorrectHintRow: { flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: "#FEE2E2", paddingTop: 6, marginTop: 4 },
+    matchReviewHintLabel: { fontSize: 11, fontWeight: "600", color: "#B91C1C" },
+    matchReviewHintValue: { fontSize: 12, fontWeight: "700", color: "#065F46" },
     explBox: { marginTop: 12, backgroundColor: "#F0FDF4", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#BBF7D0" },
     explLabel: { fontSize: 12, fontWeight: "800", color: "#059669", marginBottom: 4 },
     explText: { fontSize: 13, color: "#065F46", lineHeight: 20 },

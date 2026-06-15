@@ -132,6 +132,15 @@ export interface TestAttemptDetailV2Response {
     answerLogs: (UserAnswerLogV2 & { question: QuestionV2 })[];
 }
 
+export interface TestInfoV2Response {
+    title: string;
+    questionCount: number; 
+    timeLimit: number | null;
+    scopeType: ScopeType | null;
+    scopeId: number | null;
+    purposeType: PurposeType;
+}
+
 // ─── Local evaluation result ─────────────────────────────────────────────
 
 export interface QuestionEvalResult {

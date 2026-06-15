@@ -40,8 +40,9 @@ function scoreChoose(
     }
 
     // Multi choice
-    const partialTable4 = [0, 0.1, 0.25, 0.5, 1.0];
-    // For N>4: extend with 0.1, 0.25, 0.75, 1.0, 1.25, ...
+    const totalOptions = answerData.options.length;
+    const partialTable4 = [0, 0.1, 0.2, 0.5, 1.0];
+    // For N>4: extend with 0.1, 0.2, 0.75, 1.0, 1.25, ...
     function getMaxScore(n: number): number {
         if (n <= 4) return partialTable4[n] ?? 1.0;
         // For N>4 the max is the Nth entry
@@ -52,31 +53,28 @@ function scoreChoose(
         if (hits <= 0) return 0;
         if (n <= 4) return partialTable4[Math.min(hits, n)] ?? 0;
         // Extended table
-        const table = [0, 0.1, 0.25, 0.75, 1.0];
+        const table = [0, 0.1, 0.2, 0.75, 1.0];
         if (hits <= 4) return table[hits] ?? 0;
         return 1.0 + (hits - 4) * 0.25;
     }
 
-    const maxScore = getMaxScore(correctCount);
+    const maxScore = getMaxScore(totalOptions);
 
     if (!userAnswer || !userAnswer.selectedOptions?.length) {
         return { scoreAwarded: 0, maxScore };
     }
 
-    // Count how many user selections are actually correct (no penalty for wrong picks, just fewer points)
-    const correctHits = userAnswer.selectedOptions.filter((idx) =>
-        answerData.correctOption.includes(idx),
-    ).length;
-
-    // If user selected any wrong option, score = 0
-    const hasWrong = userAnswer.selectedOptions.some(
-        (idx) => !answerData.correctOption.includes(idx),
-    );
-    if (hasWrong) {
-        return { scoreAwarded: 0, maxScore };
+    // Each option is a true/false decision
+    let correctHits = 0;
+    for (let idx = 0; idx < totalOptions; idx++) {
+        const isCorrectOption = answerData.correctOption.includes(idx);
+        const isSelectedByUser = userAnswer.selectedOptions.includes(idx);
+        if (isCorrectOption === isSelectedByUser) {
+            correctHits++;
+        }
     }
 
-    return { scoreAwarded: getPartialScore(correctCount, correctHits), maxScore };
+    return { scoreAwarded: getPartialScore(totalOptions, correctHits), maxScore };
 }
 
 function scoreFill(
