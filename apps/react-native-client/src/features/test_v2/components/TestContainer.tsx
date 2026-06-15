@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     View,
     Text,
@@ -24,13 +24,14 @@ import Animated, {
     withRepeat,
 } from "react-native-reanimated";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
+import { CustomModal } from "@/components/Modal";
 import TestIntro from "../../test/components/TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { useGetTestInfoQuery } from "../services/testApi";
 import ChooseQuestion from "./ChooseQuestion";
 import FillQuestion from "./FillQuestion";
 import MatchQuestion from "./MatchQuestion";
-import { isSingleChoice } from "../services/scoreEngine";
+import { isSingleChoice, evaluateQuestion, formatScore, getQuestionPointsRange } from "../services/scoreEngine";
 import type {
     StartTestV2Request,
     QuestionV2,
@@ -154,29 +155,67 @@ export default function TestContainerV2({
         getEvalForQuestion,
     } = runner;
 
+    const practiceEarned = React.useMemo(() => {
+        return Object.values(evaluations).reduce((sum, ev) => sum + ev.scoreAwarded, 0);
+    }, [evaluations]);
+
+    const practiceTotal = React.useMemo(() => {
+        return questions.reduce((sum, q) => {
+            const ev = evaluateQuestion(q, null);
+            return sum + ev.maxScore;
+        }, 0);
+    }, [questions]);
+
+    const currentMaxScore = React.useMemo(() => {
+        if (!currentQuestion) return 0;
+        return evaluateQuestion(currentQuestion, null).maxScore;
+    }, [currentQuestion]);
+
+    const prevEarnedRef = useRef(practiceEarned);
+    const [pointsDiff, setPointsDiff] = useState<number | null>(null);
+
+    const animOpacity = useSharedValue(0);
+    const animTranslateY = useSharedValue(0);
+
+    const animStyle = useAnimatedStyle(() => {
+        return {
+            opacity: animOpacity.value,
+            transform: [{ translateY: animTranslateY.value }],
+            position: "absolute",
+            left: -45,
+            top: 6,
+        };
+    });
+
+    useEffect(() => {
+        const diff = practiceEarned - prevEarnedRef.current;
+        prevEarnedRef.current = practiceEarned;
+
+        if (diff > 0) {
+            setPointsDiff(diff);
+            animOpacity.value = 0;
+            animTranslateY.value = 0;
+
+            animOpacity.value = withTiming(1, { duration: 150 });
+            animTranslateY.value = withTiming(-24, { duration: 850 }, (finished) => {
+                if (finished) {
+                    animOpacity.value = withTiming(0, { duration: 200 });
+                }
+            });
+        }
+    }, [practiceEarned]);
+
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+    const [showPracticeConfirm, setShowPracticeConfirm] = useState(false);
     const [isListModalVisible, setIsListModalVisible] = useState(false);
 
     const handleBack = () => {
         if (status === "running") {
-            Alert.alert(
-                "Thoát làm bài",
-                "Bạn có chắc muốn thoát? Tiến trình bài kiểm tra của bạn sẽ bị hủy hoặc lưu dưới dạng nháp.",
-                [
-                    { text: "Hủy", style: "cancel" },
-                    {
-                        text: "Thoát",
-                        style: "destructive",
-                        onPress: () => {
-                            if (onExit) {
-                                onExit();
-                            } else {
-                                router.back();
-                            }
-                        },
-                    },
-                ],
-            );
+            if (purposeType === "EXAM") {
+                setShowSubmitConfirm(true);
+            } else {
+                setShowPracticeConfirm(true);
+            }
         } else {
             if (onExit) {
                 onExit();
@@ -250,11 +289,8 @@ export default function TestContainerV2({
         const { userTestLog, answerLogs, consequences } = result;
         const scoreDisplay =
             userTestLog.maxScore > 0
-                ? (
-                      (userTestLog.scoreAwarded / userTestLog.maxScore) *
-                      10
-                  ).toFixed(2)
-                : "0.00";
+                ? formatScore((userTestLog.scoreAwarded / userTestLog.maxScore) * 10)
+                : "0";
         const hasWrongAnswers = answerLogs.some(
             (a) => a.scoreAwarded < a.maxScore,
         );
@@ -277,8 +313,8 @@ export default function TestContainerV2({
                             <Text style={styles.scoreMax}>/10</Text>
                         </View>
                         <Text style={styles.resultSubtext}>
-                            {userTestLog.scoreAwarded.toFixed(2)}/
-                            {userTestLog.maxScore.toFixed(2)} điểm
+                            {formatScore(userTestLog.scoreAwarded)}/
+                            {formatScore(userTestLog.maxScore)} điểm
                         </Text>
                         {consequences.map((c, i) => (
                             <Text key={i} style={styles.consequenceText}>
@@ -310,7 +346,7 @@ export default function TestContainerV2({
                             </Text>
                         </TouchableOpacity>
 
-                        {purposeType === "PRACTICE" && hasWrongAnswers && (
+                        {/* {purposeType === "PRACTICE" && hasWrongAnswers && (
                             <TouchableOpacity
                                 style={styles.redoBtn}
                                 onPress={actions.redoWrong}
@@ -319,7 +355,7 @@ export default function TestContainerV2({
                                     Làm lại câu sai
                                 </Text>
                             </TouchableOpacity>
-                        )}
+                        )} */}
                         <TouchableOpacity
                             style={styles.restartBtn}
                             onPress={actions.restart}
@@ -356,6 +392,22 @@ export default function TestContainerV2({
                         <AnimatedProgressBar currentIndex={currentIndex} totalCount={totalCount} />
                     )}
                 </View>
+                {purposeType === "PRACTICE" && (
+                    <View style={{ position: "relative" }}>
+                        {pointsDiff !== null && (
+                            <Animated.View style={animStyle}>
+                                <Text style={styles.diffPointsText}>
+                                    +{formatScore(pointsDiff)}
+                                </Text>
+                            </Animated.View>
+                        )}
+                        <View style={styles.scoreBadge}>
+                            <Text style={styles.scoreBadgeText}>
+                                Điểm: {formatScore(practiceEarned)}/{formatScore(practiceTotal)}
+                            </Text>
+                        </View>
+                    </View>
+                )}
                 {purposeType === "EXAM" && timeLeft > 0 && (
                     <AnimatedTimerBadge timeLeft={timeLeft} formattedTime={formattedTime} />
                 )}
@@ -370,9 +422,22 @@ export default function TestContainerV2({
             >
                 {currentQuestion && (
                     <Animated.View key={currentIndex} entering={FadeIn.duration(250)}>
-                        <Text style={styles.questionPrompt}>
-                            {currentQuestion.promptText}
-                        </Text>
+                        <View style={styles.promptHeader}>
+                            <Text style={styles.questionPrompt}>
+                                {currentQuestion.promptText}
+                            </Text>
+                            <View style={styles.pointPill}>
+                                <Text style={styles.pointPillText}>
+                                    {(() => {
+                                        const range = getQuestionPointsRange(currentQuestion);
+                                        if (range.isRange) {
+                                            return `${formatScore(range.min)} - ${formatScore(range.max)}đ`;
+                                        }
+                                        return `${formatScore(range.max)}đ`;
+                                    })()}
+                                </Text>
+                            </View>
+                        </View>
 
                         {/* Document (collapsible) */}
                         {currentQuestion.document && (
@@ -550,32 +615,32 @@ export default function TestContainerV2({
                 )}
             </View>
 
-            {/* Confirmation Modal */}
-            {showSubmitConfirm && (
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>Nộp bài</Text>
-                        <Text style={styles.modalMessage}>Bạn có chắc chắn muốn nộp bài làm của mình?</Text>
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity
-                                style={styles.modalCancelBtn}
-                                onPress={() => setShowSubmitConfirm(false)}
-                            >
-                                <Text style={styles.modalCancelText}>Hủy</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.modalConfirmBtn}
-                                onPress={() => {
-                                    setShowSubmitConfirm(false);
-                                    actions.submit();
-                                }}
-                            >
-                                <Text style={styles.modalConfirmText}>Nộp</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            )}
+            {/* Confirmation Modals */}
+            <CustomModal
+                visible={showSubmitConfirm}
+                title="Nộp bài"
+                message="Bạn có chắc chắn muốn nộp bài làm của mình?"
+                confirmText="Nộp"
+                cancelText="Hủy"
+                onConfirm={() => {
+                    setShowSubmitConfirm(false);
+                    actions.submit();
+                }}
+                onCancel={() => setShowSubmitConfirm(false)}
+            />
+
+            <CustomModal
+                visible={showPracticeConfirm}
+                title="Nộp bài luyện tập"
+                message="Bạn có chắc chắn muốn nộp bài làm và kết thúc luyện tập?"
+                confirmText="Nộp bài"
+                cancelText="Hủy"
+                onConfirm={() => {
+                    setShowPracticeConfirm(false);
+                    actions.submit();
+                }}
+                onCancel={() => setShowPracticeConfirm(false)}
+            />
 
             {/* Submitting Status Modal Overlay */}
             {status === "submitting" && (
@@ -1138,6 +1203,47 @@ const styles = StyleSheet.create({
     explBox: { marginTop: 12, backgroundColor: "#F0FDF4", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#BBF7D0" },
     explLabel: { fontSize: 12, fontWeight: "800", color: "#059669", marginBottom: 4 },
     explText: { fontSize: 13, color: "#065F46", lineHeight: 20 },
+    scoreBadge: {
+        backgroundColor: "#E0F2FE",
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    scoreBadgeText: {
+        fontSize: 13,
+        fontWeight: "800",
+        color: "#0369A1",
+    },
+    possiblePointsText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#718096",
+        marginBottom: 16,
+    },
+    diffPointsText: {
+        fontSize: 14,
+        fontWeight: "900",
+        color: "#10B981",
+    },
+    promptHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 12,
+        marginBottom: 12,
+    },
+    pointPill: {
+        backgroundColor: "#F3F4F6",
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        alignSelf: "flex-start",
+    },
+    pointPillText: {
+        fontSize: 11,
+        fontWeight: "700",
+        color: "#6B7280",
+    },
 });
 
 // ── Sub-components for review ────────────────────────────────────────

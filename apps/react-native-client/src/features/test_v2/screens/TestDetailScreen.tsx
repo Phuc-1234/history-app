@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useGetAttemptDetailQuery } from "../services/testApi";
+import { formatScore } from "../services/scoreEngine";
 import type { ChooseAnswerData, FillAnswerData, MatchAnswerData, UserChooseAnswer, UserFillAnswer, UserMatchAnswer } from "../types";
 
 export default function TestDetailScreen() {
@@ -26,8 +27,8 @@ export default function TestDetailScreen() {
 
     const { userTestLog, answerLogs } = data;
     const scoreDisplay = userTestLog.maxScore > 0
-        ? ((userTestLog.scoreAwarded / userTestLog.maxScore) * 10).toFixed(2)
-        : "0.00";
+        ? formatScore((userTestLog.scoreAwarded / userTestLog.maxScore) * 10)
+        : "0";
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -39,7 +40,7 @@ export default function TestDetailScreen() {
                     <Text style={styles.bannerScoreMax}>/10</Text>
                 </View>
                 <Text style={styles.bannerSubtext}>
-                    {userTestLog.scoreAwarded.toFixed(2)}/{userTestLog.maxScore.toFixed(2)} điểm • Lần {userTestLog.attemptNumber}
+                    {formatScore(userTestLog.scoreAwarded)}/{formatScore(userTestLog.maxScore)} điểm • Lần {userTestLog.attemptNumber}
                 </Text>
                 <Text style={styles.bannerDate}>
                     {new Date(userTestLog.startedAt).toLocaleString("vi-VN")}
@@ -54,7 +55,7 @@ export default function TestDetailScreen() {
                         <Text style={styles.qIndex}>Câu {idx + 1}</Text>
                         <View style={[styles.qBadge, log.scoreAwarded >= log.maxScore ? styles.qBadgeCorrect : styles.qBadgeWrong]}>
                             <Text style={[styles.qBadgeText, log.scoreAwarded >= log.maxScore ? styles.qBadgeTextCorrect : styles.qBadgeTextWrong]}>
-                                {log.scoreAwarded.toFixed(2)}/{log.maxScore.toFixed(2)}
+                                {formatScore(log.scoreAwarded)}/{formatScore(log.maxScore)}
                             </Text>
                         </View>
                     </View>

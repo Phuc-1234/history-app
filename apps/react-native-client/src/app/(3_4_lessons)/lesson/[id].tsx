@@ -66,7 +66,7 @@ export default function LessonSummaryScreen() {
                         params: {
                             scopeType: "SECTION",
                             scopeId: String(sectionId),
-                            purposeType: "EXAM",
+                            purposeType: "PRACTICE",
                         },
                     });
                 }}

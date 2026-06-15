@@ -139,3 +139,37 @@ export function isSingleChoice(question: QuestionV2): boolean {
     const data = question.answerData as ChooseAnswerData;
     return (data.correctOption?.length ?? 0) <= 1;
 }
+
+/**
+ * Format score to show up to 2 decimal places, omitting decimal if 0.
+ */
+export function formatScore(num: number): string {
+    const rounded = Math.round(num * 100) / 100;
+    return rounded.toString();
+}
+
+/**
+ * Get the possible min and max points for a question.
+ */
+export function getQuestionPointsRange(question: QuestionV2): { min: number; max: number; isRange: boolean } {
+    if (question.type === "CHOOSE") {
+        const data = question.answerData as ChooseAnswerData;
+        if ((data.correctOption?.length ?? 0) <= 1) {
+            return { min: 0.25, max: 0.25, isRange: false };
+        } else {
+            const totalOptions = data.options.length;
+            const partialTable4 = [0, 0.1, 0.2, 0.5, 1.0];
+            const getMaxScore = (n: number) => (n <= 4 ? (partialTable4[n] ?? 1.0) : 1.0 + (n - 4) * 0.25);
+            const max = getMaxScore(totalOptions);
+            return { min: 0.1, max, isRange: true };
+        }
+    } else if (question.type === "FILL") {
+        return { min: 0.5, max: 0.5, isRange: false };
+    } else if (question.type === "MATCH") {
+        const data = question.answerData as MatchAnswerData;
+        const totalPairs = data.pairs?.length || 1;
+        const perPair = 1.0 / totalPairs;
+        return { min: perPair, max: 1.0, isRange: true };
+    }
+    return { min: 0, max: 0, isRange: false };
+}

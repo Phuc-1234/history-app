@@ -85,7 +85,7 @@ export default function NodeDetailScreen() {
                 params: {
                     scopeType: "SECTION",
                     scopeId: String(step.sectionId),
-                    purposeType: "EXAM",
+                    purposeType: "PRACTICE",
                 },
             });
         } else if (step.type === "LESSON_TEST") {

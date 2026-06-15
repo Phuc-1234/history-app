@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useGetTestHistoryQuery } from "../services/testApi";
+import { formatScore } from "../services/scoreEngine";
 import type { UserTestLogV2 } from "../types";
 
 interface Props {
@@ -34,8 +35,8 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
 
     const renderItem = ({ item }: { item: UserTestLogV2 }) => {
         const scoreDisplay = item.maxScore > 0
-            ? ((item.scoreAwarded / item.maxScore) * 10).toFixed(1)
-            : "0.0";
+            ? formatScore((item.scoreAwarded / item.maxScore) * 10)
+            : "0";
         const date = new Date(item.startedAt);
         const dateStr = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
 
