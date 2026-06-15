@@ -715,11 +715,7 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         color: "#007AFF",
     },
-    lessonNodeCircleTodo: {
-        backgroundColor: "#E5E5EA",
-        borderColor: "#F2F2F7",
-        opacity: 0.8,
-    },
+    
     topicTestCircle: {
         backgroundColor: "#FFF",
         borderColor: "#FF9500",
