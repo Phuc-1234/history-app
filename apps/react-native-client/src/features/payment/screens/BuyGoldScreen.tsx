@@ -35,7 +35,7 @@ const GOLD_PACKAGES: GoldPackage[] = [
 export const BuyGoldScreen: React.FC = () => {
     const { state, pay, reset } = usePayment();
     const [selectedPackage, setSelectedPackage] = useState<GoldPackage>(GOLD_PACKAGES[1]);
-    const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("MOMO");
+    const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("ZALOPAY");
 
     const isLoading = state.phase === "loading" || state.phase === "waiting";
 
@@ -56,7 +56,7 @@ export const BuyGoldScreen: React.FC = () => {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerEmoji}>🪙</Text>
+                    <Text style={styles.headerEmoji}>💰</Text>
                     <Text style={styles.headerTitle}>Mua Gold</Text>
                     <Text style={styles.headerSub}>
                         1 Gold = 10.000đ · Thanh toán an toàn qua MoMo hoặc ZaloPay

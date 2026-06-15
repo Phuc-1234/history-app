@@ -136,11 +136,19 @@ function verifyMoMoSignature(payload: MoMoIpnPayload): boolean {
 
 // ─── ZaloPay ──────────────────────────────────────────────────────────────────
 
+/** Build the ZaloPay app_trans_id from our internal orderId */
+function buildZaloAppTransId(orderId: string): string {
+    const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+    // ZaloPay requires alphanumeric uniqueid - remove dashes from UUID
+    const uniquePart = orderId.replace(/-/g, "").slice(0, 20);
+    return `${datePart}_${uniquePart}`;
+}
+
 async function createZaloPayOrder(
     orderId: string,
     amountVnd: number,
     ipnUrl: string,
-): Promise<{ payUrl: string }> {
+): Promise<{ payUrl: string; zpTransToken?: string; appTransId: string }> {
     const appId = parseInt(process.env.ZALOPAY_APP_ID!);
     const key1 = process.env.ZALOPAY_KEY1!;
     const endpoint = process.env.ZALOPAY_ENDPOINT!;
@@ -148,8 +156,7 @@ async function createZaloPayOrder(
     const appUser = "user";
     const appTime = Date.now();
     // ZaloPay requires app_trans_id format: yymmdd_uniqueid
-    const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, "");
-    const appTransId = `${datePart}_${orderId}`;
+    const appTransId = buildZaloAppTransId(orderId);
     const embedData = JSON.stringify({ orderId }); // pass our orderId so callback can find it
     const item = JSON.stringify([]);
     const description = `Mua ${amountVnd / GOLD_PRICE_VND} Gold - HistoryApp`;
@@ -173,10 +180,49 @@ async function createZaloPayOrder(
     const response = await postJson(endpoint, body);
 
     if (response.return_code !== 1) {
-        throw new Error(`ZaloPay error: ${response.return_message}`);
+        throw new Error(`ZaloPay error: ${response.return_message} (code ${response.return_code})`);
     }
 
-    return { payUrl: response.order_url };
+    return { 
+        payUrl: response.order_url, 
+        zpTransToken: response.zp_trans_token,
+        appTransId 
+    };
+}
+
+/**
+ * Query ZaloPay directly for the order status.
+ * Returns: 1 = SUCCESS, 2 = FAILED, 3 = PENDING
+ */
+async function queryZaloPayOrder(appTransId: string): Promise<{
+    returnCode: number; // 1=success, 2=failed, 3=pending
+    zpTransId?: string;
+}> {
+    const appId = parseInt(process.env.ZALOPAY_APP_ID!);
+    const key1 = process.env.ZALOPAY_KEY1!;
+    const queryEndpoint = "https://sb-openapi.zalopay.vn/v2/query";
+
+    // MAC = HMAC_SHA256(app_id + "|" + app_trans_id + "|" + key1, key1)
+    const rawMac = `${appId}|${appTransId}|${key1}`;
+    const mac = hmacSHA256(rawMac, key1);
+
+    const body = {
+        app_id: appId,
+        app_trans_id: appTransId,
+        mac,
+    };
+
+    try {
+        const response = await postJson(queryEndpoint, body);
+        console.log(`[ZaloPay Query] app_trans_id=${appTransId} → return_code=${response.return_code}`);
+        return {
+            returnCode: response.return_code ?? 3,
+            zpTransId: response.zp_trans_id ? String(response.zp_trans_id) : undefined,
+        };
+    } catch (err) {
+        console.warn("[ZaloPay Query] failed to reach ZaloPay:", err);
+        return { returnCode: 3 }; // treat as pending on network error
+    }
 }
 
 function verifyZaloPayCallback(payload: ZaloPayCallbackPayload): {
@@ -201,19 +247,49 @@ function verifyZaloPayCallback(payload: ZaloPayCallbackPayload): {
 // ─── Main Service Class ───────────────────────────────────────────────────────
 
 export class PaymentService {
-    /** Create a payment order and return a payUrl */
     async initiatePayment(
         userId: string,
         provider: PaymentProvider,
         goldAmount: number,
-    ): Promise<{ orderId: string; payUrl: string; amountVnd: number; goldAmount: number }> {
+    ): Promise<{ orderId: string; payUrl: string; zpTransToken?: string; amountVnd: number; goldAmount: number }> {
         const amountVnd = goldAmount * GOLD_PRICE_VND;
         const orderId = crypto.randomUUID();
-        const ipnUrl = process.env.PAYMENT_IPN_URL!;
-        // Deep link back to app after payment (adjust scheme to match your app)
-        const redirectUrl = `${ipnUrl}/api/payment/redirect`;
+        // Expose webhook/IPN URL based on configured environment variable or local computer IP
+        const ipnUrl = process.env.PAYMENT_IPN_URL || `http://${process.env.LOCAL_COMPUTER_IP || 'localhost'}:5000`;
 
-        // Persist a PENDING record first so webhook can find it
+        let payUrl = "";
+        let zpTransToken: string | undefined = undefined;
+        // providerOrderId stores app_trans_id for ZaloPay or orderId for MoMo/mock
+        let providerOrderId = orderId;
+
+        if (provider === "ZALOPAY") {
+            try {
+                const callbackUrl = `${ipnUrl}/api/payment/zalopay/callback`;
+                const zaloResult = await createZaloPayOrder(orderId, amountVnd, callbackUrl);
+                payUrl = zaloResult.payUrl;
+                zpTransToken = zaloResult.zpTransToken;
+                // Store app_trans_id so we can query ZaloPay later
+                providerOrderId = zaloResult.appTransId;
+                console.log(`[ZaloPay] Created order. app_trans_id=${providerOrderId}, order_url=${payUrl}, token=${zpTransToken}`);
+            } catch (zaloError: any) {
+                console.error("Failed to create ZaloPay order:", zaloError.message);
+                throw zaloError; // surface the real error to the client
+            }
+        } else if (provider === "MOMO" && process.env.MOMO_SECRET_KEY) {
+            try {
+                const callbackUrl = `${ipnUrl}/api/payment/momo/webhook`;
+                const redirectUrl = `${ipnUrl}/api/payment/mock-checkout?orderId=${orderId}&status=success`;
+                const momoResult = await createMoMoOrder(orderId, amountVnd, callbackUrl, redirectUrl);
+                payUrl = momoResult.payUrl;
+            } catch (momoError: any) {
+                console.warn("Failed to create real MoMo order, falling back to mock:", momoError.message);
+                payUrl = `${ipnUrl}/api/payment/mock-checkout?orderId=${orderId}`;
+            }
+        } else {
+            payUrl = `${ipnUrl}/api/payment/mock-checkout?orderId=${orderId}`;
+        }
+
+        // Persist a PENDING record first so webhook/polling can find it
         await prisma.goldPurchase.create({
             data: {
                 id: orderId,
@@ -222,21 +298,11 @@ export class PaymentService {
                 amountVnd,
                 provider,
                 status: "PENDING",
-                providerOrderId: orderId,
+                providerOrderId, // For ZaloPay: app_trans_id. For others: orderId.
             },
         });
 
-        let payUrl: string;
-
-        if (provider === "MOMO") {
-            const result = await createMoMoOrder(orderId, amountVnd, `${ipnUrl}/api/payment/momo/webhook`, redirectUrl);
-            payUrl = result.payUrl;
-        } else {
-            const result = await createZaloPayOrder(orderId, amountVnd, `${ipnUrl}/api/payment/zalopay/callback`);
-            payUrl = result.payUrl;
-        }
-
-        return { orderId, payUrl, amountVnd, goldAmount };
+        return { orderId, payUrl, zpTransToken, amountVnd, goldAmount };
     }
 
     /** Called when MoMo IPN webhook arrives */
@@ -245,8 +311,8 @@ export class PaymentService {
             throw new Error("Invalid MoMo signature");
         }
 
-        const purchase = await prisma.goldPurchase.findUnique({
-            where: { providerOrderId: payload.orderId },
+        const purchase = await prisma.goldPurchase.findFirst({
+            where: { id: payload.orderId },
         });
         if (!purchase || purchase.status !== "PENDING") return;
 
@@ -290,7 +356,7 @@ export class PaymentService {
         }
 
         const purchase = await prisma.goldPurchase.findUnique({
-            where: { providerOrderId: orderId },
+            where: { id: orderId },
         });
         if (!purchase || purchase.status !== "PENDING") return;
 
@@ -309,29 +375,65 @@ export class PaymentService {
         ]);
     }
 
-    /** App polls this to know if payment succeeded */
+    /**
+     * App polls this to know if payment succeeded.
+     * For ZaloPay: actively queries ZaloPay API when status is still PENDING,
+     * so the app doesn't need a public callback URL in sandbox mode.
+     */
     async getPaymentStatus(orderId: string) {
         const purchase = await prisma.goldPurchase.findUnique({
-            where: { providerOrderId: orderId },
-            select: {
-                providerOrderId: true,
-                status: true,
-                provider: true,
-                goldAmount: true,
-                amountVnd: true,
-                providerTransId: true,
-            },
+            where: { id: orderId },
         });
 
         if (!purchase) return null;
 
+        // Local vars to hold potentially-updated status
+        let resolvedStatus = purchase.status as string;
+        let resolvedTransId = purchase.providerTransId;
+
+        // If still PENDING and provider is ZaloPay → proactively query ZaloPay
+        if (purchase.status === "PENDING" && purchase.provider === "ZALOPAY") {
+            try {
+                const { returnCode, zpTransId } = await queryZaloPayOrder(purchase.providerOrderId);
+
+                if (returnCode === 1) {
+                    // Payment succeeded → update DB
+                    await prisma.$transaction([
+                        prisma.goldPurchase.update({
+                            where: { id: purchase.id },
+                            data: {
+                                status: "SUCCESS",
+                                providerTransId: zpTransId ?? null,
+                            },
+                        }),
+                        prisma.user.update({
+                            where: { id: purchase.userId },
+                            data: { totalGold: { increment: purchase.goldAmount } },
+                        }),
+                    ]);
+                    resolvedStatus = "SUCCESS";
+                    resolvedTransId = zpTransId ?? null;
+                } else if (returnCode === 2) {
+                    // Payment failed
+                    await prisma.goldPurchase.update({
+                        where: { id: purchase.id },
+                        data: { status: "FAILED" },
+                    });
+                    resolvedStatus = "FAILED";
+                }
+                // returnCode === 3: still PENDING, do nothing
+            } catch (err) {
+                console.warn("[getPaymentStatus] ZaloPay query failed:", err);
+            }
+        }
+
         return {
-            orderId: purchase.providerOrderId,
-            status: purchase.status,
+            orderId: purchase.id,
+            status: resolvedStatus,
             provider: purchase.provider,
             goldAmount: purchase.goldAmount,
             amountVnd: purchase.amountVnd,
-            providerTransId: purchase.providerTransId,
+            providerTransId: resolvedTransId,
         };
     }
 }

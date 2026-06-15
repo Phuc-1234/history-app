@@ -14,6 +14,7 @@ export interface InitiatePaymentRequestBody {
 export interface InitiatePaymentResponse {
     orderId: string;
     payUrl: string;
+    zpTransToken?: string;
     amountVnd: number;
     goldAmount: number;
 }
