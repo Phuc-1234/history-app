@@ -130,7 +130,7 @@ export function useAuthForm() {
         try {
             const { LoginManager, AccessToken } = require("react-native-fbsdk-next");
             
-            const result = await LoginManager.logInWithPermissions(["public_profile", "email"]);
+            const result = await LoginManager.logInWithPermissions(["public_profile"]);
             if (result.isCancelled) {
                 return;
             }

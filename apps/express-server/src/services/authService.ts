@@ -1,5 +1,5 @@
 // services/authService.ts
-import { supabase } from "../config/supabaseClient";
+import { supabase, supabaseAdmin } from "../config/supabaseClient";
 import { AuthResponse } from "@supabase/supabase-js";
 import {
     RegisterCredentials,
@@ -73,27 +73,67 @@ const exchangeGoogleIdToken = async (idToken: string) => {
     };
 
 const exchangeFacebookAccessToken = async (accessToken: string) => {
-    const uSupabaseClient = createClient(
-        supabaseUrl,
-        supabasePublishableKey,
-        {
-            auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-            },
-        },
+    // 1. Fetch user profile info from Facebook Graph API
+    const fbRes = await fetch(
+        `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
     );
+    if (!fbRes.ok) {
+        const errJson = await fbRes.json().catch(() => ({}));
+        throw new Error(errJson?.error?.message || "Failed to verify Facebook access token.");
+    }
+    const fbData = (await fbRes.json()) as { id: string; name: string; email?: string };
 
-    const { data, error } = await uSupabaseClient.auth.signInWithIdToken({
-        provider: "facebook",
-        token: accessToken,
+    // 2. Resolve email fallback (Facebook users might not have email enabled)
+    const email = fbData.email || `fb_${fbData.id}@facebook.placeholder`;
+    const name = fbData.name || "Facebook User";
+
+    // 3. Check if user already registered in DB (syndicated from Supabase)
+    const existingDbUser = await prisma.user.findUnique({
+        where: { email },
     });
 
-    if (error) throw error;
+    let user;
+    if (existingDbUser) {
+        const { data, error } = await supabaseAdmin.auth.admin.getUserById(existingDbUser.id);
+        if (error || !data?.user) {
+            throw error || new Error("Failed to retrieve existing Supabase user by ID.");
+        }
+        user = data.user;
+    } else {
+        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            email_confirm: true,
+            user_metadata: { name },
+        });
+        if (error || !data?.user) {
+            throw error || new Error("Failed to create new user in Supabase.");
+        }
+        user = data.user;
+    }
+
+    // 4. Generate magic link token hash for the target user's email
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "magiclink",
+        email: email,
+    });
+
+    if (linkError || !linkData) {
+        throw linkError || new Error("Failed to generate authentication link.");
+    }
+
+    // 5. Establish a user-scoped session by verifying the token hash
+    const { data: sessionData, error: sessionError } = await supabase.auth.verifyOtp({
+        token_hash: linkData.properties.hashed_token,
+        type: "magiclink",
+    });
+
+    if (sessionError || !sessionData) {
+        throw sessionError || new Error("Failed to establish Supabase session.");
+    }
 
     return {
-        user: data.user,
-        session: data.session,
+        user: sessionData.user,
+        session: sessionData.session,
     };
 };
 
