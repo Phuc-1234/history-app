@@ -7,461 +7,64 @@ datasource db {
   provider = "postgresql"
 }
 
-model Grade {
-  id        Int           @id
-  state     HierachyState @default(PUBLIC)
-  questions Question[]
-  tests     Test[]
-  topics    Topic[]
-
-  @@map("grades")
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model flashcards {
+  id              Int               @id @default(autoincrement())
+  front_text      String
+  back_text       String
+  lesson_id       Int?
+  section_id      Int?
+  node_id         Int?
+  lessons         lessons?          @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  nodes           nodes?            @relation(fields: [node_id], references: [id])
+  sections        sections?         @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  user_flashcards user_flashcards[]
 }
 
-model Topic {
-  id        Int        @id @default(autoincrement())
-  name      String
-  position  Int
-  gradeId   Int        @map("grade_id")
-  lessons   Lesson[]
-  questions Question[]
-  tests     Test[]
-  grade     Grade      @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model follows {
+  id                                String   @id
+  follower_id                       String
+  following_id                      String
+  created_at                        DateTime @default(now())
+  users_follows_follower_idTousers  users    @relation("follows_follower_idTousers", fields: [follower_id], references: [id], onDelete: Cascade)
+  users_follows_following_idTousers users    @relation("follows_following_idTousers", fields: [following_id], references: [id], onDelete: Cascade)
 
-  @@map("topics")
+  @@unique([follower_id, following_id])
+  @@index([following_id])
 }
 
-model Lesson {
-  id         Int         @id @default(autoincrement())
-  name       String
-  summary    String?
-  position   Int
-  topicId    Int         @map("topic_id")
-  flashcards Flashcard[]
-  topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  mindMap    MindMap?
-  questions  Question[]
-  sections   Section[]
-  tests      Test[]
-  videos     Video[]
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model friend_requests {
+  id                                       String              @id
+  sender_id                                String
+  receiver_id                              String
+  status                                   FriendRequestStatus @default(PENDING)
+  created_at                               DateTime            @default(now())
+  updated_at                               DateTime
+  users_friend_requests_receiver_idTousers users               @relation("friend_requests_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: Cascade)
+  users_friend_requests_sender_idTousers   users               @relation("friend_requests_sender_idTousers", fields: [sender_id], references: [id], onDelete: Cascade)
 
-  @@map("lessons")
+  @@unique([sender_id, receiver_id])
+  @@index([receiver_id, status])
+  @@index([sender_id, status])
 }
 
-model MindMap {
-  id       Int    @id @default(autoincrement())
-  lessonId Int    @unique @map("lesson_id")
-  data     Json
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model friendships {
+  id                                 String   @id
+  user_id                            String
+  friend_id                          String
+  created_at                         DateTime @default(now())
+  users_friendships_friend_idTousers users    @relation("friendships_friend_idTousers", fields: [friend_id], references: [id], onDelete: Cascade)
+  users_friendships_user_idTousers   users    @relation("friendships_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@map("mind_maps")
+  @@unique([user_id, friend_id])
+  @@index([friend_id])
 }
 
-model Video {
-  id        String      @id @default(uuid())
-  lessonId  Int?        @map("lesson_id")
-  title     String
-  position  Int
-  summary   String?
-  hlsUrl    String      @map("hls_url")
-  duration  Float?
-  status    VideoStatus @default(PENDING)
-  createdAt DateTime    @default(now()) @map("created_at")
-  nodes     Node[]
-  lesson    Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@map("videos")
-}
-
-model Section {
-  id              Int         @id @default(autoincrement())
-  name            String
-  summary         String?
-  position        Int
-  lessonId        Int         @map("lesson_id")
-  parentSectionId Int?        @map("parent_section_id")
-  flashcards      Flashcard[]
-  nodes           Node[]
-  questions       Question[]
-  lesson          Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  parentSection   Section?    @relation("SectionHierarchy", fields: [parentSectionId], references: [id])
-  childSections   Section[]   @relation("SectionHierarchy")
-  tests           Test[]
-
-  @@map("sections")
-}
-
-model Node {
-  id             Int                @id @default(autoincrement())
-  position       Int
-  header         String?
-  body           String
-  sectionId      Int                @map("section_id")
-  imgUrl         String?            @map("img_url")
-  videoId        String?            @map("video_id")
-  flashcards     Flashcard[]
-  section        Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  video          Video?             @relation(fields: [videoId], references: [id])
-  questions      Question[]
-  nodeProgresses UserNodeProgress[]
-
-  @@map("nodes")
-}
-
-model Flashcard {
-  id             Int             @id @default(autoincrement())
-  frontText      String          @map("front_text")
-  backText       String          @map("back_text")
-  lessonId       Int?            @map("lesson_id")
-  sectionId      Int?            @map("section_id")
-  nodeId         Int?            @map("node_id")
-  lesson         Lesson?         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  node           Node?           @relation(fields: [nodeId], references: [id])
-  section        Section?        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  userFlashcards UserFlashcard[]
-
-  @@map("flashcards")
-}
-
-model UserFlashcard {
-  id               Int       @id @default(autoincrement())
-  remainingReviews Int       @default(2) @map("remaining_reviews")
-  position         Int
-  frontText        String    @map("front_text")
-  backText         String    @map("back_text")
-  userId           String    @map("user_id")
-  flashcardId      Int       @map("flashcard_id")
-  flashcard        Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_flashcards")
-}
-
-model Test {
-  id             String         @id @default(dbgenerated("gen_random_uuid()"))
-  isNationalTest Boolean        @default(false) @map("is_national_test")
-  gradeId        Int?           @map("grade_id")
-  topicId        Int?           @map("topic_id")
-  lessonId       Int?           @map("lesson_id")
-  sectionId      Int?           @map("section_id")
-  title          String
-  summary        String?        @default("Kiểm tra kiến thức của bạn")
-  goldReward     Int            @default(0) @map("gold_reward")
-  isManual       Boolean        @default(false) @map("is_manual")
-  passThreshold  Int            @default(70) @map("pass_threshold")
-  questionNumber Int            @default(10) @map("question_number")
-  timeLimit      Int?           @map("time_limit")
-  xpReward       Int            @default(0) @map("xp_reward")
-  presetId       String?        @map("preset_id")
-  scopeId        Int?           @map("scope_id")
-  scopeType      ScopeType?     @map("scope_type")
-  testQuestions  TestQuestion[]
-  grade          Grade?         @relation(fields: [gradeId], references: [id])
-  lesson         Lesson?        @relation(fields: [lessonId], references: [id])
-  preset         TestPreset?    @relation(fields: [presetId], references: [id])
-  section        Section?       @relation(fields: [sectionId], references: [id])
-  topic          Topic?         @relation(fields: [topicId], references: [id])
-  userTestLogs   UserTestLog[]
-
-  @@map("tests")
-}
-
-model Question {
-  id             Int              @id @default(autoincrement())
-  type           QuestionType
-  difficulty     Int              @default(1)
-  promptText     String           @map("prompt_text")
-  gradeId        Int?             @map("grade_id")
-  topicId        Int?             @map("topic_id")
-  lessonId       Int?             @map("lesson_id")
-  sectionId      Int?             @map("section_id")
-  nodeId         Int?             @map("node_id")
-  document       String?
-  answerDataJson Json?            @map("answer_data_json")
-  explanation    String?
-  isActive       Boolean          @default(true) @map("is_active")
-  scopeId        Int?             @map("scope_id")
-  scopeType      ScopeType?       @map("scope_type")
-  answers        QuestionAnswer[]
-  grade          Grade?           @relation(fields: [gradeId], references: [id])
-  lesson         Lesson?          @relation(fields: [lessonId], references: [id])
-  node           Node?            @relation(fields: [nodeId], references: [id])
-  section        Section?         @relation(fields: [sectionId], references: [id])
-  topic          Topic?           @relation(fields: [topicId], references: [id])
-  testQuestions  TestQuestion[]
-  userAnswerLogs UserAnswerLog[]
-
-  @@map("questions")
-}
-
-model QuestionAnswer {
-  id            Int      @id @default(autoincrement())
-  content       String
-  isCorrect     Boolean? @map("is_correct")
-  leftText      String?  @map("left_text")
-  rightText     String?  @map("right_text")
-  correctAnswer String?  @map("correct_answer")
-  questionId    Int      @map("question_id")
-  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@map("question_answers")
-}
-
-model TestQuestion {
-  testId     String   @map("test_id")
-  questionId Int      @map("question_id")
-  position   Int
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  test       Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
-
-  @@id([testId, questionId])
-  @@map("test_questions")
-}
-
-model User {
-  id                     String             @id @default(uuid())
-  role                   UserRole           @default(STUDENT)
-  name                   String
-  email                  String             @unique
-  totalXp                Int                @default(0) @map("total_xp")
-  totalGold              Int                @default(0) @map("total_gold")
-  isHidden               Boolean            @default(false) @map("is_hidden")
-  profileImgUrl          String?            @map("profile_img_url")
-  currentStreak          Int                @default(0) @map("current_streak")
-  highestStreak          Int                @default(0) @map("highest_streak")
-  lastTestPassedAt       DateTime?          @map("last_test_passed_at")
-  currentTierIndex       Int                @default(1) @map("current_tier_index")
-  isVerified             Boolean            @default(false) @map("is_verified")
-  isPrivate              Boolean            @default(false) @map("is_private")
-  allowFollow            Boolean            @default(true) @map("allow_follow")
-  allowFriendRequest     Boolean            @default(true) @map("allow_friend_request")
-  following              Follow[]           @relation("FollowFollower")
-  followers              Follow[]           @relation("FollowFollowing")
-  receivedFriendRequests FriendRequest[]    @relation("FriendRequestReceiver")
-  sentFriendRequests     FriendRequest[]    @relation("FriendRequestSender")
-  friendshipsAsFriend    Friendship[]       @relation("FriendshipFriend")
-  friendshipsAsUser      Friendship[]       @relation("FriendshipUser")
-  gold_purchases         gold_purchases[]
-  pendingRewards         PendingReward[]
-  userFlashcards         UserFlashcard[]
-  userItems              UserItem[]
-  nodeProgresses         UserNodeProgress[]
-  testLogs               UserTestLog[]
-  tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
-  isVerified             Boolean            @default(false) @map("is_verified")
-  goldPurchases          GoldPurchase[]
-
-  @@map("users")
-}
-
-model FriendRequest {
-  id         String              @id @default(uuid())
-  senderId   String              @map("sender_id")
-  receiverId String              @map("receiver_id")
-  status     FriendRequestStatus @default(PENDING)
-  createdAt  DateTime            @default(now()) @map("created_at")
-  updatedAt  DateTime            @updatedAt @map("updated_at")
-  receiver   User                @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  sender     User                @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@unique([senderId, receiverId])
-  @@index([receiverId, status])
-  @@index([senderId, status])
-  @@map("friend_requests")
-}
-
-model Friendship {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  friendId  String   @map("friend_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  friend    User     @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
-  user      User     @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, friendId])
-  @@index([friendId])
-  @@map("friendships")
-}
-
-model Follow {
-  id          String   @id @default(uuid())
-  followerId  String   @map("follower_id")
-  followingId String   @map("following_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  follower    User     @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User     @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
-
-  @@unique([followerId, followingId])
-  @@index([followingId])
-  @@map("follows")
-}
-
-model Tier {
-  index       Int     @id
-  name        String
-  badgeImgUrl String? @map("badge_img_url")
-  description String?
-  xpThreshold Int     @map("xp_threshold")
-  users       User[]
-
-  @@map("tiers")
-}
-
-model UserTestLog {
-  id                    String          @id @default(uuid())
-  score                 Int
-  startedAt             DateTime        @default(now()) @map("started_at")
-  submittedAt           DateTime?       @map("submitted_at")
-  isPassed              Boolean?        @map("is_passed")
-  attemptNumber         Int             @map("attempt_number")
-  testId                String?         @map("test_id")
-  userId                String          @map("user_id")
-  questionSequenceJson  Json?           @map("question_sequence_json")
-  timezoneOffsetMinutes Int             @map("timezone_offset_minutes")
-  goldEarned            Int             @default(0) @map("gold_earned")
-  xpEarned              Int             @default(0) @map("xp_earned")
-  currentQuestionIndex  Int?            @default(0) @map("current_question_index")
-  draftAnswerJson       Json?           @map("draft_answer_json")
-  expiresAt             DateTime?       @map("expires_at")
-  generatedFromPresetId String?         @map("generated_from_preset_id")
-  maxScore              Float?          @map("max_score")
-  passThreshold         Int?            @map("pass_threshold")
-  purposeType           PurposeType?    @map("purpose_type")
-  questionCount         Int?            @map("question_count")
-  scopeId               Int?            @map("scope_id")
-  scopeType             ScopeType?      @map("scope_type")
-  scoreAwarded          Float?          @map("score_awarded")
-  status                TestStatus?     @map("status")
-  timeLimit             Int?            @map("time_limit")
-  answerLogs            UserAnswerLog[]
-  generatedFromPreset   TestPreset?     @relation(fields: [generatedFromPresetId], references: [id])
-  test                  Test?           @relation(fields: [testId], references: [id], onDelete: Cascade)
-  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("user_test_logs")
-}
-
-model UserAnswerLog {
-  id             Int          @id @default(autoincrement())
-  userTestLogId  String       @map("user_test_log_id")
-  questionId     Int          @map("question_id")
-  type           QuestionType
-  answerDataJson Json         @map("answer_data_json")
-  answeredAt     DateTime?    @default(now()) @map("answered_at")
-  maxScore       Float?       @map("max_score")
-  scoreAwarded   Float?       @map("score_awarded")
-  question       Question     @relation(fields: [questionId], references: [id])
-  testLog        UserTestLog  @relation(fields: [userTestLogId], references: [id], onDelete: Cascade)
-
-  @@index([userTestLogId])
-  @@index([questionId])
-  @@map("user_answer_logs")
-}
-
-model Item {
-  id               Int               @id @default(autoincrement())
-  cost             Int?              @default(0)
-  isConsumable     Boolean           @map("is_consumable")
-  isPurchaseable   Boolean           @map("is_purchaseable")
-  imgUrl           String?           @map("img_url")
-  description      String?
-  type             ItemType
-  value            Float?
-  testLimit        Int?              @map("test_limit")
-  timeLimit        Int?              @map("time_limit")
-  name             String
-  milestoneRewards MilestoneReward[]
-  pendingRewards   PendingReward[]
-  userItems        UserItem[]
-
-  @@map("items")
-}
-
-model UserItem {
-  userId     String    @map("user_id")
-  itemId     Int       @map("item_id")
-  quantity   Int       @default(1)
-  isActive   Boolean   @default(false) @map("is_active")
-  activateAt DateTime? @map("activate_at")
-  item       Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, itemId])
-  @@map("user_items")
-}
-
-model PendingReward {
-  id           Int              @id @default(autoincrement())
-  goldAmount   Int              @default(0) @map("gold_amount")
-  xpAmount     Int              @default(0) @map("xp_amount")
-  itemQuantity Int              @default(0) @map("item_quantity")
-  sourceType   RewardSourceType @map("source_type")
-  sourceValue  Int              @map("source_value")
-  isClaimed    Boolean          @default(false) @map("is_claimed")
-  userId       String           @map("user_id")
-  itemId       Int?             @map("item_id")
-  rewardType   RewardType       @map("reward_type")
-  item         Item?            @relation(fields: [itemId], references: [id])
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("pending_rewards")
-}
-
-model MilestoneReward {
-  id           Int              @id @default(autoincrement())
-  goldAmount   Int              @default(0) @map("gold_amount")
-  xpAmount     Int              @default(0) @map("xp_amount")
-  itemQuantity Int              @default(1) @map("item_quantity")
-  sourceType   RewardSourceType @map("source_type")
-  sourceValue  Int              @map("source_value")
-  itemId       Int?             @map("item_id")
-  name         String
-  rewardType   RewardType       @map("reward_type")
-  item         Item?            @relation(fields: [itemId], references: [id])
-
-  @@map("milestone_rewards")
-}
-
-model UserNodeProgress {
-  userId          String    @map("user_id")
-  nodeId          Int       @map("node_id")
-  studiedAt       DateTime? @map("studied_at")
-  threshold       Float?    @map("threshold")
-  allTestPassedAt DateTime? @map("all_test_passed_at")
-  nodeCompletedAt DateTime? @map("node_completed_at")
-  node            Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, nodeId])
-  @@map("user_node_progress")
-}
-
-model ScopeTestPresetDefault {
-  scopeType           ScopeType   @map("scope_type")
-  purposeType         PurposeType @map("purpose_type")
-  defaultTestPresetId String      @map("default_test_preset_id")
-  defaultTestPreset   TestPreset  @relation(fields: [defaultTestPresetId], references: [id])
-
-  @@id([scopeType, purposeType])
-  @@map("scope_test_preset_defaults")
-}
-
-model TestPreset {
-  id                  String                   @id @default(uuid())
-  
-  name                String
-  purposeType         PurposeType              @map("purpose_type")
-  questionCount       Int?                     @map("question_count")
-  passThreshold       Int                      @default(80) @map("pass_threshold")
-  timeLimit           Int?                     @map("time_limit")
-  difficultyRatioJson Json?                    @map("difficulty_ratio_json")
-  defaultTestPresets  ScopeTestPresetDefault[]
-  tests               Test[]
-  userTestLogs        UserTestLog[]
-
-  @@map("test_presets")
-}
-
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model gold_purchases {
   id                String          @id
   user_id           String
@@ -473,31 +76,387 @@ model gold_purchases {
   provider_trans_id String?
   created_at        DateTime        @default(now())
   updated_at        DateTime
-  users             User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  users             users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
-enum HierachyState {
-  PUBLIC
-  PRIVATE
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model grades {
+  id        Int           @id
+  state     HierachyState @default(PUBLIC)
+  questions questions[]
+  tests     tests[]
+  topics    topics[]
 }
 
-enum VideoStatus {
-  PENDING
-  PROCESSING
-  READY
-  FAILED
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model items {
+  id                Int                 @id @default(autoincrement())
+  cost              Int?                @default(0)
+  is_consumable     Boolean
+  is_purchaseable   Boolean
+  img_url           String?
+  description       String?
+  type              ItemType
+  value             Float?
+  test_limit        Int?
+  time_limit        Int?
+  name              String
+  milestone_rewards milestone_rewards[]
+  pending_rewards   pending_rewards[]
+  user_items        user_items[]
 }
 
-enum QuestionType {
-  CHOOSE
-  FILL
-  MATCH
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model lessons {
+  id         Int          @id @default(autoincrement())
+  name       String
+  summary    String?
+  position   Int
+  topic_id   Int
+  flashcards flashcards[]
+  topics     topics       @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+  mind_maps  mind_maps?
+  questions  questions[]
+  sections   sections[]
+  tests      tests[]
+  videos     videos[]
 }
 
-enum UserRole {
-  STUDENT
-  ADMIN
-  SUPER_ADMIN
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model milestone_rewards {
+  id            Int              @id @default(autoincrement())
+  gold_amount   Int              @default(0)
+  xp_amount     Int              @default(0)
+  item_quantity Int              @default(1)
+  source_type   RewardSourceType
+  source_value  Int
+  item_id       Int?
+  name          String
+  reward_type   RewardType
+  items         items?           @relation(fields: [item_id], references: [id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model mind_maps {
+  id        Int     @id @default(autoincrement())
+  lesson_id Int     @unique
+  data      Json
+  lessons   lessons @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model nodes {
+  id                 Int                  @id @default(autoincrement())
+  position           Int
+  header             String?
+  body               String
+  section_id         Int
+  img_url            String?
+  video_id           String?
+  flashcards         flashcards[]
+  sections           sections             @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  videos             videos?              @relation(fields: [video_id], references: [id])
+  questions          questions[]
+  user_node_progress user_node_progress[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pending_rewards {
+  id            Int              @id @default(autoincrement())
+  gold_amount   Int              @default(0)
+  xp_amount     Int              @default(0)
+  item_quantity Int              @default(0)
+  source_type   RewardSourceType
+  source_value  Int
+  is_claimed    Boolean          @default(false)
+  user_id       String
+  item_id       Int?
+  reward_type   RewardType
+  items         items?           @relation(fields: [item_id], references: [id])
+  users         users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model question_answers {
+  id             Int       @id @default(autoincrement())
+  content        String
+  is_correct     Boolean?
+  left_text      String?
+  right_text     String?
+  correct_answer String?
+  question_id    Int
+  questions      questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model questions {
+  id               Int                @id @default(autoincrement())
+  type             QuestionType
+  difficulty       Int                @default(1)
+  prompt_text      String
+  grade_id         Int?
+  topic_id         Int?
+  lesson_id        Int?
+  section_id       Int?
+  node_id          Int?
+  document         String?
+  answer_data_json Json?
+  explanation      String?
+  is_active        Boolean            @default(true)
+  scope_id         Int?
+  scope_type       ScopeType?
+  question_answers question_answers[]
+  grades           grades?            @relation(fields: [grade_id], references: [id])
+  lessons          lessons?           @relation(fields: [lesson_id], references: [id])
+  nodes            nodes?             @relation(fields: [node_id], references: [id])
+  sections         sections?          @relation(fields: [section_id], references: [id])
+  topics           topics?            @relation(fields: [topic_id], references: [id])
+  test_questions   test_questions[]
+  user_answer_logs user_answer_logs[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model scope_test_preset_defaults {
+  scope_type             ScopeType
+  purpose_type           PurposeType
+  default_test_preset_id String
+  test_presets           test_presets @relation(fields: [default_test_preset_id], references: [id])
+
+  @@id([scope_type, purpose_type])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sections {
+  id                Int          @id @default(autoincrement())
+  name              String
+  summary           String?
+  position          Int
+  lesson_id         Int
+  parent_section_id Int?
+  flashcards        flashcards[]
+  nodes             nodes[]
+  questions         questions[]
+  lessons           lessons      @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  sections          sections?    @relation("sectionsTosections", fields: [parent_section_id], references: [id])
+  other_sections    sections[]   @relation("sectionsTosections")
+  tests             tests[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model test_presets {
+  id                         String                       @id
+  name                       String
+  purpose_type               PurposeType
+  question_count             Int?
+  pass_threshold             Int                          @default(80)
+  time_limit                 Int?
+  difficulty_ratio_json      Json?
+  scope_test_preset_defaults scope_test_preset_defaults[]
+  tests                      tests[]
+  user_test_logs             user_test_logs[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model test_questions {
+  test_id     String
+  question_id Int
+  position    Int
+  questions   questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  tests       tests     @relation(fields: [test_id], references: [id], onDelete: Cascade)
+
+  @@id([test_id, question_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tests {
+  id               String           @id @default(dbgenerated("gen_random_uuid()"))
+  is_national_test Boolean          @default(false)
+  grade_id         Int?
+  topic_id         Int?
+  lesson_id        Int?
+  section_id       Int?
+  title            String
+  summary          String?          @default("Kiểm tra kiến thức của bạn")
+  gold_reward      Int              @default(0)
+  is_manual        Boolean          @default(false)
+  pass_threshold   Int              @default(70)
+  question_number  Int              @default(10)
+  time_limit       Int?
+  xp_reward        Int              @default(0)
+  preset_id        String?
+  scope_id         Int?
+  scope_type       ScopeType?
+  test_questions   test_questions[]
+  grades           grades?          @relation(fields: [grade_id], references: [id])
+  lessons          lessons?         @relation(fields: [lesson_id], references: [id])
+  test_presets     test_presets?    @relation(fields: [preset_id], references: [id])
+  sections         sections?        @relation(fields: [section_id], references: [id])
+  topics           topics?          @relation(fields: [topic_id], references: [id])
+  user_test_logs   user_test_logs[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tiers {
+  index         Int     @id
+  name          String
+  badge_img_url String?
+  description   String?
+  xp_threshold  Int
+  users         users[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model topics {
+  id        Int         @id @default(autoincrement())
+  name      String
+  position  Int
+  grade_id  Int
+  lessons   lessons[]
+  questions questions[]
+  tests     tests[]
+  grades    grades      @relation(fields: [grade_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_answer_logs {
+  id               Int            @id @default(autoincrement())
+  user_test_log_id String
+  question_id      Int
+  type             QuestionType
+  answer_data_json Json
+  answered_at      DateTime?      @default(now())
+  max_score        Float?
+  score_awarded    Float?
+  questions        questions      @relation(fields: [question_id], references: [id])
+  user_test_logs   user_test_logs @relation(fields: [user_test_log_id], references: [id], onDelete: Cascade)
+
+  @@index([question_id])
+  @@index([user_test_log_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_flashcards {
+  id                Int        @id @default(autoincrement())
+  remaining_reviews Int        @default(2)
+  position          Int
+  front_text        String
+  back_text         String
+  user_id           String
+  flashcard_id      Int
+  flashcards        flashcards @relation(fields: [flashcard_id], references: [id], onDelete: Cascade)
+  users             users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_items {
+  user_id     String
+  item_id     Int
+  quantity    Int       @default(1)
+  is_active   Boolean   @default(false)
+  activate_at DateTime?
+  items       items     @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, item_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_node_progress {
+  user_id            String
+  node_id            Int
+  studied_at         DateTime?
+  threshold          Float?
+  all_test_passed_at DateTime?
+  node_completed_at  DateTime?
+  nodes              nodes     @relation(fields: [node_id], references: [id], onDelete: Cascade)
+  users              users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, node_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_test_logs {
+  id                       String             @id
+  score                    Int
+  started_at               DateTime           @default(now())
+  submitted_at             DateTime?
+  is_passed                Boolean?
+  attempt_number           Int
+  test_id                  String?
+  user_id                  String
+  question_sequence_json   Json?
+  timezone_offset_minutes  Int
+  gold_earned              Int                @default(0)
+  xp_earned                Int                @default(0)
+  current_question_index   Int?               @default(0)
+  draft_answer_json        Json?
+  expires_at               DateTime?
+  generated_from_preset_id String?
+  max_score                Float?
+  pass_threshold           Int?
+  purpose_type             PurposeType?
+  question_count           Int?
+  scope_id                 Int?
+  scope_type               ScopeType?
+  score_awarded            Float?
+  status                   TestStatus?
+  time_limit               Int?
+  user_answer_logs         user_answer_logs[]
+  test_presets             test_presets?      @relation(fields: [generated_from_preset_id], references: [id])
+  tests                    tests?             @relation(fields: [test_id], references: [id], onDelete: Cascade)
+  users                    users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users {
+  id                                                 String               @id
+  role                                               UserRole             @default(STUDENT)
+  name                                               String
+  email                                              String               @unique
+  total_xp                                           Int                  @default(0)
+  total_gold                                         Int                  @default(0)
+  is_hidden                                          Boolean              @default(false)
+  profile_img_url                                    String?
+  current_streak                                     Int                  @default(0)
+  highest_streak                                     Int                  @default(0)
+  last_test_passed_at                                DateTime?
+  current_tier_index                                 Int                  @default(1)
+  is_verified                                        Boolean              @default(false)
+  is_private                                         Boolean              @default(false)
+  allow_follow                                       Boolean              @default(true)
+  allow_friend_request                               Boolean              @default(true)
+  follows_follows_follower_idTousers                 follows[]            @relation("follows_follower_idTousers")
+  follows_follows_following_idTousers                follows[]            @relation("follows_following_idTousers")
+  friend_requests_friend_requests_receiver_idTousers friend_requests[]    @relation("friend_requests_receiver_idTousers")
+  friend_requests_friend_requests_sender_idTousers   friend_requests[]    @relation("friend_requests_sender_idTousers")
+  friendships_friendships_friend_idTousers           friendships[]        @relation("friendships_friend_idTousers")
+  friendships_friendships_user_idTousers             friendships[]        @relation("friendships_user_idTousers")
+  gold_purchases                                     gold_purchases[]
+  pending_rewards                                    pending_rewards[]
+  user_flashcards                                    user_flashcards[]
+  user_items                                         user_items[]
+  user_node_progress                                 user_node_progress[]
+  user_test_logs                                     user_test_logs[]
+  tiers                                              tiers                @relation(fields: [current_tier_index], references: [index])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model videos {
+  id         String      @id
+  lesson_id  Int?
+  title      String
+  position   Int
+  summary    String?
+  hls_url    String
+  duration   Float?
+  status     VideoStatus @default(PENDING)
+  created_at DateTime    @default(now())
+  nodes      nodes[]
+  lessons    lessons?    @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
 }
 
 enum FriendRequestStatus {
@@ -507,12 +466,39 @@ enum FriendRequestStatus {
   CANCELLED
 }
 
+enum HierachyState {
+  PUBLIC
+  PRIVATE
+}
+
 enum ItemType {
   FRAME
   BOOST_XP_TIME
   BOOST_GOLD_TIME
   BOOST_XP_PASS
   BOOST_GOLD_PASS
+}
+
+enum PaymentProvider {
+  MOMO
+  ZALOPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum PurposeType {
+  EXAM
+  PRACTICE
+}
+
+enum QuestionType {
+  CHOOSE
+  FILL
+  MATCH
 }
 
 enum RewardSourceType {
@@ -535,11 +521,6 @@ enum ScopeType {
   NATIONAL
 }
 
-enum PurposeType {
-  EXAM
-  PRACTICE
-}
-
 enum TestStatus {
   IN_PROGRESS
   COMPLETED
@@ -547,30 +528,15 @@ enum TestStatus {
   ABANDONED
 }
 
-model GoldPurchase {
-  id              String          @id @default(uuid())
-  userId          String          @map("user_id")
-  goldAmount      Int             @map("gold_amount")
-  amountVnd       Int             @map("amount_vnd")
-  provider        PaymentProvider
-  status          PaymentStatus   @default(PENDING)
-  providerOrderId String          @unique @map("provider_order_id")
-  providerTransId String?         @map("provider_trans_id")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("gold_purchases")
+enum UserRole {
+  STUDENT
+  ADMIN
+  SUPER_ADMIN
 }
 
-enum PaymentProvider {
-  MOMO
-  ZALOPAY
-}
-
-enum PaymentStatus {
+enum VideoStatus {
   PENDING
-  SUCCESS
+  PROCESSING
+  READY
   FAILED
 }
-
