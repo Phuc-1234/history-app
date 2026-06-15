@@ -8,8 +8,10 @@ import {
     Text,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import RenderHtml from "react-native-render-html";
 import VideoPlayer from "../../videostream/components/VideoPlayer";
 import { Toast } from "../../../components/Toast";
 import { useAppSelector } from "../../../store/storeHook";
@@ -28,6 +30,7 @@ interface NodeScreenProps {
 }
 
 export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
+    const { width } = useWindowDimensions();
     const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
     const { data: node, isLoading, error } = useGetNodeDetailQuery(nodeId);
     const [finishStudy] = useFinishStudyNodeMutation();
@@ -120,8 +123,14 @@ export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
                     <Text style={styles.nodeTitle}>{node.header}</Text>
                 )}
 
-                {/* Body — markdown-ish plain text for now */}
-                <Text style={styles.nodeBody}>{node.body}</Text>
+                {/* Body — HTML rendered content */}
+                <View style={{ marginBottom: 24 }}>
+                    <RenderHtml
+                        contentWidth={width}
+                        source={{ html: node.body || "" }}
+                        tagsStyles={tagsStyles}
+                    />
+                </View>
 
                 {/* Video player */}
                 {node.video && (
@@ -179,6 +188,27 @@ export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
         </View>
     );
 }
+
+const tagsStyles = {
+    body: {
+        color: "#3A3A3C",
+        fontSize: 16,
+        lineHeight: 26,
+    },
+    p: {
+        marginTop: 0,
+        marginBottom: 12,
+    },
+    a: {
+        color: "#5856D6",
+        textDecorationLine: "underline" as const,
+    },
+    li: {
+        color: "#3A3A3C",
+        fontSize: 15,
+        lineHeight: 22,
+    },
+};
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#FFF" },
