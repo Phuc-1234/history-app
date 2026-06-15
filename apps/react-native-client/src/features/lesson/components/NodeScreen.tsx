@@ -61,9 +61,10 @@ interface NodeScreenProps {
     onQuizPress?: () => void; // called when user taps the quiz button
     onPrevPress?: () => void; // navigate to previous sibling node
     onNextPress?: () => void; // navigate to next sibling node
+    lessonName?: string;
 }
 
-export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPress }: NodeScreenProps) {
+export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPress, lessonName }: NodeScreenProps) {
     const { width } = useWindowDimensions();
     const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
     const { data: node, isLoading, error } = useGetNodeDetailQuery(nodeId);
@@ -75,6 +76,36 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
 
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const entryTimeRef = useRef(Date.now());
+
+    const cachedLessonName = useAppSelector((state: any) => {
+        const queries = state.api?.queries || {};
+        for (const queryKey of Object.keys(queries)) {
+            if (queryKey.startsWith("getLessonTree(")) {
+                const qData = queries[queryKey]?.data;
+                if (qData && qData.sections) {
+                    const checkSection = (sec: any): boolean => {
+                        if (sec.nodes && sec.nodes.some((n: any) => n.id === nodeId)) {
+                            return true;
+                        }
+                        if (sec.children) {
+                            for (const child of sec.children) {
+                                if (checkSection(child)) return true;
+                            }
+                        }
+                        return false;
+                    };
+                    for (const sec of qData.sections) {
+                        if (checkSection(sec)) {
+                            return qData.name;
+                        }
+                    }
+                }
+            }
+        }
+        return undefined;
+    });
+
+    const displayLessonName = lessonName || cachedLessonName;
 
     // Start the study timer when screen mounts (or node changes)
     useEffect(() => {
@@ -137,25 +168,28 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 <TouchableOpacity onPress={onBack} style={styles.headerBackBtn}>
                     <Ionicons name="arrow-back" size={22} color="#1C1C1E" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle} numberOfLines={1}>
-                    {node.header ?? `Phần ${node.position}`}
-                </Text>
-                {/* Completion badge */}
-                {node.isCompleted && isLoggedIn && (
-                    <View style={styles.completedBadge}>
-                        <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+                <View style={styles.headerTextContainer}>
+                    {displayLessonName ? (
+                        <Text style={styles.headerSubtitle} numberOfLines={1}>
+                            {displayLessonName}
+                        </Text>
+                    ) : null}
+                    <View style={styles.headerTitleRow}>
+                        <Text style={styles.headerTitle} numberOfLines={1}>
+                            {node.header ?? `Phần ${node.position}`}
+                        </Text>
+                        {/* Completion badge */}
+                        {node.isCompleted && isLoggedIn && (
+                            <Ionicons name="checkmark-circle" size={18} color="#34C759" />
+                        )}
                     </View>
-                )}
+                </View>
             </View>
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Title */}
-                {node.header && (
-                    <Text style={styles.nodeTitle}>{node.header}</Text>
-                )}
 
                 {/* Body — HTML rendered content */}
                 <View style={{ marginBottom: 24 }}>
@@ -369,11 +403,27 @@ const styles = StyleSheet.create({
     headerBackBtn: {
         padding: 4,
     },
-    headerTitle: {
+    headerTextContainer: {
         flex: 1,
-        fontSize: 17,
+    },
+    headerSubtitle: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: "#8E8E93",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        marginBottom: 2,
+    },
+    headerTitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    headerTitle: {
+        fontSize: 16,
         fontWeight: "700",
         color: "#1C1C1E",
+        flexShrink: 1,
     },
     completedBadge: {
         padding: 4,

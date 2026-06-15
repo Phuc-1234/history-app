@@ -5,9 +5,10 @@ import { ScreenWrapper } from "../../../../components/layout/ScreenWrapper";
 import { NodeScreen } from "../../../../features/lesson/components/NodeScreen";
 
 export default function NodeDetailScreen() {
-    const { nodeId, sectionNodeIds } = useLocalSearchParams<{
+    const { nodeId, sectionNodeIds, lessonName } = useLocalSearchParams<{
         nodeId: string;
         sectionNodeIds?: string; // comma-separated sibling node IDs from parent
+        lessonName?: string;
     }>();
     const router = useRouter();
     const id = Number(nodeId);
@@ -27,20 +28,16 @@ export default function NodeDetailScreen() {
             params: {
                 nodeId: String(targetId),
                 sectionNodeIds: sectionNodeIds ?? "",
+                lessonName: lessonName ?? "",
             },
         } as any);
     };
 
     return (
-        <ScreenWrapper
-            branchConfig={{
-                hierarchy: "Nội dung bài",
-                title: `Phần ${id}`,
-                onBackPress: () => router.back(),
-            }}
-        >
+        <ScreenWrapper>
             <NodeScreen
                 nodeId={id}
+                lessonName={lessonName}
                 onBack={() => router.back()}
                 onQuizPress={() => {
                     router.push({

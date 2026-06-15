@@ -7,7 +7,7 @@ import { LessonSummary, useLessonSummary } from "../../../features/lesson";
 export default function LessonSummaryScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { summaryData, rootSections, loading } = useLessonSummary(
+    const { summaryData, rootSections, loading, isFetching, refetch } = useLessonSummary(
         id || "default-id",
     );
 
@@ -32,6 +32,10 @@ export default function LessonSummaryScreen() {
                 title: summaryData.name,
                 onBackPress: () => router.back(),
             }}
+            enableScroll={true}
+            enableRefresh={true}
+            refreshing={isFetching}
+            onRefresh={refetch}
         >
             <LessonSummary
                 data={summaryData}
@@ -52,6 +56,7 @@ export default function LessonSummaryScreen() {
                         params: {
                             nodeId: String(nodeId),
                             sectionNodeIds: allNodeIds.join(","),
+                            lessonName: summaryData.name,
                         },
                     } as any);
                 }}

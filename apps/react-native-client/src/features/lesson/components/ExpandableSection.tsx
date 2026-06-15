@@ -36,7 +36,10 @@ export function ExpandableSection({
                 <View
                     style={[
                         styles.progressFill,
-                        { width: `${percentage}%` },
+                        {
+                            width: percentage >= 99 ? undefined : `${percentage}%`,
+                            right: percentage >= 99 ? 0 : undefined,
+                        },
                     ]}
                 />
             )}
@@ -166,20 +169,20 @@ const styles = StyleSheet.create({
         borderColor: "#E5E5EA",
         marginBottom: 12,
         overflow: "hidden",
-        padding: 4,
     },
     nestedCard: {
         marginTop: 10,
         borderLeftWidth: 1,
         borderLeftColor: "#D2D1F7",
         paddingLeft: 4,
+        backgroundColor: "transparent",
     },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
         zIndex: 1,
     },
     headerRight: {
@@ -204,8 +207,8 @@ const styles = StyleSheet.create({
         color: "#5856D6",
     },
     contentContainer: {
-        paddingHorizontal: 12,
-        paddingBottom: 12,
+        paddingHorizontal: 16,
+        paddingBottom: 16,
         zIndex: 1,
     },
     progressFill: {

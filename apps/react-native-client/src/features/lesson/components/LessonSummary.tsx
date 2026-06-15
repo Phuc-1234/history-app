@@ -30,10 +30,7 @@ export function LessonSummary({
     onSectionTestPress,
 }: LessonSummaryProps) {
     return (
-        <ScrollView
-            contentContainerStyle={styles.container}
-            showsVerticalScrollIndicator={false}
-        >
+        <View style={styles.container}>
             {/* --- Top Banner Display --- */}
             <View style={styles.bannerContainer}>
                 {/* Replace with your image asset later */}
@@ -149,7 +146,7 @@ export function LessonSummary({
                     />
                 ))}
             </View>
-        </ScrollView>
+        </View>
     );
 }
 

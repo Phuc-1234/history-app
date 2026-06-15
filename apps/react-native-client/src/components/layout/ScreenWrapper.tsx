@@ -8,8 +8,9 @@ import {
     View,
 } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Edge } from "react-native-safe-area-context";
+import { useSegments } from "expo-router";
 import { TopBar } from "../../features/top_bar/components/TopBar";
 import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
 import {
@@ -146,13 +147,21 @@ function ScreenWithTopBar({
     ...contentProps
 }: ScreenWrapperProps) {
     const { data, streakManager } = useTopBarData();
+    const segments = useSegments() as string[];
+    const insets = useSafeAreaInsets();
+
+    const isInTabs = segments.includes("(tabs)");
+    const hasBottomEdge = safeAreaEdges ? safeAreaEdges.includes("bottom") : !isInTabs;
+    const resolvedEdges = (safeAreaEdges ?? (isInTabs ? ["top", "left", "right"] : ["top", "left", "right", "bottom"]))
+        .filter((edge) => edge !== "bottom");
+
     return (
         <SafeAreaView
             style={[
                 styles.safeArea,
                 { backgroundColor: backgroundColor ?? "#5856D6" },
             ]}
-            edges={safeAreaEdges ?? ["top", "left", "right"]}
+            edges={resolvedEdges}
         >
             <TopBar
                 data={data}
@@ -160,7 +169,7 @@ function ScreenWithTopBar({
                 onOpenStreak={streakManager.openStreak}
             />
 
-            <View style={[styles.content, style]}>
+            <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
                 <ContentLayer {...contentProps}>
                     {children}
                 </ContentLayer>
@@ -199,15 +208,23 @@ function ScreenWithoutTopBar({
     style,
     ...contentProps
 }: Omit<ScreenWrapperProps, "showTopBar" | "branchConfig">) {
+    const segments = useSegments() as string[];
+    const insets = useSafeAreaInsets();
+
+    const isInTabs = segments.includes("(tabs)");
+    const hasBottomEdge = safeAreaEdges ? safeAreaEdges.includes("bottom") : !isInTabs;
+    const resolvedEdges = (safeAreaEdges ?? (isInTabs ? ["top", "left", "right"] : ["top", "left", "right", "bottom"]))
+        .filter((edge) => edge !== "bottom");
+
     return (
         <SafeAreaView
             style={[
                 styles.safeArea,
                 { backgroundColor: backgroundColor ?? "#FFF" },
             ]}
-            edges={safeAreaEdges ?? ["top", "left", "right"]}
+            edges={resolvedEdges}
         >
-            <View style={[styles.content, style]}>
+            <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
                 <ContentLayer {...contentProps}>
                     {children}
                 </ContentLayer>
