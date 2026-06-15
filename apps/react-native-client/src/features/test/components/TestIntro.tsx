@@ -6,17 +6,47 @@ import {
     View,
     ScrollView,
     Image,
-    Dimensions
+    Dimensions,
+    ActivityIndicator
 } from "react-native";
 import { ArrowLeft, HelpCircle, FileText, Clock, TrendingUp, Sparkles, Mic } from "lucide-react-native";
 
 interface Props {
+    title?: string;
+    questionCount?: number;
+    timeLimit?: number | null;
+    loading?: boolean;
     onStart: () => void;
     onBack: () => void;
     onStartVoice?: () => void;
 }
 
-export default function TestIntro({ onStart, onBack, onStartVoice }: Props) {
+export default function TestIntro({
+    title,
+    questionCount,
+    timeLimit,
+    loading = false,
+    onStart,
+    onBack,
+    onStartVoice
+}: Props) {
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+                <ActivityIndicator size="large" color="#5D45F9" />
+                <Text style={{ marginTop: 16, color: "#718096", fontWeight: "700", fontSize: 14 }}>
+                    Đang tải thông tin bài kiểm tra...
+                </Text>
+            </View>
+        );
+    }
+
+    const hasCustomInfo = title !== undefined || questionCount !== undefined || timeLimit !== undefined;
+    const resolvedTitle = title ?? "Sử học và đời sống";
+    const resolvedQuestionCount = questionCount ?? 20;
+    const resolvedTimeLimit = timeLimit !== undefined ? timeLimit : 15;
+    const hasExtraCards = !hasCustomInfo;
+
     return (
         <View style={styles.container}>
             {/* Header bar */}
@@ -29,7 +59,9 @@ export default function TestIntro({ onStart, onBack, onStartVoice }: Props) {
                     <ArrowLeft size={20} color="#1A202C" />
                 </TouchableOpacity>
 
-                <Text style={styles.headerTitle}>Kiểm tra Chủ đề 1</Text>
+                <Text style={styles.headerTitle} numberOfLines={1}>
+                    {resolvedTitle}
+                </Text>
 
                 <TouchableOpacity
                     style={styles.helpButton}
@@ -54,44 +86,50 @@ export default function TestIntro({ onStart, onBack, onStartVoice }: Props) {
 
                 {/* Details Section */}
                 <View style={styles.detailsCard}>
-                    <Text style={styles.title}>Sử học và đời sống</Text>
+                    <Text style={styles.title}>{resolvedTitle}</Text>
                     <Text style={styles.subtitle}>
                         Kiểm tra khả năng ghi nhớ và vận dụng kiến thức của bạn về hiện thực lịch sử.
                     </Text>
 
-                    {/* 2x2 Info Grid */}
+                    {/* Info Grid */}
                     <View style={styles.gridContainer}>
-                        {/* 20 Questions */}
+                        {/* Questions count */}
                         <View style={styles.gridItem}>
                             <View style={[styles.iconWrapper, styles.blueBg]}>
                                 <FileText size={20} color="#3182CE" />
                             </View>
-                            <Text style={styles.gridText}>20 câu hỏi</Text>
+                            <Text style={styles.gridText}>{resolvedQuestionCount} câu hỏi</Text>
                         </View>
 
-                        {/* ~15 Minutes */}
+                        {/* Time limit */}
                         <View style={styles.gridItem}>
                             <View style={[styles.iconWrapper, styles.indigoBg]}>
                                 <Clock size={20} color="#5D45F9" />
                             </View>
-                            <Text style={styles.gridText}>~15 phút</Text>
+                            <Text style={styles.gridText}>
+                                {resolvedTimeLimit !== null ? `~${resolvedTimeLimit} phút` : "Không giới hạn"}
+                            </Text>
                         </View>
 
-                        {/* Medium Difficulty */}
-                        <View style={styles.gridItem}>
-                            <View style={[styles.iconWrapper, styles.tealBg]}>
-                                <TrendingUp size={20} color="#319795" />
-                            </View>
-                            <Text style={styles.gridText}>Độ khó: TB</Text>
-                        </View>
+                        {hasExtraCards && (
+                            <>
+                                {/* Medium Difficulty */}
+                                <View style={styles.gridItem}>
+                                    <View style={[styles.iconWrapper, styles.tealBg]}>
+                                        <TrendingUp size={20} color="#319795" />
+                                    </View>
+                                    <Text style={styles.gridText}>Độ khó: TB</Text>
+                                </View>
 
-                        {/* XP Rewards */}
-                        <View style={styles.gridItem}>
-                            <View style={[styles.iconWrapper, styles.purpleBg]}>
-                                <Sparkles size={20} color="#805AD5" />
-                            </View>
-                            <Text style={styles.gridText}>+50 XP</Text>
-                        </View>
+                                {/* XP Rewards */}
+                                <View style={styles.gridItem}>
+                                    <View style={[styles.iconWrapper, styles.purpleBg]}>
+                                        <Sparkles size={20} color="#805AD5" />
+                                    </View>
+                                    <Text style={styles.gridText}>+50 XP</Text>
+                                </View>
+                            </>
+                        )}
                     </View>
                 </View>
             </ScrollView>

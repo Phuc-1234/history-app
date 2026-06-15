@@ -73,11 +73,11 @@ export class SocialService {
                 isHidden: false,
                 ...(trimmedQuery
                     ? {
-                          OR: [
-                              { name: { contains: trimmedQuery, mode: "insensitive" } },
-                              { email: { contains: trimmedQuery, mode: "insensitive" } },
-                          ],
-                      }
+                        OR: [
+                            { name: { contains: trimmedQuery, mode: "insensitive" } },
+                            { email: { contains: trimmedQuery, mode: "insensitive" } },
+                        ],
+                    }
                     : {}),
             },
             select: userSelect,
@@ -188,14 +188,14 @@ export class SocialService {
 
         const request = existing
             ? await db.friendRequest.update({
-                  where: { id: existing.id },
-                  data: { status: "PENDING" },
-                  include: { receiver: { select: userSelect } },
-              })
+                where: { id: existing.id },
+                data: { status: "PENDING" },
+                include: { receiver: { select: userSelect } },
+            })
             : await db.friendRequest.create({
-                  data: { senderId, receiverId },
-                  include: { receiver: { select: userSelect } },
-              });
+                data: { senderId, receiverId },
+                include: { receiver: { select: userSelect } },
+            });
 
         return requestDto(request);
     }

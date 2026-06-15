@@ -172,10 +172,10 @@ function toViewUser(user: ApiSocialUser): SocialUser {
         user.relationStatus === "friend"
             ? "friend"
             : user.relationStatus === "outgoing_request"
-              ? "pending"
-              : user.isFollowing
-                ? "following"
-                : "none";
+                ? "pending"
+                : user.isFollowing
+                    ? "following"
+                    : "none";
 
     return {
         id: user.id,
@@ -236,13 +236,13 @@ function SocialBottomBar() {
         activeIcon: keyof typeof Ionicons.glyphMap;
         active?: boolean;
     }> = [
-        { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
-        { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
-        { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
-        { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
-        { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
-        { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
-    ];
+            { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
+            { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
+            { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
+            { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
+            { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
+            { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
+        ];
 
     return (
         <View
@@ -639,8 +639,6 @@ export function OtherProfileScreen() {
                             <Ionicons name="flame" size={24} color={colors.rose} />
                             <Text style={styles.badgeTitle}>Chuỗi học {apiProfile?.currentStreak ?? 0}</Text>
                         </View>
-                    </View>
-                </View>
 
                 <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Bạn chung</Text>

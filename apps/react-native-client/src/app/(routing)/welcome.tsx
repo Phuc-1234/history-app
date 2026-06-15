@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,11 +10,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const router = useRouter();
+
+  // Vì đây là chặng cuối Onboarding, tự động ghi cờ đánh dấu vào máy ngay khi màn hình vừa mở lên
+  useEffect(() => {
+    const markOnboardingAsComplete = async () => {
+      try {
+        await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+        console.log('Đã tự động lưu trạng thái kết thúc Onboarding tại màn Welcome');
+      } catch (error) {
+        console.log('Lỗi tự động lưu flag:', error);
+      }
+    };
+    
+    markOnboardingAsComplete();
+  }, []);
 
   const handleStart = () => {
     console.log('Bấm Bắt đầu ngay');
@@ -23,7 +38,7 @@ export default function WelcomeScreen() {
 
   const handleLogin = () => {
     console.log('Bấm Đăng nhập');
-    router.replace("/(1_auth)/1_1_login")
+    router.replace("/(1_auth)/1_1_login");
   };
 
   return (
@@ -40,7 +55,6 @@ export default function WelcomeScreen() {
           {/* Khu vực chứa Logo hình ảnh */}
           <View style={styles.logoWrapper}>
             <Image
-              // Đường dẫn nhảy 3 cấp từ app/(1_auth)/welcome.tsx ra root để vào assets
               source={require('../../../assets/images/welcome_logo.png')} 
               style={styles.logoImage}
               resizeMode="contain"
@@ -77,6 +91,7 @@ export default function WelcomeScreen() {
   );
 }
 
+// 📦 STYLE ĐÃ ĐƯỢC DUỖI DỌC TOÀN BỘ RẤT GỌN GÀNG ĐÂY NÈ HỒNG:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -99,8 +114,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoImage: {
-    width: 100, // Kích thước bề ngang logo (bạn có thể tùy chỉnh theo Figma)
-    height: 100, // Kích thước chiều cao logo
+    width: 100,
+    height: 100,
   },
   mainTitle: {
     fontSize: 40,
@@ -108,7 +123,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 1,
     textShadowColor: 'rgba(0, 0, 0, 0.15)',
-    textShadowOffset: { width: 0, height: 2 },
+    textShadowOffset: {
+      width: 0,
+      height: 2,
+    },
     textShadowRadius: 4,
   },
   subTitle: {
@@ -133,13 +151,16 @@ const styles = StyleSheet.create({
   primaryButton: {
     width: '100%',
     height: 56,
-    backgroundColor: '#FF9F1C', 
+    backgroundColor: '#FF9F1C',
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
     shadowColor: '#FF9F1C',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 6,

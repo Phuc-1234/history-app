@@ -162,6 +162,13 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
+                name="8_2_buy_gold"
+                options={{
+                    href: null,
+                }}
+            />
+
+            <Tabs.Screen
                 name="9_1_leaderboard"
                 options={{
                     tabBarIcon: ({ focused, color }) => (

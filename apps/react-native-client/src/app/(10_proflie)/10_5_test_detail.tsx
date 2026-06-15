@@ -1,7 +1,8 @@
 import React from "react";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
-import { TestDetailScreen } from "../../features/test";
+// import { TestDetailScreen } from "../../features/test";
+import { TestDetailScreen } from "../../features/test_v2";
 
 export default function TestDetailRoute() {
     const router = useRouter();
@@ -14,6 +15,7 @@ export default function TestDetailRoute() {
                 onBackPress: () => router.back(),
             }}
         >
+            {/* <TestDetailScreen /> */}
             <TestDetailScreen />
         </ScreenWrapper>
     );

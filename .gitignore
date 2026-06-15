@@ -25,6 +25,7 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+apps/express-server/.env.example
 *.pem
 *.key
 

@@ -22,13 +22,15 @@ export default function OnboardingScreen2() {
   };
 
   const handleSkip = async () => {
-    await setOnboardingComplete();
-    router.replace('/(routing)/welcome');
-  };
+    console.log('Bỏ qua onboarding ở màn 2');
+    await setOnboardingComplete(); 
+    // Đưa về màn hình welcome tổng của luồng auth thay vì chỉ vào thẳng form login đơn lẻ
+    router.replace("/(tabs)/2_1_lessons");
+  }; 
 
-  const handleNext = async () => {
-    await setOnboardingComplete();
-    router.replace('/(routing)/welcome');
+  const handleNext = () => {
+    console.log('Chuyển sang màn hình welcome ');
+   router.push('/(routing)/welcome'); 
   };
 
   return (
@@ -68,6 +70,7 @@ export default function OnboardingScreen2() {
   );
 }
 
+// 📦 STYLE ĐÃ ĐƯỢC DUỖI DỌC TOÀN BỘ THEO Ý HỒNG:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -106,7 +109,10 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 5,
@@ -153,7 +159,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     shadowColor: '#5346E0',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
