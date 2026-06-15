@@ -6,14 +6,26 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Circle } from "react-native-svg";
+import Animated, {
+    useSharedValue,
+    useAnimatedProps,
+    useAnimatedStyle,
+    withTiming,
+    Easing,
+} from "react-native-reanimated";
 import { useLessonMenu } from "../hooks/useLessonMenu";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface LessonMenuProps {
     onLessonPress: (id: number) => void;
     onMindmapPress: (topicId: number) => void;
-    onTestPress: (testId: string) => void;
+    onTestPress: (scopeType: string, scopeId: number) => void;
 }
 
 // ---- Sub-components for progress visualisations ----
@@ -30,7 +42,24 @@ function GradeTabWithProgress({
     pct: number | null;
     onPress: () => void;
 }) {
-    const fillHeight = pct != null ? `${Math.round(pct * 100)}%` : "0%";
+    const progress = useSharedValue(0);
+
+    React.useEffect(() => {
+        if (pct != null && pct > 0) {
+            progress.value = withTiming(pct, {
+                duration: 1000,
+                easing: Easing.out(Easing.quad),
+            });
+        } else {
+            progress.value = 0;
+        }
+    }, [pct]);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            height: `${Math.round(progress.value * 100)}%`,
+        };
+    });
 
     return (
         <TouchableOpacity
@@ -40,11 +69,12 @@ function GradeTabWithProgress({
         >
             {/* Progress fill — rises from bottom */}
             {pct != null && pct > 0 && (
-                <View
+                <Animated.View
                     style={[
                         StyleSheet.absoluteFill,
                         styles.gradeTabFill,
-                        { height: fillHeight as any, top: undefined, bottom: 0 },
+                        animatedStyle,
+                        { top: undefined, bottom: 0 },
                     ]}
                     pointerEvents="none"
                 />
@@ -63,21 +93,6 @@ function GradeTabWithProgress({
                 </Text>
             )}
         </TouchableOpacity>
-    );
-}
-
-/** Topic header bar: fills from left to right based on % */
-function TopicProgressBar({ pct }: { pct: number | null }) {
-    if (pct == null) return null;
-    return (
-        <View style={styles.topicProgressBarBg}>
-            <View
-                style={[
-                    styles.topicProgressBarFill,
-                    { width: `${Math.round(pct * 100)}%` as any },
-                ]}
-            />
-        </View>
     );
 }
 
@@ -149,83 +164,102 @@ function ProgressRing({
     const RING_SIZE = 64; // inner circle size
     const RING_PADDING = 6; // space between inner circle and ring
     const outerSize = RING_SIZE + RING_PADDING * 2;
-    const half = outerSize / 2;
+    const strokeWidth = 6;
+    const radius = (outerSize - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    // Limit percentage between 0 and 1
+    const clampedPct = Math.max(0, Math.min(1, pct));
 
-    const deg = pct * 360;
+    const progress = useSharedValue(0);
 
-    // Split into two halves — left and right
-    // Right half: always show filled if pct > 0
-    // Left half: show filled only if pct > 0.5
-    const rightDeg = Math.min(deg, 180);
-    const leftDeg = Math.max(deg - 180, 0);
+    React.useEffect(() => {
+        progress.value = withTiming(clampedPct, {
+            duration: 1000,
+            easing: Easing.out(Easing.quad),
+        });
+    }, [clampedPct]);
+
+    const animatedProps = useAnimatedProps(() => {
+        const offset = circumference - progress.value * circumference;
+        return {
+            strokeDashoffset: offset,
+        };
+    });
 
     return (
-        <View
+        <Svg
+            width={outerSize}
+            height={outerSize}
             style={{
-                width: outerSize,
-                height: outerSize,
-                borderRadius: half,
-                backgroundColor: empty,
-                overflow: "hidden",
                 position: "absolute",
                 top: -RING_PADDING,
                 left: -RING_PADDING,
             }}
         >
-            {/* Right half */}
-            <View
-                style={{
-                    position: "absolute",
-                    width: half,
-                    height: outerSize,
-                    left: half,
-                    top: 0,
-                    overflow: "hidden",
-                }}
-            >
-                <View
-                    style={{
-                        width: outerSize,
-                        height: outerSize,
-                        borderRadius: half,
-                        backgroundColor: filled,
-                        position: "absolute",
-                        right: 0,
-                        top: 0,
-                        transform: [{ rotate: `${rightDeg - 180}deg` }],
-                        transformOrigin: `${-half}px 50%` as any,
-                    }}
-                />
-            </View>
+            {/* Empty base circle */}
+            <Circle
+                cx={outerSize / 2}
+                cy={outerSize / 2}
+                r={radius}
+                stroke={empty}
+                strokeWidth={strokeWidth}
+                fill="none"
+            />
+            {/* Animated progress segment */}
+            <AnimatedCircle
+                cx={outerSize / 2}
+                cy={outerSize / 2}
+                r={radius}
+                stroke={filled}
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeDasharray={`${circumference} ${circumference}`}
+                animatedProps={animatedProps}
+                strokeLinecap="round"
+                transform={`rotate(-90 ${outerSize / 2} ${outerSize / 2})`}
+            />
+        </Svg>
+    );
+}
 
-            {/* Left half */}
-            <View
-                style={{
-                    position: "absolute",
-                    width: half,
-                    height: outerSize,
-                    left: 0,
-                    top: 0,
-                    overflow: "hidden",
-                }}
-            >
-                {leftDeg > 0 && (
-                    <View
-                        style={{
-                            width: outerSize,
-                            height: outerSize,
-                            borderRadius: half,
-                            backgroundColor: filled,
-                            position: "absolute",
-                            left: 0,
-                            top: 0,
-                            transform: [{ rotate: `${leftDeg}deg` }],
-                            transformOrigin: `${outerSize}px 50%` as any,
-                        }}
-                    />
-                )}
-            </View>
-        </View>
+/** Animated topic progress fill */
+function TopicProgressFill({
+    pct,
+    isExpanded,
+}: {
+    pct: number | null;
+    isExpanded: boolean;
+}) {
+    const progress = useSharedValue(0);
+
+    React.useEffect(() => {
+        if (pct != null && pct > 0) {
+            progress.value = withTiming(pct, {
+                duration: 1000,
+                easing: Easing.out(Easing.quad),
+            });
+        } else {
+            progress.value = 0;
+        }
+    }, [pct]);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        const currentPct = progress.value;
+        return {
+            width: currentPct >= 0.99 ? "100%" : `${Math.round(currentPct * 100)}%`,
+        };
+    });
+
+    if (pct == null || pct <= 0) return null;
+
+    return (
+        <Animated.View
+            style={[
+                styles.topicProgressFill,
+                isExpanded && styles.topicProgressFillExpanded,
+                animatedStyle,
+            ]}
+        />
     );
 }
 
@@ -244,17 +278,9 @@ export function LessonMenu({
         topics,
         finalTest,
         loading,
+        refetch,
+        isFetching,
     } = useLessonMenu();
-
-    if (loading) {
-        return (
-            <ActivityIndicator
-                size="large"
-                color="#5856D6"
-                style={styles.centerLoader}
-            />
-        );
-    }
 
     // Grade-level progress: sum all topic progress if present
     const getGradePct = (): number | null => {
@@ -274,7 +300,7 @@ export function LessonMenu({
     const gradePct = getGradePct();
 
     return (
-        <>
+        <ScreenWrapper>
             <View style={styles.container}>
                 {/* --- Grade Selector Tab Bar --- */}
                 <View style={styles.gradeTabsContainer}>
@@ -294,159 +320,132 @@ export function LessonMenu({
                     })}
                 </View>
 
-                <ScrollView
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                >
-                    {topics.map((topic) => {
-                        const isExpanded = expandedTopicId === topic.id;
-                        const topicAny = topic as any;
-                        const topicPct =
-                            topicAny.progress != null &&
-                            topicAny.progress.totalNodes > 0
-                                ? topicAny.progress.completedNodes /
-                                  topicAny.progress.totalNodes
-                                : null;
+                {loading ? (
+                    <View style={styles.centerLoader}>
+                        <ActivityIndicator
+                            size="large"
+                            color="#5856D6"
+                        />
+                    </View>
+                ) : (
+                    <ScrollView
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isFetching && !loading}
+                                onRefresh={refetch}
+                                colors={["#5856D6"]}
+                                tintColor="#5856D6"
+                            />
+                        }
+                    >
+                        {topics.map((topic) => {
+                            const isExpanded = expandedTopicId === topic.id;
+                            const topicAny = topic as any;
+                            const topicPct =
+                                topicAny.progress != null &&
+                                    topicAny.progress.totalNodes > 0
+                                    ? topicAny.progress.completedNodes /
+                                    topicAny.progress.totalNodes
+                                    : null;
 
-                        return (
-                            <View key={topic.id} style={styles.topicWrapper}>
-                                {/* Accordion Trigger Header */}
-                                <TouchableOpacity
-                                    accessible={true}
-                                    accessibilityLabel={
-                                        isExpanded
-                                            ? `Thu gọn chủ đề ${topic.position}: ${topic.name}`
-                                            : `Mở rộng chủ đề ${topic.position}: ${topic.name}`
-                                    }
-                                    accessibilityRole="button"
-                                    style={[
-                                        styles.topicHeader,
-                                        isExpanded && styles.expandedTopicHeader,
-                                    ]}
-                                    onPress={() => toggleTopic(topic.id)}
-                                    activeOpacity={0.9}
-                                >
-                                    {topicPct != null && topicPct > 0 && (
-                                        <View
-                                            style={[
-                                                styles.topicProgressFill,
-                                                isExpanded && styles.topicProgressFillExpanded,
-                                                { width: `${Math.round(topicPct * 100)}%` },
-                                            ]}
-                                        />
-                                    )}
+                            return (
+                                <View key={topic.id} style={styles.topicWrapper}>
+                                    {/* Accordion Trigger Header */}
+                                    <TouchableOpacity
+                                        accessible={true}
+                                        accessibilityLabel={
+                                            isExpanded
+                                                ? `Thu gọn chủ đề ${topic.position}: ${topic.name}`
+                                                : `Mở rộng chủ đề ${topic.position}: ${topic.name}`
+                                        }
+                                        accessibilityRole="button"
+                                        style={[
+                                            styles.topicHeader,
+                                            isExpanded && styles.expandedTopicHeader,
+                                        ]}
+                                        onPress={() => toggleTopic(topic.id)}
+                                        activeOpacity={0.9}
+                                    >
+                                        <TopicProgressFill pct={topicPct} isExpanded={isExpanded} />
 
-                                    <View style={styles.topicHeaderLeft}>
-                                        <Text
-                                            style={[
-                                                styles.topicTitle,
-                                                isExpanded && styles.whiteText,
-                                            ]}
-                                        >
-                                            CHỦ ĐỀ {topic.position}: {topic.name}
-                                        </Text>
-                                        <Text
-                                            style={[
-                                                styles.topicDesc,
-                                                isExpanded &&
-                                                    styles.lightPurpleText,
-                                            ]}
-                                        >
-                                            Khám phá kiến thức của chủ đề này
-                                        </Text>
-                                        {/* Progress bar below description */}
-                                        <TopicProgressBar pct={topicPct} />
-                                    </View>
-                                    <View style={styles.topicHeaderRight}>
-                                        {topicPct != null && (
-                                            <Text
-                                                style={[
-                                                    styles.topicPctText,
-                                                    isExpanded &&
-                                                        styles.whiteText,
-                                                ]}
-                                            >
-                                                {Math.round(topicPct * 100)}%
-                                            </Text>
-                                        )}
-                                        <Ionicons
-                                            name={
-                                                (isExpanded
-                                                    ? "chevron-up"
-                                                    : "chevron-forward") as any
-                                            }
-                                            size={20}
-                                            color={
-                                                isExpanded ? "#FFF" : "#8E8E93"
-                                            }
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-
-                                {/* Accordion Node Map Content */}
-                                {isExpanded && (
-                                    <View style={styles.mapContainer}>
-                                        {/* Spine Connector Line */}
-                                        <View style={styles.verticalSpine} />
-
-                                        {/* Mindmap Node */}
-                                        <TouchableOpacity
-                                            style={styles.mindmapButton}
-                                            onPress={() =>
-                                                onMindmapPress(topic.id)
-                                            }
-                                        >
-                                            <Ionicons
-                                                name={
-                                                    "git-network-outline" as any
-                                                }
-                                                size={18}
-                                                color="#5856D6"
-                                            />
-                                            <Text style={styles.mindmapText}>
-                                                XEM MINDMAP TOÀN CHỦ ĐỀ
-                                            </Text>
-                                        </TouchableOpacity>
-
-                                        {/* Lesson Nodes (alternating left/right) */}
-                                        {topic.lessons.map((lesson, lessonIdx) => {
-                                            const lessonAny = lesson as any;
-                                            const lessonPct =
-                                                lessonAny.progress != null &&
-                                                lessonAny.progress.totalNodes > 0
-                                                    ? lessonAny.progress
-                                                          .completedNodes /
-                                                      lessonAny.progress
-                                                          .totalNodes
-                                                    : null;
-                                            const isDone =
-                                                lessonPct != null && lessonPct >= 1;
-                                            const isLeft = lessonIdx % 2 === 0;
-
-                                            return (
-                                                <View
-                                                    key={lesson.id}
+                                        <View style={styles.topicHeaderInner}>
+                                            <View style={styles.topicHeaderLeft}>
+                                                <Text
                                                     style={[
-                                                        styles.nodeItem,
-                                                        isLeft
-                                                            ? styles.nodeLeft
-                                                            : styles.nodeRight,
+                                                        styles.topicTitle,
+                                                        isExpanded && styles.whiteText,
                                                     ]}
                                                 >
-                                                    <LessonCircle
-                                                        isDone={isDone}
-                                                        pct={lessonPct}
-                                                        onPress={() =>
-                                                            onLessonPress(
-                                                                lesson.id,
-                                                            )
-                                                        }
+                                                    CHỦ ĐỀ {topic.position}: {topic.name}
+                                                </Text>
+                                                <Text
+                                                    style={[
+                                                        styles.topicDesc,
+                                                        isExpanded &&
+                                                        styles.lightPurpleText,
+                                                    ]}
+                                                >
+                                                    Khám phá kiến thức của chủ đề này
+                                                </Text>
+                                            </View>
+                                            <View style={styles.topicHeaderRight}>
+                                                <Ionicons
+                                                    name={
+                                                        (isExpanded
+                                                            ? "chevron-up"
+                                                            : "chevron-forward") as any
+                                                    }
+                                                    size={20}
+                                                    color={
+                                                        isExpanded ? "#FFF" : "#8E8E93"
+                                                    }
+                                                />
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    {/* Accordion Node Map Content */}
+                                    {isExpanded && (
+                                        <View style={styles.mapContainer}>
+                                            {/* Spine Connector Line */}
+                                            <View style={styles.verticalSpine} />
+
+                                            {/* Lesson Nodes (alternating left/right) */}
+                                            {topic.lessons.map((lesson, lessonIdx) => {
+                                                const lessonAny = lesson as any;
+                                                const lessonPct =
+                                                    lessonAny.progress != null &&
+                                                        lessonAny.progress.totalNodes > 0
+                                                        ? lessonAny.progress
+                                                            .completedNodes /
+                                                        lessonAny.progress
+                                                            .totalNodes
+                                                        : null;
+                                                const isDone =
+                                                    lessonPct != null && lessonPct >= 1;
+                                                const isLeft = lessonIdx % 2 === 0;
+
+                                                return (
+                                                    <View
+                                                        key={lesson.id}
+                                                        style={[
+                                                            styles.nodeItem,
+                                                            isLeft
+                                                                ? styles.nodeLeft
+                                                                : styles.nodeRight,
+                                                        ]}
                                                     >
-                                                        {lessonPct !== null && lessonPct > 0 && !isDone ? (
-                                                            <Text style={styles.lessonPctInsideText}>
-                                                                {Math.round(lessonPct * 100)}%
-                                                            </Text>
-                                                        ) : (
+                                                        <LessonCircle
+                                                            isDone={isDone}
+                                                            pct={lessonPct}
+                                                            onPress={() =>
+                                                                onLessonPress(
+                                                                    lesson.id,
+                                                                )
+                                                            }
+                                                        >
                                                             <Ionicons
                                                                 name={
                                                                     (isDone
@@ -460,22 +459,20 @@ export function LessonMenu({
                                                                         : "#007AFF"
                                                                 }
                                                             />
-                                                        )}
-                                                    </LessonCircle>
-                                                    <Text
-                                                        style={[
-                                                            styles.nodeLabel,
-                                                            !isDone &&
+                                                        </LessonCircle>
+                                                        <Text
+                                                            style={[
+                                                                styles.nodeLabel,
+                                                                !isDone &&
                                                                 styles.textDisabled,
-                                                        ]}
-                                                    >
-                                                        Bài {lesson.position}:{" "}
-                                                        {lesson.name}
-                                                        {lessonPct !== null && ` (${Math.round(lessonPct * 100)}%)`}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        })}
+                                                            ]}
+                                                        >
+                                                            Bài {lesson.position}:{" "}
+                                                            {lesson.name}
+                                                        </Text>
+                                                    </View>
+                                                );
+                                            })}
 
                                         {/* Topic-Level Milestone Test Node */}
                                         {topic.firstTest && (
@@ -492,7 +489,8 @@ export function LessonMenu({
                                                     ]}
                                                     onPress={() =>
                                                         onTestPress(
-                                                            topic.firstTest!.id,
+                                                            "TOPIC",
+                                                            topic.id
                                                         )
                                                     }
                                                 >
@@ -513,40 +511,41 @@ export function LessonMenu({
                         );
                     })}
 
-                    {/* --- Grade Level Finale Test Section --- */}
-                    {finalTest && (
-                        <View style={styles.finalExamSection}>
-                            <View style={styles.finalExamBadgeContainer}>
-                                <View style={styles.finalExamOuterRing}>
-                                    <View style={styles.finalExamInnerCircle}>
-                                        <Ionicons
-                                            name={"ribbon" as any}
-                                            size={42}
-                                            color="#FFF"
-                                        />
+                        {/* --- Grade Level Finale Test Section --- */}
+                        {finalTest && (
+                            <View style={styles.finalExamSection}>
+                                <View style={styles.finalExamBadgeContainer}>
+                                    <View style={styles.finalExamOuterRing}>
+                                        <View style={styles.finalExamInnerCircle}>
+                                            <Ionicons
+                                                name={"ribbon" as any}
+                                                size={42}
+                                                color="#FFF"
+                                            />
+                                        </View>
                                     </View>
                                 </View>
-                            </View>
-                            <Text style={styles.finalExamTitle}>
-                                {finalTest.title}
-                            </Text>
-                            <Text style={styles.finalExamSubtitle}>
-                                Kiểm tra kiến thức tổng hợp lớp {selectedGrade}
-                            </Text>
-
-                            <TouchableOpacity
-                                style={styles.finalExamButton}
-                                onPress={() => onTestPress(finalTest.id)}
-                            >
-                                <Text style={styles.finalExamButtonText}>
-                                    BẮT ĐẦU THI NGAY
+                                <Text style={styles.finalExamTitle}>
+                                    {finalTest.title}
                                 </Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </ScrollView>
+                                <Text style={styles.finalExamSubtitle}>
+                                    Kiểm tra kiến thức tổng hợp lớp {selectedGrade}
+                                </Text>
+
+                                <TouchableOpacity
+                                    style={styles.finalExamButton}
+                                    onPress={() => onTestPress("GRADE", selectedGrade)}
+                                >
+                                    <Text style={styles.finalExamButtonText}>
+                                        BẮT ĐẦU THI NGAY
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </ScrollView>
+                )}
             </View>
-        </>
+        </ScreenWrapper>
     );
 }
 
@@ -594,20 +593,24 @@ const styles = StyleSheet.create({
     scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
     topicWrapper: { marginBottom: 12 },
     topicHeader: {
-        flexDirection: "row",
-        alignItems: "center",
         backgroundColor: "#EAEAEF",
         borderRadius: 16,
-        padding: 16,
         overflow: "hidden",
     },
-    expandedTopicHeader: { backgroundColor: "#5856D6" },
-    topicHeaderLeft: { flex: 1, paddingRight: 8, zIndex: 2 },
+    expandedTopicHeader: { backgroundColor: "#2E2A5E" },
+    topicHeaderInner: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        flex: 1,
+        width: "100%",
+        zIndex: 2,
+    },
+    topicHeaderLeft: { flex: 1, paddingRight: 8 },
     topicHeaderRight: {
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        zIndex: 2,
     },
     topicTitle: { fontSize: 17, fontWeight: "700", color: "#1C1C1E" },
     topicDesc: { fontSize: 13, color: "#3A3A3C", marginTop: 4 },
@@ -616,24 +619,12 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         top: 0,
-        height: "100%",
+        bottom: 0,
         backgroundColor: "#D0E8FF", // Soft blue progress fill for collapsed topic header
         zIndex: 1,
     },
     topicProgressFillExpanded: {
-        backgroundColor: "#403EAE", // Darker purple fill for expanded topic header
-    },
-    topicProgressBarBg: {
-        height: 4,
-        backgroundColor: "rgba(0,0,0,0.08)",
-        borderRadius: 2,
-        marginTop: 8,
-        overflow: "hidden",
-    },
-    topicProgressBarFill: {
-        height: 4,
-        backgroundColor: "#5856D6",
-        borderRadius: 2,
+        backgroundColor: "#5856D6", // Vibrant purple fill for expanded topic header
     },
     whiteText: { color: "#FFF" },
     lightPurpleText: { color: "#D2D1F7" },
@@ -724,6 +715,7 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         color: "#007AFF",
     },
+    
     topicTestCircle: {
         backgroundColor: "#FFF",
         borderColor: "#FF9500",

@@ -57,37 +57,89 @@ export class ProgressEngine {
     }
 
     /**
-     * Called by test service when a node-scoped test is passed.
-     * Sets allTestPassedAt; if studiedAt already set → complete the node.
+     * Called when a test is passed.
+     * Handles progression logic based on the test's scope (e.g. NODE, SECTION, LESSON, etc.)
+     * and returns the consequences, including a message for passing the test.
      */
-    async onNodeTestPassed(
-        nodeId: number,
+    async onTestPassed(
         userId: string,
+        scopeType: string | null,
+        scopeId: number | null,
+        testTitle?: string,
+        tx?: Prisma.TransactionClient,
+    ): Promise<ProgressConsequence[]> {
+        const consequences: ProgressConsequence[] = [];
+        const client = tx || prisma;
+
+        consequences.push({
+            eventType: ProgressEventType.TEST_PASSED,
+            message: testTitle ? `Passed test: ${testTitle}` : "Test passed successfully!",
+            xpGained: 0,
+            goldGained: 0,
+        });
+
+        if (scopeType === "NODE" && scopeId) {
+            const nodeId = scopeId;
+            const progress = await client.userNodeProgress.upsert({
+                where: { userId_nodeId: { userId, nodeId } },
+                update: {
+                    allTestPassedAt: new Date(),
+                },
+                create: {
+                    userId,
+                    nodeId,
+                    allTestPassedAt: new Date(),
+                },
+            });
+
+            // Both conditions met → complete
+            if (progress.studiedAt && !progress.nodeCompletedAt) {
+                await client.userNodeProgress.update({
+                    where: { userId_nodeId: { userId, nodeId } },
+                    data: { nodeCompletedAt: new Date() },
+                });
+
+                const completionConsequences =
+                    await this.handleNodeCompletion(userId, nodeId, tx);
+                consequences.push(...completionConsequences);
+            }
+        }
+
+        return consequences;
+    }
+
+    /**
+     * Called by V2 test system when a test is completed (passed or failed).
+     * Returns a message indicating the attempt number.
+     */
+    async onTestCompleted(
+        userId: string,
+        scopeType: string | null,
+        scopeId: number | null,
+        attemptNumber: number,
+        isPassed: boolean,
+        testTitle?: string,
+        tx?: Prisma.TransactionClient,
     ): Promise<ProgressConsequence[]> {
         const consequences: ProgressConsequence[] = [];
 
-        const progress = await prisma.userNodeProgress.upsert({
-            where: { userId_nodeId: { userId, nodeId } },
-            update: {
-                allTestPassedAt: new Date(),
-            },
-            create: {
-                userId,
-                nodeId,
-                allTestPassedAt: new Date(),
-            },
+        const ordinal = attemptNumber === 1 ? "1st" : attemptNumber === 2 ? "2nd" : attemptNumber === 3 ? "3rd" : `${attemptNumber}th`;
+        consequences.push({
+            eventType: ProgressEventType.TEST_PASSED,
+            message: `Completed test${testTitle ? ` "${testTitle}"` : ""} for the ${ordinal} time`,
+            xpGained: 0,
+            goldGained: 0,
         });
 
-        // Both conditions met → complete
-        if (progress.studiedAt && !progress.nodeCompletedAt) {
-            await prisma.userNodeProgress.update({
-                where: { userId_nodeId: { userId, nodeId } },
-                data: { nodeCompletedAt: new Date() },
-            });
-
-            const completionConsequences =
-                await this.handleNodeCompletion(userId, nodeId);
-            consequences.push(...completionConsequences);
+        if (isPassed) {
+            const passedConsequences = await this.onTestPassed(
+                userId,
+                scopeType,
+                scopeId,
+                testTitle,
+                tx,
+            );
+            consequences.push(...passedConsequences);
         }
 
         return consequences;
@@ -100,6 +152,7 @@ export class ProgressEngine {
     private async handleNodeCompletion(
         userId: string,
         nodeId: number,
+        tx?: Prisma.TransactionClient,
     ): Promise<ProgressConsequence[]> {
         const consequences: ProgressConsequence[] = [];
 

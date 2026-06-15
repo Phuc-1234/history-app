@@ -384,7 +384,11 @@ export class ContentService {
             });
 
             if (cachedMindMap) {
-                return cachedMindMap.data as unknown as MindMapNode;
+                const rawData = cachedMindMap.data as any;
+                if (rawData && Array.isArray(rawData.sections)) {
+                    return convertSectionsToMindMapNode(lessonId, lesson.name, rawData.sections);
+                }
+                return rawData as unknown as MindMapNode;
             }
 
             const generatedTree = await this.generateMindMapForLesson(lessonId);
@@ -694,6 +698,41 @@ export class ContentService {
             isCompleted,
         };
     }
+}
+
+function convertSectionsToMindMapNode(lessonId: number, lessonName: string, sections: any[]): MindMapNode {
+    let idCounter = Date.now();
+    const walkSection = (s: any): MindMapNode => {
+        const children: MindMapNode[] = [];
+        if (s.nodes && Array.isArray(s.nodes)) {
+            for (const n of s.nodes) {
+                children.push({
+                    id: n.id || idCounter++,
+                    type: "node",
+                    header: n.header || null,
+                    body: n.body || "",
+                });
+            }
+        }
+        if (s.children && Array.isArray(s.children)) {
+            for (const child of s.children) {
+                children.push(walkSection(child));
+            }
+        }
+        return {
+            id: s.id || idCounter++,
+            type: "section",
+            name: s.name,
+            children,
+        };
+    };
+
+    return {
+        id: lessonId,
+        type: "lesson",
+        name: lessonName,
+        children: sections.map(walkSection),
+    };
 }
 
 export const contentService = new ContentService();

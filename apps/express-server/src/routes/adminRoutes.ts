@@ -38,6 +38,7 @@ import {
     deleteFlashcard,
     bulkCreateFlashcards,
     bulkSaveMindMap,
+    getAdminMindMap,
     generateAIContent,
 } from "../controllers/adminController";
 
@@ -162,6 +163,9 @@ router.delete("/flashcards/:flashcardId", deleteFlashcard);
 router.post("/lessons/:lessonId/flashcards/bulk", bulkCreateFlashcards);
 
 // ─── MindMap Bulk ────────────────────────────────────────────────────────────
+// GET    /api/admin/lessons/:lessonId/mindmap
+router.get("/lessons/:lessonId/mindmap", getAdminMindMap);
+
 // POST   /api/admin/lessons/:lessonId/mindmap/bulk
 router.post("/lessons/:lessonId/mindmap/bulk", bulkSaveMindMap);
 

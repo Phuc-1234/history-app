@@ -5,29 +5,31 @@ import {
   View,
   Image,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useRouter } from 'expo-router'; 
+
+const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen1() {
-  const router = useRouter();
-
-  const setOnboardingComplete = async () => {
+  const router = useRouter(); 
+  
+  // Hàm xử lý khi bấm Bỏ qua: lưu trạng thái đã xem và nhảy phắt sang Welcome luồng chính
+  const handleSkip = async () => {
     try {
+      console.log('Bỏ qua onboarding từ màn 1');
       await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+      router.replace("/(1_auth)/1_1_login")
     } catch (error) {
-      console.log('Lỗi lưu trạng thái Onboarding:', error);
+      console.log('Lỗi lưu trạng thái:', error);
     }
   };
-
-  const handleSkip = async () => {
-    await setOnboardingComplete();
-    router.replace('/(routing)/welcome');
-  };
-
+  // Hàm xử lý khi bấm Tiếp tục: chuyển sang màn hình số 2 ngang hàng
   const handleNext = () => {
-    router.push('/(routing)/screen2');
+    console.log('Chuyển sang onboarding 2');
+    router.push('/(routing)/screen2'); 
   };
 
   return (
@@ -38,9 +40,10 @@ export default function OnboardingScreen1() {
         </TouchableOpacity>
       </View>
 
+      {/* Khu vực chứa hình minh họa chính (Đã căn chuẩn không bị khoảng trống) */}
       <View style={styles.imageContainer}>
         <Image
-          source={require('../../../assets/images/onboarding1.png')}
+          source={require('../../../assets/images/onboarding1.png')} 
           style={styles.illustrationImage}
           resizeMode="contain"
         />
@@ -67,6 +70,7 @@ export default function OnboardingScreen1() {
   );
 }
 
+// 📦 TOÀN BỘ CSS ĐÃ ĐƯỢC DUỖI THẲNG THEO CHIỀU DỌC ĐÚNG Ý HỒNG NÈ:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -84,15 +88,16 @@ const styles = StyleSheet.create({
     color: '#4B49E7',
   },
   imageContainer: {
-    flex: 1.2,
+    flex: 1.4,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    width: '100%',
+    paddingHorizontal: 0,
+    marginTop: 10,
   },
   illustrationImage: {
-    width: '100%',
-    height: '90%',
-    borderRadius: 16,
+    width: '90%',
+    height: '100%',
   },
   contentContainer: {
     flex: 1,
@@ -104,7 +109,10 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 5,
@@ -151,7 +159,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     shadowColor: '#5346E0',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,

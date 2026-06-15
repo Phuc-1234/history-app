@@ -177,7 +177,6 @@ export class AdminService {
                 parentSectionId: data.parentSectionId ?? null,
             },
         });
-        await this.syncMindMapForLesson(section.lessonId);
         return {
             id: section.id,
             name: section.name,
@@ -203,7 +202,6 @@ export class AdminService {
                 }),
             },
         });
-        await this.syncMindMapForLesson(section.lessonId);
         return {
             id: section.id,
             name: section.name,
@@ -218,7 +216,6 @@ export class AdminService {
         const existing = await prisma.section.findUnique({ where: { id } });
         if (!existing) return false;
         await prisma.section.delete({ where: { id } });
-        await this.syncMindMapForLesson(existing.lessonId);
         return true;
     }
 
@@ -234,10 +231,6 @@ export class AdminService {
                 sectionId: data.sectionId,
             },
         });
-        const section = await prisma.section.findUnique({ where: { id: node.sectionId } });
-        if (section) {
-            await this.syncMindMapForLesson(section.lessonId);
-        }
         return {
             id: node.id,
             position: node.position,
@@ -264,7 +257,6 @@ export class AdminService {
                 ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
             },
         });
-        await this.syncMindMapForLesson(existing.section.lessonId);
         return {
             id: node.id,
             position: node.position,
@@ -282,7 +274,6 @@ export class AdminService {
         });
         if (!existing) return false;
         await prisma.node.delete({ where: { id } });
-        await this.syncMindMapForLesson(existing.section.lessonId);
         return true;
     }
 
