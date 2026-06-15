@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import Animated, { FadeInLeft, FadeInRight, FadeInDown, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import type { QuestionV2, MatchAnswerData, UserMatchAnswer, QuestionEvalResult } from "../types";
 
 interface Props {
@@ -33,6 +34,61 @@ const MATCH_COLORS = [
     { bg: "#FEF2F2", border: "#EF4444", text: "#991B1B" }, // Red
     { bg: "#FFF7ED", border: "#F97316", text: "#7C2D12" }, // Orange
 ];
+
+function MatchItem({
+    idx,
+    item,
+    isLeft,
+    itemStyle,
+    itemTextStyle,
+    onPress,
+    disabled,
+}: {
+    idx: number;
+    item: string;
+    isLeft: boolean;
+    itemStyle: any;
+    itemTextStyle: any;
+    onPress: () => void;
+    disabled: boolean;
+}) {
+    const scale = useSharedValue(1);
+
+    const handlePressIn = () => {
+        scale.value = withTiming(0.95, { duration: 100 });
+    };
+
+    const handlePressOut = () => {
+        scale.value = withTiming(1.0, { duration: 150 });
+    };
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: scale.value }],
+        };
+    });
+
+    const enteringAnim = isLeft
+        ? FadeInLeft.delay(idx * 60).duration(300)
+        : FadeInRight.delay(idx * 60).duration(300);
+
+    return (
+        <Animated.View entering={enteringAnim} style={animatedStyle}>
+            <TouchableOpacity
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                style={[styles.item, itemStyle]}
+                onPress={onPress}
+                disabled={disabled}
+                activeOpacity={0.9}
+            >
+                <Text style={[styles.itemText, itemTextStyle]}>
+                    {item}
+                </Text>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+}
 
 export default function MatchQuestion({ question, userAnswer, onAnswer, showFeedback, evalResult, disabled }: Props) {
     const data = question.answerData as MatchAnswerData;
@@ -173,42 +229,30 @@ export default function MatchQuestion({ question, userAnswer, onAnswer, showFeed
             <View style={styles.columnsRow}>
                 <View style={styles.column}>
                     {leftItems.map((left, idx) => (
-                        <TouchableOpacity
+                        <MatchItem
                             key={idx}
-                            style={[
-                                styles.item,
-                                getItemStyle(left, true),
-                            ]}
+                            idx={idx}
+                            item={left}
+                            isLeft={true}
+                            itemStyle={getItemStyle(left, true)}
+                            itemTextStyle={getItemTextStyle(left, true)}
                             onPress={() => handleLeftPress(left)}
-                            disabled={disabled || (showFeedback && !!evalResult)}
-                        >
-                            <Text style={[
-                                styles.itemText,
-                                getItemTextStyle(left, true),
-                            ]}>
-                                {left}
-                            </Text>
-                        </TouchableOpacity>
+                            disabled={!!disabled || !!(showFeedback && evalResult)}
+                        />
                     ))}
                 </View>
                 <View style={styles.column}>
                     {rightItems.map((right, idx) => (
-                        <TouchableOpacity
+                        <MatchItem
                             key={idx}
-                            style={[
-                                styles.item,
-                                getItemStyle(right, false),
-                            ]}
+                            idx={idx}
+                            item={right}
+                            isLeft={false}
+                            itemStyle={getItemStyle(right, false)}
+                            itemTextStyle={getItemTextStyle(right, false)}
                             onPress={() => handleRightPress(right)}
-                            disabled={disabled || (showFeedback && !!evalResult)}
-                        >
-                            <Text style={[
-                                styles.itemText,
-                                getItemTextStyle(right, false),
-                            ]}>
-                                {right}
-                            </Text>
-                        </TouchableOpacity>
+                            disabled={!!disabled || !!(showFeedback && evalResult)}
+                        />
                     ))}
                 </View>
             </View>
@@ -224,7 +268,11 @@ export default function MatchQuestion({ question, userAnswer, onAnswer, showFeed
                         const isPairCorrect = userPair?.right?.trim().toLowerCase() === correct.right.trim().toLowerCase();
 
                         return (
-                            <View key={idx} style={[styles.feedbackRow, isPairCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}>
+                            <Animated.View
+                                entering={FadeInDown.delay(idx * 50).duration(300)}
+                                key={idx}
+                                style={[styles.feedbackRow, isPairCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}
+                            >
                                 <View style={styles.feedbackRowTop}>
                                     <Text style={styles.feedbackLeftText}>{correct.left}</Text>
                                     <Text style={styles.feedbackArrow}>→</Text>
@@ -243,7 +291,7 @@ export default function MatchQuestion({ question, userAnswer, onAnswer, showFeed
                                         <Text style={styles.feedbackHintValue}>{correct.right}</Text>
                                     </View>
                                 )}
-                            </View>
+                            </Animated.View>
                         );
                     })}
                 </View>

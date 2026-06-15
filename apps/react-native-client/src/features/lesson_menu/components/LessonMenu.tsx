@@ -10,8 +10,17 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
+import Animated, {
+    useSharedValue,
+    useAnimatedProps,
+    useAnimatedStyle,
+    withTiming,
+    Easing,
+} from "react-native-reanimated";
 import { useLessonMenu } from "../hooks/useLessonMenu";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface LessonMenuProps {
     onLessonPress: (id: number) => void;
@@ -33,7 +42,24 @@ function GradeTabWithProgress({
     pct: number | null;
     onPress: () => void;
 }) {
-    const fillHeight = pct != null ? `${Math.round(pct * 100)}%` : "0%";
+    const progress = useSharedValue(0);
+
+    React.useEffect(() => {
+        if (pct != null && pct > 0) {
+            progress.value = withTiming(pct, {
+                duration: 1000,
+                easing: Easing.out(Easing.quad),
+            });
+        } else {
+            progress.value = 0;
+        }
+    }, [pct]);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            height: `${Math.round(progress.value * 100)}%`,
+        };
+    });
 
     return (
         <TouchableOpacity
@@ -43,11 +69,12 @@ function GradeTabWithProgress({
         >
             {/* Progress fill — rises from bottom */}
             {pct != null && pct > 0 && (
-                <View
+                <Animated.View
                     style={[
                         StyleSheet.absoluteFill,
                         styles.gradeTabFill,
-                        { height: fillHeight as any, top: undefined, bottom: 0 },
+                        animatedStyle,
+                        { top: undefined, bottom: 0 },
                     ]}
                     pointerEvents="none"
                 />
@@ -68,8 +95,6 @@ function GradeTabWithProgress({
         </TouchableOpacity>
     );
 }
-
-
 
 /** Lesson circle: arc ring showing % via a layered border approach */
 function LessonCircle({
@@ -144,7 +169,22 @@ function ProgressRing({
     const circumference = 2 * Math.PI * radius;
     // Limit percentage between 0 and 1
     const clampedPct = Math.max(0, Math.min(1, pct));
-    const strokeDashoffset = circumference - clampedPct * circumference;
+
+    const progress = useSharedValue(0);
+
+    React.useEffect(() => {
+        progress.value = withTiming(clampedPct, {
+            duration: 1000,
+            easing: Easing.out(Easing.quad),
+        });
+    }, [clampedPct]);
+
+    const animatedProps = useAnimatedProps(() => {
+        const offset = circumference - progress.value * circumference;
+        return {
+            strokeDashoffset: offset,
+        };
+    });
 
     return (
         <Svg
@@ -165,22 +205,61 @@ function ProgressRing({
                 strokeWidth={strokeWidth}
                 fill="none"
             />
-            {/* Filled progress segment */}
-            {clampedPct > 0 && (
-                <Circle
-                    cx={outerSize / 2}
-                    cy={outerSize / 2}
-                    r={radius}
-                    stroke={filled}
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                    strokeDasharray={`${circumference} ${circumference}`}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                    transform={`rotate(-90 ${outerSize / 2} ${outerSize / 2})`}
-                />
-            )}
+            {/* Animated progress segment */}
+            <AnimatedCircle
+                cx={outerSize / 2}
+                cy={outerSize / 2}
+                r={radius}
+                stroke={filled}
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeDasharray={`${circumference} ${circumference}`}
+                animatedProps={animatedProps}
+                strokeLinecap="round"
+                transform={`rotate(-90 ${outerSize / 2} ${outerSize / 2})`}
+            />
         </Svg>
+    );
+}
+
+/** Animated topic progress fill */
+function TopicProgressFill({
+    pct,
+    isExpanded,
+}: {
+    pct: number | null;
+    isExpanded: boolean;
+}) {
+    const progress = useSharedValue(0);
+
+    React.useEffect(() => {
+        if (pct != null && pct > 0) {
+            progress.value = withTiming(pct, {
+                duration: 1000,
+                easing: Easing.out(Easing.quad),
+            });
+        } else {
+            progress.value = 0;
+        }
+    }, [pct]);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        const currentPct = progress.value;
+        return {
+            width: currentPct >= 0.99 ? "100%" : `${Math.round(currentPct * 100)}%`,
+        };
+    });
+
+    if (pct == null || pct <= 0) return null;
+
+    return (
+        <Animated.View
+            style={[
+                styles.topicProgressFill,
+                isExpanded && styles.topicProgressFillExpanded,
+                animatedStyle,
+            ]}
+        />
     );
 }
 
@@ -289,18 +368,7 @@ export function LessonMenu({
                                     onPress={() => toggleTopic(topic.id)}
                                     activeOpacity={0.9}
                                 >
-                                    {topicPct != null && topicPct > 0 && (
-                                        <View
-                                            style={[
-                                                styles.topicProgressFill,
-                                                isExpanded && styles.topicProgressFillExpanded,
-                                                {
-                                                    width: topicPct >= 0.99 ? undefined : `${Math.round(topicPct * 100)}%`,
-                                                    right: topicPct >= 0.99 ? 0 : undefined,
-                                                },
-                                            ]}
-                                        />
-                                    )}
+                                    <TopicProgressFill pct={topicPct} isExpanded={isExpanded} />
 
                                     <View style={styles.topicHeaderInner}>
                                         <View style={styles.topicHeaderLeft}>
@@ -529,7 +597,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         overflow: "hidden",
     },
-    expandedTopicHeader: { backgroundColor: "#5856D6" },
+    expandedTopicHeader: { backgroundColor: "#2E2A5E" },
     topicHeaderInner: {
         flexDirection: "row",
         alignItems: "center",
@@ -556,7 +624,7 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     topicProgressFillExpanded: {
-        backgroundColor: "#403EAE", // Darker purple fill for expanded topic header
+        backgroundColor: "#5856D6", // Vibrant purple fill for expanded topic header
     },
     whiteText: { color: "#FFF" },
     lightPurpleText: { color: "#D2D1F7" },

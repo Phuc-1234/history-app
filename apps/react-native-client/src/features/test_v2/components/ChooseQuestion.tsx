@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import Animated, { FadeInLeft, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import type { QuestionV2, ChooseAnswerData, UserChooseAnswer, QuestionEvalResult } from "../types";
 import { isSingleChoice } from "../services/scoreEngine";
 
@@ -10,6 +11,88 @@ interface Props {
     showFeedback?: boolean;
     evalResult?: QuestionEvalResult | null;
     disabled?: boolean;
+}
+
+function ChooseOptionItem({
+    idx,
+    option,
+    isSelected,
+    isCorrect,
+    showCorrect,
+    single,
+    disabled,
+    handlePress,
+    optStyle,
+    textStyle,
+    badge,
+}: {
+    idx: number;
+    option: string;
+    isSelected: boolean;
+    isCorrect: boolean;
+    showCorrect: boolean;
+    single: boolean;
+    disabled: boolean;
+    handlePress: (index: number) => void;
+    optStyle: any[];
+    textStyle: any[];
+    badge: React.ReactNode;
+}) {
+    const scale = useSharedValue(1);
+
+    const handlePressIn = () => {
+        scale.value = withTiming(0.96, { duration: 100 });
+    };
+
+    const handlePressOut = () => {
+        scale.value = withTiming(1.0, { duration: 150 });
+    };
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: scale.value }],
+        };
+    });
+
+    return (
+        <Animated.View
+            entering={FadeInLeft.delay(idx * 60).duration(300)}
+            style={animatedStyle}
+        >
+            <TouchableOpacity
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                style={optStyle}
+                onPress={() => handlePress(idx)}
+                disabled={disabled}
+                activeOpacity={0.9}
+            >
+                <View style={[styles.optionRow, { justifyContent: "space-between" }]}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                        <View style={[
+                            single ? styles.radio : styles.checkbox,
+                            isSelected && (single ? styles.radioSelected : styles.checkboxSelected),
+                            showCorrect && isSelected && isCorrect && (single ? styles.radioCorrect : styles.checkboxCorrect),
+                            showCorrect && isSelected && !isCorrect && (single ? styles.radioWrong : styles.checkboxWrong),
+                            showCorrect && !isSelected && isCorrect && (single ? styles.radioMissing : styles.checkboxMissing),
+                        ]}>
+                            {isSelected && (
+                                <View style={[
+                                    single ? styles.radioDot : styles.checkboxInner,
+                                    showCorrect && isCorrect && (single ? styles.radioDotCorrect : styles.checkboxInnerCorrect),
+                                    showCorrect && !isCorrect && (single ? styles.radioDotWrong : styles.checkboxInnerWrong),
+                                ]} />
+                            )}
+                        </View>
+                        <Text style={textStyle}>
+                            {String.fromCharCode(65 + idx)}. {option}
+                        </Text>
+                    </View>
+                    {badge}
+                </View>
+            </TouchableOpacity>
+        </Animated.View>
+    );
 }
 
 export default function ChooseQuestion({ question, userAnswer, onAnswer, showFeedback, evalResult, disabled }: Props) {
@@ -37,7 +120,7 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
             {data.options.map((option, idx) => {
                 const isSelected = selectedOptions.includes(idx);
                 const isCorrect = data.correctOption.includes(idx);
-                const showCorrect = showFeedback && evalResult;
+                const showCorrect = !!(showFeedback && evalResult);
 
                 let optStyle: any[] = [styles.option];
                 let textStyle: any[] = [styles.optionText];
@@ -75,37 +158,20 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
                 }
 
                 return (
-                    <TouchableOpacity
+                    <ChooseOptionItem
                         key={idx}
-                        style={optStyle}
-                        onPress={() => handlePress(idx)}
-                        disabled={disabled || (showFeedback && !!evalResult)}
-                        activeOpacity={0.7}
-                    >
-                        <View style={[styles.optionRow, { justifyContent: "space-between" }]}>
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                                <View style={[
-                                    single ? styles.radio : styles.checkbox,
-                                    isSelected && (single ? styles.radioSelected : styles.checkboxSelected),
-                                    showCorrect && isSelected && isCorrect && (single ? styles.radioCorrect : styles.checkboxCorrect),
-                                    showCorrect && isSelected && !isCorrect && (single ? styles.radioWrong : styles.checkboxWrong),
-                                    showCorrect && !isSelected && isCorrect && (single ? styles.radioMissing : styles.checkboxMissing),
-                                ]}>
-                                    {isSelected && (
-                                        <View style={[
-                                            single ? styles.radioDot : styles.checkboxInner,
-                                            showCorrect && isCorrect && (single ? styles.radioDotCorrect : styles.checkboxInnerCorrect),
-                                            showCorrect && !isCorrect && (single ? styles.radioDotWrong : styles.checkboxInnerWrong),
-                                        ]} />
-                                    )}
-                                </View>
-                                <Text style={textStyle}>
-                                    {String.fromCharCode(65 + idx)}. {option}
-                                </Text>
-                            </View>
-                            {badge}
-                        </View>
-                    </TouchableOpacity>
+                        idx={idx}
+                        option={option}
+                        isSelected={isSelected}
+                        isCorrect={isCorrect}
+                        showCorrect={showCorrect}
+                        single={single}
+                        disabled={!!disabled || !!(showFeedback && evalResult)}
+                        handlePress={handlePress}
+                        optStyle={optStyle}
+                        textStyle={textStyle}
+                        badge={badge}
+                    />
                 );
             })}
         </View>
