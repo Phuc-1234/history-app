@@ -1,11 +1,15 @@
 // hooks/useRegisterOtp.ts
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAppDispatch } from "@/store/storeHook";
+import { setProfile } from "@/features/auth/store/authSlice";
 import { useVerifyOtpMutation, useResendOtpMutation } from "../services/authApi";
 
 export function useRegisterOtp(email: string, autoSend?: boolean, length: number = 8) {
     const router = useRouter();
+    const dispatch = useAppDispatch();
     
     // Core state configurations scaled up matching Supabase 8-digit criteria
     const [otp, setOtp] = useState<string[]>(Array(length).fill(""));
@@ -52,6 +56,22 @@ export function useRegisterOtp(email: string, autoSend?: boolean, length: number
             if ("error" in response) {
                 setOtpError(response.error);
                 return;
+            }
+
+            if ("session" in response && response.session) {
+                if (Platform.OS === "web") {
+                    try {
+                        localStorage.setItem("access_token", response.session.accessToken);
+                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                    } catch (e) {
+                        console.error("localStorage setItem failed:", e);
+                    }
+                }
+                await AsyncStorage.multiSet([
+                    ["access_token", response.session.accessToken],
+                    ["refresh_token", response.session.refreshToken],
+                ]);
+                dispatch(setProfile(response.profile));
             }
 
             router.replace("/(tabs)/2_1_lessons");

@@ -4,7 +4,8 @@ import { useCallback, useState } from "react";
 import { useLoginMutation, useGoogleVerifyMutation, useFacebookVerifyMutation } from "../services/authApi";
 import { useAppDispatch } from "@/store/storeHook"; // Standard typed useDispatch hook
 import { setProfile } from "@/features/auth/store/authSlice";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 // Configure Google Sign-In client options
@@ -64,6 +65,19 @@ export function useAuthForm() {
             }
             // 3. Handle Clean Success Destination Routing
             if ("session" in response && response.session) {
+                if (Platform.OS === "web") {
+                    try {
+                        localStorage.setItem("access_token", response.session.accessToken);
+                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                    } catch (e) {
+                        console.error("localStorage setItem failed:", e);
+                    }
+                }
+                await AsyncStorage.multiSet([
+                    ["access_token", response.session.accessToken],
+                    ["refresh_token", response.session.refreshToken],
+                ]);
+                dispatch(setProfile(response.profile));
                 router.replace("/(tabs)/2_1_lessons");
                 return;
             }
@@ -110,6 +124,19 @@ export function useAuthForm() {
             }
 
             if ("session" in response && response.session) {
+                if (Platform.OS === "web") {
+                    try {
+                        localStorage.setItem("access_token", response.session.accessToken);
+                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                    } catch (e) {
+                        console.error("localStorage setItem failed:", e);
+                    }
+                }
+                await AsyncStorage.multiSet([
+                    ["access_token", response.session.accessToken],
+                    ["refresh_token", response.session.refreshToken],
+                ]);
+                dispatch(setProfile(response.profile));
                 router.replace("/(tabs)/2_1_lessons");
             }
         } catch (error: any) {
@@ -150,6 +177,19 @@ export function useAuthForm() {
             }
 
             if ("session" in response && response.session) {
+                if (Platform.OS === "web") {
+                    try {
+                        localStorage.setItem("access_token", response.session.accessToken);
+                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                    } catch (e) {
+                        console.error("localStorage setItem failed:", e);
+                    }
+                }
+                await AsyncStorage.multiSet([
+                    ["access_token", response.session.accessToken],
+                    ["refresh_token", response.session.refreshToken],
+                ]);
+                dispatch(setProfile(response.profile));
                 router.replace("/(tabs)/2_1_lessons");
             }
         } catch (error: any) {
