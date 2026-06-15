@@ -29,6 +29,7 @@ export default function LoginForm() {
         navigateToRegister,
         submitAndEnterApp,
         enterAsGuest,
+        handleGoogleLogin,
     } = useAuthForm(); // Hoàn toàn sạch lỗi TypeScript do không gọi formError từ hook
 
     const insets = useSafeAreaInsets();
@@ -204,7 +205,7 @@ export default function LoginForm() {
 
                         <View style={styles.line} />
                     </View>
-                       <SocialLoginButtons />
+                       <SocialLoginButtons onGooglePress={handleGoogleLogin} />
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>

@@ -8,6 +8,7 @@ import { Alert } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 // Configure Google Sign-In client options
+console.log("Configuring Google Sign-in with webClientId:", process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
 GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
     offlineAccess: true,
@@ -112,6 +113,12 @@ export function useAuthForm() {
             }
         } catch (error: any) {
             console.error("Google Sign-in attempt failure:", error);
+            console.error("Error details:", {
+                code: error.code,
+                message: error.message,
+                keys: Object.keys(error || {}),
+                raw: error
+            });
             if (error.code !== "SIGN_IN_CANCELLED") {
                 Alert.alert("Đăng nhập Google thất bại", error.message || "Đã xảy ra lỗi.");
             }
