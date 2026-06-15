@@ -29,6 +29,7 @@ export default function LessonsScreen() {
             params: {
                 scopeType,
                 scopeId: String(scopeId),
+                purposeType: "EXAM",
             },
         });
     };

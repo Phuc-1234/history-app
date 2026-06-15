@@ -37,7 +37,33 @@ export default function LessonSummaryScreen() {
                 data={summaryData}
                 sections={rootSections}
                 onNodePress={(nodeId) => {
-                    router.push(`/(3_4_lessons)/lesson/node/${nodeId}`);
+                    // Collect all node IDs across sections for prev/next nav
+                    const collectNodeIds = (sections: any[]): number[] => {
+                        let ids: number[] = [];
+                        for (const s of sections) {
+                            if (s.nodes) ids.push(...s.nodes.map((n: any) => n.id));
+                            if (s.children) ids.push(...collectNodeIds(s.children));
+                        }
+                        return ids;
+                    };
+                    const allNodeIds = collectNodeIds(rootSections);
+                    router.push({
+                        pathname: "/(3_4_lessons)/lesson/node/[nodeId]",
+                        params: {
+                            nodeId: String(nodeId),
+                            sectionNodeIds: allNodeIds.join(","),
+                        },
+                    } as any);
+                }}
+                onSectionTestPress={(sectionId) => {
+                    router.push({
+                        pathname: "/(6_tests)/6_2_ques_choose",
+                        params: {
+                            scopeType: "SECTION",
+                            scopeId: String(sectionId),
+                            purposeType: "EXAM",
+                        },
+                    });
                 }}
                 onActionPress={(actionType) => {
                     console.log(
@@ -50,9 +76,12 @@ export default function LessonSummaryScreen() {
                     } else if (actionType === "quiz") {
                         router.push({
                             pathname: "/(6_tests)/6_2_ques_choose",
-                            params: { scopeType: "LESSON", scopeId: id },
+                            params: {
+                                scopeType: "LESSON",
+                                scopeId: id,
+                                purposeType: "EXAM",
+                            },
                         });
-                        //  router.push(`/(6_tests)/6_2_ques_choose`);
                     }
                 }}
             />
