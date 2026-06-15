@@ -1,5 +1,4 @@
 import React from "react";
-import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { LessonMenu } from "../../features/lesson_menu";
 import { useRouter } from "expo-router";
 
@@ -29,17 +28,16 @@ export default function LessonsScreen() {
             params: {
                 scopeType,
                 scopeId: String(scopeId),
+                purposeType: "EXAM",
             },
         });
     };
 
     return (
-        <ScreenWrapper>
-            <LessonMenu
-                onLessonPress={handleLessonNavigation}
-                onMindmapPress={handleMindmapView}
-                onTestPress={handleTestEngine}
-            />
-        </ScreenWrapper>
+        <LessonMenu
+            onLessonPress={handleLessonNavigation}
+            onMindmapPress={handleMindmapView}
+            onTestPress={handleTestEngine}
+        />
     );
 }

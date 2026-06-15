@@ -13,9 +13,20 @@ import {
 } from "react-native";
 import { Grid } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import Animated, {
+    FadeIn,
+    FadeInDown,
+    ZoomIn,
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming,
+    Easing,
+    withRepeat,
+} from "react-native-reanimated";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import TestIntro from "../../test/components/TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
+import { useGetTestInfoQuery } from "../services/testApi";
 import ChooseQuestion from "./ChooseQuestion";
 import FillQuestion from "./FillQuestion";
 import MatchQuestion from "./MatchQuestion";
@@ -31,6 +42,84 @@ import type {
     MatchAnswerData,
 } from "../types";
 
+// Animated Progress Bar component
+function AnimatedProgressBar({
+    currentIndex,
+    totalCount,
+}: {
+    currentIndex: number;
+    totalCount: number;
+}) {
+    const progressVal = useSharedValue(0);
+
+    useEffect(() => {
+        progressVal.value = withTiming((currentIndex + 1) / totalCount, {
+            duration: 350,
+            easing: Easing.out(Easing.quad),
+        });
+    }, [currentIndex, totalCount]);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            width: `${progressVal.value * 100}%`,
+        };
+    });
+
+    return (
+        <View style={styles.progressBar}>
+            <Animated.View style={[styles.progressFill, animatedStyle]} />
+        </View>
+    );
+}
+
+// Animated Timer Badge component
+function AnimatedTimerBadge({
+    timeLeft,
+    formattedTime,
+}: {
+    timeLeft: number;
+    formattedTime: string;
+}) {
+    const scale = useSharedValue(1);
+
+    useEffect(() => {
+        if (timeLeft < 60 && timeLeft > 0) {
+            scale.value = withRepeat(
+                withTiming(1.1, { duration: 500, easing: Easing.inOut(Easing.quad) }),
+                -1,
+                true
+            );
+        } else {
+            scale.value = 1;
+        }
+    }, [timeLeft < 60]);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: scale.value }],
+        };
+    });
+
+    return (
+        <Animated.View
+            style={[
+                styles.timerBadge,
+                timeLeft < 60 && styles.timerWarning,
+                animatedStyle,
+            ]}
+        >
+            <Text
+                style={[
+                    styles.timerText,
+                    timeLeft < 60 && styles.timerTextWarning,
+                ]}
+            >
+                ⏱ {formattedTime}
+            </Text>
+        </Animated.View>
+    );
+}
+
 interface TestContainerV2Props {
     params: StartTestV2Request;
     onExit?: () => void;
@@ -42,6 +131,9 @@ export default function TestContainerV2({
 }: TestContainerV2Props) {
     const runner = useTestRunnerV2(params);
     const router = useRouter();
+    const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(params, {
+        skip: runner.status !== "idle" || params.purposeType !== "EXAM"
+    });
     const {
         session,
         questions,
@@ -113,6 +205,10 @@ export default function TestContainerV2({
         return (
             <ScreenWrapper showTopBar={true}>
                 <TestIntro
+                    title={testInfo?.title}
+                    questionCount={testInfo?.questionCount}
+                    timeLimit={testInfo?.timeLimit}
+                    loading={isInfoLoading}
                     onStart={actions.start}
                     onBack={handleBack}
                 />
@@ -169,7 +265,7 @@ export default function TestContainerV2({
                     style={styles.container}
                     contentContainerStyle={styles.scrollContent}
                 >
-                    <View style={styles.resultCard}>
+                    <Animated.View entering={ZoomIn.duration(400)} style={styles.resultCard}>
                         <Text style={styles.resultEmoji}>
                             {userTestLog.isPassed ? "🎉" : "😔"}
                         </Text>
@@ -189,10 +285,10 @@ export default function TestContainerV2({
                                 {c.message}
                             </Text>
                         ))}
-                    </View>
+                    </Animated.View>
 
                     {/* Action buttons */}
-                    <View style={styles.resultActions}>
+                    <Animated.View entering={FadeInDown.delay(150).duration(450)} style={styles.resultActions}>
                         <TouchableOpacity
                             style={styles.exitBtn}
                             onPress={onExit || (() => router.back())}
@@ -230,7 +326,7 @@ export default function TestContainerV2({
                         >
                             <Text style={styles.restartBtnText}>Làm lại</Text>
                         </TouchableOpacity>
-                    </View>
+                    </Animated.View>
                 </ScrollView>
             </ScreenWrapper>
         );
@@ -257,34 +353,11 @@ export default function TestContainerV2({
                         {currentIndex + 1}/{totalCount}
                     </Text>
                     {purposeType === "PRACTICE" && (
-                        <View style={styles.progressBar}>
-                            <View
-                                style={[
-                                    styles.progressFill,
-                                    {
-                                        width: `${((currentIndex + 1) / totalCount) * 100}%`,
-                                    },
-                                ]}
-                            />
-                        </View>
+                        <AnimatedProgressBar currentIndex={currentIndex} totalCount={totalCount} />
                     )}
                 </View>
                 {purposeType === "EXAM" && timeLeft > 0 && (
-                    <View
-                        style={[
-                            styles.timerBadge,
-                            timeLeft < 60 && styles.timerWarning,
-                        ]}
-                    >
-                        <Text
-                            style={[
-                                styles.timerText,
-                                timeLeft < 60 && styles.timerTextWarning,
-                            ]}
-                        >
-                            ⏱ {formattedTime}
-                        </Text>
-                    </View>
+                    <AnimatedTimerBadge timeLeft={timeLeft} formattedTime={formattedTime} />
                 )}
             </View>
 
@@ -296,7 +369,7 @@ export default function TestContainerV2({
                 contentContainerStyle={styles.questionContent}
             >
                 {currentQuestion && (
-                    <View>
+                    <Animated.View key={currentIndex} entering={FadeIn.duration(250)}>
                         <Text style={styles.questionPrompt}>
                             {currentQuestion.promptText}
                         </Text>
@@ -366,7 +439,7 @@ export default function TestContainerV2({
                                 </Text>
                             </View>
                         )}
-                    </View>
+                    </Animated.View>
                 )}
             </ScrollView>
 

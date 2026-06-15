@@ -7,6 +7,7 @@ import type {
     TestHistoryV2Response,
     TestAttemptDetailV2Response,
     DraftAnswerEntry,
+    TestInfoV2Response,
 } from "../types";
 
 export const testApiV2 = apiSlice.injectEndpoints({
@@ -14,6 +15,15 @@ export const testApiV2 = apiSlice.injectEndpoints({
         // GET /api/tests-v2/resumable
         checkResumable: builder.query<ResumableTestV2Response, void>({
             query: () => "/api/tests-v2/resumable",
+        }),
+
+        // POST /api/tests-v2/info
+        getTestInfo: builder.query<TestInfoV2Response, StartTestV2Request>({
+            query: (body) => ({
+                url: "/api/tests-v2/info",
+                method: "POST",
+                body,
+            }),
         }),
 
         // POST /api/tests-v2/start
@@ -70,6 +80,8 @@ export const testApiV2 = apiSlice.injectEndpoints({
 export const {
     useCheckResumableQuery,
     useLazyCheckResumableQuery,
+    useGetTestInfoQuery,
+    useLazyGetTestInfoQuery,
     useStartTestV2Mutation,
     useUpdateDraftMutation,
     useFinishTestV2Mutation,

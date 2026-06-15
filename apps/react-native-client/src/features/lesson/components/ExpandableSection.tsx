@@ -7,12 +7,14 @@ interface ExpandableSectionProps {
     section: LessonSection;
     isTopLevel?: boolean;
     onNodePress?: (nodeId: number) => void;
+    onSectionTestPress?: (sectionId: number) => void;
 }
 
 export function ExpandableSection({
     section,
     isTopLevel = false,
     onNodePress,
+    onSectionTestPress,
 }: ExpandableSectionProps) {
     const [isExpanded, setIsExpanded] = useState(isTopLevel ? false : true);
 
@@ -34,7 +36,10 @@ export function ExpandableSection({
                 <View
                     style={[
                         styles.progressFill,
-                        { width: `${percentage}%` },
+                        {
+                            width: percentage >= 99 ? undefined : `${percentage}%`,
+                            right: percentage >= 99 ? 0 : undefined,
+                        },
                     ]}
                 />
             )}
@@ -132,8 +137,21 @@ export function ExpandableSection({
                                 section={sub}
                                 isTopLevel={false}
                                 onNodePress={onNodePress}
+                                onSectionTestPress={onSectionTestPress}
                             />
                         ))}
+
+                    {/* Section test button — only for top-level sections */}
+                    {isTopLevel && onSectionTestPress && (
+                        <TouchableOpacity
+                            style={styles.sectionTestBtn}
+                            onPress={() => onSectionTestPress(section.id)}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="document-text" size={16} color="#FFF" />
+                            <Text style={styles.sectionTestBtnText}>Kiểm tra mục này</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             )}
         </View>
@@ -151,20 +169,20 @@ const styles = StyleSheet.create({
         borderColor: "#E5E5EA",
         marginBottom: 12,
         overflow: "hidden",
-        padding: 4,
     },
     nestedCard: {
         marginTop: 10,
         borderLeftWidth: 1,
         borderLeftColor: "#D2D1F7",
-        paddingLeft: 8,
+        paddingLeft: 4,
+        backgroundColor: "transparent",
     },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
         zIndex: 1,
     },
     headerRight: {
@@ -189,8 +207,8 @@ const styles = StyleSheet.create({
         color: "#5856D6",
     },
     contentContainer: {
-        paddingHorizontal: 12,
-        paddingBottom: 12,
+        paddingHorizontal: 16,
+        paddingBottom: 16,
         zIndex: 1,
     },
     progressFill: {
@@ -240,5 +258,20 @@ const styles = StyleSheet.create({
     nodeChevron: {
         marginLeft: 6,
         flexShrink: 0,
+    },
+    sectionTestBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#5856D6",
+        borderRadius: 12,
+        paddingVertical: 10,
+        gap: 6,
+        marginTop: 12,
+    },
+    sectionTestBtnText: {
+        color: "#FFF",
+        fontSize: 13,
+        fontWeight: "700",
     },
 });

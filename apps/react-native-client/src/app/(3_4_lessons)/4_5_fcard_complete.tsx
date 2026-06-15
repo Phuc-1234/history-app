@@ -10,7 +10,7 @@ export default function FlashcardCompleteRoute() {
         if (router.canGoBack()) {
             router.back();
         } else {
-            router.replace("/(tabs)/lesson");
+            router.replace("/(tabs)/lesson" as any);
         }
     };
 

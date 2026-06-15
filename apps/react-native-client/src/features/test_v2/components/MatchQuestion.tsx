@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import Animated, { FadeInLeft, FadeInRight, FadeInDown, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import type { QuestionV2, MatchAnswerData, UserMatchAnswer, QuestionEvalResult } from "../types";
 
 interface Props {
@@ -33,6 +34,61 @@ const MATCH_COLORS = [
     { bg: "#FEF2F2", border: "#EF4444", text: "#991B1B" }, // Red
     { bg: "#FFF7ED", border: "#F97316", text: "#7C2D12" }, // Orange
 ];
+
+function MatchItem({
+    idx,
+    item,
+    isLeft,
+    itemStyle,
+    itemTextStyle,
+    onPress,
+    disabled,
+}: {
+    idx: number;
+    item: string;
+    isLeft: boolean;
+    itemStyle: any;
+    itemTextStyle: any;
+    onPress: () => void;
+    disabled: boolean;
+}) {
+    const scale = useSharedValue(1);
+
+    const handlePressIn = () => {
+        scale.value = withTiming(0.95, { duration: 100 });
+    };
+
+    const handlePressOut = () => {
+        scale.value = withTiming(1.0, { duration: 150 });
+    };
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: scale.value }],
+        };
+    });
+
+    const enteringAnim = isLeft
+        ? FadeInLeft.delay(idx * 60).duration(300)
+        : FadeInRight.delay(idx * 60).duration(300);
+
+    return (
+        <Animated.View entering={enteringAnim} style={animatedStyle}>
+            <TouchableOpacity
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                style={[styles.item, itemStyle]}
+                onPress={onPress}
+                disabled={disabled}
+                activeOpacity={0.9}
+            >
+                <Text style={[styles.itemText, itemTextStyle]}>
+                    {item}
+                </Text>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+}
 
 export default function MatchQuestion({ question, userAnswer, onAnswer, showFeedback, evalResult, disabled }: Props) {
     const data = question.answerData as MatchAnswerData;
@@ -173,57 +229,71 @@ export default function MatchQuestion({ question, userAnswer, onAnswer, showFeed
             <View style={styles.columnsRow}>
                 <View style={styles.column}>
                     {leftItems.map((left, idx) => (
-                        <TouchableOpacity
+                        <MatchItem
                             key={idx}
-                            style={[
-                                styles.item,
-                                getItemStyle(left, true),
-                            ]}
+                            idx={idx}
+                            item={left}
+                            isLeft={true}
+                            itemStyle={getItemStyle(left, true)}
+                            itemTextStyle={getItemTextStyle(left, true)}
                             onPress={() => handleLeftPress(left)}
-                            disabled={disabled || (showFeedback && !!evalResult)}
-                        >
-                            <Text style={[
-                                styles.itemText,
-                                getItemTextStyle(left, true),
-                            ]}>
-                                {left}
-                            </Text>
-                        </TouchableOpacity>
+                            disabled={!!disabled || !!(showFeedback && evalResult)}
+                        />
                     ))}
                 </View>
                 <View style={styles.column}>
                     {rightItems.map((right, idx) => (
-                        <TouchableOpacity
+                        <MatchItem
                             key={idx}
-                            style={[
-                                styles.item,
-                                getItemStyle(right, false),
-                            ]}
+                            idx={idx}
+                            item={right}
+                            isLeft={false}
+                            itemStyle={getItemStyle(right, false)}
+                            itemTextStyle={getItemTextStyle(right, false)}
                             onPress={() => handleRightPress(right)}
-                            disabled={disabled || (showFeedback && !!evalResult)}
-                        >
-                            <Text style={[
-                                styles.itemText,
-                                getItemTextStyle(right, false),
-                            ]}>
-                                {right}
-                            </Text>
-                        </TouchableOpacity>
+                            disabled={!!disabled || !!(showFeedback && evalResult)}
+                        />
                     ))}
                 </View>
             </View>
 
             {/* Show correct pairs on feedback */}
-            {showFeedback && evalResult && !evalResult.isCorrect && (
-                <View style={styles.correctContainer}>
-                    <Text style={styles.correctTitle}>Đáp án đúng:</Text>
-                    {normalizedPairs.map((p, idx) => (
-                        <View key={idx} style={styles.correctRow}>
-                            <Text style={styles.correctText}>{p.left}</Text>
-                            <Text style={styles.correctArrow}>→</Text>
-                            <Text style={styles.correctText}>{p.right}</Text>
-                        </View>
-                    ))}
+            {showFeedback && evalResult && (
+                <View style={styles.feedbackContainer}>
+                    <Text style={styles.feedbackTitle}>Kết quả ghép cặp:</Text>
+                    {normalizedPairs.map((correct, idx) => {
+                        const userPair = currentPairs.find(
+                            (p) => p.left?.trim().toLowerCase() === correct.left.trim().toLowerCase()
+                        );
+                        const isPairCorrect = userPair?.right?.trim().toLowerCase() === correct.right.trim().toLowerCase();
+
+                        return (
+                            <Animated.View
+                                entering={FadeInDown.delay(idx * 50).duration(300)}
+                                key={idx}
+                                style={[styles.feedbackRow, isPairCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}
+                            >
+                                <View style={styles.feedbackRowTop}>
+                                    <Text style={styles.feedbackLeftText}>{correct.left}</Text>
+                                    <Text style={styles.feedbackArrow}>→</Text>
+                                    <Text style={[styles.feedbackRightText, isPairCorrect ? styles.textGreen : styles.textRed]}>
+                                        {userPair?.right ?? "(Chưa ghép)"}
+                                    </Text>
+                                    <View style={[styles.feedbackBadge, isPairCorrect ? styles.badgeCorrect : styles.badgeWrong]}>
+                                        <Text style={isPairCorrect ? styles.badgeTextCorrect : styles.badgeTextWrong}>
+                                            {isPairCorrect ? "Đúng" : userPair ? "Sai" : "Chưa ghép"}
+                                        </Text>
+                                    </View>
+                                </View>
+                                {!isPairCorrect && (
+                                    <View style={styles.feedbackCorrectHintRow}>
+                                        <Text style={styles.feedbackHintLabel}>Đáp án đúng: </Text>
+                                        <Text style={styles.feedbackHintValue}>{correct.right}</Text>
+                                    </View>
+                                )}
+                            </Animated.View>
+                        );
+                    })}
                 </View>
             )}
         </View>
@@ -244,9 +314,23 @@ const styles = StyleSheet.create({
     itemSelectable: { borderColor: "#A78BFA", borderStyle: "dashed" },
     itemText: { fontSize: 13, fontWeight: "600", color: "#4A5568", textAlign: "center" },
     itemTextActive: { color: "#5D45F9" },
-    correctContainer: { backgroundColor: "#ECFDF5", borderRadius: 12, padding: 12, gap: 6 },
-    correctTitle: { fontSize: 12, fontWeight: "700", color: "#059669" },
-    correctRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-    correctText: { fontSize: 12, fontWeight: "600", color: "#065F46" },
-    correctArrow: { fontSize: 12, color: "#059669" },
+    feedbackContainer: { backgroundColor: "#FFF", borderRadius: 16, padding: 16, gap: 10, borderWidth: 1, borderColor: "#EAE7FA", marginTop: 12 },
+    feedbackTitle: { fontSize: 14, fontWeight: "700", color: "#1C1C1E", marginBottom: 6 },
+    feedbackRow: { borderRadius: 12, padding: 12, borderWidth: 1, gap: 6 },
+    feedbackCorrect: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
+    feedbackWrong: { borderColor: "#EF4444", backgroundColor: "#FEF2F2" },
+    feedbackRowTop: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+    feedbackLeftText: { fontSize: 13, fontWeight: "600", color: "#4A5568" },
+    feedbackArrow: { fontSize: 14, color: "#718096" },
+    feedbackRightText: { fontSize: 13, fontWeight: "700" },
+    feedbackBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginLeft: "auto" },
+    feedbackCorrectHintRow: { flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: "#FEE2E2", paddingTop: 6, marginTop: 4 },
+    feedbackHintLabel: { fontSize: 11, fontWeight: "600", color: "#B91C1C" },
+    feedbackHintValue: { fontSize: 12, fontWeight: "700", color: "#065F46" },
+    textGreen: { color: "#059669" },
+    textRed: { color: "#DC2626" },
+    badgeCorrect: { backgroundColor: "#D1FAE5" },
+    badgeWrong: { backgroundColor: "#FEE2E2" },
+    badgeTextCorrect: { fontSize: 11, fontWeight: "700", color: "#065F46" },
+    badgeTextWrong: { fontSize: 11, fontWeight: "700", color: "#991B1B" },
 });

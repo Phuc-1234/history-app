@@ -29,7 +29,6 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body: credentials,
             }),
-            invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
@@ -53,6 +52,9 @@ export const authApi = apiSlice.injectEndpoints({
 
                         // Automatically sync global profile store instantly
                         dispatch(setProfile(data.profile));
+
+                        // Safely trigger User tag invalidation after storage write finishes to avoid race conditions
+                        dispatch(apiSlice.util.invalidateTags(["User"]));
                     } else {
                         console.warn("[authApi] login response does not contain session:", data);
                     }
@@ -85,7 +87,6 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
-            invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
@@ -106,6 +107,9 @@ export const authApi = apiSlice.injectEndpoints({
                         ]);
 
                         dispatch(setProfile(data.profile));
+
+                        // Safely trigger User tag invalidation after storage write finishes to avoid race conditions
+                        dispatch(apiSlice.util.invalidateTags(["User"]));
                     }
                 } catch (error) {
                     console.error(
@@ -125,7 +129,6 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body, // Matches backend structure processing verification tokens
             }),
-            invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
@@ -146,6 +149,9 @@ export const authApi = apiSlice.injectEndpoints({
                             ["refresh_token", data.session.refreshToken],
                         ]);
                         dispatch(setProfile(data.profile));
+
+                        // Safely trigger User tag invalidation after storage write finishes to avoid race conditions
+                        dispatch(apiSlice.util.invalidateTags(["User"]));
                     }
                 } catch (error) {
                     console.error(

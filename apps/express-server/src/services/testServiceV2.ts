@@ -15,6 +15,7 @@ import {
     UserAnswerLogV2Dto,
     DraftAnswerEntry,
     AnswerData,
+    TestInfoV2Response,
 } from "../types/testV2Types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -707,6 +708,106 @@ export class TestServiceV2 {
         const title = await resolveTestTitle(log);
 
         return { userTestLog: toLogDto(log, title), answerLogs };
+    }
+
+    // ── Get test info ────────────────────────────────────────────────
+    async getTestInfo(
+        userId: string,
+        req: StartTestV2Request,
+    ): Promise<TestInfoV2Response> {
+        let preset: any = null;
+        let scopeType = req.scopeType ?? null;
+        let scopeId = req.scopeId ?? null;
+        let purposeType = req.purposeType ?? "PRACTICE";
+        let testId: string | null = req.testId ?? null;
+        let questionCount = 0;
+
+        // ── Manual test path ──
+        if (testId) {
+            const test = await prisma.test.findUnique({
+                where: { id: testId },
+                include: {
+                    testQuestions: {
+                        where: {
+                            question: {
+                                isActive: true,
+                            },
+                        },
+                    },
+                    preset: true,
+                },
+            });
+            if (!test) throw serviceError("Test not found", "NOT_FOUND");
+
+            preset = test.preset;
+            scopeType = test.scopeType ?? scopeType;
+            scopeId = test.scopeId ?? scopeId;
+            if (preset) purposeType = preset.purposeType ?? purposeType;
+            questionCount = test.testQuestions.length;
+        } else {
+            // ── Auto-pick path ──
+            if (req.presetId) {
+                preset = await prisma.testPreset.findUnique({ where: { id: req.presetId } });
+            }
+            if (!preset && scopeType && purposeType) {
+                const defaultEntry = await prisma.scopeTestPresetDefault.findUnique({
+                    where: {
+                        scopeType_purposeType: {
+                            scopeType: scopeType as any,
+                            purposeType: purposeType as any,
+                        },
+                    },
+                    include: { defaultTestPreset: true },
+                });
+                preset = defaultEntry?.defaultTestPreset ?? null;
+            }
+            if (!preset && scopeType) {
+                preset = await prisma.testPreset.findFirst({
+                    where: {
+                        purposeType: purposeType as any,
+                    },
+                });
+            }
+            if (!preset) {
+                preset = {
+                    id: "default-fallback",
+                    questionCount: 10,
+                    passThreshold: 80,
+                    timeLimit: purposeType === "EXAM" ? 15 : null,
+                    difficultyRatioJson: { 1: 40, 2: 30, 3: 20, 4: 10 },
+                    purposeType,
+                };
+            }
+
+            purposeType = preset.purposeType ?? purposeType;
+
+            const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
+            const sequence = await autoPickQuestions(
+                scopeWhere,
+                preset.questionCount,
+                preset.difficultyRatioJson,
+            );
+            questionCount = sequence.length;
+        }
+
+        const mockLog = {
+            testId,
+            scopeType,
+            scopeId,
+            purposeType,
+            generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
+        };
+        const title = await resolveTestTitle(mockLog);
+        const timeLimit = preset?.timeLimit ?? null;
+
+        return {
+            title,
+            questionCount,
+            timeLimit,
+            scopeType,
+            scopeId,
+            purposeType,
+        };
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
