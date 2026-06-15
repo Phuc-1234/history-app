@@ -20,31 +20,41 @@ function scoreChoose(
 
     if (correctCount <= 1) {
         const maxScore = 0.25;
-        if (!userAnswer?.selectedOptions?.length) return { scoreAwarded: 0, maxScore };
+        if (!userAnswer || !userAnswer.selectedOptions || !userAnswer.selectedOptions.length) {
+            return { scoreAwarded: 0, maxScore };
+        }
         const isCorrect =
             userAnswer.selectedOptions.length === 1 &&
             answerData.correctOption.includes(userAnswer.selectedOptions[0]);
         return { scoreAwarded: isCorrect ? maxScore : 0, maxScore };
     }
 
-    const partialTable4 = [0, 0.1, 0.25, 0.5, 1.0];
+    const totalOptions = answerData.options.length;
+    const partialTable4 = [0, 0.1, 0.2, 0.5, 1.0];
     const getMaxScore = (n: number) => (n <= 4 ? (partialTable4[n] ?? 1.0) : 1.0 + (n - 4) * 0.25);
     const getPartialScore = (n: number, hits: number) => {
         if (hits <= 0) return 0;
         if (n <= 4) return partialTable4[Math.min(hits, n)] ?? 0;
-        const table = [0, 0.1, 0.25, 0.75, 1.0];
+        const table = [0, 0.1, 0.2, 0.75, 1.0];
         if (hits <= 4) return table[hits] ?? 0;
         return 1.0 + (hits - 4) * 0.25;
     };
 
-    const maxScore = getMaxScore(correctCount);
-    if (!userAnswer?.selectedOptions?.length) return { scoreAwarded: 0, maxScore };
+    const maxScore = getMaxScore(totalOptions);
+    if (!userAnswer || !userAnswer.selectedOptions || !userAnswer.selectedOptions.length) {
+        return { scoreAwarded: 0, maxScore };
+    }
 
-    const hasWrong = userAnswer.selectedOptions.some((idx) => !answerData.correctOption.includes(idx));
-    if (hasWrong) return { scoreAwarded: 0, maxScore };
+    let correctHits = 0;
+    for (let idx = 0; idx < totalOptions; idx++) {
+        const isCorrectOption = answerData.correctOption.includes(idx);
+        const isSelectedByUser = userAnswer.selectedOptions.includes(idx);
+        if (isCorrectOption === isSelectedByUser) {
+            correctHits++;
+        }
+    }
 
-    const correctHits = userAnswer.selectedOptions.filter((idx) => answerData.correctOption.includes(idx)).length;
-    return { scoreAwarded: getPartialScore(correctCount, correctHits), maxScore };
+    return { scoreAwarded: getPartialScore(totalOptions, correctHits), maxScore };
 }
 
 function scoreFill(
@@ -92,7 +102,7 @@ function scoreMatch(
     }
     return { scoreAwarded: Math.round(score * 10000) / 10000, maxScore };
 }
-
+     
 /**
  * Evaluate a single question locally.
  */

@@ -7,6 +7,7 @@ import {
     abandonTest,
     getHistory,
     getAttemptDetail,
+    getTestInfo,
 } from "../controllers/testControllerV2";
 import { requireStudent } from "../middlewares/authMiddleware";
 
@@ -14,6 +15,9 @@ const router = Router();
 
 // GET /api/tests-v2/resumable
 router.get("/resumable", requireStudent, checkResumable);
+
+// POST /api/tests-v2/info
+router.post("/info", requireStudent, getTestInfo);
 
 // POST /api/tests-v2/start
 router.post("/start", requireStudent, startTest);

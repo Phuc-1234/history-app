@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import type { QuestionV2, FillAnswerData, UserFillAnswer, QuestionEvalResult } from "../types";
 
 interface Props {
@@ -21,7 +22,7 @@ export default function FillQuestion({ question, userAnswer, onAnswer, showFeedb
     };
 
     return (
-        <View style={styles.container}>
+        <Animated.View entering={FadeInDown.duration(300)} style={styles.container}>
             <Text style={styles.label}>Nhập câu trả lời:</Text>
             <TextInput
                 style={[
@@ -37,14 +38,14 @@ export default function FillQuestion({ question, userAnswer, onAnswer, showFeedb
                 returnKeyType="done"
             />
             {showFeedback && evalResult && !evalResult.isCorrect && (
-                <View style={styles.feedbackContainer}>
+                <Animated.View entering={FadeInDown.delay(100).duration(300)} style={styles.feedbackContainer}>
                     <Text style={styles.feedbackLabel}>Đáp án đúng:</Text>
                     <Text style={styles.feedbackValue}>
                         {data.acceptedAnswers.join(" / ")}
                     </Text>
-                </View>
+                </Animated.View>
             )}
-        </View>
+        </Animated.View>
     );
 }
 

@@ -5,6 +5,7 @@ export const contentApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getGradeStructure: builder.query<GradeStructureDto, number>({
       query: (gradeId) => `/api/content/grade-struct/${gradeId}`, 
+      providesTags: ["User"],
     }),
   }),
 });
