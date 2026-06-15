@@ -474,42 +474,42 @@ export function LessonMenu({
                                                 );
                                             })}
 
-                                            {/* Topic-Level Milestone Test Node */}
-                                            {topic.firstTest && (
-                                                <View
+                                        {/* Topic-Level Milestone Test Node */}
+                                        {topic.firstTest && (
+                                            <View
+                                                style={[
+                                                    styles.nodeItem,
+                                                    styles.nodeCenter,
+                                                ]}
+                                            >
+                                                <TouchableOpacity
                                                     style={[
-                                                        styles.nodeItem,
-                                                        styles.nodeCenter,
+                                                        styles.nodeCircle,
+                                                        styles.topicTestCircle,
                                                     ]}
+                                                    onPress={() =>
+                                                        onTestPress(
+                                                            "TOPIC",
+                                                            topic.id
+                                                        )
+                                                    }
                                                 >
-                                                    <TouchableOpacity
-                                                        style={[
-                                                            styles.nodeCircle,
-                                                            styles.topicTestCircle,
-                                                        ]}
-                                                        onPress={() =>
-                                                            onTestPress(
-                                                                "TOPIC",
-                                                                topic.id
-                                                            )
-                                                        }
-                                                    >
-                                                        <Ionicons
-                                                            name={"trophy" as any}
-                                                            size={28}
-                                                            color="#FF9500"
-                                                        />
-                                                    </TouchableOpacity>
-                                                    <Text style={styles.testLabel}>
-                                                        {topic.firstTest.title}
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        })}
+                                                    <Ionicons
+                                                        name={"trophy" as any}
+                                                        size={28}
+                                                        color="#FF9500"
+                                                    />
+                                                </TouchableOpacity>
+                                                <Text style={styles.testLabel}>
+                                                    {topic.firstTest.title}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                            </View>
+                        );
+                    })}
 
                         {/* --- Grade Level Finale Test Section --- */}
                         {finalTest && (
@@ -715,6 +715,7 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         color: "#007AFF",
     },
+    
     topicTestCircle: {
         backgroundColor: "#FFF",
         borderColor: "#FF9500",

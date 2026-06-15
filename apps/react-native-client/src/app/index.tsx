@@ -1,40 +1,54 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Index() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const redirectByOnboardingState = async () => {
+    const checkOnboardingStatus = async () => {
       try {
-        const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
-        router.replace(
-          hasSeenOnboarding === "true"
-            ? "/(routing)/welcome"
-            : "/(routing)/screen1"
-        );
+        // Kiểm tra xem máy đã lưu cờ "đã xem onboarding" chưa
+        const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
+        
+        if (hasSeenOnboarding === 'true') {
+          // Nếu đã xem rồi -> Đá thẳng sang màn hình Welcome của auth
+           router.replace("/(1_auth)/1_1_login")
+        } else {
+          // Nếu là lần đầu tiên -> Đẩy vào màn hình Onboarding số 1
+          router.replace('/(routing)/screen1');
+        }
       } catch (error) {
-        console.log("Failed to load onboarding state:", error);
-        router.replace("/(routing)/screen1");
+        console.log('Lỗi kiểm tra Onboarding:', error);
+        // Nếu lỗi, mặc định cho xem onboarding cho an toàn
+        router.replace('/(routing)/screen1');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    redirectByOnboardingState();
-  }, [router]);
+    checkOnboardingStatus();
+  }, []);
 
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator />
-    </View>
-  );
+  // Trong lúc đợi đọc bộ nhớ máy thì hiển thị vòng xoay tải dữ liệu nhẹ
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#5346E0" />
+      </View>
+    );
+  }
+
+  return null;
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
 });
