@@ -221,7 +221,7 @@ model User {
   id                     String             @id @default(uuid())
   role                   UserRole           @default(STUDENT)
   name                   String
-  email                  String             @unique
+  email                  String?            @unique
   totalXp                Int                @default(0) @map("total_xp")
   totalGold              Int                @default(0) @map("total_gold")
   isHidden               Boolean            @default(false) @map("is_hidden")

@@ -103,7 +103,7 @@ export interface UpdateUserBody {
 
 export interface AdminUserDto {
     id: string;
-    email: string;
+    email: string | null;
     name: string;
     role: string;
     totalXp: number;

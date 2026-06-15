@@ -81,7 +81,7 @@ export interface SessionTokens {
 // --- POST /auth/register ---
 export interface RegisterSuccessResponse {
     message: string;
-    user: { id: string; email: string };
+    user: { id: string; email: string | null };
     session: SessionTokens | null;
 }
 
@@ -92,7 +92,7 @@ export type RegisterResponseBody = RegisterSuccessResponse | { error: string };
 export interface UserProfileSummary {
     id: string;
     name: string;
-    email: string;
+    email: string | null;
     totalXp: number;
     totalGold: number;
     profileImgUrl: string | null;

@@ -1,7 +1,7 @@
 // hooks/useAuthForm.tsx
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { useLoginMutation, useGoogleVerifyMutation } from "../services/authApi";
+import { useLoginMutation, useGoogleVerifyMutation, useFacebookVerifyMutation } from "../services/authApi";
 import { useAppDispatch } from "@/store/storeHook"; // Standard typed useDispatch hook
 import { setProfile } from "@/features/auth/store/authSlice";
 import { Alert } from "react-native";
@@ -19,6 +19,7 @@ export function useAuthForm() {
     const dispatch = useAppDispatch();
     const [login, { isLoading }] = useLoginMutation();
     const [googleVerify, { isLoading: isGoogleLoading }] = useGoogleVerifyMutation();
+    const [facebookVerify, { isLoading: isFacebookLoading }] = useFacebookVerifyMutation();
 
     // Local form element bindings
     const [email, setEmail] = useState("");
@@ -125,6 +126,38 @@ export function useAuthForm() {
         }
     }, [googleVerify, router]);
 
+    const handleFacebookLogin = useCallback(async () => {
+        try {
+            const { LoginManager, AccessToken } = require("react-native-fbsdk-next");
+            
+            const result = await LoginManager.logInWithPermissions(["public_profile", "email"]);
+            if (result.isCancelled) {
+                return;
+            }
+
+            const data = await AccessToken.getCurrentAccessToken();
+            if (!data) {
+                Alert.alert("Lỗi", "Không lấy được Facebook Access Token.");
+                return;
+            }
+
+            const accessToken = data.accessToken;
+            const response = await facebookVerify({ accessToken }).unwrap();
+
+            if (response.status === "error") {
+                Alert.alert("Lỗi đăng nhập", response.error);
+                return;
+            }
+
+            if ("session" in response && response.session) {
+                router.replace("/(tabs)/2_1_lessons");
+            }
+        } catch (error: any) {
+            console.error("Facebook Sign-in attempt failure:", error);
+            Alert.alert("Đăng nhập Facebook thất bại", error.message || "Đã xảy ra lỗi.");
+        }
+    }, [facebookVerify, router]);
+
     const enterAsGuest = useCallback(() => {
         router.replace("/(tabs)/2_1_lessons");
     }, [router]);
@@ -134,9 +167,11 @@ export function useAuthForm() {
         setEmail,
         password,
         setPassword,
-        isLoading: isLoading || isGoogleLoading,
+        isLoading: isLoading || isGoogleLoading || isFacebookLoading,
         isGoogleLoading,
+        isFacebookLoading,
         handleGoogleLogin,
+        handleFacebookLogin,
         navigateToRegister,
         navigateToLogin,
         submitAndEnterApp,

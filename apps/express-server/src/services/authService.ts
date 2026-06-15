@@ -72,6 +72,31 @@ const exchangeGoogleIdToken = async (idToken: string) => {
         };
     };
 
+const exchangeFacebookAccessToken = async (accessToken: string) => {
+    const uSupabaseClient = createClient(
+        supabaseUrl,
+        supabasePublishableKey,
+        {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+            },
+        },
+    );
+
+    const { data, error } = await uSupabaseClient.auth.signInWithIdToken({
+        provider: "facebook",
+        token: accessToken,
+    });
+
+    if (error) throw error;
+
+    return {
+        user: data.user,
+        session: data.session,
+    };
+};
+
 export class AuthService {
     /**
      * Registers a brand new user session with Supabase Auth
@@ -173,6 +198,22 @@ export class AuthService {
         try {
             // Call the new dedicated helper
             const { user, session } = await exchangeGoogleIdToken(idToken);
+
+            return {
+                data: { user, session },
+                error: null,
+            };
+        } catch (error: any) {
+            return {
+                data: { user: null, session: null },
+                error: error,
+            };
+        }
+    }
+
+    async getUserViaFacebookToken(accessToken: string) {
+        try {
+            const { user, session } = await exchangeFacebookAccessToken(accessToken);
 
             return {
                 data: { user, session },

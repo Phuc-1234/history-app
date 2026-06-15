@@ -34,8 +34,8 @@ export default function RegisterForm() {
         handleRegister,
     } = useRegisterForm(); // Đã gỡ bỏ formError/setFormError của hook để tránh lỗi chặt chẽ của TypeScript
 
-    const { handleGoogleLogin, isLoading: isGoogleLoading } = useAuthForm();
-    const isAnyLoading = isLoading || isGoogleLoading;
+    const { handleGoogleLogin, handleFacebookLogin, isGoogleLoading, isFacebookLoading } = useAuthForm();
+    const isAnyLoading = isLoading || isGoogleLoading || isFacebookLoading;
 
     const insets = useSafeAreaInsets();
 
@@ -236,7 +236,7 @@ export default function RegisterForm() {
                         <View style={styles.line} />
                     </View>
 
-                    <SocialLoginButtons onGooglePress={handleGoogleLogin} />
+                    <SocialLoginButtons onGooglePress={handleGoogleLogin} onFacebookPress={handleFacebookLogin} />
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Đã có tài khoản? </Text>
