@@ -240,14 +240,12 @@ model User {
   sentFriendRequests     FriendRequest[]    @relation("FriendRequestSender")
   friendshipsAsFriend    Friendship[]       @relation("FriendshipFriend")
   friendshipsAsUser      Friendship[]       @relation("FriendshipUser")
-  gold_purchases         gold_purchases[]
   pendingRewards         PendingReward[]
   userFlashcards         UserFlashcard[]
   userItems              UserItem[]
   nodeProgresses         UserNodeProgress[]
   testLogs               UserTestLog[]
   tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
-  isVerified             Boolean            @default(false) @map("is_verified")
   goldPurchases          GoldPurchase[]
 
   @@map("users")
@@ -460,20 +458,6 @@ model TestPreset {
   userTestLogs        UserTestLog[]
 
   @@map("test_presets")
-}
-
-model gold_purchases {
-  id                String          @id
-  user_id           String
-  gold_amount       Int
-  amount_vnd        Int
-  provider          PaymentProvider
-  status            PaymentStatus   @default(PENDING)
-  provider_order_id String          @unique
-  provider_trans_id String?
-  created_at        DateTime        @default(now())
-  updated_at        DateTime
-  users             User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 enum HierachyState {

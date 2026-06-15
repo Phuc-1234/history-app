@@ -260,7 +260,7 @@ export class PaymentService {
         let payUrl = "";
         let zpTransToken: string | undefined = undefined;
         // providerOrderId stores app_trans_id for ZaloPay or orderId for MoMo/mock
-        let providerOrderId = orderId;
+        let providerOrderId: string = orderId;
 
         if (provider === "ZALOPAY") {
             try {
