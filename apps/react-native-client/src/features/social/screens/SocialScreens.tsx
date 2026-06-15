@@ -181,7 +181,7 @@ function toViewUser(user: ApiSocialUser): SocialUser {
         id: user.id,
         name: user.name,
         level: Math.max(1, Math.floor((user.totalXp ?? 0) / 1000) + 1),
-        avatar: user.profileImgUrl || `https://i.pravatar.cc/160?u=${user.id}`,
+        avatar: user.profileImgUrl ?? "",
         title: user.tierName || "Người học lịch sử",
         xp: user.totalXp ?? 0,
         mutualFriends: 0,
@@ -313,7 +313,32 @@ function ScreenShell({
     );
 }
 
+function getInitials(name: string) {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 function Avatar({ user, size = 52 }: { user: SocialUser; size?: number }) {
+    if (!user.avatar) {
+        return (
+            <View
+                style={[
+                    styles.avatarFallback,
+                    {
+                        width: size,
+                        height: size,
+                        borderRadius: size / 2,
+                    },
+                ]}
+            >
+                <Text style={[styles.avatarFallbackText, { fontSize: size * 0.4 }]}>
+                    {getInitials(user.name)}
+                </Text>
+            </View>
+        );
+    }
     return (
         <Image
             source={{ uri: user.avatar }}
@@ -1058,6 +1083,15 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.surface,
+    },
+    avatarFallback: {
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: colors.primarySoft,
+    },
+    avatarFallbackText: {
+        fontWeight: "800",
+        color: colors.primary,
     },
     headerTitle: {
         flex: 1,
