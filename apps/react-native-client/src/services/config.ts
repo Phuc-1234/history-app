@@ -29,6 +29,7 @@ const getApiUrl = () => {
     return ENV_API_URL || LOCAL_URL;
 };
 
+
 export const API_BASE_URL = getApiUrl();
 
 // Big bold terminal alert warning about fallback unencrypted web tokens

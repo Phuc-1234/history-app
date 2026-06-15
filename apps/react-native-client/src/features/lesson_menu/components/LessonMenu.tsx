@@ -474,7 +474,7 @@ export function LessonMenu({
                                             );
                                         })}
 
-                                        {/* Topic-Level Milestone Test Node */}
+                                        {/* Topic-Level Milestone Test Node (Cúp luôn nằm ở giữa cuối luồng tự nhiên) */}
                                         {topic.firstTest && (
                                             <View
                                                 style={[
@@ -715,6 +715,7 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         color: "#007AFF",
     },
+    
     topicTestCircle: {
         backgroundColor: "#FFF",
         borderColor: "#FF9500",
