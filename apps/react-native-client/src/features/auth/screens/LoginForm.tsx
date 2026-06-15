@@ -204,8 +204,7 @@ export default function LoginForm() {
 
                         <View style={styles.line} />
                     </View>
-
-                    <SocialLoginButtons />
+                       <SocialLoginButtons />
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>

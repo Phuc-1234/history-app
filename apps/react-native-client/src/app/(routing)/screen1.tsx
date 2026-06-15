@@ -6,7 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
-} from 'react-native'; 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router'; 
@@ -26,7 +26,6 @@ export default function OnboardingScreen1() {
       console.log('Lỗi lưu trạng thái:', error);
     }
   };
-
   // Hàm xử lý khi bấm Tiếp tục: chuyển sang màn hình số 2 ngang hàng
   const handleNext = () => {
     console.log('Chuyển sang onboarding 2');
@@ -35,7 +34,6 @@ export default function OnboardingScreen1() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Nút Bỏ qua nằm ở góc trên bên phải */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleSkip}>
           <Text style={styles.skipText}>Bỏ qua</Text>
@@ -51,24 +49,21 @@ export default function OnboardingScreen1() {
         />
       </View>
 
-      {/* Phần bo góc màu trắng phía dưới */}
       <View style={styles.contentContainer}>
         <Text style={styles.title}>Học Lịch sử thông minh</Text>
-        
+
         <Text style={styles.description}>
           Hệ thống bài học được biên soạn theo chương trình THPT. Làm đề trắc nghiệm và theo dõi tiến trình học tập của bạn.
         </Text>
 
-        {/* Cụm dấu chấm chuyển trang */}
         <View style={styles.paginationContainer}>
           <View style={[styles.dot, styles.activeDot]} />
           <View style={styles.dot} />
           <View style={styles.dot} />
         </View>
 
-        {/* Nút Tiếp tục */}
         <TouchableOpacity style={styles.button} onPress={handleNext}>
-          <Text style={styles.buttonText}>Tiếp tục  ➔</Text>
+          <Text style={styles.buttonText}>Tiếp tục ➔</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

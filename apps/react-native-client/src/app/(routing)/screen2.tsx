@@ -5,18 +5,14 @@ import {
   View,
   Image,
   TouchableOpacity,
-  Dimensions,
-} from 'react-native'; 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router'; 
-
-const { width } = Dimensions.get('window');
+import { useRouter } from 'expo-router';
 
 export default function OnboardingScreen2() {
-  const router = useRouter(); 
-  
-  // Hàm ghi nhận trạng thái đã xem qua toàn bộ onboarding khi người dùng bấm bỏ qua
+  const router = useRouter();
+
   const setOnboardingComplete = async () => {
     try {
       await AsyncStorage.setItem('hasSeenOnboarding', 'true');
@@ -39,40 +35,35 @@ export default function OnboardingScreen2() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Nút Bỏ qua ở góc trên bên phải */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleSkip}>
           <Text style={styles.skipText}>Bỏ qua</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Khu vực chứa hình minh họa nhà thám hiểm game hóa */}
       <View style={styles.imageContainer}>
         <Image
-          source={require('../../../assets/images/onboarding2.png')} 
+          source={require('../../../assets/images/onboarding2.png')}
           style={styles.illustrationImage}
           resizeMode="contain"
         />
       </View>
 
-      {/* Khung màu trắng chứa thông tin text và nút thao tác */}
       <View style={styles.contentContainer}>
         <Text style={styles.title}>Học mà chơi, chơi mà học</Text>
-        
+
         <Text style={styles.description}>
           Tích lũy XP, thu thập huy hiệu, leo bảng xếp hạng và thách đấu 1v1 với bạn bè. Ôn tập bằng thẻ lật thông minh!
         </Text>
 
-        {/* Cụm dấu chấm chuyển trang: Chấm số 2 chuyển thành thanh dài màu tím chủ đạo */}
         <View style={styles.paginationContainer}>
           <View style={styles.dot} />
           <View style={[styles.dot, styles.activeDot]} />
           <View style={styles.dot} />
         </View>
 
-        {/* Nút Tiếp tục */}
         <TouchableOpacity style={styles.button} onPress={handleNext}>
-          <Text style={styles.buttonText}>Tiếp tục  ➔</Text>
+          <Text style={styles.buttonText}>Tiếp tục ➔</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

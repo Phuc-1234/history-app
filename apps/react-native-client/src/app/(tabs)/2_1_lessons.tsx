@@ -1,5 +1,5 @@
 import React from "react";
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { LessonMenu } from "../../features/lesson_menu";
 import { useRouter } from "expo-router";
 
@@ -13,19 +13,33 @@ export default function LessonsScreen() {
     const handleMindmapView = (topicId: number) => {
         console.log(`Open context-mindmap for Topic ID: ${topicId}`);
     };
-
-    const handleTestEngine = (testId: string) => {
-        console.log(`Initialize test runner for Test ID: ${testId}`);
-        router.push({ pathname: "/(6_tests)/6_2_ques_choose", params: { testId } });
+    // const handleTestEngine = (testId: string) => {
+    //     console.log(`Initialize test runner for Test ID: ${testId}`);
+    //     router.push({
+    //         pathname: "/(6_tests)/6_2_ques_choose",
+    //         params: {
+    //             testId,
+    //         },
+    //     });
+    // };
+    const handleTestEngine = (scopeType: string, scopeId: number) => {
+        console.log(`Initialize test runner for Scope: ${scopeType}, ID: ${scopeId}`);
+        router.push({
+            pathname: "/(6_tests)/6_2_ques_choose",
+            params: {
+                scopeType,
+                scopeId: String(scopeId),
+            },
+        });
     };
 
     return (
-        
+        <ScreenWrapper>
             <LessonMenu
                 onLessonPress={handleLessonNavigation}
                 onMindmapPress={handleMindmapView}
                 onTestPress={handleTestEngine}
             />
-       
+        </ScreenWrapper>
     );
 }

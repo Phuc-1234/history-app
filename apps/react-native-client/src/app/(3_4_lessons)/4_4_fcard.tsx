@@ -1,10 +1,20 @@
-import React from "react";
-import { useRouter } from "expo-router";
-import { TopBarWrapper } from "../../features/top_bar";
-import { FlashcardPlayScreen } from "../../features/flashcard";
+import React, { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
+import {
+    FlashcardPlayScreen,
+    FlashcardFreePlayScreen,
+    FlashcardModeModal,
+} from "../../features/flashcard";
+import type { FlashcardMode } from "../../features/flashcard";
 
 export default function FlashcardRoute() {
     const router = useRouter();
+    const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
+    const [selectedMode, setSelectedMode] = useState<FlashcardMode | null>(null);
+    const [modalVisible, setModalVisible] = useState(true);
+
+    const numericLessonId = lessonId ? Number(lessonId) : undefined;
 
     const handleBack = () => {
         if (router.canGoBack()) {
@@ -14,15 +24,41 @@ export default function FlashcardRoute() {
         }
     };
 
+    const handleSelectMode = (mode: FlashcardMode) => {
+        setSelectedMode(mode);
+        setModalVisible(false);
+    };
+
+    const handleCloseModal = () => {
+        setModalVisible(false);
+        // If no mode selected, go back
+        if (!selectedMode) {
+            handleBack();
+        }
+    };
+
     return (
-        <TopBarWrapper
+        <ScreenWrapper
             branchConfig={{
                 hierarchy: "LỚP SỬ 10 > CHƯƠNG I",
                 title: "Sử học và đời sống",
                 onBackPress: handleBack,
             }}
         >
-            <FlashcardPlayScreen />
-        </TopBarWrapper>
+            {/* Mode Selection Modal */}
+            <FlashcardModeModal
+                visible={modalVisible}
+                onSelectMode={handleSelectMode}
+                onClose={handleCloseModal}
+            />
+
+            {/* Render selected mode */}
+            {selectedMode === "memorize" && (
+                <FlashcardPlayScreen lessonId={numericLessonId} />
+            )}
+            {selectedMode === "free" && (
+                <FlashcardFreePlayScreen lessonId={numericLessonId} />
+            )}
+        </ScreenWrapper>
     );
 }
