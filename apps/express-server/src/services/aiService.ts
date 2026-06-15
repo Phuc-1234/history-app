@@ -100,7 +100,32 @@ ${text}`;
 
         const jsonStr = await this.callGemini(prompt);
         const cleanedStr = this.cleanJson(jsonStr);
-        return JSON.parse(cleanedStr);
+        const data = JSON.parse(cleanedStr);
+
+        let idCounter = Date.now();
+        const addIds = (sections: any[]) => {
+            for (const s of sections) {
+                if (!s.id) {
+                    s.id = idCounter++;
+                }
+                if (s.nodes && Array.isArray(s.nodes)) {
+                    for (const n of s.nodes) {
+                        if (!n.id) {
+                            n.id = idCounter++;
+                        }
+                    }
+                }
+                if (s.children && Array.isArray(s.children)) {
+                    addIds(s.children);
+                }
+            }
+        };
+
+        if (data && Array.isArray(data.sections)) {
+            addIds(data.sections);
+        }
+
+        return data;
     }
 
     async generateFlashcards(text: string): Promise<{ flashcards: AIFlashcard[] }> {

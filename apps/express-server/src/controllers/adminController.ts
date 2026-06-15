@@ -660,6 +660,27 @@ export const bulkSaveMindMap = async (req: Request<{ lessonId: string }, any, { 
             return res.status(400).json({ error: "sections array is required." });
         }
 
+        // Ensure all sections and nodes have unique IDs before saving
+        let idCounter = Date.now();
+        const ensureIds = (secs: any[]) => {
+            for (const s of secs) {
+                if (!s.id) {
+                    s.id = idCounter++;
+                }
+                if (s.nodes && Array.isArray(s.nodes)) {
+                    for (const n of s.nodes) {
+                        if (!n.id) {
+                            n.id = idCounter++;
+                        }
+                    }
+                }
+                if (s.children && Array.isArray(s.children)) {
+                    ensureIds(s.children);
+                }
+            }
+        };
+        ensureIds(sections);
+
         // Save directly to MindMap table
         await prisma.mindMap.upsert({
             where: { lessonId },
@@ -686,6 +707,27 @@ export const getAdminMindMap = async (req: Request<{ lessonId: string }>, res: R
         if (mindMap) {
             const rawData = mindMap.data as any;
             if (rawData && Array.isArray(rawData.sections)) {
+                // Ensure legacy data gets IDs on the fly
+                let idCounter = Date.now();
+                const ensureIds = (secs: any[]) => {
+                    for (const s of secs) {
+                        if (!s.id) {
+                            s.id = idCounter++;
+                        }
+                        if (s.nodes && Array.isArray(s.nodes)) {
+                            for (const n of s.nodes) {
+                                if (!n.id) {
+                                    n.id = idCounter++;
+                                }
+                            }
+                        }
+                        if (s.children && Array.isArray(s.children)) {
+                            ensureIds(s.children);
+                        }
+                    }
+                };
+                ensureIds(rawData.sections);
+
                 return res.status(200).json({
                     id: lessonId,
                     sections: rawData.sections
