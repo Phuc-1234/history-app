@@ -11,7 +11,7 @@ import {
     useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import RenderHtml from "react-native-render-html";
+import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
 import VideoPlayer from "../../videostream/components/VideoPlayer";
 import { Toast } from "../../../components/Toast";
 import { useAppSelector } from "../../../store/storeHook";
@@ -22,6 +22,38 @@ import {
 
 // Time (ms) user must stay on screen before it counts as "studied"
 const STUDY_THRESHOLD_MS = 8000;
+
+function convertHslToHex(html: string): string {
+    if (!html) return "";
+    return html.replace(
+        /hsla?\(\s*(\d+(?:\.\d+)?)\s*(?:,|\s+)\s*(\d+(?:\.\d+)?)%\s*(?:,|\s+)\s*(\d+(?:\.\d+)?)%\s*(?:(?:,|\/|\s+)\s*(\d+(?:\.\d+)?)\s*)?\)/gi,
+        (match, hStr, sStr, lStr, aStr) => {
+            const h = parseFloat(hStr);
+            const s = parseFloat(sStr) / 100;
+            const l = parseFloat(lStr) / 100;
+            const a = aStr ? parseFloat(aStr) : 1;
+
+            const k = (n: number) => (n + h / 30) % 12;
+            const factor = s * Math.min(l, 1 - l);
+            const f = (n: number) =>
+                l - factor * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+
+            const r = Math.round(255 * f(0));
+            const g = Math.round(255 * f(8));
+            const b = Math.round(255 * f(4));
+
+            const rHex = r.toString(16).padStart(2, "0");
+            const gHex = g.toString(16).padStart(2, "0");
+            const bHex = b.toString(16).padStart(2, "0");
+
+            if (aStr !== undefined) {
+                const aHex = Math.round(a * 255).toString(16).padStart(2, "0");
+                return `#${rHex}${gHex}${bHex}${aHex}`;
+            }
+            return `#${rHex}${gHex}${bHex}`;
+        }
+    );
+}
 
 interface NodeScreenProps {
     nodeId: number;
@@ -127,8 +159,10 @@ export function NodeScreen({ nodeId, onBack, onQuizPress }: NodeScreenProps) {
                 <View style={{ marginBottom: 24 }}>
                     <RenderHtml
                         contentWidth={width}
-                        source={{ html: node.body || "" }}
+                        source={{ html: convertHslToHex(node.body || "") }}
                         tagsStyles={tagsStyles}
+                        classesStyles={classesStyles}
+                        renderers={renderers}
                     />
                 </View>
 
@@ -208,6 +242,74 @@ const tagsStyles = {
         fontSize: 15,
         lineHeight: 22,
     },
+    strong: {
+        fontWeight: "bold" as const,
+    },
+    b: {
+        fontWeight: "bold" as const,
+    },
+    i: {
+        fontStyle: "italic" as const,
+    },
+    em: {
+        fontStyle: "italic" as const,
+    },
+    u: {
+        textDecorationLine: "underline" as const,
+    },
+    th: {
+        fontWeight: "bold" as const,
+    },
+};
+
+const classesStyles = {
+    "text-tiny": {
+        fontSize: 10,
+        lineHeight: 14,
+    },
+    "text-small": {
+        fontSize: 13,
+        lineHeight: 18,
+    },
+    "text-big": {
+        fontSize: 20,
+        lineHeight: 28,
+    },
+    "text-huge": {
+        fontSize: 24,
+        lineHeight: 34,
+    },
+};
+
+const renderers = {
+    table: ({ tnode }: any) => (
+        <View style={styles.table}>
+            <TNodeChildrenRenderer tnode={tnode} />
+        </View>
+    ),
+    tbody: ({ tnode }: any) => (
+        <View style={styles.tbody}>
+            <TNodeChildrenRenderer tnode={tnode} />
+        </View>
+    ),
+    tr: ({ tnode }: any) => (
+        <View style={styles.tr}>
+            <TNodeChildrenRenderer tnode={tnode} />
+        </View>
+    ),
+    td: ({ tnode }: any) => (
+        <View style={styles.td}>
+            <TNodeChildrenRenderer tnode={tnode} />
+        </View>
+    ),
+    th: ({ tnode }: any) => (
+        <View style={[styles.td, styles.th]}>
+            <TNodeChildrenRenderer tnode={tnode} />
+        </View>
+    ),
+    span: ({ tnode, style, TDefaultRenderer, ...props }: any) => (
+        <TDefaultRenderer tnode={tnode} style={style} {...props} />
+    ),
 };
 
 const styles = StyleSheet.create({
@@ -318,5 +420,31 @@ const styles = StyleSheet.create({
     studyDoneText: {
         color: "#34C759",
         fontWeight: "600",
+    },
+    table: {
+        borderWidth: 1,
+        borderColor: "#E5E5EA",
+        borderRadius: 8,
+        overflow: "hidden",
+        marginVertical: 12,
+        backgroundColor: "#FFF",
+    },
+    tbody: {
+        flexDirection: "column",
+    },
+    tr: {
+        flexDirection: "row",
+        borderBottomWidth: 1,
+        borderBottomColor: "#E5E5EA",
+    },
+    td: {
+        flex: 1,
+        padding: 10,
+        justifyContent: "center",
+        borderRightWidth: 1,
+        borderRightColor: "#E5E5EA",
+    },
+    th: {
+        backgroundColor: "#F2F2F7",
     },
 });
