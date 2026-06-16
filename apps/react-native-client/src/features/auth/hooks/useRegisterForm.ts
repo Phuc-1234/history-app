@@ -59,10 +59,10 @@ export default function useRegisterForm() {
                 pathname: "/(1_auth)/1_6_otp_confirm",
                 params: { email: email.trim().toLowerCase() },
             });
-            
         } catch (err: any) {
             console.error("Registration dispatch error:", err);
-            const backendError = err?.data?.error || "Đăng ký thất bại. Vui lòng thử lại.";
+            const backendError =
+                err?.data?.error || "Đăng ký thất bại. Vui lòng thử lại.";
             setFormError(backendError);
         }
     }, [name, email, password, confirmPassword, registerUser, router]);

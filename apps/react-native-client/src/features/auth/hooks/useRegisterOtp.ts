@@ -5,12 +5,19 @@ import { Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppDispatch } from "@/store/storeHook";
 import { setProfile } from "@/features/auth/store/authSlice";
-import { useVerifyOtpMutation, useResendOtpMutation } from "../services/authApi";
+import {
+    useVerifyOtpMutation,
+    useResendOtpMutation,
+} from "../services/authApi";
 
-export function useRegisterOtp(email: string, autoSend?: boolean, length: number = 8) {
+export function useRegisterOtp(
+    email: string,
+    autoSend?: boolean,
+    length: number = 8,
+) {
     const router = useRouter();
     const dispatch = useAppDispatch();
-    
+
     // Core state configurations scaled up matching Supabase 8-digit criteria
     const [otp, setOtp] = useState<string[]>(Array(length).fill(""));
     const [otpError, setOtpError] = useState<string | null>(null);
@@ -48,9 +55,9 @@ export function useRegisterOtp(email: string, autoSend?: boolean, length: number
         }
 
         try {
-            const response = await verifyOtp({ 
-                email: email.trim().toLowerCase(), 
-                token: fullTokenCode 
+            const response = await verifyOtp({
+                email: email.trim().toLowerCase(),
+                token: fullTokenCode,
             }).unwrap();
 
             if ("error" in response) {
@@ -61,8 +68,14 @@ export function useRegisterOtp(email: string, autoSend?: boolean, length: number
             if ("session" in response && response.session) {
                 if (Platform.OS === "web") {
                     try {
-                        localStorage.setItem("access_token", response.session.accessToken);
-                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                        localStorage.setItem(
+                            "access_token",
+                            response.session.accessToken,
+                        );
+                        localStorage.setItem(
+                            "refresh_token",
+                            response.session.refreshToken,
+                        );
                     } catch (e) {
                         console.error("localStorage setItem failed:", e);
                     }
@@ -76,7 +89,8 @@ export function useRegisterOtp(email: string, autoSend?: boolean, length: number
 
             router.replace("/(tabs)/2_1_lessons");
         } catch (error: any) {
-            const backendError = error?.data?.error || "Mã xác thực không chính xác.";
+            const backendError =
+                error?.data?.error || "Mã xác thực không chính xác.";
             setOtpError(backendError);
         }
     }, [otp, email, verifyOtp, router, length]);
@@ -85,41 +99,55 @@ export function useRegisterOtp(email: string, autoSend?: boolean, length: number
         if (otpCountdown > 0 || isLoading) return;
 
         try {
-            const response = await resendOtp({ email: email.trim().toLowerCase() }).unwrap();
-            
+            const response = await resendOtp({
+                email: email.trim().toLowerCase(),
+            }).unwrap();
+
             if ("error" in response) {
                 Alert.alert("Lỗi", response.error);
                 return;
             }
 
-            Alert.alert("Đã gửi lại", "Mã xác thực mới đã được chuyển tới email của bạn.");
-            
+            Alert.alert(
+                "Đã gửi lại",
+                "Mã xác thực mới đã được chuyển tới email của bạn.",
+            );
+
             setOtp(Array(length).fill(""));
-            setOtpCountdown(60); 
+            setOtpCountdown(60);
             setOtpError(null);
         } catch (error: any) {
-            const backendMsg = error?.data?.error || "Không thể gửi lại mã vào lúc này.";
+            const backendMsg =
+                error?.data?.error || "Không thể gửi lại mã vào lúc này.";
             Alert.alert("Lỗi hệ thống", backendMsg);
         }
     }, [email, otpCountdown, isLoading, resendOtp, length]);
 
-    // FIX: Handled autoSend safely by placing it AFTER function definitions, 
+    // FIX: Handled autoSend safely by placing it AFTER function definitions,
     // and using a tracking ref so it only executes precisely once on mount.
     useEffect(() => {
         if (autoSend && email) {
             const triggerSilentResend = async () => {
                 try {
-                    await resendOtp({ email: email.trim().toLowerCase() }).unwrap();
-                    Alert.alert("Xác thực", "Một mã kích hoạt mới vừa được gửi tới email của bạn.");
+                    await resendOtp({
+                        email: email.trim().toLowerCase(),
+                    }).unwrap();
+                    Alert.alert(
+                        "Xác thực",
+                        "Một mã kích hoạt mới vừa được gửi tới email của bạn.",
+                    );
                 } catch (error) {
-                    console.error("Failed to auto-resend on unverified intercept:", error);
+                    console.error(
+                        "Failed to auto-resend on unverified intercept:",
+                        error,
+                    );
                 }
             };
             triggerSilentResend();
         }
         // Empty dependency array ensures this effect runs strictly ONCE when the screen loads
         // completely bypassing component re-render loops.
-    }, []); 
+    }, []);
 
     return {
         otp,

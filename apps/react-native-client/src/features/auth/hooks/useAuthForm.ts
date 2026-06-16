@@ -1,7 +1,11 @@
 // hooks/useAuthForm.tsx
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { useLoginMutation, useGoogleVerifyMutation, useFacebookVerifyMutation } from "../services/authApi";
+import {
+    useLoginMutation,
+    useGoogleVerifyMutation,
+    useFacebookVerifyMutation,
+} from "../services/authApi";
 import { useAppDispatch } from "@/store/storeHook"; // Standard typed useDispatch hook
 import { setProfile } from "@/features/auth/store/authSlice";
 import { Alert, Platform } from "react-native";
@@ -9,9 +13,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 // Configure Google Sign-In client options
-console.log("Configuring Google Sign-in with webClientId:", process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
+console.log(
+    "Configuring Google Sign-in with webClientId:",
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+);
 GoogleSignin.configure({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
+    webClientId:
+        process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
+        "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
     offlineAccess: true,
 });
 
@@ -19,8 +28,10 @@ export function useAuthForm() {
     const router = useRouter();
     const dispatch = useAppDispatch();
     const [login, { isLoading }] = useLoginMutation();
-    const [googleVerify, { isLoading: isGoogleLoading }] = useGoogleVerifyMutation();
-    const [facebookVerify, { isLoading: isFacebookLoading }] = useFacebookVerifyMutation();
+    const [googleVerify, { isLoading: isGoogleLoading }] =
+        useGoogleVerifyMutation();
+    const [facebookVerify, { isLoading: isFacebookLoading }] =
+        useFacebookVerifyMutation();
 
     // Local form element bindings
     const [email, setEmail] = useState("");
@@ -67,8 +78,14 @@ export function useAuthForm() {
             if ("session" in response && response.session) {
                 if (Platform.OS === "web") {
                     try {
-                        localStorage.setItem("access_token", response.session.accessToken);
-                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                        localStorage.setItem(
+                            "access_token",
+                            response.session.accessToken,
+                        );
+                        localStorage.setItem(
+                            "refresh_token",
+                            response.session.refreshToken,
+                        );
                     } catch (e) {
                         console.error("localStorage setItem failed:", e);
                     }
@@ -126,8 +143,14 @@ export function useAuthForm() {
             if ("session" in response && response.session) {
                 if (Platform.OS === "web") {
                     try {
-                        localStorage.setItem("access_token", response.session.accessToken);
-                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                        localStorage.setItem(
+                            "access_token",
+                            response.session.accessToken,
+                        );
+                        localStorage.setItem(
+                            "refresh_token",
+                            response.session.refreshToken,
+                        );
                     } catch (e) {
                         console.error("localStorage setItem failed:", e);
                     }
@@ -145,19 +168,27 @@ export function useAuthForm() {
                 code: error.code,
                 message: error.message,
                 keys: Object.keys(error || {}),
-                raw: error
+                raw: error,
             });
             if (error.code !== "SIGN_IN_CANCELLED") {
-                Alert.alert("Đăng nhập Google thất bại", error.message || "Đã xảy ra lỗi.");
+                Alert.alert(
+                    "Đăng nhập Google thất bại",
+                    error.message || "Đã xảy ra lỗi.",
+                );
             }
         }
     }, [googleVerify, router]);
 
     const handleFacebookLogin = useCallback(async () => {
         try {
-            const { LoginManager, AccessToken } = require("react-native-fbsdk-next");
-            
-            const result = await LoginManager.logInWithPermissions(["public_profile"]);
+            const {
+                LoginManager,
+                AccessToken,
+            } = require("react-native-fbsdk-next");
+
+            const result = await LoginManager.logInWithPermissions([
+                "public_profile",
+            ]);
             if (result.isCancelled) {
                 return;
             }
@@ -179,8 +210,14 @@ export function useAuthForm() {
             if ("session" in response && response.session) {
                 if (Platform.OS === "web") {
                     try {
-                        localStorage.setItem("access_token", response.session.accessToken);
-                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                        localStorage.setItem(
+                            "access_token",
+                            response.session.accessToken,
+                        );
+                        localStorage.setItem(
+                            "refresh_token",
+                            response.session.refreshToken,
+                        );
                     } catch (e) {
                         console.error("localStorage setItem failed:", e);
                     }
@@ -194,7 +231,10 @@ export function useAuthForm() {
             }
         } catch (error: any) {
             console.error("Facebook Sign-in attempt failure:", error);
-            Alert.alert("Đăng nhập Facebook thất bại", error.message || "Đã xảy ra lỗi.");
+            Alert.alert(
+                "Đăng nhập Facebook thất bại",
+                error.message || "Đã xảy ra lỗi.",
+            );
         }
     }, [facebookVerify, router]);
 
