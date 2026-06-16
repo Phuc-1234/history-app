@@ -25,6 +25,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { CustomModal } from "@/components/Modal";
+import Mascot from "@/components/Mascot";
 import TestIntro from "../../test/components/TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { useGetTestInfoQuery } from "../services/testApi";
@@ -302,9 +303,12 @@ export default function TestContainerV2({
                     contentContainerStyle={styles.scrollContent}
                 >
                     <Animated.View entering={ZoomIn.duration(400)} style={styles.resultCard}>
-                        <Text style={styles.resultEmoji}>
-                            {userTestLog.isPassed ? "🎉" : "😔"}
-                        </Text>
+                        <Mascot
+                            event={{ type: "finish-test", score: parseFloat(scoreDisplay) }}
+                            width={150}
+                            height={150}
+                            style={{ marginBottom: 16 }}
+                        />
                         <Text style={styles.resultTitle}>
                             {userTestLog.isPassed ? "Chúc mừng!" : "Chưa đạt"}
                         </Text>

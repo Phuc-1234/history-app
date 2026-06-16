@@ -35,6 +35,8 @@ import MultipleChoiceQuestion from "./MultipleChoiceQuestion";
 import FillInBlankQuestion from "./FillInBlankQuestion";
 import MatchingQuestion from "./MatchingQuestion";
 import TestIntro from "./TestIntro";
+import Mascot from "../../../components/Mascot";
+
 
 interface TestContainerProps {
   testId?: string;
@@ -396,10 +398,11 @@ export default function TestContainer({ testId = "1" }: TestContainerProps) {
               {/* Circle Celebration Hero Illustration */}
               <View style={styles.completedHeroOuter}>
                 <View style={styles.completedHeroCircle}>
-                  <Image
-                    source={require("../../../../assets/images/test_completed_hero.png")}
+                  <Mascot
+                    event={{ type: "finish-test", score: result ? result.score : 0 }}
+                    width={132}
+                    height={132}
                     style={styles.completedHeroImage}
-                    resizeMode="cover"
                   />
                 </View>
                 {/* Medal Badge Overlay */}
