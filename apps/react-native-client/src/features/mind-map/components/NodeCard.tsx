@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { G, Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import Animated, {
     Easing,
@@ -17,9 +17,21 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 
 interface NodeCardProps {
     node: LayoutNode;
-    index: number;
     center: { x: number; y: number };
     activeNodeId: string | null;
+    animateEntry?: boolean;
+}
+
+function getStableDelay(id: string, depth: number) {
+    let hash = 0;
+    for (let i = 0; i < id.length; i += 1) {
+        hash = (hash * 31 + id.charCodeAt(i)) % 997;
+    }
+    return (
+        animationConfig.nodeBaseDelay +
+        depth * animationConfig.nodeDepthDelay +
+        (hash % 8) * animationConfig.nodeSiblingDelay
+    );
 }
 
 function CollapseIcon({
@@ -62,9 +74,10 @@ function CollapseIcon({
     );
 }
 
-export function NodeCard({ node, index, center, activeNodeId }: NodeCardProps) {
+export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeId, animateEntry = true }: NodeCardProps) {
     const enter = useSharedValue(0);
     const focus = useSharedValue(0);
+    const didEnter = useRef(false);
     const hasActive = activeNodeId !== null;
     const isActive = activeNodeId === node.id;
     const isRelated = isActive || node.parentId === activeNodeId || node.childIds.includes(activeNodeId ?? "");
@@ -81,14 +94,22 @@ export function NodeCard({ node, index, center, activeNodeId }: NodeCardProps) {
     const lineHeight = config.fontSize + 4;
 
     useEffect(() => {
+        // Run the entry animation only ONCE per node lifecycle (keyed by node.id in the
+        // parent list). Without this guard, toggling any node shifts array indices and
+        // re-triggers the spring on every other node → flicker.
+        if (didEnter.current) return;
+        didEnter.current = true;
+        if (!animateEntry) {
+            enter.value = 1;
+            return;
+        }
         enter.value = 0;
         enter.value = withDelay(
-            animationConfig.nodeBaseDelay +
-                node.depth * animationConfig.nodeDepthDelay +
-                index * animationConfig.nodeSiblingDelay,
+            getStableDelay(node.id, node.depth),
             withSpring(1, animationConfig.spring),
         );
-    }, [enter, index, node.depth, node.id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [node.id]);
 
     useEffect(() => {
         focus.value = withTiming(isActive ? 1 : 0, {
@@ -348,4 +369,4 @@ export function NodeCard({ node, index, center, activeNodeId }: NodeCardProps) {
             )}
         </AnimatedG>
     );
-}
+});

@@ -28,7 +28,7 @@ interface EdgePathProps {
     activeNodeId: string | null;
 }
 
-export function EdgePath({ connection, activeNodeId }: EdgePathProps) {
+export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId }: EdgePathProps) {
     const draw = useSharedValue(0);
     const focus = useSharedValue(0);
     const isRelated =
@@ -84,4 +84,4 @@ export function EdgePath({ connection, activeNodeId }: EdgePathProps) {
             animatedProps={animatedProps}
         />
     );
-}
+});
