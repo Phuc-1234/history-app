@@ -1,5 +1,4 @@
-// hooks/useRegisterOtp.ts
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "expo-router";
 import { Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -23,11 +22,19 @@ export function useRegisterOtp(
     const [otpError, setOtpError] = useState<string | null>(null);
     const [otpCountdown, setOtpCountdown] = useState<number>(60);
 
+    const refs = useRef<Array<any>>([]);
+
     // Call RTK Query mutations
     const [verifyOtp, { isLoading: isVerifying }] = useVerifyOtpMutation();
     const [resendOtp, { isLoading: isResending }] = useResendOtpMutation();
 
     const isLoading = isVerifying || isResending;
+
+    // Auto-focus first input box when screen loads
+    useEffect(() => {
+        const timer = setTimeout(() => refs.current[0]?.focus(), 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Countdown loop tracking window intervals
     useEffect(() => {
@@ -44,6 +51,45 @@ export function useRegisterOtp(
         const secs = otpCountdown % 60;
         return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
     }, [otpCountdown]);
+
+    const handleOtpChange = useCallback((value: string, index: number) => {
+        const clean = value.replace(/[^0-9]/g, "");
+
+        // Handle copy-paste of multiple digits
+        if (clean.length - otp[index].length > 1) {
+            let pasted = clean;
+            if (otp[index] && clean.startsWith(otp[index])) {
+                pasted = clean.slice(otp[index].length);
+            } else if (otp[index] && clean.endsWith(otp[index])) {
+                pasted = clean.slice(0, -otp[index].length);
+            }
+
+            const next = [...otp];
+            for (let i = 0; i < pasted.length && index + i < length; i++) {
+                next[index + i] = pasted[i];
+            }
+            setOtp(next);
+
+            const focusIndex = Math.min(index + pasted.length - 1, length - 1);
+            refs.current[focusIndex]?.focus();
+            return;
+        }
+
+        const next = [...otp];
+        next[index] = clean ? clean[clean.length - 1] : "";
+        setOtp(next);
+
+        // Dynamic Focus adjustments based on length
+        if (clean && index < length - 1) {
+            refs.current[index + 1]?.focus();
+        }
+    }, [otp, length]);
+
+    const handleOtpKeyPress = useCallback((e: any, index: number) => {
+        if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
+            refs.current[index - 1]?.focus();
+        }
+    }, [otp]);
 
     const handleVerifyOtp = useCallback(async () => {
         const fullTokenCode = otp.join("");
@@ -93,7 +139,7 @@ export function useRegisterOtp(
                 error?.data?.error || "Mã xác thực không chính xác.";
             setOtpError(backendError);
         }
-    }, [otp, email, verifyOtp, router, length]);
+    }, [otp, email, verifyOtp, router, length, dispatch]);
 
     const handleResendOtp = useCallback(async () => {
         if (otpCountdown > 0 || isLoading) return;
@@ -123,8 +169,6 @@ export function useRegisterOtp(
         }
     }, [email, otpCountdown, isLoading, resendOtp, length]);
 
-    // FIX: Handled autoSend safely by placing it AFTER function definitions,
-    // and using a tracking ref so it only executes precisely once on mount.
     useEffect(() => {
         if (autoSend && email) {
             const triggerSilentResend = async () => {
@@ -145,8 +189,6 @@ export function useRegisterOtp(
             };
             triggerSilentResend();
         }
-        // Empty dependency array ensures this effect runs strictly ONCE when the screen loads
-        // completely bypassing component re-render loops.
     }, []);
 
     return {
@@ -155,6 +197,9 @@ export function useRegisterOtp(
         otpError,
         otpCountdown,
         isLoading,
+        refs,
+        handleOtpChange,
+        handleOtpKeyPress,
         handleVerifyOtp,
         handleResendOtp,
         formatCountdown,

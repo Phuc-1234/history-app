@@ -5,36 +5,43 @@ import {
     TouchableOpacity,
     StyleSheet,
     TextInputProps,
+    StyleProp,
+    ViewStyle,
 } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
+import colors from "../theme/colors";
 
 interface InputProps extends TextInputProps {
     icon?: React.ElementType;
     isPassword?: boolean;
+    containerStyle?: StyleProp<ViewStyle>;
 }
 
 export default function Input({
     icon: IconComponent,
     isPassword,
+    containerStyle,
+    style,
     ...props
 }: InputProps) {
     const [secureText, setSecureText] = useState(isPassword);
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, containerStyle]}>
             {IconComponent && (
                 <View style={styles.iconLeft}>
-                    <IconComponent size={18} color="#A0AEC0" />
+                    <IconComponent size={20} color={colors.textPlaceholder} />
                 </View>
             )}
 
             <TextInput
                 style={[
                     styles.input,
-                    IconComponent && { paddingLeft: 44 },
-                    isPassword && { paddingRight: 44 },
+                    IconComponent && { paddingLeft: 58 },
+                    isPassword && { paddingRight: 58 },
+                    style,
                 ]}
-                placeholderTextColor="#A0AEC0"
+                placeholderTextColor={colors.textPlaceholder}
                 secureTextEntry={secureText}
                 autoCapitalize="none"
                 {...props}
@@ -47,9 +54,9 @@ export default function Input({
                     activeOpacity={0.7}
                 >
                     {secureText ? (
-                        <Eye size={18} color="#A0AEC0" />
+                        <Eye size={20} color={colors.textPlaceholder} />
                     ) : (
-                        <EyeOff size={18} color="#A0AEC0" />
+                        <EyeOff size={20} color={colors.textPlaceholder} />
                     )}
                 </TouchableOpacity>
             )}
@@ -64,16 +71,18 @@ const styles = StyleSheet.create({
         marginVertical: 8,
     },
     input: {
-        backgroundColor: "#FAF3F0",
-        borderRadius: 16,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        fontSize: 14,
-        color: "#2D3748",
+        backgroundColor: colors.inputBackground,
+        borderRadius: 30,
+        paddingLeft: 24,
+        paddingRight: 24,
+        fontSize: 16,
+        color: colors.textDark,
+        height: 54,
+        textAlignVertical: "center",
     },
     iconLeft: {
         position: "absolute",
-        left: 16,
+        left: 24,
         top: 0,
         bottom: 0,
         justifyContent: "center",
@@ -81,7 +90,7 @@ const styles = StyleSheet.create({
     },
     iconRight: {
         position: "absolute",
-        right: 16,
+        right: 20,
         top: 0,
         bottom: 0,
         justifyContent: "center",
