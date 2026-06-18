@@ -1,6 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import {
-    Image,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -13,13 +12,14 @@ import {
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRegisterOtp } from "../hooks/useRegisterOtp"; // Path to your new custom hook
+import { useRegisterOtp } from "../hooks/useRegisterOtp";
+import colors from "../../../theme/colors";
 
 const text = {
     headline: "Xác thực tài khoản",
-    sent: "Mã xác thực đăng ký đã được gửi đến email",
+    sent: "Mã kích hoạt đã được gửi tới",
     enter: "Nhập mã OTP",
-    subtitle: (length: number) => `Vui lòng nhập mã ${length} số để kích hoạt tài khoản.`,
+    subtitle: (length: number) => `Vui lòng nhập mã OTP gồm ${length} số để kích hoạt tài khoản của bạn.`,
     confirm: "Kích hoạt",
     confirming: "Đang xác thực...",
     noCode: "Chưa nhận được mã?",
@@ -38,77 +38,31 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
     const emailToShow = paramEmail || "example@gmail.com";
 
     const shouldAutoSend = autoSend === "true";
-    const refs = useRef<Array<TextInput | null>>([]);
     const insets = useSafeAreaInsets();
     const { width: screenWidth } = useWindowDimensions();
 
     const {
         otp,
-        setOtp,
         otpError,
         otpCountdown,
         isLoading,
+        refs,
+        handleOtpChange,
+        handleOtpKeyPress,
         handleVerifyOtp,
         handleResendOtp,
         formatCountdown,
     } = useRegisterOtp(emailToShow, shouldAutoSend, length);
 
-    // Calculate dynamic responsive width and height for OTP input boxes to fit exactly inside card boundaries on all devices
-    const gap = 5;
-    const paddingHorizontal = 16;
-    const marginHorizontal = 14;
+    // Calculate dynamic responsive width and height for OTP input boxes
+    const gap = 8;
+    const paddingHorizontal = 28;
     const totalGaps = length - 1;
-    const availableWidth = screenWidth - (marginHorizontal * 2) - (paddingHorizontal * 2);
+    const availableWidth = screenWidth - (paddingHorizontal * 2);
     const calculatedWidth = (availableWidth - (totalGaps * gap)) / length;
-    const boxWidth = Math.min(42, calculatedWidth);
-    const boxHeight = boxWidth * 1.3;
-    const fontSize = Math.max(14, Math.min(20, Math.floor(boxWidth * 0.5)));
-
-    // Auto-focus first input box when screen loads
-    useEffect(() => {
-        const timer = setTimeout(() => refs.current[0]?.focus(), 100);
-        return () => clearTimeout(timer);
-    }, []);
-
-    const onChange = (value: string, index: number) => {
-        const clean = value.replace(/[^0-9]/g, "");
-
-        // Handle copy-paste of multiple digits
-        if (clean.length - otp[index].length > 1) {
-            let pasted = clean;
-            if (otp[index] && clean.startsWith(otp[index])) {
-                pasted = clean.slice(otp[index].length);
-            } else if (otp[index] && clean.endsWith(otp[index])) {
-                pasted = clean.slice(0, -otp[index].length);
-            }
-
-            const next = [...otp];
-            for (let i = 0; i < pasted.length && index + i < length; i++) {
-                next[index + i] = pasted[i];
-            }
-            setOtp(next);
-
-            const focusIndex = Math.min(index + pasted.length - 1, length - 1);
-            refs.current[focusIndex]?.focus();
-            return;
-        }
-
-        const next = [...otp];
-        next[index] = clean ? clean[clean.length - 1] : "";
-        setOtp(next);
-
-        // Dynamic Focus adjustments based on length
-        if (clean && index < length - 1) {
-            refs.current[index + 1]?.focus();
-        }
-    };
-
-    // Backspace fallback navigation support tracker
-    const onKeyPress = (e: any, index: number) => {
-        if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
-            refs.current[index - 1]?.focus();
-        }
-    };
+    const boxWidth = Math.min(48, calculatedWidth);
+    const boxHeight = boxWidth * 1.25;
+    const fontSize = Math.max(16, Math.min(22, Math.floor(boxWidth * 0.45)));
 
     return (
         <View style={styles.container}>
@@ -116,28 +70,44 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.keyboardAvoid}
             >
-                <View style={styles.scrollView}>
-                    <View style={styles.hero}>
-                        <View style={styles.heroIcon}>
-                            {/* Replaced ic_lock with a shield/verify concept asset reference if available */}
-                            <Image
-                                source={require("../../../../assets/images/ic_lock.png")}
-                                style={styles.heroImage}
-                                resizeMode="contain"
-                            />
-                        </View>
-                        <Text style={styles.headline}>{text.headline}</Text>
-                        <Text style={styles.heroDescription}>
-                            {text.sent}
-                            {"\n"}
+                <ScrollView
+                    bounces={false}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[
+                        styles.scrollContainer,
+                        {
+                            paddingTop: Math.max(insets.top, 50),
+                            paddingBottom: Math.max(insets.bottom, 20),
+                        },
+                    ]}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Abstract Background Shapes */}
+                    <View style={styles.bgShape1} pointerEvents="none" />
+                    <View style={styles.bgShape2} pointerEvents="none" />
+                    <View style={styles.bgShape3} pointerEvents="none" />
+
+                    {/* Logo Section */}
+                    <View style={styles.logoContainer}>
+                        <Text style={styles.logoText}>Sắc Sử</Text>
+                        <Text style={styles.logoSubtitle}>Ứng dụng học và làm đề lịch sử</Text>
+                    </View>
+
+                    {/* Headline */}
+                    <View style={styles.headerContainer}>
+                        <Text style={styles.headlineText}>{text.headline}</Text>
+                        <Text style={styles.subText}>
+                            {text.sent}{"\n"}
                             <Text style={styles.emailText}>{emailToShow}</Text>
                         </Text>
                     </View>
 
-                    <View style={[styles.card, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+                    {/* Card Content */}
+                    <View style={styles.formContainer}>
                         <Text style={styles.cardTitle}>{text.enter}</Text>
                         <Text style={styles.cardSubtitle}>{text.subtitle(length)}</Text>
 
+                        {/* OTP Boxes */}
                         <View style={[styles.otpRow, { gap }]}>
                             {otp.map((digit, index) => (
                                 <TextInput
@@ -147,11 +117,11 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                                     }}
                                     value={digit}
                                     onChangeText={(value) =>
-                                        onChange(value, index)
+                                        handleOtpChange(value, index)
                                     }
-                                    onKeyPress={(e) => onKeyPress(e, index)}
+                                    onKeyPress={(e) => handleOtpKeyPress(e, index)}
                                     keyboardType="numeric"
-                                    maxLength={length}
+                                    maxLength={1}
                                     style={[
                                         styles.otpBox,
                                         { width: boxWidth, height: boxHeight, fontSize },
@@ -165,6 +135,7 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                             <Text style={styles.errorText}>{otpError}</Text>
                         ) : null}
 
+                        {/* Submit Button */}
                         <Pressable
                             style={[
                                 styles.primaryButton,
@@ -178,6 +149,7 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                             </Text>
                         </Pressable>
 
+                        {/* Resend Row */}
                         <View style={styles.resendRow}>
                             <Text style={styles.resendText}>{text.noCode}</Text>
                             <Pressable
@@ -192,7 +164,7 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                             </Pressable>
                         </View>
                     </View>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </View>
     );
@@ -201,123 +173,168 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#FFFFFF", // Matches the bottom white container to prevent color leaking
+        backgroundColor: colors.background,
     },
-    keyboardAvoid: { flex: 1 },
-    scrollView: {
+    keyboardAvoid: {
         flex: 1,
-        backgroundColor: "#FFFFFF", // Matches the bottom white container
     },
-    screen: { flexGrow: 1, backgroundColor: "#FFFFFF" },
-    hero: {
-        minHeight: 348,
-        backgroundColor: "#5732DD",
-        alignItems: "center",
-        paddingTop: 42,
-        paddingHorizontal: 26,
-        borderBottomLeftRadius: 34,
-        borderBottomRightRadius: 34,
+    scrollContainer: {
+        flexGrow: 1,
+        backgroundColor: colors.background,
+        paddingHorizontal: 28,
+        position: "relative",
     },
-    heroIcon: {
-        width: 110,
-        height: 110,
-        borderRadius: 55,
+    bgShape1: {
+        position: "absolute",
+        width: 140,
+        height: 140,
+        borderRadius: 40,
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        transform: [{ rotate: "45deg" }],
+        top: 60,
+        left: -40,
+    },
+    bgShape2: {
+        position: "absolute",
+        width: 180,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        transform: [{ rotate: "-35deg" }],
+        bottom: 150,
+        right: -60,
+    },
+    bgShape3: {
+        position: "absolute",
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        top: "40%",
+        right: -30,
+    },
+    logoContainer: {
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.13)",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.28)",
-        marginBottom: 26,
+        marginTop: 20,
+        marginBottom: 30,
     },
-    heroImage: { width: 58, height: 58 },
-    headline: {
-        color: "#FFFFFF",
-        fontSize: 26,
-        lineHeight: 34,
-        fontWeight: "800",
+    logoText: {
+        fontSize: 38,
+        fontWeight: "900",
+        color: colors.secondary,
+        letterSpacing: 2,
+        textShadowColor: "rgba(0, 0, 0, 0.25)",
+        textShadowOffset: { width: 0, height: 4 },
+        textShadowRadius: 4,
+    },
+    logoSubtitle: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: colors.textMuted,
+        marginTop: 6,
         textAlign: "center",
     },
-    heroDescription: {
-        color: "#FFFFFF",
-        opacity: 0.92,
+    headerContainer: {
+        marginBottom: 28,
+    },
+    headlineText: {
+        color: colors.textLight,
+        fontSize: 28,
+        fontWeight: "800",
+        textAlign: "center",
+        marginBottom: 8,
+    },
+    subText: {
+        color: colors.textMuted,
         fontSize: 15,
         lineHeight: 22,
         textAlign: "center",
-        marginTop: 8,
     },
-    emailText: { fontWeight: "800" },
-    card: {
+    emailText: {
+        color: colors.textLight,
+        fontWeight: "700",
+    },
+    formContainer: {
         flex: 1,
-        backgroundColor: "#FFFFFF",
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        marginTop: -26,
-        paddingHorizontal: 16, // Reduced horizontal padding to maximize screen width for OTP boxes
-        paddingTop: 36,
     },
     cardTitle: {
-        color: "#1D1B18",
-        fontSize: 26,
-        lineHeight: 34,
-        fontWeight: "800",
+        color: colors.textLight,
+        fontSize: 20,
+        fontWeight: "700",
         textAlign: "center",
+        marginBottom: 6,
     },
     cardSubtitle: {
-        color: "#5F5B6B",
-        fontSize: 16,
-        lineHeight: 24,
+        color: colors.textMuted,
+        fontSize: 14,
         textAlign: "center",
-        marginTop: 8,
-        marginBottom: 36,
+        marginBottom: 28,
     },
     otpRow: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
-        marginBottom: 36,
+        marginBottom: 28,
     },
     otpBox: {
-        borderRadius: 10,
-        backgroundColor: "#EFEEEC",
+        borderRadius: 14,
+        backgroundColor: "rgba(255, 255, 255, 0.15)",
+        borderWidth: 1.5,
+        borderColor: "rgba(255, 255, 255, 0.25)",
         textAlign: "center",
         fontWeight: "800",
-        color: "#242330",
+        color: colors.textLight,
         padding: 0,
     },
     otpBoxFilled: {
-        backgroundColor: "#F0ECFF",
-        borderWidth: 1,
-        borderColor: "#5732DD",
+        backgroundColor: colors.inputBackground,
+        borderColor: colors.secondary,
+        color: colors.textDark,
     },
     errorText: {
-        color: "#E53E3E",
-        fontSize: 12,
+        color: "#FFD2D2",
+        fontSize: 13,
+        fontWeight: "600",
         textAlign: "center",
-        marginBottom: 10,
+        marginBottom: 16,
     },
     primaryButton: {
         height: 56,
         borderRadius: 28,
-        backgroundColor: "#4B32D9",
+        backgroundColor: colors.secondary,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#4B32D9",
-        shadowOffset: { width: 0, height: 10 },
+        shadowColor: colors.secondary,
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
-        shadowRadius: 14,
-        elevation: 7,
+        shadowRadius: 5,
+        elevation: 4,
+        marginTop: 12,
     },
-    primaryText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
-    disabled: { opacity: 0.7 },
+    primaryText: {
+        color: colors.textDark,
+        fontSize: 16,
+        fontWeight: "800",
+    },
+    disabled: {
+        opacity: 0.6,
+    },
     resendRow: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: "auto",
-        paddingTop: 16,
-        flexWrap: "wrap",
+        marginTop: 32,
+        gap: 6,
     },
-    resendText: { color: "#4D4A5F", fontSize: 16 },
-    resendLink: { color: "#4F32DD", fontSize: 16, fontWeight: "800" },
+    resendText: {
+        color: colors.textMuted,
+        fontSize: 15,
+    },
+    resendLink: {
+        color: colors.secondary,
+        fontSize: 15,
+        fontWeight: "700",
+    },
 });

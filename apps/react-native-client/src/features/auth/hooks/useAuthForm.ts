@@ -36,6 +36,8 @@ export function useAuthForm() {
     // Local form element bindings
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
     const navigateToRegister = useCallback(() => {
         router.push("/(1_auth)/1_2_register");
@@ -118,7 +120,85 @@ export function useAuthForm() {
                 "Tài khoản hoặc mật khẩu không chính xác.";
             Alert.alert("Đăng nhập thất bại", errorMessage);
         }
-    }, [email, password, login, router]);
+    }, [email, password, login, router, dispatch]);
+
+    const handleLoginSubmit = useCallback(async () => {
+        const cleanEmail = email.trim();
+        let hasError = false;
+
+        if (!cleanEmail) {
+            setEmailError("Vui lòng nhập email hoặc số điện thoại!");
+            hasError = true;
+        } else {
+            setEmailError("");
+        }
+
+        if (!password) {
+            setPasswordError("Vui lòng nhập mật khẩu!");
+            hasError = true;
+        } else {
+            setPasswordError("");
+        }
+
+        if (hasError) return;
+
+        let finalEmail = cleanEmail;
+        if (!cleanEmail.includes("@")) {
+            finalEmail = `${cleanEmail}@gmail.com`;
+            setEmail(finalEmail);
+        }
+
+        try {
+            const response = await login({ email: finalEmail, password }).unwrap();
+
+            if (response.status === "requires_verification") {
+                router.push({
+                    pathname: "/(1_auth)/1_6_otp_confirm",
+                    params: {
+                        email: finalEmail.toLowerCase(),
+                        autoSend: "true",
+                    },
+                });
+                return;
+            }
+
+            if (response.status === "error") {
+                Alert.alert("Lỗi đăng nhập", response.error);
+                return;
+            }
+
+            if ("session" in response && response.session) {
+                if (Platform.OS === "web") {
+                    try {
+                        localStorage.setItem("access_token", response.session.accessToken);
+                        localStorage.setItem("refresh_token", response.session.refreshToken);
+                    } catch (e) {
+                        console.error("localStorage setItem failed:", e);
+                    }
+                }
+                await AsyncStorage.multiSet([
+                    ["access_token", response.session.accessToken],
+                    ["refresh_token", response.session.refreshToken],
+                ]);
+                dispatch(setProfile(response.profile));
+                router.replace("/(tabs)/2_1_lessons");
+            }
+        } catch (error: any) {
+            console.error("Login attempt failure:", error);
+            if (error?.data?.requiresVerification) {
+                router.push({
+                    pathname: "/(1_auth)/1_6_otp_confirm",
+                    params: {
+                        email: finalEmail.toLowerCase(),
+                        autoSend: "true",
+                    },
+                });
+                return;
+            }
+            const errorMessage = error?.data?.error || "Tài khoản hoặc mật khẩu không chính xác.";
+            Alert.alert("Đăng nhập thất bại", errorMessage);
+        }
+    }, [email, password, login, router, dispatch]);
 
     const handleGoogleLogin = useCallback(async () => {
         try {
@@ -164,12 +244,6 @@ export function useAuthForm() {
             }
         } catch (error: any) {
             console.error("Google Sign-in attempt failure:", error);
-            console.error("Error details:", {
-                code: error.code,
-                message: error.message,
-                keys: Object.keys(error || {}),
-                raw: error,
-            });
             if (error.code !== "SIGN_IN_CANCELLED") {
                 Alert.alert(
                     "Đăng nhập Google thất bại",
@@ -177,7 +251,7 @@ export function useAuthForm() {
                 );
             }
         }
-    }, [googleVerify, router]);
+    }, [googleVerify, router, dispatch]);
 
     const handleFacebookLogin = useCallback(async () => {
         try {
@@ -236,7 +310,7 @@ export function useAuthForm() {
                 error.message || "Đã xảy ra lỗi.",
             );
         }
-    }, [facebookVerify, router]);
+    }, [facebookVerify, router, dispatch]);
 
     const enterAsGuest = useCallback(() => {
         router.replace("/(tabs)/2_1_lessons");
@@ -247,6 +321,10 @@ export function useAuthForm() {
         setEmail,
         password,
         setPassword,
+        emailError,
+        setEmailError,
+        passwordError,
+        setPasswordError,
         isLoading: isLoading || isGoogleLoading || isFacebookLoading,
         isGoogleLoading,
         isFacebookLoading,
@@ -255,6 +333,7 @@ export function useAuthForm() {
         navigateToRegister,
         navigateToLogin,
         submitAndEnterApp,
+        handleLoginSubmit,
         enterAsGuest,
     };
 }

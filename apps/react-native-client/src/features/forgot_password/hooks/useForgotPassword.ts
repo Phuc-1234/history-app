@@ -52,6 +52,52 @@ export function useForgotPassword(initialEmail = "", initialToken = "", length =
     const hasUppercase = /[A-Z]/.test(newPassword);
     const hasNumber = /[0-9]/.test(newPassword);
 
+    const refs = useRef<Array<any>>([]);
+
+    useEffect(() => {
+        if (refs.current && refs.current[0]) {
+            const timer = setTimeout(() => refs.current[0]?.focus(), 100);
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
+    const handleOtpChange = useCallback((value: string, index: number) => {
+        const clean = value.replace(/[^0-9]/g, "");
+
+        if (clean.length - otp[index].length > 1) {
+            let pasted = clean;
+            if (otp[index] && clean.startsWith(otp[index])) {
+                pasted = clean.slice(otp[index].length);
+            } else if (otp[index] && clean.endsWith(otp[index])) {
+                pasted = clean.slice(0, -otp[index].length);
+            }
+
+            const next = [...otp];
+            for (let i = 0; i < pasted.length && index + i < length; i++) {
+                next[index + i] = pasted[i];
+            }
+            setOtp(next);
+
+            const focusIndex = Math.min(index + pasted.length - 1, length - 1);
+            refs.current[focusIndex]?.focus();
+            return;
+        }
+
+        const next = [...otp];
+        next[index] = clean ? clean[clean.length - 1] : "";
+        setOtp(next);
+
+        if (clean && index < length - 1) {
+            refs.current[index + 1]?.focus();
+        }
+    }, [otp, length]);
+
+    const handleOtpKeyPress = useCallback((e: any, index: number) => {
+        if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
+            refs.current[index - 1]?.focus();
+        }
+    }, [otp]);
+
     const handleSendOtp = async () => {
         const trimmedEmail = email.trim();
         if (!trimmedEmail) {
@@ -177,6 +223,9 @@ export function useForgotPassword(initialEmail = "", initialToken = "", length =
         hasMinLength,
         hasUppercase,
         hasNumber,
+        refs,
+        handleOtpChange,
+        handleOtpKeyPress,
         handleSendOtp,
         handleVerifyOtp,
         handleResendOtp,
