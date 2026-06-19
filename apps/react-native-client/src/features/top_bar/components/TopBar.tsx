@@ -135,7 +135,7 @@ export function TopBar({ data, branchConfig, onOpenStreak }: TopBarProps) {
 }
 
 const styles = StyleSheet.create({
-    container: { backgroundColor: "#FFF" },
+    container: { backgroundColor: "#FFF", zIndex: 5, elevation: 5 },
     purpleBar: {
         backgroundColor: "#5856D6",
         flexDirection: "row",

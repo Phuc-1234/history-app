@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
     View,
     StyleSheet,
     TouchableOpacity,
     Pressable,
     Platform,
+    InteractionManager,
     type LayoutChangeEvent,
     ActivityIndicator,
     Text,
@@ -75,6 +76,46 @@ function getInitialCollapsed(tree: MindMapNode): Set<string> {
     return ids;
 }
 
+function clamp(value: number, min: number, max: number) {
+    "worklet";
+    return Math.max(min, Math.min(max, value));
+}
+
+function getNodesBounds(nodes: LayoutNode[]) {
+    if (nodes.length === 0) return null;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const node of nodes) {
+        minX = Math.min(minX, node.x);
+        minY = Math.min(minY, node.y);
+        maxX = Math.max(maxX, node.x + node.width);
+        maxY = Math.max(maxY, node.y + node.height);
+    }
+
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+function getFitScaleForBounds(
+    bounds: { width: number; height: number },
+    containerSize: { width: number; height: number },
+) {
+    const cw = containerSize.width;
+    const ch = containerSize.height;
+    if (cw === 0 || ch === 0) return 1;
+    const limits = getScaleLimits(cw < MOBILE_BREAKPOINT);
+    let fs = Math.min(cw / bounds.width, ch / bounds.height);
+    if (cw < MOBILE_BREAKPOINT) {
+        fs = Math.max(fs, 0.7);
+        fs = Math.min(fs, 1.0);
+    } else {
+        fs = Math.max(limits.min, Math.min(1.15, fs));
+    }
+    return fs;
+}
+
 export default function MindMapScreen({ query }: MindMapScreenProps) {
     const {
         data: mindMap,
@@ -88,13 +129,26 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
 
+    const containerSizeRef = useRef(containerSize);
+    containerSizeRef.current = containerSize;
+    const isMobile = containerSize.width > 0 && containerSize.width < MOBILE_BREAKPOINT;
+
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
     const userScale = useSharedValue(1);
     const savedScale = useSharedValue(1);
     const savedTx = useSharedValue(0);
     const savedTy = useSharedValue(0);
+    const pinchStartScale = useSharedValue(1);
+    const minScale = useSharedValue(0.35);
+    const maxScale = useSharedValue(2.5);
     const contentProgress = useSharedValue(1);
+
+    useEffect(() => {
+        const limits = getScaleLimits(isMobile);
+        minScale.value = limits.min;
+        maxScale.value = limits.max;
+    }, [isMobile, maxScale, minScale]);
 
     useEffect(() => {
         if (mindMap) {
@@ -110,20 +164,10 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         [mindMap, collapsedNodes],
     );
 
-    const fitScale = useMemo(() => {
-        const cw = containerSize.width;
-        const ch = containerSize.height;
-        if (cw === 0 || ch === 0) return 1;
-        const limits = getScaleLimits(cw < MOBILE_BREAKPOINT);
-        let fs = Math.min(cw / bounds.width, ch / bounds.height);
-        if (cw < MOBILE_BREAKPOINT) {
-            fs = Math.max(fs, 0.7);
-            fs = Math.min(fs, 1.0);
-        } else {
-            fs = Math.max(limits.min, Math.min(1.15, fs));
-        }
-        return fs;
-    }, [containerSize.width, containerSize.height, bounds]);
+    const fitScale = useMemo(
+        () => getFitScaleForBounds(bounds, containerSize),
+        [bounds, containerSize],
+    );
 
     const svgDisplayWidth = bounds.width * fitScale;
     const svgDisplayHeight = bounds.height * fitScale;
@@ -142,6 +186,7 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         translateY.value = 0;
         userScale.value = 1;
         savedScale.value = 1;
+        pinchStartScale.value = 1;
         savedTx.value = 0;
         savedTy.value = 0;
         contentProgress.value = 0.92;
@@ -150,8 +195,11 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
             easing: Easing.out(Easing.cubic),
         });
     }, [
-        bounds,
+        containerSize.height,
+        containerSize.width,
         contentProgress,
+        mindMap?.id,
+        pinchStartScale,
         savedScale,
         savedTx,
         savedTy,
@@ -165,6 +213,7 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         translateY.value = withSpring(0, SPRING_CONFIG);
         userScale.value = withSpring(1, SPRING_CONFIG);
         savedScale.value = 1;
+        pinchStartScale.value = 1;
         savedTx.value = 0;
         savedTy.value = 0;
         contentProgress.value = withTiming(1, {
@@ -173,6 +222,7 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         });
     }, [
         contentProgress,
+        pinchStartScale,
         savedScale,
         savedTx,
         savedTy,
@@ -184,6 +234,8 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     const panGesture = useMemo(
         () =>
             Gesture.Pan()
+                // Single-finger pan only, so two-finger pinch doesn't drag the map.
+                .maxPointers(1)
                 .onUpdate((e) => {
                     translateX.value = savedTx.value + e.translationX;
                     translateY.value = savedTy.value + e.translationY;
@@ -196,13 +248,27 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     );
 
     const pinchGesture = useMemo(
-        () => Gesture.Pinch().enabled(false),
-        [],
+        () =>
+            Gesture.Pinch()
+                .onStart(() => {
+                    pinchStartScale.value = savedScale.value;
+                })
+                .onUpdate((e) => {
+                    userScale.value = clamp(
+                        pinchStartScale.value * e.scale,
+                        minScale.value,
+                        maxScale.value,
+                    );
+                })
+                .onEnd(() => {
+                    savedScale.value = userScale.value;
+                }),
+        [maxScale, minScale, pinchStartScale, savedScale, userScale],
     );
 
     const composedGesture = useMemo(
-        () => Gesture.Race(pinchGesture, panGesture),
-        [pinchGesture, panGesture],
+        () => Gesture.Race(panGesture, pinchGesture),
+        [panGesture, pinchGesture],
     );
 
     const animatedStyle = useAnimatedStyle(() => ({
@@ -213,6 +279,59 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
             { scale: userScale.value * contentProgress.value },
         ],
     }));
+
+    const focusOnContentBox = useCallback(
+        (
+            box: { x: number; y: number; width: number; height: number },
+            contentBounds: { width: number; height: number },
+        ) => {
+            const cs = containerSizeRef.current;
+            if (cs.width === 0 || cs.height === 0) return;
+            const fs = getFitScaleForBounds(contentBounds, cs);
+            const svgW = contentBounds.width * fs;
+            const svgH = contentBounds.height * fs;
+            const limits = getScaleLimits(cs.width < MOBILE_BREAKPOINT);
+
+            const boxCenterX = box.x + box.width / 2;
+            const boxCenterY = box.y + box.height / 2;
+            // Offset of the box center from the SVG center, in display px, pre-scale.
+            const fromCenterX = -svgW / 2 + boxCenterX * fs;
+            const fromCenterY = -svgH / 2 + boxCenterY * fs;
+
+            const boxDisplayW = box.width * fs;
+            const boxDisplayH = box.height * fs;
+            const fit = Math.min(
+                cs.width / Math.max(boxDisplayW, 1),
+                cs.height / Math.max(boxDisplayH, 1),
+            );
+            const targetScale = clamp(fit * 0.82, limits.min, limits.max);
+
+            const tx = -fromCenterX * targetScale;
+            const ty = -fromCenterY * targetScale;
+
+            translateX.value = withSpring(tx, SPRING_CONFIG);
+            translateY.value = withSpring(ty, SPRING_CONFIG);
+            userScale.value = withSpring(targetScale, SPRING_CONFIG);
+            savedTx.value = tx;
+            savedTy.value = ty;
+            savedScale.value = targetScale;
+            pinchStartScale.value = targetScale;
+            contentProgress.value = withTiming(1, {
+                duration: 180,
+                easing: Easing.out(Easing.cubic),
+            });
+        },
+        [
+            contentProgress,
+            pinchStartScale,
+            savedScale,
+            savedTx,
+            savedTy,
+            translateX,
+            translateY,
+            userScale,
+        ],
+    );
 
     const toggleCollapse = useCallback((nodeId: string) => {
         setCollapsedNodes((prev) => {
@@ -226,7 +345,16 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         });
     }, []);
 
-    const handleExpandAll = useCallback(() => setCollapsedNodes(new Set()), []);
+    const handleExpandAll = useCallback(() => {
+        // Defer the heavy layout so the tap is acknowledged first and the rebuild
+        // runs as a single batched frame instead of janking the UI thread (mobile).
+        const run = () => setCollapsedNodes(new Set());
+        if (Platform.OS === "web") {
+            run();
+        } else {
+            InteractionManager.runAfterInteractions(run);
+        }
+    }, []);
 
     const handleCollapseAll = useCallback(() => {
         if (!mindMap) return;
@@ -267,9 +395,25 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         (nodeId: string, depth: number) => {
             if (depth === 0) return;
             const node = nodes.find((n) => n.id === nodeId);
-            if (node && node.childIds.length > 0) toggleCollapse(nodeId);
+            if (!node || node.childIds.length === 0) return;
+
+            const willExpand = collapsedNodes.has(nodeId);
+            toggleCollapse(nodeId);
+
+            // Zoom into the newly revealed direct children.
+            if (willExpand && mindMap) {
+                const nextCollapsed = new Set(collapsedNodes);
+                nextCollapsed.delete(nodeId);
+                const { nodes: nextNodes, bounds: nextBounds } = computeLayout(
+                    mindMap,
+                    nextCollapsed,
+                );
+                const children = nextNodes.filter((n) => n.parentId === nodeId);
+                const box = getNodesBounds(children);
+                if (box) focusOnContentBox(box, nextBounds);
+            }
         },
-        [nodes, toggleCollapse],
+        [collapsedNodes, focusOnContentBox, mindMap, nodes, toggleCollapse],
     );
 
     const overlayNodes = useMemo(() => {
@@ -385,13 +529,13 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                                 />
                             ))}
 
-                            {nodes.map((node, index) => (
+                            {nodes.map((node) => (
                                 <NodeCard
                                     key={node.id}
                                     node={node}
-                                    index={index}
                                     center={mapCenter}
                                     activeNodeId={activeNodeId}
+                                    animateEntry={!isMobile}
                                 />
                             ))}
                         </Svg>
