@@ -49,7 +49,7 @@ export default function HistoricalBackground() {
         Animated.loop(
             Animated.timing(rotateAnim, {
                 toValue: 1,
-                duration: 75000, // 75 seconds per full turn (slower & more premium)
+                duration: 40000, //  seconds per full turn
                 easing: Easing.linear,
                 useNativeDriver: true,
             })

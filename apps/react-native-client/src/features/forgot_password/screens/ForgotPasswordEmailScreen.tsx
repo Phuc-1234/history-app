@@ -44,7 +44,7 @@ export default function ForgotPasswordEmailScreen() {
                 contentContainerStyle={[
                     styles.scrollContainer,
                     {
-                        paddingTop: Math.max(insets.top, 50),
+                        paddingTop: Math.max(insets.top, 20),
                         paddingBottom: Math.max(insets.bottom, 20),
                         justifyContent: "center",
                     },
@@ -55,7 +55,7 @@ export default function ForgotPasswordEmailScreen() {
 
                 {/* Mascot Section */}
                 <View style={styles.mascotContainer}>
-                    <Mascot expression="thinking" width={120} height={120} />
+                    <Mascot expression="thinking" width={100} height={100} />
                 </View>
 
                 {/* Welcome Heading */}
@@ -127,11 +127,11 @@ const styles = StyleSheet.create({
     mascotContainer: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 20,
-        marginBottom: 24,
+        marginTop: 10,
+        marginBottom: 16,
     },
     headerContainer: {
-        marginBottom: 32,
+        marginBottom: 16,
     },
     headlineText: {
         color: colors.textDark,
@@ -147,11 +147,9 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     formContainer: {
-        flex: 1,
-        maxHeight: 380,
     },
     inputGroup: {
-        marginBottom: 18,
+        marginBottom: 12,
     },
     fieldLabel: {
         color: colors.textDark,
@@ -182,8 +180,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 5,
         elevation: 4,
-        marginTop: 12,
-        marginBottom: 20,
+        marginTop: 8,
+        marginBottom: 12,
     },
     primaryButtonText: {
         color: colors.textLight,
@@ -198,8 +196,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        marginTop: 12,
-        marginBottom: 20,
+        marginTop: 8,
+        marginBottom: 12,
     },
     backLoginText: {
         color: colors.primary,

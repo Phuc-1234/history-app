@@ -48,7 +48,7 @@ export default function LoginForm() {
                 contentContainerStyle={[
                     styles.scrollContainer,
                     {
-                        paddingTop: Math.max(insets.top, 40),
+                        paddingTop: Math.max(insets.top, 20),
                         paddingBottom: Math.max(insets.bottom, 20),
                     },
                 ]}
@@ -221,8 +221,8 @@ const styles = StyleSheet.create({
     logoContainer: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 20,
-        marginBottom: 30,
+        marginTop: 10,
+        marginBottom: 16,
     },
     logoText: {
         fontSize: 38,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     headerContainer: {
-        marginBottom: 32,
+        marginBottom: 16,
     },
     welcomeText: {
         color: colors.textDark,
@@ -255,10 +255,9 @@ const styles = StyleSheet.create({
         fontWeight: "500",
     },
     formContainer: {
-        flex: 1,
     },
     inputGroup: {
-        marginBottom: 18,
+        marginBottom: 12,
     },
     fieldLabel: {
         color: colors.textDark,
@@ -301,7 +300,7 @@ const styles = StyleSheet.create({
     },
     forgotPassContainer: {
         alignSelf: "flex-end",
-        marginBottom: 20,
+        marginBottom: 12,
         marginTop: 2,
     },
     forgotPassText: {
@@ -311,7 +310,7 @@ const styles = StyleSheet.create({
     },
     guestButton: {
         alignSelf: "center",
-        marginVertical: 12,
+        marginVertical: 8,
     },
     guestText: {
         color: colors.primary,
@@ -322,7 +321,7 @@ const styles = StyleSheet.create({
     dividerContainer: {
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: 24,
+        marginVertical: 16,
     },
     line: {
         flex: 1,
@@ -339,7 +338,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         gap: 12,
-        marginBottom: 24,
+        marginBottom: 16,
     },
     socialBtn: {
         flex: 1,
@@ -349,7 +348,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.googleBorder,
         borderRadius: 28,
-        height: 56,
+        height: 48,
         gap: 10,
         backgroundColor: "transparent",
     },
@@ -363,8 +362,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 16,
-        marginBottom: 20,
+        marginTop: 12,
+        marginBottom: 16,
     },
     footerText: {
         fontSize: 14,

@@ -68,7 +68,7 @@ export default function ForgotPasswordOtpScreen({
     return (
         <View style={styles.container}>
             <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
                 style={styles.keyboardAvoid}
             >
                 <ScrollView
@@ -77,7 +77,7 @@ export default function ForgotPasswordOtpScreen({
                     contentContainerStyle={[
                         styles.scrollContainer,
                         {
-                            paddingTop: Math.max(insets.top, 50),
+                            paddingTop: Math.max(insets.top, 20),
                             paddingBottom: Math.max(insets.bottom, 20),
                             justifyContent: "center",
                         },
@@ -89,7 +89,7 @@ export default function ForgotPasswordOtpScreen({
 
                     {/* Mascot Section */}
                     <View style={styles.mascotContainer}>
-                        <Mascot expression="thinking" width={120} height={120} />
+                        <Mascot expression="thinking" width={100} height={100} />
                     </View>
 
                     {/* Headline */}
@@ -192,11 +192,11 @@ const styles = StyleSheet.create({
     mascotContainer: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 20,
-        marginBottom: 24,
+        marginTop: 10,
+        marginBottom: 16,
     },
     headerContainer: {
-        marginBottom: 28,
+        marginBottom: 16,
     },
     headlineText: {
         color: colors.textDark,
@@ -216,8 +216,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
     formContainer: {
-        flex: 1,
-        maxHeight: 400,
     },
     cardTitle: {
         color: colors.textDark,
@@ -230,14 +228,14 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         fontSize: 14,
         textAlign: "center",
-        marginBottom: 28,
+        marginBottom: 16,
     },
     otpRow: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
-        marginBottom: 28,
+        marginBottom: 16,
     },
     otpBox: {
         borderRadius: 14,
@@ -272,7 +270,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 5,
         elevation: 4,
-        marginTop: 12,
+        marginTop: 8,
     },
     primaryText: {
         color: colors.textLight,
@@ -286,7 +284,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 32,
+        marginTop: 16,
         gap: 6,
     },
     resendText: {
