@@ -133,7 +133,7 @@ export default function LoginForm() {
                     {/* Submit Button */}
                     <Button
                         title={isLoading ? "Đang xử lý..." : "Đăng Nhập"}
-                        variant="secondary"
+                        variant="primary"
                         onPress={handleLoginSubmit}
                         disabled={isLoading}
                     />
@@ -167,7 +167,7 @@ export default function LoginForm() {
                         >
                             <Svg width="18" height="18" viewBox="0 0 24 24">
                                 <Path
-                                    fill="#FFFFFF"
+                                    fill={colors.textDark}
                                     d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.13-5.136 4.13A5.727 5.727 0 0 1 8.24 12.8a5.727 5.727 0 0 1 5.751-5.73c2.44 0 4.296 1.1 5.074 2.1l3.22-3.22C20.165 3.9 17.26 2 13.991 2 7.92 2 3 6.92 3 13s4.92 11 10.991 11c6.28 0 10.459-4.41 10.459-10.636 0-.645-.06-1.08-.2-1.58H12.24z"
                                 />
                             </Svg>
@@ -180,7 +180,7 @@ export default function LoginForm() {
                             onPress={handleFacebookLogin}
                             disabled={isLoading}
                         >
-                            <Svg width="18" height="18" fill="#FFFFFF" viewBox="0 0 24 24">
+                            <Svg width="18" height="18" fill={colors.facebookBackground} viewBox="0 0 24 24">
                                 <Path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                             </Svg>
                             <Text style={styles.socialBtnText}>FACEBOOK</Text>
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
         width: 140,
         height: 140,
         borderRadius: 40,
-        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        backgroundColor: "rgba(184, 29, 24, 0.03)",
         transform: [{ rotate: "45deg" }],
         top: 60,
         left: -40,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
         width: 180,
         height: 60,
         borderRadius: 30,
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        backgroundColor: "rgba(223, 155, 0, 0.03)",
         transform: [{ rotate: "-35deg" }],
         bottom: 150,
         right: -60,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        backgroundColor: "rgba(184, 29, 24, 0.02)",
         top: "40%",
         right: -30,
     },
@@ -257,11 +257,11 @@ const styles = StyleSheet.create({
     logoText: {
         fontSize: 38,
         fontWeight: "900",
-        color: colors.secondary,
+        color: colors.primary,
         letterSpacing: 2,
-        textShadowColor: "rgba(0, 0, 0, 0.25)",
-        textShadowOffset: { width: 0, height: 4 },
-        textShadowRadius: 4,
+        textShadowColor: "rgba(0, 0, 0, 0.15)",
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 3,
     },
     logoSubtitle: {
         fontSize: 14,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     welcomeText: {
-        color: colors.textLight,
+        color: colors.textDark,
         fontSize: 28,
         fontWeight: "800",
         marginBottom: 6,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     fieldLabel: {
-        color: colors.textLight,
+        color: colors.textDark,
         fontSize: 15,
         fontWeight: "700",
         marginBottom: 8,
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     fieldErrorText: {
-        color: "#FFD2D2",
+        color: colors.textError,
         fontSize: 13,
         fontWeight: "600",
         marginTop: 6,
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
         marginVertical: 12,
     },
     guestText: {
-        color: colors.textLight,
+        color: colors.primary,
         fontSize: 14,
         fontWeight: "600",
         textDecorationLine: "underline",
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     socialBtnText: {
         fontSize: 14,
         fontWeight: "700",
-        color: colors.textLight,
+        color: colors.textDark,
         letterSpacing: 0.5,
     },
     footer: {
@@ -403,6 +403,6 @@ const styles = StyleSheet.create({
     registerText: {
         fontSize: 14,
         fontWeight: "700",
-        color: colors.secondary,
+        color: colors.primary,
     },
 });

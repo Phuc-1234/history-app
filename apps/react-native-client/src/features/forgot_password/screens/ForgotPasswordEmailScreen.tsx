@@ -103,7 +103,7 @@ export default function ForgotPasswordEmailScreen() {
                         style={styles.backLogin}
                         onPress={() => router.replace("/(1_auth)/1_1_login")}
                     >
-                        <ArrowLeft size={16} color={colors.secondary} />
+                        <ArrowLeft size={16} color={colors.primary} />
                         <Text style={styles.backLoginText}>
                             {text.backLogin}
                         </Text>
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
         width: 140,
         height: 140,
         borderRadius: 40,
-        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        backgroundColor: "rgba(184, 29, 24, 0.03)",
         transform: [{ rotate: "45deg" }],
         top: 60,
         left: -40,
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
         width: 180,
         height: 60,
         borderRadius: 30,
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        backgroundColor: "rgba(223, 155, 0, 0.03)",
         transform: [{ rotate: "-35deg" }],
         bottom: 150,
         right: -60,
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        backgroundColor: "rgba(184, 29, 24, 0.02)",
         top: "40%",
         right: -30,
     },
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     headlineText: {
-        color: colors.textLight,
+        color: colors.textDark,
         fontSize: 28,
         fontWeight: "800",
         textAlign: "center",
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     fieldLabel: {
-        color: colors.textLight,
+        color: colors.textDark,
         fontSize: 15,
         fontWeight: "700",
         marginBottom: 8,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
         borderRadius: 30,
     },
     fieldErrorText: {
-        color: "#FFD2D2",
+        color: colors.textError,
         fontSize: 13,
         fontWeight: "600",
         marginTop: 6,
@@ -204,10 +204,10 @@ const styles = StyleSheet.create({
     primaryButton: {
         height: 56,
         borderRadius: 28,
-        backgroundColor: colors.secondary,
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: colors.secondary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
         shadowRadius: 5,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     primaryButtonText: {
-        color: colors.textDark,
+        color: colors.textLight,
         fontSize: 16,
         fontWeight: "800",
     },
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     backLoginText: {
-        color: colors.secondary,
+        color: colors.primary,
         fontSize: 15,
         fontWeight: "700",
     },
