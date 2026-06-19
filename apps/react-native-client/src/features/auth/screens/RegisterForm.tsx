@@ -17,6 +17,7 @@ import Button from "../../../components/Button";
 import useRegisterForm from "../hooks/useRegisterForm";
 import useAuthForm from "../hooks/useAuthForm";
 import colors from "../../../theme/colors";
+import HistoricalBackground from "../../../components/layout/HistoricalBackground";
 
 export default function RegisterForm() {
     const {
@@ -59,10 +60,8 @@ export default function RegisterForm() {
                     },
                 ]}
             >
-                {/* Abstract Background Shapes */}
-                <View style={styles.bgShape1} pointerEvents="none" />
-                <View style={styles.bgShape2} pointerEvents="none" />
-                <View style={styles.bgShape3} pointerEvents="none" />
+                {/* Historical Background Motifs */}
+                <HistoricalBackground />
 
                 {/* Logo Section */}
                 <View style={styles.logoContainer}>
@@ -235,35 +234,6 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
         paddingHorizontal: 28,
         position: "relative",
-    },
-    bgShape1: {
-        position: "absolute",
-        width: 140,
-        height: 140,
-        borderRadius: 40,
-        backgroundColor: "rgba(184, 29, 24, 0.03)",
-        transform: [{ rotate: "45deg" }],
-        top: 60,
-        left: -40,
-    },
-    bgShape2: {
-        position: "absolute",
-        width: 180,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: "rgba(223, 155, 0, 0.03)",
-        transform: [{ rotate: "-35deg" }],
-        bottom: 150,
-        right: -60,
-    },
-    bgShape3: {
-        position: "absolute",
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: "rgba(184, 29, 24, 0.02)",
-        top: "40%",
-        right: -30,
     },
     logoContainer: {
         alignItems: "center",

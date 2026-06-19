@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 import colors from "../../../theme/colors";
 import Mascot from "../../../components/Mascot";
+import HistoricalBackground from "../../../components/layout/HistoricalBackground";
 
 const text = {
     headline: "Xác thực OTP",
@@ -83,10 +84,8 @@ export default function ForgotPasswordOtpScreen({
                     ]}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Abstract Background Shapes */}
-                    <View style={styles.bgShape1} pointerEvents="none" />
-                    <View style={styles.bgShape2} pointerEvents="none" />
-                    <View style={styles.bgShape3} pointerEvents="none" />
+                    {/* Historical Background Motifs */}
+                    <HistoricalBackground />
 
                     {/* Mascot Section */}
                     <View style={styles.mascotContainer}>
@@ -189,35 +188,6 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
         paddingHorizontal: 28,
         position: "relative",
-    },
-    bgShape1: {
-        position: "absolute",
-        width: 140,
-        height: 140,
-        borderRadius: 40,
-        backgroundColor: "rgba(184, 29, 24, 0.03)",
-        transform: [{ rotate: "45deg" }],
-        top: 60,
-        left: -40,
-    },
-    bgShape2: {
-        position: "absolute",
-        width: 180,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: "rgba(223, 155, 0, 0.03)",
-        transform: [{ rotate: "-35deg" }],
-        bottom: 150,
-        right: -60,
-    },
-    bgShape3: {
-        position: "absolute",
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: "rgba(184, 29, 24, 0.02)",
-        top: "40%",
-        right: -30,
     },
     mascotContainer: {
         alignItems: "center",
