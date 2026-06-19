@@ -31,6 +31,27 @@ export const appLogout = createAsyncThunk(
             // 2. Clear all RTK Query API cache tables completely 
             // This prevents an absolute security flaw where a logged-out user could still see old queries
             dispatch(apiSlice.util.resetApiState());
+
+            // 3. Log out from Google & Facebook on native platforms
+            if (Platform.OS !== "web") {
+                try {
+                    const { GoogleSignin } = require("@react-native-google-signin/google-signin");
+                    GoogleSignin.configure({
+                        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com",
+                        offlineAccess: true,
+                    });
+                    await GoogleSignin.signOut();
+                } catch (e) {
+                    console.error("Google Sign-in signOut failed:", e);
+                }
+
+                try {
+                    const { LoginManager } = require("react-native-fbsdk-next");
+                    LoginManager.logOut();
+                } catch (e) {
+                    console.error("Facebook logOut failed:", e);
+                }
+            }
         } catch (error) {
             console.error("Error during persistent storage clean:", error);
         }

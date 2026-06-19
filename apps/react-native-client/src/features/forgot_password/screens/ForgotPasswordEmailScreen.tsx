@@ -1,29 +1,29 @@
 import React from "react";
 import {
-    Image,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     View,
 } from "react-native";
 import { router } from "expo-router";
 import { ArrowLeft, Mail } from "lucide-react-native";
-import { TopBarWrapper } from "@/features/top_bar";
 import { useForgotPassword } from "../hooks/useForgotPassword";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Input from "../../../components/Input";
+import colors from "../../../theme/colors";
+import Mascot from "../../../components/Mascot";
 
 const text = {
-    description: "Nhập email đã đăng ký của bạn để\nnhận mã xác thực (OTP).",
-    email: "Email",
-    emailPlaceholder: "Email của bạn",
+    headline: "Quên mật khẩu",
+    description: "Nhập địa chỉ email đăng ký để nhận mã xác thực (OTP).",
+    email: "Địa chỉ Email",
+    emailPlaceholder: "Nhập địa chỉ email của bạn",
     send: "Gửi mã xác thực",
     sending: "Đang gửi...",
-    backLogin: "Quay lại đăng nhập",
+    backLogin: "Quay lại Đăng nhập",
 };
 
 export default function ForgotPasswordEmailScreen() {
@@ -37,47 +37,54 @@ export default function ForgotPasswordEmailScreen() {
             style={styles.keyboardAvoid}
         >
             <ScrollView
-                contentContainerStyle={[
-                    styles.screen,
-                    { paddingBottom: Math.max(insets.bottom, 20) },
-                ]}
+                bounces={false}
+                showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                contentContainerStyle={[
+                    styles.scrollContainer,
+                    {
+                        paddingTop: Math.max(insets.top, 50),
+                        paddingBottom: Math.max(insets.bottom, 20),
+                        justifyContent: "center",
+                    },
+                ]}
             >
-                <View style={styles.hero}>
-                    <View style={styles.heroIcon}>
-                        <Image
-                            source={require("../assets/ic_lock_reload.png")}
-                            style={styles.heroImage}
-                            resizeMode="contain"
-                        />
-                    </View>
-                    <Text style={styles.heroDescription}>
-                        {text.description}
-                    </Text>
+                {/* Abstract Background Shapes */}
+                <View style={styles.bgShape1} pointerEvents="none" />
+                <View style={styles.bgShape2} pointerEvents="none" />
+                <View style={styles.bgShape3} pointerEvents="none" />
+
+                {/* Mascot Section */}
+                <View style={styles.mascotContainer}>
+                    <Mascot expression="thinking" width={120} height={120} />
                 </View>
-                <View style={styles.card}>
-                    <Text style={styles.label}>{text.email}</Text>
-                    <View
-                        style={[
-                            styles.inputBox,
-                            emailError && styles.inputBoxError,
-                        ]}
-                    >
-                        <Mail size={21} color="#4E4A60" />
-                        <TextInput
+
+                {/* Welcome Heading */}
+                <View style={styles.headerContainer}>
+                    <Text style={styles.headlineText}>{text.headline}</Text>
+                    <Text style={styles.subText}>{text.description}</Text>
+                </View>
+
+                {/* Form Inputs Container */}
+                <View style={styles.formContainer}>
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.fieldLabel}>{text.email}</Text>
+                        <Input
+                            icon={Mail}
+                            placeholder={text.emailPlaceholder}
                             value={email}
                             onChangeText={setEmail}
-                            placeholder={text.emailPlaceholder}
-                            placeholderTextColor="#747184"
                             keyboardType="email-address"
                             autoCapitalize="none"
                             editable={!isLoading}
-                            style={styles.input}
+                            style={styles.customInput}
                         />
+                        {emailError ? (
+                            <Text style={styles.fieldErrorText}>{emailError}</Text>
+                        ) : null}
                     </View>
-                    {emailError ? (
-                        <Text style={styles.errorText}>{emailError}</Text>
-                    ) : null}
+
+                    {/* Submit Button */}
                     <Pressable
                         style={[
                             styles.primaryButton,
@@ -86,15 +93,17 @@ export default function ForgotPasswordEmailScreen() {
                         onPress={handleSendOtp}
                         disabled={isLoading}
                     >
-                        <Text style={styles.primaryText}>
+                        <Text style={styles.primaryButtonText}>
                             {isLoading ? text.sending : text.send}
                         </Text>
                     </Pressable>
+
+                    {/* Back to Login */}
                     <Pressable
                         style={styles.backLogin}
                         onPress={() => router.replace("/(1_auth)/1_1_login")}
                     >
-                        <ArrowLeft size={17} color="#4F32DD" />
+                        <ArrowLeft size={16} color={colors.secondary} />
                         <Text style={styles.backLoginText}>
                             {text.backLogin}
                         </Text>
@@ -106,96 +115,125 @@ export default function ForgotPasswordEmailScreen() {
 }
 
 const styles = StyleSheet.create({
-    keyboardAvoid: { flex: 1 },
-    screen: { flexGrow: 1, backgroundColor: "#F8F6F3" },
-    hero: {
-        minHeight: 260,
-        backgroundColor: "#5732DD",
-        alignItems: "center",
-        paddingTop: 42,
-        paddingHorizontal: 26,
-        borderBottomLeftRadius: 34,
-        borderBottomRightRadius: 34,
+    keyboardAvoid: {
+        flex: 1,
+        backgroundColor: colors.background,
     },
-    heroIcon: {
-        width: 82,
-        height: 82,
-        borderRadius: 41,
+    scrollContainer: {
+        flexGrow: 1,
+        backgroundColor: colors.background,
+        paddingHorizontal: 28,
+        position: "relative",
+    },
+    bgShape1: {
+        position: "absolute",
+        width: 140,
+        height: 140,
+        borderRadius: 40,
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        transform: [{ rotate: "45deg" }],
+        top: 60,
+        left: -40,
+    },
+    bgShape2: {
+        position: "absolute",
+        width: 180,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        transform: [{ rotate: "-35deg" }],
+        bottom: 150,
+        right: -60,
+    },
+    bgShape3: {
+        position: "absolute",
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        top: "40%",
+        right: -30,
+    },
+    mascotContainer: {
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.13)",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.28)",
-        marginBottom: 28,
+        marginTop: 20,
+        marginBottom: 24,
     },
-    heroImage: { width: 38, height: 38 },
-    heroDescription: {
-        color: "#FFFFFF",
-        opacity: 0.92,
-        fontSize: 16,
-        lineHeight: 24,
-        textAlign: "center",
-        fontWeight: "500",
+    headerContainer: {
+        marginBottom: 32,
     },
-    card: {
-        flex: 1,
-        marginHorizontal: 14,
-        marginTop: -28,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 36,
-        paddingHorizontal: 32,
-        paddingTop: 36,
-        paddingBottom: 40,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.14,
-        shadowRadius: 24,
-        elevation: 8,
-    },
-    label: {
-        color: "#3D394A",
-        fontSize: 14,
+    headlineText: {
+        color: colors.textLight,
+        fontSize: 28,
         fontWeight: "800",
-        marginBottom: 10,
+        textAlign: "center",
+        marginBottom: 8,
     },
-    inputBox: {
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: "#F2F0EF",
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 18,
-        marginBottom: 6,
+    subText: {
+        color: colors.textMuted,
+        fontSize: 15,
+        lineHeight: 22,
+        textAlign: "center",
     },
-    inputBoxError: { borderWidth: 1, borderColor: "#E53E3E" },
-    input: { flex: 1, fontSize: 16, color: "#242330", paddingHorizontal: 14 },
-    errorText: {
-        color: "#E53E3E",
-        fontSize: 12,
-        marginBottom: 10,
-        fontWeight: "500",
+    formContainer: {
+        flex: 1,
+        maxHeight: 380,
+    },
+    inputGroup: {
+        marginBottom: 18,
+    },
+    fieldLabel: {
+        color: colors.textLight,
+        fontSize: 15,
+        fontWeight: "700",
+        marginBottom: 8,
+    },
+    customInput: {
+        backgroundColor: colors.inputBackground,
+        color: colors.textDark,
+        borderRadius: 30,
+    },
+    fieldErrorText: {
+        color: "#FFD2D2",
+        fontSize: 13,
+        fontWeight: "600",
+        marginTop: 6,
+        paddingLeft: 4,
     },
     primaryButton: {
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: "#4B32D9",
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.secondary,
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 28,
-        shadowColor: "#4B32D9",
-        shadowOffset: { width: 0, height: 10 },
+        shadowColor: colors.secondary,
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
-        shadowRadius: 14,
-        elevation: 7,
+        shadowRadius: 5,
+        elevation: 4,
+        marginTop: 12,
+        marginBottom: 20,
     },
-    primaryText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
-    disabled: { opacity: 0.7 },
+    primaryButtonText: {
+        color: colors.textDark,
+        fontSize: 16,
+        fontWeight: "800",
+    },
+    disabled: {
+        opacity: 0.6,
+    },
     backLogin: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
-        marginTop: 30,
+        gap: 8,
+        marginTop: 12,
+        marginBottom: 20,
     },
-    backLoginText: { color: "#4F32DD", fontSize: 15, fontWeight: "800" },
+    backLoginText: {
+        color: colors.secondary,
+        fontSize: 15,
+        fontWeight: "700",
+    },
 });

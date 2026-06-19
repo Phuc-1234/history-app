@@ -2,6 +2,8 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import Mascot from "../../../components/Mascot";
+
 
 
 const { width } = Dimensions.get("window");
@@ -19,19 +21,20 @@ export default function FlashcardCompleteScreen() {
         if (router.canGoBack()) {
             router.back();
         } else {
-            router.replace("/(tabs)/lesson");
+            router.replace("/(tabs)/lesson" as any);
         }
     };
 
     return (
         <View style={styles.container}>
                 <View style={styles.cardModal}>
-                    {/* --- Medal Badge Icon --- */}
-                    <View style={styles.badgeWrapper}>
-                        <View style={styles.badgeCircle}>
-                            <Ionicons name="ribbon-sharp" size={48} color="#059669" />
-                        </View>
-                    </View>
+                    {/* --- Mascot Illustration --- */}
+                    <Mascot
+                        event={{ type: "complete-flashcard", correctRatio: 1.0 }}
+                        width={130}
+                        height={130}
+                        style={{ marginBottom: 16 }}
+                    />
 
                     {/* --- Congratulatory Text --- */}
                     <Text style={styles.successTitle}>Tuyệt vời!</Text>

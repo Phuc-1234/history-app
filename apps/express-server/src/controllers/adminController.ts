@@ -1,6 +1,9 @@
 // controllers/adminController.ts
 import { Request, Response } from "express";
 import { adminService } from "../services/adminService";
+import { prisma } from "@history-app/shared";
+import { aiService } from "../services/aiService";
+import { contentService } from "../services/contentService";
 import {
     CreateGradeBody,
     UpdateGradeBody,
@@ -29,6 +32,11 @@ import {
     CreateTestBody,
     UpdateTestBody,
     AdminTestDto,
+    FlashcardDto,
+    CreateFlashcardBody,
+    UpdateFlashcardBody,
+    AdminFlashcardResponse,
+    AdminFlashcardsResponse,
 } from "@history-app/shared";
 
 // ─────────────────────────────── GRADE ────────────────────────────────────────
@@ -520,6 +528,247 @@ export const deleteTest = async (req: Request<{ testId: string }>, res: Response
     } catch (err) {
         console.error("Delete test error:", err);
         return res.status(500).json({ error: "Failed to delete test." });
+    }
+};
+
+// ─────────────────────────────── FLASHCARD ────────────────────────────────────
+
+export const listFlashcards = async (req: Request, res: Response) => {
+    try {
+        const lessonId = req.query.lessonId ? Number(req.query.lessonId) : undefined;
+        if (lessonId !== undefined && Number.isNaN(lessonId)) {
+            return res.status(400).json({ error: "Invalid lessonId query parameter." });
+        }
+        const flashcards = await adminService.listFlashcards(lessonId);
+        return res.status(200).json({ flashcards });
+    } catch (err) {
+        console.error("List flashcards error:", err);
+        return res.status(500).json({ error: "Failed to list flashcards." });
+    }
+};
+
+export const createFlashcard = async (req: Request<{}, any, CreateFlashcardBody>, res: Response) => {
+    try {
+        const { frontText, backText, lessonId, sectionId, nodeId } = req.body;
+        if (!frontText || !backText) {
+            return res.status(400).json({ error: "frontText and backText are required." });
+        }
+        const flashcard = await adminService.createFlashcard(req.body);
+        return res.status(201).json(flashcard);
+    } catch (err: any) {
+        console.error("Create flashcard error:", err);
+        return res.status(400).json({ error: err.message || "Failed to create flashcard." });
+    }
+};
+
+export const updateFlashcard = async (req: Request<{ flashcardId: string }, any, UpdateFlashcardBody>, res: Response) => {
+    try {
+        const flashcardId = Number(req.params.flashcardId);
+        if (Number.isNaN(flashcardId)) {
+            return res.status(400).json({ error: "Invalid flashcardId." });
+        }
+        const flashcard = await adminService.updateFlashcard(flashcardId, req.body);
+        if (!flashcard) return res.status(404).json({ error: "Flashcard not found." });
+        return res.status(200).json(flashcard);
+    } catch (err: any) {
+        console.error("Update flashcard error:", err);
+        return res.status(400).json({ error: err.message || "Failed to update flashcard." });
+    }
+};
+
+export const deleteFlashcard = async (req: Request<{ flashcardId: string }>, res: Response) => {
+    try {
+        const flashcardId = Number(req.params.flashcardId);
+        if (Number.isNaN(flashcardId)) {
+            return res.status(400).json({ error: "Invalid flashcardId." });
+        }
+        const deleted = await adminService.deleteFlashcard(flashcardId);
+        if (!deleted) return res.status(404).json({ error: "Flashcard not found." });
+        return res.status(200).json({ message: "Flashcard deleted successfully." });
+    } catch (err) {
+        console.error("Delete flashcard error:", err);
+        return res.status(500).json({ error: "Failed to delete flashcard." });
+    }
+};
+
+export const bulkCreateFlashcards = async (req: Request<{ lessonId: string }, any, { flashcards: { frontText: string; backText: string }[] }>, res: Response) => {
+    try {
+        const lessonId = Number(req.params.lessonId);
+        const { flashcards } = req.body;
+        if (Number.isNaN(lessonId)) {
+            return res.status(400).json({ error: "Invalid lessonId." });
+        }
+        if (!flashcards || !Array.isArray(flashcards)) {
+            return res.status(400).json({ error: "flashcards array is required." });
+        }
+        await adminService.bulkCreateFlashcards(lessonId, flashcards);
+        return res.status(200).json({ message: "Bulk flashcards created successfully." });
+    } catch (err: any) {
+        console.error("Bulk create flashcards error:", err);
+        return res.status(500).json({ error: err.message || "Failed to bulk create flashcards." });
+    }
+};
+
+// ─────────────────────────────── MINDMAP BULK ──────────────────────────────────
+
+async function saveSectionsRecursively(
+    tx: any,
+    lessonId: number,
+    sections: any[],
+    parentSectionId: number | null = null
+) {
+    for (const sec of sections) {
+        const createdSection = await tx.section.create({
+            data: {
+                name: sec.name,
+                summary: sec.summary || null,
+                position: sec.position || 1,
+                lessonId,
+                parentSectionId,
+            },
+        });
+
+        if (sec.nodes && Array.isArray(sec.nodes)) {
+            for (const node of sec.nodes) {
+                await tx.node.create({
+                    data: {
+                        position: node.position || 1,
+                        header: node.header || null,
+                        body: node.body || "",
+                        imgUrl: node.imgUrl || null,
+                        sectionId: createdSection.id,
+                    },
+                });
+            }
+        }
+
+        if (sec.children && Array.isArray(sec.children)) {
+            await saveSectionsRecursively(tx, lessonId, sec.children, createdSection.id);
+        }
+    }
+}
+
+export const bulkSaveMindMap = async (req: Request<{ lessonId: string }, any, { sections: any[] }>, res: Response) => {
+    try {
+        const lessonId = Number(req.params.lessonId);
+        const { sections } = req.body;
+
+        if (Number.isNaN(lessonId)) {
+            return res.status(400).json({ error: "Invalid lessonId." });
+        }
+        if (!sections || !Array.isArray(sections)) {
+            return res.status(400).json({ error: "sections array is required." });
+        }
+
+        // Ensure all sections and nodes have unique IDs before saving
+        let idCounter = Date.now();
+        const ensureIds = (secs: any[]) => {
+            for (const s of secs) {
+                if (!s.id) {
+                    s.id = idCounter++;
+                }
+                if (s.nodes && Array.isArray(s.nodes)) {
+                    for (const n of s.nodes) {
+                        if (!n.id) {
+                            n.id = idCounter++;
+                        }
+                    }
+                }
+                if (s.children && Array.isArray(s.children)) {
+                    ensureIds(s.children);
+                }
+            }
+        };
+        ensureIds(sections);
+
+        // Save directly to MindMap table
+        await prisma.mindMap.upsert({
+            where: { lessonId },
+            update: { data: { sections } as any },
+            create: { lessonId, data: { sections } as any },
+        });
+
+        return res.status(200).json({ message: "Mind map saved successfully." });
+    } catch (err) {
+        console.error("Bulk save mind map error:", err);
+        return res.status(500).json({ error: "Failed to save mind map in bulk." });
+    }
+};
+
+export const getAdminMindMap = async (req: Request<{ lessonId: string }>, res: Response) => {
+    try {
+        const lessonId = Number(req.params.lessonId);
+        if (Number.isNaN(lessonId)) return res.status(400).json({ error: "Invalid lessonId." });
+
+        const mindMap = await prisma.mindMap.findUnique({
+            where: { lessonId },
+        });
+
+        if (mindMap) {
+            const rawData = mindMap.data as any;
+            if (rawData && Array.isArray(rawData.sections)) {
+                // Ensure legacy data gets IDs on the fly
+                let idCounter = Date.now();
+                const ensureIds = (secs: any[]) => {
+                    for (const s of secs) {
+                        if (!s.id) {
+                            s.id = idCounter++;
+                        }
+                        if (s.nodes && Array.isArray(s.nodes)) {
+                            for (const n of s.nodes) {
+                                if (!n.id) {
+                                    n.id = idCounter++;
+                                }
+                            }
+                        }
+                        if (s.children && Array.isArray(s.children)) {
+                            ensureIds(s.children);
+                        }
+                    }
+                };
+                ensureIds(rawData.sections);
+
+                return res.status(200).json({
+                    id: lessonId,
+                    sections: rawData.sections
+                });
+            }
+        }
+
+        // Fallback to generating from current lesson content (Section & Node tables)
+        const defaultTree = await contentService.getLessonTree(lessonId);
+        return res.status(200).json({
+            id: lessonId,
+            name: defaultTree?.name || "",
+            sections: defaultTree?.sections ?? []
+        });
+    } catch (err) {
+        console.error("Get admin mind map error:", err);
+        return res.status(500).json({ error: "Failed to get mind map." });
+    }
+};
+
+// ─────────────────────────────── AI GENERATE ───────────────────────────────────
+
+export const generateAIContent = async (req: Request<{}, any, { type: "mindmap" | "flashcards"; text: string }>, res: Response) => {
+    try {
+        const { type, text } = req.body;
+        if (!type || !text) {
+            return res.status(400).json({ error: "type and text are required." });
+        }
+
+        if (type === "mindmap") {
+            const data = await aiService.generateMindMap(text);
+            return res.status(200).json(data);
+        } else if (type === "flashcards") {
+            const data = await aiService.generateFlashcards(text);
+            return res.status(200).json(data);
+        } else {
+            return res.status(400).json({ error: "Invalid type. Must be 'mindmap' or 'flashcards'." });
+        }
+    } catch (err: any) {
+        console.error("AI Generation error:", err);
+        return res.status(500).json({ error: err.message || "Failed to generate content using AI." });
     }
 };
 

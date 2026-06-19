@@ -7,6 +7,7 @@ export interface LessonNode {
     header: string | null; // From backend schema [cite: 11]
     body: string; // From backend schema [cite: 11]
     imgUrl: string | null; // From backend schema [cite: 11]
+    isComplete?: boolean | null;
 }
 
 export interface LessonSection {
@@ -16,6 +17,7 @@ export interface LessonSection {
     position: number; // From backend schema [cite: 8]
     children: LessonSection[]; // Self-referencing recursive section tree layout [cite: 10]
     nodes: LessonNode[]; // Bound database node contents [cite: 11]
+    progress?: { totalNodes: number; completedNodes: number } | null;
 }
 
 export interface LessonSummaryData {
@@ -34,7 +36,7 @@ export function useLessonSummary(lessonIdStr: string) {
     const isInvalidId = Number.isNaN(lessonId);
 
     // RTK Query hooks handle internal cache states, reloading flags, and background fetches automatically
-    const { data: lessonData, isLoading, error } = useGetLessonTreeQuery(lessonId, {
+    const { data: lessonData, isLoading, isFetching, error, refetch } = useGetLessonTreeQuery(lessonId, {
         skip: isInvalidId, // Guard execution against malformed route state
     });
 
@@ -43,6 +45,8 @@ export function useLessonSummary(lessonIdStr: string) {
             summaryData: null,
             rootSections: [] as LessonSection[],
             loading: isInvalidId ? false : isLoading,
+            isFetching: false,
+            refetch: () => {},
         };
     }
 
@@ -67,5 +71,7 @@ export function useLessonSummary(lessonIdStr: string) {
         summaryData,
         rootSections,
         loading: isLoading,
+        isFetching,
+        refetch,
     };
 }

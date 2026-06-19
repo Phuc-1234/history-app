@@ -103,7 +103,7 @@ export interface UpdateUserBody {
 
 export interface AdminUserDto {
     id: string;
-    email: string;
+    email: string | null;
     name: string;
     role: string;
     totalXp: number;
@@ -259,4 +259,35 @@ export interface AdminTestDto {
     sectionId: number | null;
     questionIds: number[];
 }
+
+// ─── Flashcard ───────────────────────────────────────────────────────────────
+
+export interface FlashcardDto {
+    id: number;
+    frontText: string;
+    backText: string;
+    lessonId: number | null;
+    sectionId: number | null;
+    nodeId: number | null;
+}
+
+export interface CreateFlashcardBody {
+    frontText: string;
+    backText: string;
+    lessonId?: number;
+    sectionId?: number;
+    nodeId?: number;
+}
+
+export interface UpdateFlashcardBody {
+    frontText?: string;
+    backText?: string;
+    lessonId?: number | null;
+    sectionId?: number | null;
+    nodeId?: number | null;
+}
+
+export type AdminFlashcardResponse = FlashcardDto | { error: string };
+export type AdminFlashcardsResponse = { flashcards: FlashcardDto[] } | { error: string };
+
 

@@ -5,18 +5,14 @@ import {
   View,
   Image,
   TouchableOpacity,
-  Dimensions,
-} from 'react-native'; 
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router'; 
-
-const { width } = Dimensions.get('window');
+import { useRouter } from 'expo-router';
 
 export default function OnboardingScreen2() {
-  const router = useRouter(); 
-  
-  // Hàm ghi nhận trạng thái đã xem qua toàn bộ onboarding khi người dùng bấm bỏ qua
+  const router = useRouter();
+
   const setOnboardingComplete = async () => {
     try {
       await AsyncStorage.setItem('hasSeenOnboarding', 'true');
@@ -28,58 +24,53 @@ export default function OnboardingScreen2() {
   const handleSkip = async () => {
     console.log('Bỏ qua onboarding ở màn 2');
     await setOnboardingComplete(); 
-    // router.replace('/(1_auth)'); // Chuyển thẳng tới cụm chức năng đăng nhập
-  };
+    // Đưa về màn hình welcome tổng của luồng auth thay vì chỉ vào thẳng form login đơn lẻ
+    router.replace("/(tabs)/2_1_lessons");
+  }; 
 
   const handleNext = () => {
-    console.log('Chuyển sang màn hình onboarding 3');
-    // Khi bấm tiếp tục, hệ thống sẽ đẩy sang màn hình 3. 
-    // Sau khi tạo xong file screen3.tsx trong cùng thư mục (routing), lệnh này sẽ tự động liên kết mượt mà.
-    router.push('/(routing)/welcome'); 
+    console.log('Chuyển sang màn hình welcome ');
+   router.push('/(routing)/welcome'); 
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Nút Bỏ qua ở góc trên bên phải */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleSkip}>
           <Text style={styles.skipText}>Bỏ qua</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Khu vực chứa hình minh họa nhà thám hiểm game hóa */}
       <View style={styles.imageContainer}>
         <Image
-          source={require('../../../assets/images/onboarding2.png')} 
+          source={require('../../../assets/images/onboarding2.png')}
           style={styles.illustrationImage}
           resizeMode="contain"
         />
       </View>
 
-      {/* Khung màu trắng chứa thông tin text và nút thao tác */}
       <View style={styles.contentContainer}>
         <Text style={styles.title}>Học mà chơi, chơi mà học</Text>
-        
+
         <Text style={styles.description}>
           Tích lũy XP, thu thập huy hiệu, leo bảng xếp hạng và thách đấu 1v1 với bạn bè. Ôn tập bằng thẻ lật thông minh!
         </Text>
 
-        {/* Cụm dấu chấm chuyển trang: Chấm số 2 chuyển thành thanh dài màu tím chủ đạo */}
         <View style={styles.paginationContainer}>
           <View style={styles.dot} />
           <View style={[styles.dot, styles.activeDot]} />
           <View style={styles.dot} />
         </View>
 
-        {/* Nút Tiếp tục */}
         <TouchableOpacity style={styles.button} onPress={handleNext}>
-          <Text style={styles.buttonText}>Tiếp tục  ➔</Text>
+          <Text style={styles.buttonText}>Tiếp tục ➔</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
+// 📦 STYLE ĐÃ ĐƯỢC DUỖI DỌC TOÀN BỘ THEO Ý HỒNG:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -97,17 +88,16 @@ const styles = StyleSheet.create({
     color: '#4B49E7',
   },
   imageContainer: {
-   flex: 1.4,               
+    flex: 1.4,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',           
-    paddingHorizontal: 0,    
+    width: '100%',
+    paddingHorizontal: 0,
     marginTop: 10,
   },
   illustrationImage: {
     width: '90%',
     height: '100%',
-    // borderRadius: 16,
   },
   contentContainer: {
     flex: 1,
@@ -119,7 +109,10 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 5,
@@ -155,7 +148,7 @@ const styles = StyleSheet.create({
   },
   activeDot: {
     width: 20,
-    backgroundColor: '#5346E0', // Màu xanh tím đồng bộ với nút bấm theo thiết kế UI của bạn
+    backgroundColor: '#5346E0',
   },
   button: {
     width: '100%',
@@ -166,7 +159,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     shadowColor: '#5346E0',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,

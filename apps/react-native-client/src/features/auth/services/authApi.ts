@@ -29,7 +29,6 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body: credentials,
             }),
-            invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
@@ -53,6 +52,9 @@ export const authApi = apiSlice.injectEndpoints({
 
                         // Automatically sync global profile store instantly
                         dispatch(setProfile(data.profile));
+
+                        // Safely trigger User tag invalidation after storage write finishes to avoid race conditions
+                        dispatch(apiSlice.util.invalidateTags(["User"]));
                     } else {
                         console.warn("[authApi] login response does not contain session:", data);
                     }
@@ -85,7 +87,6 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
-            invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
@@ -106,10 +107,51 @@ export const authApi = apiSlice.injectEndpoints({
                         ]);
 
                         dispatch(setProfile(data.profile));
+
+                        // Safely trigger User tag invalidation after storage write finishes to avoid race conditions
+                        dispatch(apiSlice.util.invalidateTags(["User"]));
                     }
                 } catch (error) {
                     console.error(
                         "Failed to execute onQueryStarted googleVerify side-effects:",
+                        error,
+                    );
+                }
+            },
+        }),
+
+        facebookVerify: builder.mutation<LoginResponseBody, { accessToken: string }>({
+            query: (body) => ({
+                url: "/api/auth/facebook/verify",
+                method: "POST",
+                body,
+            }),
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    console.log("[authApi] facebookVerify success, data:", data);
+
+                    if (data && "session" in data && data.session) {
+                        if (Platform.OS === "web") {
+                            try {
+                                localStorage.setItem("access_token", data.session.accessToken);
+                                localStorage.setItem("refresh_token", data.session.refreshToken);
+                            } catch (e) {
+                                console.error("localStorage setItem failed:", e);
+                            }
+                        }
+                        await AsyncStorage.multiSet([
+                            ["access_token", data.session.accessToken],
+                            ["refresh_token", data.session.refreshToken],
+                        ]);
+
+                        dispatch(setProfile(data.profile));
+
+                        dispatch(apiSlice.util.invalidateTags(["User"]));
+                    }
+                } catch (error) {
+                    console.error(
+                        "Failed to execute onQueryStarted facebookVerify side-effects:",
                         error,
                     );
                 }
@@ -125,7 +167,6 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body, // Matches backend structure processing verification tokens
             }),
-            invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
@@ -146,6 +187,9 @@ export const authApi = apiSlice.injectEndpoints({
                             ["refresh_token", data.session.refreshToken],
                         ]);
                         dispatch(setProfile(data.profile));
+
+                        // Safely trigger User tag invalidation after storage write finishes to avoid race conditions
+                        dispatch(apiSlice.util.invalidateTags(["User"]));
                     }
                 } catch (error) {
                     console.error(
@@ -315,6 +359,7 @@ export const {
     useUpdateUserEmailMutation,
     useUpdateUserPasswordMutation,
     useGoogleVerifyMutation,
+    useFacebookVerifyMutation,
     useForgotPasswordMutation,
     useVerifyForgotOtpMutation,
     useCompleteResetMutation,

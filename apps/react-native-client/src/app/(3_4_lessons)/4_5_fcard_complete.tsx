@@ -1,6 +1,6 @@
 import React from "react";
 import { useRouter } from "expo-router";
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { FlashcardCompleteScreen } from "../../features/flashcard";
 
 export default function FlashcardCompleteRoute() {
@@ -10,12 +10,12 @@ export default function FlashcardCompleteRoute() {
         if (router.canGoBack()) {
             router.back();
         } else {
-            router.replace("/(tabs)/lesson");
+            router.replace("/(tabs)/lesson" as any);
         }
     };
 
     return (
-        <TopBarWrapper
+        <ScreenWrapper
             branchConfig={{
                 hierarchy: "LỚP SỬ 10 > CHƯƠNG I",
                 title: "Sử học và đời sống",
@@ -23,6 +23,6 @@ export default function FlashcardCompleteRoute() {
             }}
         >
             <FlashcardCompleteScreen />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

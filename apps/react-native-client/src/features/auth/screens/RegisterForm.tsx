@@ -1,22 +1,22 @@
+import React from "react";
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
 import { User, Lock, Mail } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
-import SocialLoginButtons from "../components/SocialLoginButtons";
-import useRegisterForm from "../hooks/useRegisterForm"; // Using your brand new hook
+import useRegisterForm from "../hooks/useRegisterForm";
+import useAuthForm from "../hooks/useAuthForm";
+import colors from "../../../theme/colors";
 
 export default function RegisterForm() {
     const {
@@ -28,109 +28,195 @@ export default function RegisterForm() {
         setPassword,
         confirmPassword,
         setConfirmPassword,
-        formError,
+        nameError,
+        emailError,
+        passwordError,
+        confirmPasswordError,
         isLoading,
         navigateToLogin,
-        handleRegister,
+        handleRegisterSubmit,
     } = useRegisterForm();
+
+    const { handleGoogleLogin, handleFacebookLogin, isGoogleLoading, isFacebookLoading } = useAuthForm();
+    const isAnyLoading = isLoading || isGoogleLoading || isFacebookLoading;
+
     const insets = useSafeAreaInsets();
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
             style={styles.keyboardAvoid}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
             <ScrollView
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={[
                     styles.scrollContainer,
-                    { paddingBottom: Math.max(insets.bottom, 20) }
+                    {
+                        paddingTop: Math.max(insets.top, 40),
+                        paddingBottom: Math.max(insets.bottom, 20),
+                    },
                 ]}
-                bounces={false}
-                keyboardShouldPersistTaps="handled"
             >
-                <LinearGradient
-                    colors={["#4332eb", "#593df2", "#7b4fff"]}
-                    style={styles.banner}
-                >
-                    <View style={styles.logoContainer}>
-                        <Svg width="50" height="40" viewBox="0 0 24 24">
-                            <Path
-                                d="M12 21C12 21 7 18 2 20V5C7 3 12 6 12 6C12 6 17 3 22 5V20C17 18 12 21 12 21Z"
-                                fill="white"
-                            />
-                        </Svg>
-                        <Text style={styles.star}>★</Text>
-                    </View>
-                    <Text style={styles.welcomeText}>Chào mừng!</Text>
-                    <Text style={styles.subText}>Tạo tài khoản để bắt đầu học</Text>
-                </LinearGradient>
+                {/* Abstract Background Shapes */}
+                <View style={styles.bgShape1} pointerEvents="none" />
+                <View style={styles.bgShape2} pointerEvents="none" />
+                <View style={styles.bgShape3} pointerEvents="none" />
 
+                {/* Logo Section */}
+                <View style={styles.logoContainer}>
+                    <Text style={styles.logoText}>Sắc Sử</Text>
+                    <Text style={styles.logoSubtitle}>ứng dụng học và làm đề lịch sử</Text>
+                </View>
+
+                {/* Welcome Heading */}
+                <View style={styles.headerContainer}>
+                    <Text style={styles.welcomeText}>Tạo tài khoản</Text>
+                    <Text style={styles.subText}>
+                        Đăng ký tài khoản mới để bắt đầu học tập
+                    </Text>
+                </View>
+
+                {/* Form Inputs Container */}
                 <View style={styles.formContainer}>
-                    <Text style={styles.title}>Đăng ký</Text>
+                    {/* Name Input */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.fieldLabel}>Họ và tên</Text>
+                        <Input
+                            icon={User}
+                            placeholder="Nhập họ và tên của bạn"
+                            value={name}
+                            autoCapitalize="words"
+                            onChangeText={setName}
+                            editable={!isAnyLoading}
+                            style={styles.customInput}
+                        />
+                        {nameError ? (
+                            <Text style={styles.fieldErrorText}>{nameError}</Text>
+                        ) : null}
+                    </View>
 
-                    {/* Display client/backend errors gracefully above fields */}
-                    {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
-
-                    <Input
-                        icon={User}
-                        placeholder="Tên"
-                        value={name}
-                        autoCapitalize="words"
-                        onChangeText={setName}
-                        editable={!isLoading}
-                    />
-                    <Input
-                        icon={Mail} // Using separate Mail icon if available for clarity
-                        placeholder="Email"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        editable={!isLoading}
-                    />
-                    <Input
-                        icon={Lock}
-                        placeholder="Mật khẩu"
-                        isPassword
-                        value={password}
-                        onChangeText={setPassword}
-                        autoCapitalize="none"
-                        editable={!isLoading}
-                    />
-                    <Input
-                        icon={Lock}
-                        placeholder="Xác nhận mật khẩu"
-                        isPassword
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        autoCapitalize="none"
-                        editable={!isLoading}
-                    />
-
-                    {isLoading ? (
-                        <View style={styles.loadingWrapper}>
-                            <ActivityIndicator size="small" color="#593df2" />
+                    {/* Email Input */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.fieldLabel}>Địa chỉ Email</Text>
+                        <View style={styles.emailContainer}>
+                            <Input
+                                icon={Mail}
+                                placeholder="Nhập địa chỉ email của bạn"
+                                value={email}
+                                onChangeText={(text) => setEmail(text.trim())}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                editable={!isAnyLoading}
+                                style={styles.customInput}
+                            />
+                            {email.length > 0 && !email.includes("@") && (
+                                <View style={styles.ghostTextWrapper} pointerEvents="none">
+                                    <Text style={styles.textMeasureHidden}>{email}</Text>
+                                    <Text style={styles.ghostEmailText}>@gmail.com</Text>
+                                </View>
+                            )}
                         </View>
-                    ) : (
-                        <Button title="Đăng ký" onPress={handleRegister} />
-                    )}
+                        {emailError ? (
+                            <Text style={styles.fieldErrorText}>{emailError}</Text>
+                        ) : null}
+                    </View>
 
+                    {/* Password Input */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.fieldLabel}>Mật khẩu</Text>
+                        <Input
+                            icon={Lock}
+                            placeholder="Nhập mật khẩu"
+                            isPassword
+                            value={password}
+                            onChangeText={setPassword}
+                            autoCapitalize="none"
+                            editable={!isAnyLoading}
+                            style={styles.customInput}
+                        />
+                        {passwordError ? (
+                            <Text style={styles.fieldErrorText}>{passwordError}</Text>
+                        ) : null}
+                    </View>
+
+                    {/* Confirm Password Input */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.fieldLabel}>Xác nhận mật khẩu</Text>
+                        <Input
+                            icon={Lock}
+                            placeholder="Nhập lại mật khẩu"
+                            isPassword
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            autoCapitalize="none"
+                            editable={!isAnyLoading}
+                            style={styles.customInput}
+                        />
+                        {confirmPasswordError ? (
+                            <Text style={styles.fieldErrorText}>{confirmPasswordError}</Text>
+                        ) : null}
+                    </View>
+
+                    {/* Register Button */}
+                    <Button
+                        title={isAnyLoading ? "Đang xử lý..." : "Đăng ký"}
+                        variant="secondary"
+                        onPress={isAnyLoading ? () => {} : handleRegisterSubmit}
+                        disabled={isAnyLoading}
+                    />
+
+                    {/* Divider */}
                     <View style={styles.dividerContainer}>
                         <View style={styles.line} />
-                        <Text style={styles.dividerText}>HOẶC ĐĂNG KÝ BẰNG</Text>
+                        <Text style={styles.dividerText}>Hoặc đăng ký bằng</Text>
                         <View style={styles.line} />
                     </View>
 
-                    <SocialLoginButtons />
-
-                    <View style={styles.footer}>
-                        <Text style={styles.footerText}>Đã có tài khoản? </Text>
+                    {/* Social Registration */}
+                    <View style={styles.socialRow}>
                         <TouchableOpacity
-                            activeOpacity={0.6}
-                            onPress={navigateToLogin}
-                            disabled={isLoading}
+                            style={styles.socialBtn}
+                            activeOpacity={0.7}
+                            onPress={handleGoogleLogin}
+                            disabled={isAnyLoading}
                         >
-                            <Text style={styles.registerText}>Đăng nhập</Text>
+                            <Svg width="18" height="18" viewBox="0 0 24 24">
+                                <Path
+                                    fill="#FFFFFF"
+                                    d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.13-5.136 4.13A5.727 5.727 0 0 1 8.24 12.8a5.727 5.727 0 0 1 5.751-5.73c2.44 0 4.296 1.1 5.074 2.1l3.22-3.22C20.165 3.9 17.26 2 13.991 2 7.92 2 3 6.92 3 13s4.92 11 10.991 11c6.28 0 10.459-4.41 10.459-10.636 0-.645-.06-1.08-.2-1.58H12.24z"
+                                />
+                            </Svg>
+                            <Text style={styles.socialBtnText}>GOOGLE</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.socialBtn}
+                            activeOpacity={0.7}
+                            onPress={handleFacebookLogin}
+                            disabled={isAnyLoading}
+                        >
+                            <Svg width="18" height="18" fill="#FFFFFF" viewBox="0 0 24 24">
+                                <Path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                            </Svg>
+                            <Text style={styles.socialBtnText}>FACEBOOK</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>
+                            Đã có tài khoản?{" "}
+                        </Text>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={navigateToLogin}
+                            disabled={isAnyLoading}
+                        >
+                            <Text style={styles.loginText}>
+                                Đăng nhập
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -142,72 +228,178 @@ export default function RegisterForm() {
 const styles = StyleSheet.create({
     keyboardAvoid: {
         flex: 1,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.background,
     },
-    scrollContainer: { flexGrow: 1, backgroundColor: "#FFFFFF" },
-    banner: {
-        paddingTop: 65,
-        paddingBottom: 55,
+    scrollContainer: {
+        flexGrow: 1,
+        backgroundColor: colors.background,
+        paddingHorizontal: 28,
+        position: "relative",
+    },
+    bgShape1: {
+        position: "absolute",
+        width: 140,
+        height: 140,
+        borderRadius: 40,
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        transform: [{ rotate: "45deg" }],
+        top: 60,
+        left: -40,
+    },
+    bgShape2: {
+        position: "absolute",
+        width: 180,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        transform: [{ rotate: "-35deg" }],
+        bottom: 150,
+        right: -60,
+    },
+    bgShape3: {
+        position: "absolute",
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        top: "40%",
+        right: -30,
+    },
+    logoContainer: {
         alignItems: "center",
         justifyContent: "center",
+        marginTop: 20,
+        marginBottom: 30,
     },
-    errorText: { color: "#FF3B30", fontSize: 14, fontWeight: "600", marginBottom: 12, textAlign: "center" },
-    loadingWrapper: { height: 48, justifyContent: "center", alignItems: "center" },
-    logoContainer: { position: "relative", marginBottom: 12 },
-    star: {
-        position: "absolute",
-        top: -10,
-        alignSelf: "center",
-        color: "#FFA800",
-        fontSize: 16,
+    logoText: {
+        fontSize: 38,
+        fontWeight: "900",
+        color: colors.secondary,
+        letterSpacing: 2,
+        textShadowColor: "rgba(0, 0, 0, 0.25)",
+        textShadowOffset: { width: 0, height: 4 },
+        textShadowRadius: 4,
+    },
+    logoSubtitle: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: colors.textMuted,
+        marginTop: 6,
+        textAlign: "center",
+    },
+    headerContainer: {
+        marginBottom: 32,
     },
     welcomeText: {
-        color: "#FFFFFF",
-        fontSize: 22,
-        fontWeight: "700",
-        marginBottom: 4,
+        color: colors.textLight,
+        fontSize: 28,
+        fontWeight: "800",
+        marginBottom: 6,
     },
     subText: {
-        color: "#E0DBFF",
-        fontSize: 12,
-        fontWeight: "400",
-        opacity: 0.85,
+        color: colors.textMuted,
+        fontSize: 15,
+        fontWeight: "500",
     },
     formContainer: {
         flex: 1,
-        backgroundColor: "#FFFFFF",
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        marginTop: -26,
-        paddingHorizontal: 24,
-        paddingTop: 28,
     },
-    title: {
-        fontSize: 20,
+    inputGroup: {
+        marginBottom: 18,
+    },
+    fieldLabel: {
+        color: colors.textLight,
+        fontSize: 15,
         fontWeight: "700",
-        color: "#1A202C",
-        marginBottom: 16,
+        marginBottom: 8,
+    },
+    customInput: {
+        backgroundColor: colors.inputBackground,
+        color: colors.textDark,
+        borderRadius: 30,
+    },
+    emailContainer: {
+        position: "relative",
+        justifyContent: "center",
+    },
+    ghostTextWrapper: {
+        position: "absolute",
+        left: 58,
+        flexDirection: "row",
+        alignItems: "center",
+        height: "100%",
+        paddingBottom: 2,
+    },
+    textMeasureHidden: {
+        fontSize: 15,
+        color: "transparent",
+    },
+    ghostEmailText: {
+        fontSize: 15,
+        color: colors.textPlaceholder,
+        opacity: 0.6,
+    },
+    fieldErrorText: {
+        color: "#FFD2D2",
+        fontSize: 13,
+        fontWeight: "600",
+        marginTop: 6,
+        paddingLeft: 4,
     },
     dividerContainer: {
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: 20,
+        marginVertical: 24,
     },
-    line: { flex: 1, height: 1, backgroundColor: "#E2E8F0" },
+    line: {
+        flex: 1,
+        height: 1,
+        backgroundColor: colors.divider,
+    },
     dividerText: {
-        fontSize: 10,
+        fontSize: 13,
+        fontWeight: "500",
+        color: colors.textMuted,
+        paddingHorizontal: 16,
+    },
+    socialRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: 12,
+        marginBottom: 24,
+    },
+    socialBtn: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: colors.googleBorder,
+        borderRadius: 28,
+        height: 56,
+        gap: 10,
+        backgroundColor: "transparent",
+    },
+    socialBtnText: {
+        fontSize: 14,
         fontWeight: "700",
-        color: "#A0AEC0",
-        paddingHorizontal: 12,
+        color: colors.textLight,
         letterSpacing: 0.5,
     },
     footer: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 30,
+        marginTop: 16,
         marginBottom: 20,
     },
-    footerText: { fontSize: 13, color: "#718096", fontWeight: "400" },
-    registerText: { fontSize: 13, fontWeight: "700", color: "#4B3BF6" },
+    footerText: {
+        fontSize: 14,
+        color: colors.textMuted,
+    },
+    loginText: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.secondary,
+    },
 });

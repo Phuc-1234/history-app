@@ -1,8 +1,6 @@
-// features/auth/hooks/useRegisterForm.ts
 import { useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { useRegisterUserMutation } from "../services/authApi";
-import { Alert } from "react-native";
 
 export default function useRegisterForm() {
     const router = useRouter();
@@ -15,6 +13,12 @@ export default function useRegisterForm() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [formError, setFormError] = useState<string | null>(null);
 
+    // Validation States
+    const [nameError, setNameError] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
     const navigateToLogin = useCallback(() => {
         router.push("/(1_auth)/1_1_login");
     }, [router]);
@@ -22,7 +26,6 @@ export default function useRegisterForm() {
     const handleRegister = useCallback(async () => {
         setFormError(null);
 
-        // Simple Frontend Validation Safeguards
         if (!name.trim() || !email.trim() || !password || !confirmPassword) {
             setFormError("Vui lòng nhập đầy đủ tất cả các trường.");
             return;
@@ -46,7 +49,6 @@ export default function useRegisterForm() {
                 confirmPassword,
             };
 
-            // unwrap() extracts the direct success data or throws if it's an error status
             const response = await registerUser(payload).unwrap();
 
             if ("error" in response) {
@@ -54,12 +56,88 @@ export default function useRegisterForm() {
                 return;
             }
 
-            // Route to your updated 8-digit OTP screen passing along the target email parameter context
             router.push({
                 pathname: "/(1_auth)/1_6_otp_confirm",
                 params: { email: email.trim().toLowerCase() },
             });
-            
+        } catch (err: any) {
+            console.error("Registration dispatch error:", err);
+            const backendError =
+                err?.data?.error || "Đăng ký thất bại. Vui lòng thử lại.";
+            setFormError(backendError);
+        }
+    }, [name, email, password, confirmPassword, registerUser, router]);
+
+    const handleRegisterSubmit = useCallback(async () => {
+        const cleanName = name.trim();
+        const cleanEmail = email.trim();
+        let hasError = false;
+
+        // 1. Kiểm tra ô Tên
+        if (!cleanName) {
+            setNameError("Bạn chưa nhập tên!");
+            hasError = true;
+        } else {
+            setNameError("");
+        }
+
+        // 2. Kiểm tra ô Email
+        if (!cleanEmail) {
+            setEmailError("Vui lòng nhập email!");
+            hasError = true;
+        } else {
+            setEmailError("");
+        }
+
+        // 3. Kiểm tra ô Mật khẩu
+        if (!password) {
+            setPasswordError("Vui lòng nhập mật khẩu!");
+            hasError = true;
+        } else if (password.length < 6) {
+            setPasswordError("Mật khẩu phải có ít nhất 6 ký tự!");
+            hasError = true;
+        } else {
+            setPasswordError("");
+        }
+
+        // 4. Kiểm tra ô Xác nhận mật khẩu
+        if (!confirmPassword) {
+            setConfirmPasswordError("Vui lòng nhập xác nhận mật khẩu!");
+            hasError = true;
+        } else if (password !== confirmPassword) {
+            setConfirmPasswordError("Mật khẩu xác nhận không trùng khớp!");
+            hasError = true;
+        } else {
+            setConfirmPasswordError("");
+        }
+
+        if (hasError) return;
+
+        let finalEmail = cleanEmail;
+        if (!cleanEmail.includes("@")) {
+            finalEmail = `${cleanEmail}@gmail.com`;
+            setEmail(finalEmail);
+        }
+
+        try {
+            const payload = {
+                name: cleanName,
+                email: finalEmail.toLowerCase(),
+                password,
+                confirmPassword,
+            };
+
+            const response = await registerUser(payload).unwrap();
+
+            if ("error" in response) {
+                setFormError(response.error);
+                return;
+            }
+
+            router.push({
+                pathname: "/(1_auth)/1_6_otp_confirm",
+                params: { email: finalEmail.toLowerCase() },
+            });
         } catch (err: any) {
             console.error("Registration dispatch error:", err);
             const backendError = err?.data?.error || "Đăng ký thất bại. Vui lòng thử lại.";
@@ -77,8 +155,17 @@ export default function useRegisterForm() {
         confirmPassword,
         setConfirmPassword,
         formError,
+        nameError,
+        setNameError,
+        emailError,
+        setEmailError,
+        passwordError,
+        setPasswordError,
+        confirmPasswordError,
+        setConfirmPasswordError,
         isLoading,
         navigateToLogin,
         handleRegister,
+        handleRegisterSubmit,
     };
 }

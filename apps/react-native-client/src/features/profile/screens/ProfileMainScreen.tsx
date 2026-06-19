@@ -1,6 +1,5 @@
 import React from "react";
 import {
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -13,13 +12,14 @@ import { appLogout } from "@/features/auth/store/authSlice";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import ProfileAvatar from "../components/ProfileAvatar";
 import ProfileMenuItem from "../components/ProfileMenuItem";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 
 export default function ProfileMainScreen() {
     const router = useRouter();
     const dispatch = useAppDispatch();
 
     // Auto-subscribe to profile updates
-    useGetProfileQuery();
+    const { refetch, isFetching } = useGetProfileQuery();
 
     const profile = useAppSelector((state) => state.auth.profile);
 
@@ -39,17 +39,29 @@ export default function ProfileMainScreen() {
         router.push("/(10_proflie)/10_4_test_history");
     };
 
+    const handleOpenFriends = () => {
+        router.push("/(social)/friends" as never);
+    };
+
+    const handleOpenChallenges = () => {
+        router.push("/(social)/challenges" as never);
+    };
+
     const handleLogout = async () => {
         await dispatch(appLogout());
         router.replace("/(1_auth)/1_1_login");
     };
 
     return (
-        <ScrollView
-            style={styles.container}
+        <ScreenWrapper
+            enableScroll={true}
+            enableRefresh={true}
+            refreshing={isFetching}
+            onRefresh={refetch}
             contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
+            style={styles.container}
         >
+            <View>
             <View style={styles.avatarSection}>
                 <ProfileAvatar
                     uri={profile?.profileImgUrl}
@@ -82,6 +94,16 @@ export default function ProfileMainScreen() {
                     onPress={handleViewHistory}
                 />
                 <ProfileMenuItem
+                    icon="people-outline"
+                    label="Bạn bè & theo dõi"
+                    onPress={handleOpenFriends}
+                />
+                <ProfileMenuItem
+                    icon="flash-outline"
+                    label="Thi đấu với bạn bè"
+                    onPress={handleOpenChallenges}
+                />
+                <ProfileMenuItem
                     icon="link-outline"
                     label="Liên kết tài khoản"
                     onPress={handleLinkAccounts}
@@ -96,7 +118,8 @@ export default function ProfileMainScreen() {
                 <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
                 <Text style={styles.logoutText}>Đăng xuất</Text>
             </TouchableOpacity>
-        </ScrollView>
+            </View>
+        </ScreenWrapper>
     );
 }
 

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { TopBarWrapper } from "../../features/top_bar";
+import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import MindMapScreen from "../../features/mind-map/components/MindMapScreen";
 import type { MindMapQuery } from "../../features/mind-map/mindMapApi";
 
@@ -30,7 +30,7 @@ export default function MindMapRoute() {
     };
 
     return (
-        <TopBarWrapper
+        <ScreenWrapper
             branchConfig={{
                 hierarchy: "LỚP SỬ 10",
                 title: "Sơ đồ tư duy",
@@ -39,6 +39,6 @@ export default function MindMapRoute() {
             }}
         >
             <MindMapScreen query={query} />
-        </TopBarWrapper>
+        </ScreenWrapper>
     );
 }

@@ -32,6 +32,14 @@ import {
     createTest,
     updateTest,
     deleteTest,
+    listFlashcards,
+    createFlashcard,
+    updateFlashcard,
+    deleteFlashcard,
+    bulkCreateFlashcards,
+    bulkSaveMindMap,
+    getAdminMindMap,
+    generateAIContent,
 } from "../controllers/adminController";
 
 const router = Router();
@@ -137,5 +145,32 @@ router.patch("/tests/:testId", updateTest);
 
 // DELETE /api/admin/tests/:testId
 router.delete("/tests/:testId", deleteTest);
+
+// ─── Flashcard ───────────────────────────────────────────────────────────────
+// GET    /api/admin/flashcards
+router.get("/flashcards", listFlashcards);
+
+// POST   /api/admin/flashcards
+router.post("/flashcards", createFlashcard);
+
+// PATCH  /api/admin/flashcards/:flashcardId
+router.patch("/flashcards/:flashcardId", updateFlashcard);
+
+// DELETE /api/admin/flashcards/:flashcardId
+router.delete("/flashcards/:flashcardId", deleteFlashcard);
+
+// POST   /api/admin/lessons/:lessonId/flashcards/bulk
+router.post("/lessons/:lessonId/flashcards/bulk", bulkCreateFlashcards);
+
+// ─── MindMap Bulk ────────────────────────────────────────────────────────────
+// GET    /api/admin/lessons/:lessonId/mindmap
+router.get("/lessons/:lessonId/mindmap", getAdminMindMap);
+
+// POST   /api/admin/lessons/:lessonId/mindmap/bulk
+router.post("/lessons/:lessonId/mindmap/bulk", bulkSaveMindMap);
+
+// ─── AI Generate ─────────────────────────────────────────────────────────────
+// POST   /api/admin/ai/generate
+router.post("/ai/generate", generateAIContent);
 
 export default router;
