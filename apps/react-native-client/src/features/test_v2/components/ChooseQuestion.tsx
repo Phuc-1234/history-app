@@ -153,7 +153,7 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
                         textStyle.push(styles.textMissing);
                         badge = (
                             <View style={[styles.badge, styles.badgeMissing]}>
-                                <Text style={styles.badgeTextMissing}>Đáp án đúng</Text>
+                                <Text style={styles.badgeTextMissing}>Đáp án đúng bỏ lỡ</Text>
                             </View>
                         );
                     }
