@@ -31,7 +31,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
         <View style={styles.container}>
             {/* --- Main Stats Bar --- */}
             {showStatsBar && data && (
-                <View style={styles.purpleBar}>
+                <View style={[styles.purpleBar, branchConfig && styles.purpleBarWithBranch]}>
                     {!data.isLoggedIn ? (
                         /* Anonymous UI View state */
                         <View style={styles.notLoggedInContainer}>
@@ -154,7 +154,8 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: colors.background,
         zIndex: 5,
-        elevation: 5,
+        borderBottomWidth: 2,
+        borderBottomColor: colors.borderDark,
     },
     purpleBar: {
         backgroundColor: colors.background,
@@ -163,8 +164,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 16,
+    },
+    purpleBarWithBranch: {
         borderBottomWidth: 1,
-        borderBottomColor: colors.borderLight,
+        borderBottomColor: colors.borderMedium,
     },
     userSection: {
         flexDirection: "row",
@@ -248,8 +251,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 16,
         paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.borderLight,
         backgroundColor: colors.background,
     },
     backButton: {

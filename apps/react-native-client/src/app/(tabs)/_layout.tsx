@@ -69,7 +69,8 @@ export default function TabsLayout() {
 
                 tabBarStyle: {
                     backgroundColor: colors.surfaceVariant,
-                    borderTopWidth: 0,
+                    borderTopWidth: 2,
+                    borderTopColor: colors.borderDark,
                     elevation: 0,
                     shadowOpacity: 0,
 
@@ -82,12 +83,6 @@ export default function TabsLayout() {
 
                     // FIX: Add horizontal padding to prevent edge icons from clipping
                     paddingHorizontal: 16,
-
-                    borderTopLeftRadius: 24,
-                    borderTopRightRadius: 24,
-
-                   
-                    
                 },
 
                 tabBarButton: ({
@@ -205,7 +200,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         height: 40,
         width: Platform.OS === "web" ? 72 : 64,
-        borderRadius: 20,
+        borderRadius: 10,
         // Removed any system margins that were offsetting icons inside layout views
     },
     activePillBackground: {

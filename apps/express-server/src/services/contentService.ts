@@ -554,16 +554,30 @@ export class ContentService {
 
         // Fetch completed node IDs if logged in
         const completedNodeIds = new Set<number>();
+        const passedTestIds = new Set<string>();
         if (userId) {
-            const progresses = await prisma.userNodeProgress.findMany({
-                where: {
-                    userId,
-                    nodeId: { in: allNodes.map((n) => n.id) },
-                    nodeCompletedAt: { not: null },
-                },
-                select: { nodeId: true },
-            });
+            const [progresses, passedTests] = await Promise.all([
+                prisma.userNodeProgress.findMany({
+                    where: {
+                        userId,
+                        nodeId: { in: allNodes.map((n) => n.id) },
+                        nodeCompletedAt: { not: null },
+                    },
+                    select: { nodeId: true },
+                }),
+                prisma.userTestLog.findMany({
+                    where: {
+                        userId,
+                        isPassed: true,
+                    },
+                    select: { testId: true },
+                }),
+            ]);
+
             for (const p of progresses) completedNodeIds.add(p.nodeId);
+            for (const pt of passedTests) {
+                if (pt.testId) passedTestIds.add(pt.testId);
+            }
         }
 
         let gradeTotal = 0;
@@ -596,9 +610,7 @@ export class ContentService {
                     summary: lesson.summary ?? null,
                     position: lesson.position,
                     topicId: lesson.topicId,
-                    progress: userId
-                        ? { totalNodes: lessonTotal, completedNodes: lessonCompleted }
-                        : null,
+                    progress: { totalNodes: lessonTotal, completedNodes: userId ? lessonCompleted : 0 },
                 };
             });
 
@@ -617,11 +629,10 @@ export class ContentService {
                           title: firstTopicTest.title,
                           questionNumber: firstTopicTest.questionNumber,
                           timeLimit: firstTopicTest.timeLimit,
+                          isPassed: passedTestIds.has(firstTopicTest.id),
                       }
                     : null,
-                progress: userId
-                    ? { totalNodes: topicTotal, completedNodes: topicCompleted }
-                    : null,
+                progress: { totalNodes: topicTotal, completedNodes: userId ? topicCompleted : 0 },
             };
         });
 
@@ -633,11 +644,10 @@ export class ContentService {
                       title: gradeTest.title,
                       questionNumber: gradeTest.questionNumber,
                       timeLimit: gradeTest.timeLimit,
+                      isPassed: passedTestIds.has(gradeTest.id),
                   }
                 : null,
-            progress: userId
-                ? { totalNodes: gradeTotal, completedNodes: gradeCompleted }
-                : null,
+            progress: { totalNodes: gradeTotal, completedNodes: userId ? gradeCompleted : 0 },
         };
     }
 
