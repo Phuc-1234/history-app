@@ -15,6 +15,7 @@ import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import { useChangePassword } from "../hooks/useChangePassword";
 import SubPageHeader from "../components/SubPageHeader";
+import { colors } from "../../../theme/colors";
 
 const text = {
     title: "Sửa mật khẩu",
@@ -126,7 +127,7 @@ export default function PasswordChangeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F8F5FC",
+        backgroundColor: colors.background,
     },
     flex: {
         flex: 1,
@@ -138,26 +139,23 @@ const styles = StyleSheet.create({
         paddingBottom: 24,
     },
     card: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 12,
+        backgroundColor: colors.surface,
+        borderRadius: 5,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         paddingHorizontal: 24,
         paddingTop: 26,
         paddingBottom: 24,
-        shadowColor: "#7C6AF2",
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.12,
-        shadowRadius: 24,
-        elevation: 7,
     },
     description: {
-        color: "#7C7787",
+        color: colors.textSecondary,
         fontSize: 14,
         lineHeight: 22,
         textAlign: "center",
         marginBottom: 26,
     },
     fieldLabel: {
-        color: "#242330",
+        color: colors.textPrimary,
         fontSize: 14,
         lineHeight: 20,
         fontWeight: "700",
@@ -165,7 +163,7 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     errorText: {
-        color: "#E53E3E",
+        color: colors.error,
         fontSize: 12,
         lineHeight: 17,
         marginTop: -8,
@@ -179,14 +177,14 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     feedbackSuccess: {
-        color: "#38A169",
+        color: colors.success,
     },
     feedbackError: {
-        color: "#E53E3E",
+        color: colors.error,
     },
     buttonContainer: {
         paddingHorizontal: 30,
         paddingTop: 12,
-        backgroundColor: "#F8F5FC",
+        backgroundColor: colors.background,
     },
 });

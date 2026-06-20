@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
+import { colors } from "../../../theme/colors";
 
 interface PodiumSectionProps {
     topUsers: DisplayUser[];
@@ -119,14 +120,14 @@ const createStyles = (isSmallDevice: boolean) =>
             height: isSmallDevice ? 54 : 58,
             borderRadius: isSmallDevice ? 27 : 29,
             borderWidth: 2,
-            borderColor: "#B7B7B7",
-            backgroundColor: "#DDD",
+            borderColor: colors.borderDark,
+            backgroundColor: colors.surfaceVariant,
         },
         rank1Avatar: {
             width: isSmallDevice ? 68 : 72,
             height: isSmallDevice ? 68 : 72,
             borderRadius: isSmallDevice ? 34 : 36,
-            borderColor: "#F5A000",
+            borderColor: colors.secondary,
             borderWidth: 3,
         },
         rankNumberBadge: {
@@ -139,15 +140,15 @@ const createStyles = (isSmallDevice: boolean) =>
             justifyContent: "center",
             alignItems: "center",
             borderWidth: 2,
-            borderColor: "#FFFFFF",
+            borderColor: colors.surface,
         },
-        rank1Badge: { backgroundColor: "#F5A000" },
-        rank2Badge: { backgroundColor: "#B4B4B4" },
-        rank3Badge: { backgroundColor: "#D98B35" },
-        rankNumberText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700" },
+        rank1Badge: { backgroundColor: colors.secondary },
+        rank2Badge: { backgroundColor: colors.success },
+        rank3Badge: { backgroundColor: colors.primary },
+        rankNumberText: { color: colors.textLight, fontSize: 11, fontWeight: "700" },
         podiumName: {
             marginTop: 10,
-            color: "#202020",
+            color: colors.textPrimary,
             fontSize: isSmallDevice ? 11 : 12,
             fontWeight: "500",
             textAlign: "center",
@@ -160,7 +161,7 @@ const createStyles = (isSmallDevice: boolean) =>
         rank1Xp: {
             fontSize: isSmallDevice ? 13 : 14,
             fontWeight: "700",
-            color: "#F29B00",
+            color: colors.secondary,
             marginTop: 3,
             marginBottom: 8,
             textAlign: "center",
@@ -168,7 +169,7 @@ const createStyles = (isSmallDevice: boolean) =>
         rank2Xp: {
             fontSize: isSmallDevice ? 11 : 12,
             fontWeight: "600",
-            color: "#4E3FE0",
+            color: colors.success,
             marginTop: 4,
             marginBottom: 8,
             textAlign: "center",
@@ -176,26 +177,26 @@ const createStyles = (isSmallDevice: boolean) =>
         rank3Xp: {
             fontSize: isSmallDevice ? 11 : 12,
             fontWeight: "600",
-            color: "#4E3FE0",
+            color: colors.primary,
             marginTop: 4,
             marginBottom: 8,
             textAlign: "center",
         },
         podiumBase: {
             width: "92%",
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
+            borderTopLeftRadius: 5,
+            borderTopRightRadius: 5,
         },
         rank1Base: {
             height: isSmallDevice ? 96 : 102,
-            backgroundColor: "#4B37DB",
+            backgroundColor: colors.secondary,
         },
         rank2Base: {
             height: isSmallDevice ? 62 : 66,
-            backgroundColor: "#6A58EB",
+            backgroundColor: colors.success,
         },
         rank3Base: {
             height: isSmallDevice ? 46 : 50,
-            backgroundColor: "#9183EA",
+            backgroundColor: colors.primary,
         },
     });

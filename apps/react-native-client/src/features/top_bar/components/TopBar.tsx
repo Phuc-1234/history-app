@@ -10,99 +10,109 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ProcessedTopBarData } from "../hooks/useTopBarData";
+import { colors } from "../../../theme/colors";
 
 interface TopBarProps {
-    data: ProcessedTopBarData;
+    data?: ProcessedTopBarData;
+    showStatsBar?: boolean;
     branchConfig?: {
         hierarchy: string;
-        title: string;
+        title?: string;
         subtitle?: string;
         onBackPress?: () => void;
+        onHomePress?: () => void;
+        uppercaseHierarchy?: boolean;
     };
     onOpenStreak?: () => void;
 }
 
-export function TopBar({ data, branchConfig, onOpenStreak }: TopBarProps) {
+export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }: TopBarProps) {
     const router = useRouter();
 
     return (
         <View style={styles.container}>
-            {/* --- Main Purple Stats Bar --- */}
-            <View style={styles.purpleBar}>
-                {!data.isLoggedIn ? (
-                    /* Anonymous UI View state */
-                    <View style={styles.notLoggedInContainer}>
-                        <View style={styles.promptTextContainer}>
-                            <Ionicons
-                                name="person-circle-outline"
-                                size={32}
-                                color="rgba(255, 255, 255, 0.8)"
-                            />
-                            <Text style={styles.promptText} numberOfLines={2}>
-                                Đăng nhập để lưu tiến trình học tập của bạn!
-                            </Text>
+            {/* --- Main Stats Bar --- */}
+            {showStatsBar && data && (
+                <View style={[styles.purpleBar, branchConfig && styles.purpleBarWithBranch]}>
+                    {!data.isLoggedIn ? (
+                        /* Anonymous UI View state */
+                        <View style={styles.notLoggedInContainer}>
+                            <View style={styles.promptTextContainer}>
+                                <Ionicons
+                                    name="person-circle-outline"
+                                    size={32}
+                                    color={colors.primary}
+                                />
+                                <Text style={styles.promptText} numberOfLines={2}>
+                                    Đăng nhập để lưu tiến trình học tập của bạn!
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.loginButton}
+                                activeOpacity={0.8}
+                                onPress={() => router.push("/(1_auth)/1_1_login")}
+                            >
+                                <Text style={styles.loginButtonText}>Đăng nhập</Text>
+                            </TouchableOpacity>
                         </View>
-                        <TouchableOpacity
-                            style={styles.loginButton}
-                            activeOpacity={0.8}
-                            onPress={() => router.push("/(1_auth)/1_1_login")}
-                        >
-                            <Text style={styles.loginButtonText}>Đăng nhập</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    /* Authenticated State UI View */
-                    <>
-                        <View style={styles.userSection}>
-                            <Image source={{ uri: data.avatarUri }} style={styles.avatar} />
-                            <Text style={styles.nameText} numberOfLines={1}>
-                                {data.name}
-                            </Text>
-                        </View>
-
-                        <View style={styles.statsContainer}>
-                            {/* XP Chip */}
-                            <View style={styles.chip}>
-                                {data.badgeImgUrl ? (
-                                    <Image
-                                        source={{ uri: data.badgeImgUrl }}
-                                        style={styles.badgeIcon}
-                                    />
-                                ) : (
-                                    <Ionicons name="ribbon" size={16} color="#FF9500" />
-                                )}
-                                <Text style={styles.chipText}>{data.totalXp}XP</Text>
+                    ) : (
+                        /* Authenticated State UI View */
+                        <>
+                            <View style={styles.userSection}>
+                                <Image source={{ uri: data.avatarUri }} style={styles.avatar} />
+                                <Text style={styles.nameText} numberOfLines={1}>
+                                    {data.name}
+                                </Text>
                             </View>
 
-                            {/* Gold Chip */}
-                            <TouchableOpacity
-                                style={styles.chip}
-                                activeOpacity={0.7}
-                                onPress={() => router.push("/(tabs)/8_2_buy_gold")}
-                            >
-                                <Ionicons
-                                    name="logo-usd"
-                                    size={14}
-                                    color="#FFA500"
-                                    style={styles.goldIcon}
-                                />
-                                <Text style={styles.chipText}>{data.totalGold}</Text>
-                            </TouchableOpacity>
+                            <View style={styles.statsContainer}>
+                                {/* XP Chip */}
+                                <View style={styles.chip}>
+                                    {data.badgeImgUrl ? (
+                                        <Image
+                                            source={{ uri: data.badgeImgUrl }}
+                                            style={styles.badgeIcon}
+                                        />
+                                    ) : (
+                                        <Ionicons name="ribbon" size={20} color={colors.secondary} />
+                                    )}
+                                    <Text style={[styles.chipText, { color: colors.secondary }]}>
+                                        {data.totalXp}XP
+                                    </Text>
+                                </View>
 
+                                {/* Gold Chip */}
+                                <TouchableOpacity
+                                    style={styles.chip}
+                                    activeOpacity={0.7}
+                                    onPress={() => router.push("/(tabs)/8_2_buy_gold")}
+                                >
+                                    <Ionicons
+                                        name="logo-usd"
+                                        size={18}
+                                        color={colors.secondary}
+                                    />
+                                    <Text style={[styles.chipText, { color: colors.secondary }]}>
+                                        {data.totalGold}
+                                    </Text>
+                                </TouchableOpacity>
 
-                            {/* Streak Chip */}
-                            <TouchableOpacity
-                                style={styles.chip}
-                                activeOpacity={0.7}
-                                onPress={onOpenStreak}
-                            >
-                                <Ionicons name="flame" size={16} color="#FF9500" />
-                                <Text style={styles.chipText}>{data.currentStreak}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </>
-                )}
-            </View>
+                                {/* Streak Chip */}
+                                <TouchableOpacity
+                                    style={styles.chip}
+                                    activeOpacity={0.7}
+                                    onPress={onOpenStreak}
+                                >
+                                    <Ionicons name="flame" size={20} color={colors.streak} />
+                                    <Text style={[styles.chipText, { color: colors.streak }]}>
+                                        {data.currentStreak}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </>
+                    )}
+                </View>
+            )}
 
             {/* --- Optional Branch Bar Layout Block --- */}
             {branchConfig && (
@@ -112,22 +122,32 @@ export function TopBar({ data, branchConfig, onOpenStreak }: TopBarProps) {
                         style={styles.backButton}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="arrow-back" size={24} color="#3A3A3C" />
+                        <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
                     </TouchableOpacity>
 
                     <View style={styles.branchTextContainer}>
                         <Text style={styles.hierarchyText}>
-                            {branchConfig.hierarchy.toUpperCase()}
+                            {branchConfig.uppercaseHierarchy ? branchConfig.hierarchy.toUpperCase() : branchConfig.hierarchy}
                         </Text>
-                        <Text style={styles.titleText}>
-                            {branchConfig.title}
-                        </Text>
+                        {branchConfig.title ? (
+                            <Text style={styles.titleText}>
+                                {branchConfig.title}
+                            </Text>
+                        ) : null}
                         {branchConfig.subtitle && (
                             <Text style={styles.subtitleText}>
                                 {branchConfig.subtitle}
                             </Text>
                         )}
                     </View>
+
+                    <TouchableOpacity
+                        onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/2_1_lessons"))}
+                        style={styles.homeButton}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="home-outline" size={24} color={colors.textSecondary} />
+                    </TouchableOpacity>
                 </View>
             )}
         </View>
@@ -135,32 +155,132 @@ export function TopBar({ data, branchConfig, onOpenStreak }: TopBarProps) {
 }
 
 const styles = StyleSheet.create({
-    container: { backgroundColor: "#FFF", zIndex: 5, elevation: 5 },
+    container: {
+        backgroundColor: colors.background,
+        zIndex: 5,
+        borderBottomWidth: 2,
+        borderBottomColor: colors.borderDark,
+    },
     purpleBar: {
-        backgroundColor: "#5856D6",
+        backgroundColor: colors.background,
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 16,
     },
-    userSection: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 },
-    nameText: { color: "#FFF", fontSize: 14, fontWeight: "700", marginLeft: 8, flexShrink: 1 },
-    avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: "#E5E5EA" },
-    statsContainer: { flexDirection: "row", marginLeft: "auto", gap: 6 },
-    chip: { backgroundColor: "rgba(255, 255, 255, 0.18)", flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, gap: 4 },
-    badgeIcon: { width: 16, height: 16, resizeMode: "contain" },
-    goldIcon: { backgroundColor: "#FF9500", borderRadius: 7, paddingHorizontal: 2 },
-    chipText: { color: "#FFF", fontSize: 14, fontWeight: "700" },
-    notLoggedInContainer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" },
-    promptTextContainer: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: 12, gap: 8 },
-    promptText: { color: "#FFF", fontSize: 14, fontWeight: "600", flexShrink: 1 },
-    loginButton: { backgroundColor: "#FFF", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-    loginButtonText: { color: "#5856D6", fontSize: 14, fontWeight: "700" },
-    branchBar: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F2F2F7" },
-    backButton: { marginRight: 12, paddingTop: 2 },
-    branchTextContainer: { flex: 1 },
-    hierarchyText: { fontSize: 12, fontWeight: "600", color: "#8E8E93", letterSpacing: 0.5, marginBottom: 2 },
-    titleText: { fontSize: 22, fontWeight: "700", color: "#1C1C1E" },
-    subtitleText: { fontSize: 15, color: "#8E8E93", marginTop: 2 },
+    purpleBarWithBranch: {
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borderMedium,
+    },
+    userSection: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1,
+        marginRight: 8,
+    },
+    nameText: {
+        color: colors.textPrimary,
+        fontSize: 14,
+        fontWeight: "700",
+        marginLeft: 8,
+        flexShrink: 1,
+    },
+    avatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        borderWidth: 2,
+        borderColor: colors.borderMedium,
+    },
+    statsContainer: {
+        flexDirection: "row",
+        marginLeft: "auto",
+        gap: 12,
+    },
+    chip: {
+        backgroundColor: "transparent",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 4,
+        paddingVertical: 4,
+        gap: 4,
+    },
+    badgeIcon: {
+        width: 20,
+        height: 20,
+        resizeMode: "contain",
+    },
+    chipText: {
+        fontSize: 15,
+        fontWeight: "700",
+    },
+    notLoggedInContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+    },
+    promptTextContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1,
+        marginRight: 12,
+        gap: 8,
+    },
+    promptText: {
+        color: colors.textPrimary,
+        fontSize: 14,
+        fontWeight: "600",
+        flexShrink: 1,
+    },
+    loginButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    loginButtonText: {
+        color: colors.textLight,
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    branchBar: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: colors.background,
+    },
+    backButton: {
+        marginRight: 12,
+    },
+    homeButton: {
+        marginLeft: 12,
+    },
+    branchTextContainer: {
+        flex: 1,
+    },
+    hierarchyText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: colors.textMuted,
+        letterSpacing: 0.5,
+        marginBottom: 2,
+    },
+    titleText: {
+        fontSize: 22,
+        fontWeight: "700",
+        color: colors.textPrimary,
+    },
+    subtitleText: {
+        fontSize: 15,
+        color: colors.textMuted,
+        marginTop: 2,
+    },
 });

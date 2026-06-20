@@ -14,6 +14,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRegisterOtp } from "../hooks/useRegisterOtp";
 import colors from "../../../theme/colors";
+import HistoricalBackground from "../../../components/layout/HistoricalBackground";
 
 const text = {
     headline: "Xác thực tài khoản",
@@ -76,16 +77,14 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                     contentContainerStyle={[
                         styles.scrollContainer,
                         {
-                            paddingTop: Math.max(insets.top, 50),
+                            paddingTop: Math.max(insets.top, 20),
                             paddingBottom: Math.max(insets.bottom, 20),
                         },
                     ]}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Abstract Background Shapes */}
-                    <View style={styles.bgShape1} pointerEvents="none" />
-                    <View style={styles.bgShape2} pointerEvents="none" />
-                    <View style={styles.bgShape3} pointerEvents="none" />
+                    {/* Historical Background Motifs */}
+                    <HistoricalBackground />
 
                     {/* Logo Section */}
                     <View style={styles.logoContainer}>
@@ -184,49 +183,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 28,
         position: "relative",
     },
-    bgShape1: {
-        position: "absolute",
-        width: 140,
-        height: 140,
-        borderRadius: 40,
-        backgroundColor: "rgba(255, 255, 255, 0.08)",
-        transform: [{ rotate: "45deg" }],
-        top: 60,
-        left: -40,
-    },
-    bgShape2: {
-        position: "absolute",
-        width: 180,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        transform: [{ rotate: "-35deg" }],
-        bottom: 150,
-        right: -60,
-    },
-    bgShape3: {
-        position: "absolute",
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: "rgba(255, 255, 255, 0.04)",
-        top: "40%",
-        right: -30,
-    },
     logoContainer: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 20,
-        marginBottom: 30,
+        marginTop: 10,
+        marginBottom: 16,
     },
     logoText: {
         fontSize: 38,
         fontWeight: "900",
-        color: colors.secondary,
+        color: colors.primary,
         letterSpacing: 2,
-        textShadowColor: "rgba(0, 0, 0, 0.25)",
-        textShadowOffset: { width: 0, height: 4 },
-        textShadowRadius: 4,
+        textShadowColor: "rgba(0, 0, 0, 0.15)",
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 3,
     },
     logoSubtitle: {
         fontSize: 14,
@@ -236,10 +206,10 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     headerContainer: {
-        marginBottom: 28,
+        marginBottom: 16,
     },
     headlineText: {
-        color: colors.textLight,
+        color: colors.textDark,
         fontSize: 28,
         fontWeight: "800",
         textAlign: "center",
@@ -252,14 +222,13 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     emailText: {
-        color: colors.textLight,
+        color: colors.primary,
         fontWeight: "700",
     },
     formContainer: {
-        flex: 1,
     },
     cardTitle: {
-        color: colors.textLight,
+        color: colors.textDark,
         fontSize: 20,
         fontWeight: "700",
         textAlign: "center",
@@ -269,32 +238,32 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         fontSize: 14,
         textAlign: "center",
-        marginBottom: 28,
+        marginBottom: 16,
     },
     otpRow: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
-        marginBottom: 28,
+        marginBottom: 16,
     },
     otpBox: {
         borderRadius: 14,
-        backgroundColor: "rgba(255, 255, 255, 0.15)",
+        backgroundColor: "rgba(0, 0, 0, 0.05)",
         borderWidth: 1.5,
-        borderColor: "rgba(255, 255, 255, 0.25)",
+        borderColor: "rgba(0, 0, 0, 0.1)",
         textAlign: "center",
         fontWeight: "800",
-        color: colors.textLight,
+        color: colors.textDark,
         padding: 0,
     },
     otpBoxFilled: {
         backgroundColor: colors.inputBackground,
-        borderColor: colors.secondary,
+        borderColor: colors.primary,
         color: colors.textDark,
     },
     errorText: {
-        color: "#FFD2D2",
+        color: colors.textError,
         fontSize: 13,
         fontWeight: "600",
         textAlign: "center",
@@ -303,18 +272,18 @@ const styles = StyleSheet.create({
     primaryButton: {
         height: 56,
         borderRadius: 28,
-        backgroundColor: colors.secondary,
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: colors.secondary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
         shadowRadius: 5,
         elevation: 4,
-        marginTop: 12,
+        marginTop: 8,
     },
     primaryText: {
-        color: colors.textDark,
+        color: colors.textLight,
         fontSize: 16,
         fontWeight: "800",
     },
@@ -325,7 +294,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 32,
+        marginTop: 16,
         gap: 6,
     },
     resendText: {
@@ -333,7 +302,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     resendLink: {
-        color: colors.secondary,
+        color: colors.primary,
         fontSize: 15,
         fontWeight: "700",
     },

@@ -1341,6 +1341,18 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "New Request",
+          "id": "2ff5eb85-052b-4ead-b16b-88e1a6c3799c",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
         }
       ],
       "id": "a32619a0-5959-41f7-bf56-b7965a566afc"

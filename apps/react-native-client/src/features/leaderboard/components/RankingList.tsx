@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
+import { colors } from "../../../theme/colors";
 
 interface RankingListProps {
     rankingList: DisplayUser[];
@@ -61,8 +62,10 @@ const createStyles = (isSmallDevice: boolean) =>
         rankRow: {
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: "#F7F7F7",
-            borderRadius: 14,
+            backgroundColor: colors.surface,
+            borderRadius: 5,
+            borderWidth: 2,
+            borderColor: colors.borderDark,
             paddingHorizontal: 16,
             paddingVertical: 14,
             marginBottom: 14,
@@ -72,39 +75,39 @@ const createStyles = (isSmallDevice: boolean) =>
             marginRight: 10,
             fontSize: 15,
             fontWeight: "500",
-            color: "#4A4A58",
+            color: colors.textSecondary,
         },
         rowAvatar: {
             width: 40,
             height: 40,
             borderRadius: 20,
             marginRight: 14,
-            backgroundColor: "#DDD",
+            backgroundColor: colors.surfaceVariant,
         },
         rowDefaultAvatar: {
             width: 40,
             height: 40,
             borderRadius: 20,
             marginRight: 14,
-            backgroundColor: "#7D56C8",
+            backgroundColor: colors.primary,
             justifyContent: "center",
             alignItems: "center",
         },
         rowDefaultAvatarText: {
-            color: "#FFFFFF",
+            color: colors.textLight,
             fontSize: 16,
             fontWeight: "700",
         },
         rowName: {
             flex: 1,
             fontSize: isSmallDevice ? 14 : 15,
-            color: "#222222",
+            color: colors.textPrimary,
             fontWeight: "500",
             marginRight: 8,
         },
         rowXp: {
             fontSize: isSmallDevice ? 14 : 15,
-            color: "#4E3FE0",
+            color: colors.primary,
             fontWeight: "700",
         },
     });

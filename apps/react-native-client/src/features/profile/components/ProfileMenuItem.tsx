@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../../theme/colors";
 
 interface ProfileMenuItemProps {
     icon: keyof typeof Ionicons.glyphMap;
@@ -19,11 +20,9 @@ export default function ProfileMenuItem({
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <View style={styles.iconContainer}>
-                <Ionicons name={icon} size={22} color="#5856D6" />
-            </View>
+            <Ionicons name={icon} size={22} color={colors.primary} style={styles.icon} />
             <Text style={styles.label}>{label}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </TouchableOpacity>
     );
 }
@@ -32,32 +31,21 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.surface,
         paddingVertical: 16,
         paddingHorizontal: 20,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "#F0EEF6",
+        borderRadius: 5,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         marginBottom: 12,
-        shadowColor: "#5856D6",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 1,
     },
-    iconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: "#F3F1FC",
-        alignItems: "center",
-        justifyContent: "center",
+    icon: {
         marginRight: 14,
     },
     label: {
         flex: 1,
         fontSize: 15,
         fontWeight: "600",
-        color: "#2D2D3A",
+        color: colors.textPrimary,
     },
 });
