@@ -74,6 +74,18 @@ export const colors = {
     googleBorder: "#E2E8F0",
     facebookBackground: "#1877F2",
     facebookText: "#FFFFFF",
+
+    // -------------------------------------------------------------
+    // Match Questions Matching Cells
+    // -------------------------------------------------------------
+    matchColors: [
+        { bg: "#EFF6FF", border: "#3B82F6", text: "#1E40AF" }, // Blue
+        { bg: "#ECFDF5", border: "#10B981", text: "#065F46" }, // Green
+        { bg: "#FFFBEB", border: "#F59E0B", text: "#78350F" }, // Yellow/Amber
+        { bg: "#FAF5FF", border: "#A855F7", text: "#5B21B6" }, // Purple
+        { bg: "#FEF2F2", border: "#EF4444", text: "#991B1B" }, // Red
+        { bg: "#FFF7ED", border: "#F97316", text: "#7C2D12" }, // Orange
+    ],
 };
 
 export default colors;

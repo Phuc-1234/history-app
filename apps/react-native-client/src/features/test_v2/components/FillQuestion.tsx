@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import type { QuestionV2, FillAnswerData, UserFillAnswer, QuestionEvalResult } from "../types";
+import { colors } from "../../../theme/colors";
 
 interface Props {
     question: QuestionV2;
@@ -33,7 +34,7 @@ export default function FillQuestion({ question, userAnswer, onAnswer, showFeedb
                 value={localText}
                 onChangeText={handleChange}
                 placeholder="Nhập câu trả lời của bạn..."
-                placeholderTextColor="#A0AEC0"
+                placeholderTextColor={colors.textPlaceholder}
                 editable={!disabled && !(showFeedback && evalResult)}
                 returnKeyType="done"
             />
@@ -51,27 +52,27 @@ export default function FillQuestion({ question, userAnswer, onAnswer, showFeedb
 
 const styles = StyleSheet.create({
     container: { gap: 10 },
-    label: { fontSize: 13, fontWeight: "600", color: "#718096" },
+    label: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
     input: {
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface,
         borderWidth: 1.5,
-        borderColor: "#E5E7EB",
-        borderRadius: 16,
+        borderColor: colors.borderMedium,
+        borderRadius: 5,
         padding: 14,
         fontSize: 15,
         fontWeight: "600",
-        color: "#2D3748",
+        color: colors.textPrimary,
     },
-    inputCorrect: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
-    inputWrong: { borderColor: "#EF4444", backgroundColor: "#FEF2F2" },
+    inputCorrect: { borderColor: colors.success, backgroundColor: colors.successContainer },
+    inputWrong: { borderColor: colors.error, backgroundColor: colors.errorContainer },
     feedbackContainer: {
-        backgroundColor: "#ECFDF5",
-        borderRadius: 12,
+        backgroundColor: colors.successContainer,
+        borderRadius: 5,
         padding: 12,
         flexDirection: "row",
         gap: 8,
         alignItems: "center",
     },
-    feedbackLabel: { fontSize: 13, fontWeight: "600", color: "#718096" },
-    feedbackValue: { fontSize: 14, fontWeight: "700", color: "#059669", flex: 1 },
+    feedbackLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+    feedbackValue: { fontSize: 14, fontWeight: "700", color: colors.textSuccess, flex: 1 },
 });

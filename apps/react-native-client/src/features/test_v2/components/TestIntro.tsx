@@ -41,7 +41,7 @@ export default function TestIntro({
 
     if (loading) {
         return (
-            <ScreenWrapper showTopBar={false} branchConfig={branchConfig}>
+            <ScreenWrapper showTopBar={false} branchConfig={branchConfig} >
                 <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
                     <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={{ marginTop: 16, color: colors.textMuted, fontWeight: "700", fontSize: 14 }}>

@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import Animated, { FadeInLeft, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
+import { Check } from "lucide-react-native";
 import type { QuestionV2, ChooseAnswerData, UserChooseAnswer, QuestionEvalResult } from "../types";
 import { isSingleChoice } from "../services/scoreEngine";
+import { colors } from "../../../theme/colors";
 
 interface Props {
     question: QuestionV2;
@@ -77,11 +79,19 @@ function ChooseOptionItem({
                             showCorrect && !isSelected && isCorrect && (single ? styles.radioMissing : styles.checkboxMissing),
                         ]}>
                             {isSelected && (
-                                <View style={[
-                                    single ? styles.radioDot : styles.checkboxInner,
-                                    showCorrect && isCorrect && (single ? styles.radioDotCorrect : styles.checkboxInnerCorrect),
-                                    showCorrect && !isCorrect && (single ? styles.radioDotWrong : styles.checkboxInnerWrong),
-                                ]} />
+                                single ? (
+                                    <View style={[
+                                        styles.radioDot,
+                                        showCorrect && isCorrect && styles.radioDotCorrect,
+                                        showCorrect && !isCorrect && styles.radioDotWrong,
+                                    ]} />
+                                ) : (
+                                    <Check
+                                        size={12}
+                                        color={colors.textLight}
+                                        strokeWidth={4}
+                                    />
+                                )
                             )}
                         </View>
                         <Text style={textStyle}>
@@ -115,7 +125,7 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
     return (
         <View style={styles.container}>
             <Text style={styles.label}>
-                {single ? "Chọn một đáp án:" : "Chọn nhiều đáp án:"}
+                {single ? "Chọn một đáp án:" : "Chọn 1-4 đáp án:"}
             </Text>
             {data.options.map((option, idx) => {
                 const isSelected = selectedOptions.includes(idx);
@@ -180,53 +190,53 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
 
 const styles = StyleSheet.create({
     container: { gap: 10 },
-    label: { fontSize: 13, fontWeight: "600", color: "#718096", marginBottom: 4 },
+    label: { fontSize: 13, fontWeight: "600", color: colors.textMuted, marginBottom: 4 },
     option: {
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface,
         borderWidth: 1.5,
-        borderColor: "#E5E7EB",
-        borderRadius: 16,
+        borderColor: colors.borderMedium,
+        borderRadius: 5,
         padding: 14,
     },
-    optionSelected: { borderColor: "#5D45F9", backgroundColor: "#F5F3FF" },
-    optionSelectedMultiple: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
-    optionCorrect: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
-    optionWrong: { borderColor: "#EF4444", backgroundColor: "#FEF2F2" },
-    optionMissing: { borderColor: "#F59E0B", backgroundColor: "#FFFBEB", borderStyle: "dashed" },
+    optionSelected: { backgroundColor: colors.primary, borderWidth: 0 },
+    optionSelectedMultiple: { backgroundColor: colors.primary, borderWidth: 0 },
+    optionCorrect: { backgroundColor: colors.success, borderWidth: 0 },
+    optionWrong: { backgroundColor: colors.error, borderWidth: 0 },
+    optionMissing: { borderColor: colors.warning, backgroundColor: colors.warningContainer, borderStyle: "dashed" },
     optionRow: { flexDirection: "row", alignItems: "center", gap: 10 },
     radio: {
-        width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: "#D1D5DB",
+        width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.borderDark,
         justifyContent: "center", alignItems: "center",
     },
-    radioSelected: { borderColor: "#5D45F9" },
-    radioCorrect: { borderColor: "#10B981" },
-    radioWrong: { borderColor: "#EF4444" },
-    radioMissing: { borderColor: "#F59E0B", borderStyle: "dashed" },
-    radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#5D45F9" },
-    radioDotCorrect: { backgroundColor: "#10B981" },
-    radioDotWrong: { backgroundColor: "#EF4444" },
+    radioSelected: { borderColor: colors.textLight },
+    radioCorrect: { borderColor: colors.textLight },
+    radioWrong: { borderColor: colors.textLight },
+    radioMissing: { borderColor: colors.warning, borderStyle: "dashed" },
+    radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.textLight },
+    radioDotCorrect: { backgroundColor: colors.textLight },
+    radioDotWrong: { backgroundColor: colors.textLight },
     checkbox: {
-        width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: "#D1D5DB",
+        width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: colors.borderDark,
         justifyContent: "center", alignItems: "center",
     },
-    checkboxSelected: { borderColor: "#2563EB" },
-    checkboxCorrect: { borderColor: "#10B981" },
-    checkboxWrong: { borderColor: "#EF4444" },
-    checkboxMissing: { borderColor: "#F59E0B", borderStyle: "dashed" },
-    checkboxInner: { width: 10, height: 10, borderRadius: 2, backgroundColor: "#2563EB" },
-    checkboxInnerCorrect: { backgroundColor: "#10B981" },
-    checkboxInnerWrong: { backgroundColor: "#EF4444" },
-    optionText: { fontSize: 14, fontWeight: "600", color: "#4A5568", flex: 1 },
-    textSelected: { color: "#5D45F9" },
-    textSelectedMultiple: { color: "#2563EB" },
-    textCorrect: { color: "#065F46" },
-    textWrong: { color: "#991B1B" },
-    textMissing: { color: "#B45309" },
-    badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginLeft: 8 },
-    badgeCorrect: { backgroundColor: "#D1FAE5" },
-    badgeWrong: { backgroundColor: "#FEE2E2" },
-    badgeMissing: { backgroundColor: "#FEF3C7" },
-    badgeTextCorrect: { fontSize: 11, fontWeight: "700", color: "#065F46" },
-    badgeTextWrong: { fontSize: 11, fontWeight: "700", color: "#991B1B" },
-    badgeTextMissing: { fontSize: 11, fontWeight: "700", color: "#B45309" },
+    checkboxSelected: { borderColor: colors.textLight },
+    checkboxCorrect: { borderColor: colors.textLight },
+    checkboxWrong: { borderColor: colors.textLight },
+    checkboxMissing: { borderColor: colors.warning, borderStyle: "dashed" },
+    checkboxInner: { width: 10, height: 10, borderRadius: 2, backgroundColor: colors.info },
+    checkboxInnerCorrect: { backgroundColor: colors.success },
+    checkboxInnerWrong: { backgroundColor: colors.error },
+    optionText: { fontSize: 14, fontWeight: "600", color: colors.textSecondary, flex: 1 },
+    textSelected: { color: colors.textLight },
+    textSelectedMultiple: { color: colors.textLight },
+    textCorrect: { color: colors.textLight },
+    textWrong: { color: colors.textLight },
+    textMissing: { color: colors.textWarning },
+    badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5, marginLeft: 8 },
+    badgeCorrect: { backgroundColor: colors.successContainer },
+    badgeWrong: { backgroundColor: colors.errorContainer },
+    badgeMissing: { backgroundColor: colors.warningContainer },
+    badgeTextCorrect: { fontSize: 11, fontWeight: "700", color: colors.textSuccess },
+    badgeTextWrong: { fontSize: 11, fontWeight: "700", color: colors.textError },
+    badgeTextMissing: { fontSize: 11, fontWeight: "700", color: colors.textWarning },
 });

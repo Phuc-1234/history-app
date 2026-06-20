@@ -117,7 +117,7 @@ export function ExpandableSection({
                                                 : "chevron-forward"
                                         }
                                         size={14}
-                                        color={node.isComplete ? colors.success : colors.textMuted}
+                                        color={node.isComplete ? colors.textLight : colors.textMuted}
                                         style={styles.nodeChevron}
                                     />
                                 </TouchableOpacity>
@@ -212,7 +212,8 @@ const styles = StyleSheet.create({
         borderRadius: 5,
     },
     nodeRowCompleted: {
-        backgroundColor: colors.successContainer,
+        backgroundColor: colors.success,
+        borderWidth: 0,
     },
     bulletPoint: {
         width: 6,
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
         flexShrink: 0,
     },
     bulletPointCompleted: {
-        backgroundColor: colors.success,
+        backgroundColor: colors.textLight,
     },
     nodeText: {
         flex: 1,
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     nodeTextCompleted: {
-        color: colors.textPrimary,
+        color: colors.textLight,
         fontWeight: "600",
     },
     nodeChevron: {
