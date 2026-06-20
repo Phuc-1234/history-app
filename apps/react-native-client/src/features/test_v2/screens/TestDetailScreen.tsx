@@ -18,6 +18,7 @@ import type {
     UserMatchAnswer,
 } from "../types";
 import { colors } from "../../../theme/colors";
+import Mascot from "@/components/Mascot";
 
 export default function TestDetailScreen() {
     const { logId } = useLocalSearchParams<{ logId: string }>();
@@ -63,17 +64,15 @@ export default function TestDetailScreen() {
             >
                 {/* Result Card */}
                 <View style={styles.bannerCard}>
-                    <Text style={styles.bannerEmoji}>
-                        {userTestLog.isPassed ? "🎉" : "💪"}
-                    </Text>
+                    <Mascot expression={userTestLog.isPassed ? "happy" : "sad"} />
                     <View style={styles.scoreRow}>
                         <Text style={styles.bannerScore}>{scoreDisplay}</Text>
-                        <Text style={styles.bannerScoreMax}>/10</Text>
+                        <Text style={styles.bannerScoreMax}>/10</Text> 
                     </View>
                     <Text style={styles.bannerSubtext}>
                         {userTestLog.isPassed
-                            ? "Đạt yêu cầu"
-                            : "Chưa đạt yêu cầu"}{" "}
+                            ? "Đạt"
+                            : "Chưa đạt"}{" "}
                         • Lần {userTestLog.attemptNumber}
                     </Text>
                     <Text style={styles.bannerDate}>{dateStr}</Text>
@@ -311,7 +310,15 @@ function MatchReview({
     correctAnswer: MatchAnswerData;
 }) {
     const userPairs = userAnswer?.pairs ?? [];
-    const correctPairs = correctAnswer.pairs ?? [];
+    const rawCorrectPairs = correctAnswer.pairs ?? [];
+    const correctPairs = rawCorrectPairs.map((p: any) => {
+        if (!p) return { left: "", right: "" };
+        if (typeof p.left === "string" && typeof p.right === "string") return p;
+        const keys = Object.keys(p);
+        const left = keys[0] ?? "";
+        const right = typeof p[left] === "string" ? p[left] : "";
+        return { left, right };
+    });
 
     return (
         <View style={styles.matchReviewContainer}>
@@ -336,16 +343,14 @@ function MatchReview({
                         ]}
                     >
                         <View style={styles.matchReviewRowTop}>
-                            <Text style={styles.matchReviewLeftText}>
+                            <Text style={[styles.matchReviewLeftText, styles.textLight]}>
                                 {pair.left}
                             </Text>
-                            <Text style={styles.matchReviewArrow}>→</Text>
+                            <Text style={[styles.matchReviewArrow, styles.textLight]}>→</Text>
                             <Text
                                 style={[
                                     styles.matchReviewRightText,
-                                    isPairCorrect
-                                        ? styles.textGreen
-                                        : styles.textRed,
+                                    styles.textLight,
                                 ]}
                             >
                                 {userPair?.right ?? "(Chưa ghép)"}
@@ -468,12 +473,12 @@ const styles = StyleSheet.create({
         padding: 12,
     },
     optCorrect: {
-        borderColor: colors.success,
-        backgroundColor: colors.successContainer,
+        backgroundColor: colors.success,
+        borderWidth: 0,
     },
     optWrong: {
-        borderColor: colors.error,
-        backgroundColor: colors.errorContainer,
+        backgroundColor: colors.error,
+        borderWidth: 0,
     },
     optMissing: {
         borderColor: colors.warning,
@@ -481,8 +486,8 @@ const styles = StyleSheet.create({
         borderStyle: "dashed",
     },
     optText: { fontSize: 14, fontWeight: "600", color: colors.textSecondary },
-    optTextCorrect: { color: colors.textSuccess },
-    optTextWrong: { color: colors.textError },
+    optTextCorrect: { color: colors.textLight },
+    optTextWrong: { color: colors.textLight },
     optTextMissing: { color: colors.textWarning },
     fillContainer: {
         backgroundColor: colors.surfaceVariant,
@@ -499,6 +504,7 @@ const styles = StyleSheet.create({
     fillValue: { fontSize: 14, fontWeight: "700" },
     textGreen: { color: colors.success },
     textRed: { color: colors.error },
+    textLight: { color: colors.textLight },
     reviewBadge: {
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -526,12 +532,12 @@ const styles = StyleSheet.create({
     matchReviewContainer: { gap: 8, marginTop: 4 },
     matchReviewRow: { borderRadius: 5, padding: 12, borderWidth: 1, gap: 6 },
     matchReviewCorrect: {
-        borderColor: colors.success,
-        backgroundColor: colors.successContainer,
+        backgroundColor: colors.success,
+        borderWidth: 0,
     },
     matchReviewWrong: {
-        borderColor: colors.error,
-        backgroundColor: colors.errorContainer,
+        backgroundColor: colors.error,
+        borderWidth: 0,
     },
     matchReviewRowTop: {
         flexDirection: "row",
@@ -550,23 +556,23 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         borderTopWidth: 1,
-        borderTopColor: colors.errorContainer,
+        borderTopColor: "rgba(255, 255, 255, 0.3)",
         paddingTop: 6,
         marginTop: 4,
     },
     matchReviewHintLabel: {
         fontSize: 11,
         fontWeight: "600",
-        color: colors.textError,
+        color: colors.textLight,
+        opacity: 0.8,
     },
     matchReviewHintValue: {
         fontSize: 12,
         fontWeight: "700",
-        color: colors.textSuccess,
+        color: colors.textLight,
     },
     explBox: {
         marginTop: 12,
-        backgroundColor: colors.successContainer,
         borderRadius: 5,
         padding: 12,
         borderWidth: 1,

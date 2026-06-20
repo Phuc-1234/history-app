@@ -842,7 +842,6 @@ const styles = StyleSheet.create({
     // Explanation
     explanationBox: {
         marginTop: 16,
-        backgroundColor: colors.successContainer,
         borderRadius: 5,
         padding: 14,
         borderWidth: 1,
@@ -1205,7 +1204,7 @@ const styles = StyleSheet.create({
     matchText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary },
     matchArrow: { fontSize: 14, color: colors.textMuted },
     matchCorrectHint: { fontSize: 11, color: colors.success, fontWeight: "600" },
-    explBox: { marginTop: 12, backgroundColor: colors.successContainer, borderRadius: 5, padding: 12, borderWidth: 1, borderColor: colors.success },
+    explBox: { marginTop: 12, borderRadius: 5, padding: 12, borderWidth: 1, borderColor: colors.success },
     explLabel: { fontSize: 12, fontWeight: "800", color: colors.textSuccess, marginBottom: 4 },
     explText: { fontSize: 13, color: colors.textSuccess, lineHeight: 20 },
     scoreBadge: {

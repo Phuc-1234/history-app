@@ -63,8 +63,8 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: colors.textPrimary,
     },
-    inputCorrect: { borderColor: colors.success, backgroundColor: colors.successContainer },
-    inputWrong: { borderColor: colors.error, backgroundColor: colors.errorContainer },
+    inputCorrect: { backgroundColor: colors.success, borderWidth: 0, color: colors.textLight },
+    inputWrong: { backgroundColor: colors.error, borderWidth: 0, color: colors.textLight },
     feedbackContainer: {
         backgroundColor: colors.successContainer,
         borderRadius: 5,

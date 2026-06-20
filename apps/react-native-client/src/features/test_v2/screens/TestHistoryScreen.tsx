@@ -53,10 +53,7 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
                         styles.statusBadge,
                         item.isPassed ? styles.badgePassed : styles.badgeFailed,
                     ]}>
-                        <Text style={[
-                            styles.statusText,
-                            item.isPassed ? styles.statusPassed : styles.statusFailed,
-                        ]}>
+                        <Text style={styles.statusText}>
                             {item.isPassed ? "Đạt" : item.status === "EXPIRED" ? "Hết giờ" : item.status === "ABANDONED" ? "Bỏ dở" : "Chưa đạt"}
                         </Text>
                     </View>
@@ -97,17 +94,17 @@ const styles = StyleSheet.create({
     list: { padding: 16, gap: 12 },
     card: {
         backgroundColor: colors.surface, borderRadius: 5, padding: 16,
-        borderWidth: 1, borderColor: colors.borderMedium,
-        shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+        borderWidth: 2.5, borderColor: colors.borderDark,
+
+
     },
     cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 5 },
-    badgePassed: { backgroundColor: colors.successContainer },
-    badgeFailed: { backgroundColor: colors.errorContainer },
-    statusText: { fontSize: 11, fontWeight: "800" },
-    statusPassed: { color: colors.textSuccess },
-    statusFailed: { color: colors.textError },
+    badgePassed: { backgroundColor: colors.success },
+    badgeFailed: { backgroundColor: colors.error },
+    statusText: { fontSize: 11, fontWeight: "500", color: colors.textLight },
+
+
     attemptText: { fontSize: 12, fontWeight: "600", color: colors.textPlaceholder },
     scoreRow: { flexDirection: "row", alignItems: "baseline", marginBottom: 8 },
     scoreValue: { fontSize: 28, fontWeight: "900", color: colors.primary },
