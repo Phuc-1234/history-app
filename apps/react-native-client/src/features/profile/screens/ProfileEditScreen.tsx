@@ -22,6 +22,7 @@ import Button from "../../../components/Button";
 import ProfileAvatar from "../components/ProfileAvatar";
 import SubPageHeader from "../components/SubPageHeader";
 import * as ImagePicker from "expo-image-picker";
+import { colors } from "../../../theme/colors";
 
 export default function ProfileEditScreen() {
     const router = useRouter();
@@ -216,7 +217,7 @@ export default function ProfileEditScreen() {
                                 />
                                 {isUploading && (
                                     <View style={[StyleSheet.absoluteFill, styles.loaderContainer]}>
-                                        <ActivityIndicator size="small" color="#5856D6" />
+                                        <ActivityIndicator size="small" color={colors.primary} />
                                     </View>
                                 )}
                             </View>
@@ -275,7 +276,7 @@ export default function ProfileEditScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F8F7FF",
+        backgroundColor: colors.background,
     },
 
     flex: {
@@ -290,20 +291,13 @@ const styles = StyleSheet.create({
     },
 
     card: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 18,
+        backgroundColor: colors.surface,
+        borderRadius: 5,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         paddingHorizontal: 18,
         paddingTop: 22,
         paddingBottom: 24,
-
-        shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 14,
-        shadowOffset: {
-            width: 0,
-            height: 6,
-        },
-        elevation: 4,
     },
 
     avatarSection: {
@@ -315,7 +309,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255, 255, 255, 0.7)",
         justifyContent: "center",
         alignItems: "center",
-        borderRadius: 39,
+        borderRadius: 5,
     },
 
     formSection: {
@@ -325,13 +319,13 @@ const styles = StyleSheet.create({
     fieldLabel: {
         fontSize: 13,
         fontWeight: "600",
-        color: "#374151",
+        color: colors.textSecondary,
         marginBottom: 6,
         marginTop: 8,
     },
 
     errorText: {
-        color: "#EF4444",
+        color: colors.error,
         fontSize: 13,
         fontWeight: "500",
         marginTop: 8,
@@ -346,6 +340,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 12,
 
-        backgroundColor: "#F8F7FF",
+        backgroundColor: colors.background,
     },
 });

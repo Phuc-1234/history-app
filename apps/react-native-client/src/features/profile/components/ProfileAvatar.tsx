@@ -1,6 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../../theme/colors";
 
 interface ProfileAvatarProps {
     uri?: string | null;
@@ -30,7 +31,6 @@ export default function ProfileAvatar({
                         width: size,
                         height: size,
                         borderRadius: avatarRadius,
-                        overflow: "hidden",
                     },
                 ]}
             >
@@ -46,7 +46,7 @@ export default function ProfileAvatar({
                     <Ionicons
                         name="person"
                         size={size * 0.45}
-                        color="#B8B0D8"
+                        color={colors.borderDark}
                     />
                 )}
             </View>
@@ -67,7 +67,7 @@ export default function ProfileAvatar({
                         },
                     ]}
                 >
-                    <Ionicons name="pencil" size={iconSize} color="#FFFFFF" />
+                    <Ionicons name="pencil" size={iconSize} color={colors.textLight} />
                 </TouchableOpacity>
             )}
         </View>
@@ -80,18 +80,19 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
     avatarCircle: {
-        backgroundColor: "#E8E4F4",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 3,
-        borderColor: "#D6D0EE",
-    },
-    editBadge: {
-        position: "absolute",
-        backgroundColor: "#5856D6",
+        backgroundColor: colors.primaryContainer,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 2,
-        borderColor: "#FFFFFF",
+        borderColor: colors.borderDark,
+        overflow: "hidden",
+    },
+    editBadge: {
+        position: "absolute",
+        backgroundColor: colors.primary,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
 });

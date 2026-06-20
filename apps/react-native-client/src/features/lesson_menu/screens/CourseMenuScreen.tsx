@@ -184,16 +184,12 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: "row",
         backgroundColor: colors.surface,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         marginBottom: 18,
         overflow: "hidden",
-        shadowColor: "#1A202C",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-        elevation: 3,
+        
         height: 110,
     },
     imageContainer: {
@@ -211,11 +207,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         paddingHorizontal: 8,
         paddingVertical: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 3,
-        elevation: 2,
+        
     },
     badgeText: {
         color: colors.textLight,
