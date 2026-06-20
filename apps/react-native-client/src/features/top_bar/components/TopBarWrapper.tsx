@@ -18,6 +18,7 @@ interface TopBarWrapperProps {
         title?: string;
         subtitle?: string;
         onBackPress?: () => void;
+        onHomePress?: () => void;
     };
 }
 

@@ -26,7 +26,7 @@ import Animated, {
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { CustomModal } from "@/components/Modal";
 import Mascot from "@/components/Mascot";
-import TestIntro from "../../test/components/TestIntro";
+import TestIntro from "./TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { useGetTestInfoQuery } from "../services/testApi";
 import ChooseQuestion from "./ChooseQuestion";
@@ -231,6 +231,7 @@ export default function TestContainerV2({
         hierarchy: params.purposeType === "EXAM" ? "KIỂM TRA > BÀI THI" : "KIỂM TRA > LUYỆN TẬP",
         title: displayTitle,
         onBackPress: handleBack,
+        onHomePress: handleBack,
     };
 
     // Auto-start on mount only if not EXAM
@@ -243,16 +244,15 @@ export default function TestContainerV2({
     // ── Exam Intro state ──────────────────────────────────────────────
     if (status === "idle" && params.purposeType === "EXAM") {
         return (
-            <ScreenWrapper showTopBar={true}>
-                <TestIntro
-                    title={testInfo?.title}
-                    questionCount={testInfo?.questionCount}
-                    timeLimit={testInfo?.timeLimit}
-                    loading={isInfoLoading}
-                    onStart={actions.start}
-                    onBack={handleBack}
-                />
-            </ScreenWrapper>
+            <TestIntro
+                title={testInfo?.title}
+                questionCount={testInfo?.questionCount}
+                timeLimit={testInfo?.timeLimit}
+                loading={isInfoLoading}
+                onStart={actions.start}
+                onBack={handleBack}
+                purposeType={params.purposeType}
+            />
         );
     }
 
@@ -297,7 +297,7 @@ export default function TestContainerV2({
         );
 
         return (
-            <ScreenWrapper branchConfig={branchConfig}>
+            <ScreenWrapper branchConfig={branchConfig} >
                 <ScrollView
                     style={styles.container}
                     contentContainerStyle={styles.scrollContent}

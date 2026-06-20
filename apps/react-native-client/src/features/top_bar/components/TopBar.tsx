@@ -20,6 +20,7 @@ interface TopBarProps {
         title?: string;
         subtitle?: string;
         onBackPress?: () => void;
+        onHomePress?: () => void;
     };
     onOpenStreak?: () => void;
 }
@@ -140,7 +141,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                     </View>
 
                     <TouchableOpacity
-                        onPress={() => router.push("/(tabs)/2_1_lessons")}
+                        onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/2_1_lessons"))}
                         style={styles.homeButton}
                         activeOpacity={0.7}
                     >
