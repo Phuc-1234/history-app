@@ -2,9 +2,9 @@ export const colors = {
     // -------------------------------------------------------------
     // Core Brand Colors (Vietnamese History Theme)
     // -------------------------------------------------------------
-    primary: "#B81D18", // Deep premium crimson red (flag/history/lacquer red)
-    primaryHover: "#9A1511",
-    primaryContainer: "#FDF2F2", // Very soft red for light-themed containers/alerts
+    primary: "#6949FF", // Purple primary color
+    primaryHover: "#5132E6",
+    primaryContainer: "#F0EEFF", // Soft purple/indigo for light-themed containers/alerts
 
     secondary: "#DF9B00", // Warm imperial gold/bronze (star yellow/imperial crown gold)
     secondaryHover: "#C98B00",

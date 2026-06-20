@@ -9,6 +9,7 @@ import {
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "../../theme/colors";
 
 interface TabIconProps {
     focused: boolean;
@@ -63,11 +64,11 @@ export default function TabsLayout() {
             screenOptions={{
                 headerShown: false,
                 tabBarShowLabel: false,
-                tabBarActiveTintColor: "#FFFFFF",
-                tabBarInactiveTintColor: "#4E4A58",
+                tabBarActiveTintColor: colors.textLight,
+                tabBarInactiveTintColor: colors.textSecondary,
 
                 tabBarStyle: {
-                    backgroundColor: "#F3EFEA",
+                    backgroundColor: colors.surfaceVariant,
                     borderTopWidth: 0,
                     elevation: 0,
                     shadowOpacity: 0,
@@ -208,6 +209,6 @@ const styles = StyleSheet.create({
         // Removed any system margins that were offsetting icons inside layout views
     },
     activePillBackground: {
-        backgroundColor: "#5F4DE5",
+        backgroundColor: colors.primary,
     },
 });

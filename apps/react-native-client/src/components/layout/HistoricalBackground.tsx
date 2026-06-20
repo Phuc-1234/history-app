@@ -13,7 +13,7 @@ interface MotifProps {
     opacity?: number;
 }
 
-export function TrongDongMotif({ size = 260, color = colors.primary, opacity = 0.05 }: MotifProps) {
+export function TrongDongMotif({ size = 260, color = "#B91C1C", opacity = 0.05 }: MotifProps) {
     return (
         <Svg width={size} height={size} viewBox="0 0 200 200">
             {/* Outer Ring */}
@@ -75,7 +75,7 @@ export default function HistoricalBackground() {
                     },
                 ]}
             >
-                <TrongDongMotif size={260} color={colors.primary} opacity={0.1} />
+                <TrongDongMotif size={260} color="#B91C1C" opacity={0.1} />
             </Animated.View>
 
             {/* 2. Rotating Dong Son Drum in Bottom-Right (faint Gold) */}

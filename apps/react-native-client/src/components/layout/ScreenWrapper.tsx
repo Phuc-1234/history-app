@@ -109,8 +109,8 @@ function ContentLayer({
                         <RefreshControl
                             refreshing={refreshing ?? false}
                             onRefresh={onRefresh}
-                            colors={["#5856D6"]}
-                            tintColor="#5856D6"
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
                         />
                     ) : undefined
                 }
@@ -165,7 +165,7 @@ function ScreenWithTopBar({
         <SafeAreaView
             style={[
                 styles.safeArea,
-                { backgroundColor: backgroundColor ?? colors.primary },
+                { backgroundColor: backgroundColor ?? colors.background },
             ]}
             edges={resolvedEdges}
         >
@@ -214,8 +214,9 @@ function ScreenWithoutTopBar({
     backgroundColor,
     style,
     showHistoricalBackground = true,
+    branchConfig,
     ...contentProps
-}: Omit<ScreenWrapperProps, "showTopBar" | "branchConfig">) {
+}: Omit<ScreenWrapperProps, "showTopBar">) {
     const segments = useSegments() as string[];
     const insets = useSafeAreaInsets();
 
@@ -232,6 +233,12 @@ function ScreenWithoutTopBar({
             ]}
             edges={resolvedEdges}
         >
+            {branchConfig && (
+                <TopBar
+                    showStatsBar={false}
+                    branchConfig={branchConfig}
+                />
+            )}
             <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
                 {showHistoricalBackground && <HistoricalBackground />}
                 <ContentLayer {...contentProps}>
@@ -261,7 +268,7 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        backgroundColor: "#FFF",
+        backgroundColor: colors.background,
     },
     flex: {
         flex: 1,

@@ -9,6 +9,7 @@ import {
     StreakModal,
     RewardModal,
 } from "../../streak";
+import { colors } from "../../../theme/colors";
 
 interface TopBarWrapperProps {
     children: React.ReactNode;
@@ -63,11 +64,11 @@ export function TopBarWrapper({ children, branchConfig }: TopBarWrapperProps) {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: "#5856D6", // Matches bar color context smoothly
+        backgroundColor: colors.background, // Matches bar color context smoothly
     },
     content: {
         flex: 1,
-        backgroundColor: "#FFF",
+        backgroundColor: colors.background,
         overflow: "hidden",
     },
 });

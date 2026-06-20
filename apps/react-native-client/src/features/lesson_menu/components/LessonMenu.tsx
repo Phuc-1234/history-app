@@ -19,6 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useLessonMenu } from "../hooks/useLessonMenu";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import { colors } from "../../../theme/colors";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -108,8 +109,8 @@ function LessonCircle({
     onPress: () => void;
     children: React.ReactNode;
 }) {
-    const filledColor = isDone ? "#34C759" : "#007AFF";
-    const emptyColor = isDone ? "#E8F8F0" : "#E6F0FF";
+    const filledColor = isDone ? colors.success : colors.primary;
+    const emptyColor = isDone ? colors.successContainer : colors.primaryContainer;
 
     return (
         <View style={styles.lessonCircleWrapper}>
@@ -154,8 +155,8 @@ function LessonCircle({
  */
 function ProgressRing({
     pct,
-    filled = "#007AFF",
-    empty = "#E6F0FF",
+    filled = colors.primary,
+    empty = colors.primaryContainer,
 }: {
     pct: number;
     filled?: string;
@@ -324,7 +325,7 @@ export function LessonMenu({
                     <View style={styles.centerLoader}>
                         <ActivityIndicator
                             size="large"
-                            color="#5856D6"
+                            color={colors.primary}
                         />
                     </View>
                 ) : (
@@ -335,8 +336,8 @@ export function LessonMenu({
                             <RefreshControl
                                 refreshing={isFetching && !loading}
                                 onRefresh={refetch}
-                                colors={["#5856D6"]}
-                                tintColor="#5856D6"
+                                colors={[colors.primary]}
+                                tintColor={colors.primary}
                             />
                         }
                     >
@@ -399,7 +400,7 @@ export function LessonMenu({
                                                     }
                                                     size={20}
                                                     color={
-                                                        isExpanded ? "#FFF" : "#8E8E93"
+                                                        isExpanded ? colors.textLight : colors.textMuted
                                                     }
                                                 />
                                             </View>
@@ -455,8 +456,8 @@ export function LessonMenu({
                                                                 size={26}
                                                                 color={
                                                                     isDone
-                                                                        ? "#FFD700"
-                                                                        : "#007AFF"
+                                                                        ? colors.gold
+                                                                        : colors.primary
                                                                 }
                                                             />
                                                         </LessonCircle>
@@ -497,7 +498,7 @@ export function LessonMenu({
                                                     <Ionicons
                                                         name={"trophy" as any}
                                                         size={28}
-                                                        color="#FF9500"
+                                                        color={colors.secondary}
                                                     />
                                                 </TouchableOpacity>
                                                 <Text style={styles.testLabel}>
@@ -520,7 +521,7 @@ export function LessonMenu({
                                             <Ionicons
                                                 name={"ribbon" as any}
                                                 size={42}
-                                                color="#FFF"
+                                                color={colors.textLight}
                                             />
                                         </View>
                                     </View>
@@ -551,10 +552,10 @@ export function LessonMenu({
 
 const styles = StyleSheet.create({
     centerLoader: { flex: 1, justifyContent: "center", alignItems: "center" },
-    container: { flex: 1, backgroundColor: "#FFF" },
+    container: { flex: 1, backgroundColor: colors.background },
     gradeTabsContainer: {
         flexDirection: "row",
-        backgroundColor: "#F2F2F7",
+        backgroundColor: colors.surfaceVariant,
         padding: 6,
         borderRadius: 14,
         marginHorizontal: 16,
@@ -570,7 +571,7 @@ const styles = StyleSheet.create({
         position: "relative",
     },
     activeGradeTab: {
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface,
         elevation: 2,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
@@ -578,26 +579,26 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
     },
     gradeTabFill: {
-        backgroundColor: "rgba(88,86,214,0.12)",
+        backgroundColor: colors.primaryContainer,
         borderRadius: 10,
     },
-    gradeTabText: { fontSize: 15, fontWeight: "600", color: "#8E8E93", zIndex: 1 },
-    activeGradeTabText: { color: "#5856D6", fontWeight: "700" },
+    gradeTabText: { fontSize: 15, fontWeight: "600", color: colors.textMuted, zIndex: 1 },
+    activeGradeTabText: { color: colors.primary, fontWeight: "700" },
     gradePctText: {
         fontSize: 11,
         fontWeight: "700",
-        color: "#5856D6",
+        color: colors.primary,
         marginTop: 2,
         zIndex: 1,
     },
     scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
     topicWrapper: { marginBottom: 12 },
     topicHeader: {
-        backgroundColor: "#EAEAEF",
+        backgroundColor: colors.surfaceVariant,
         borderRadius: 16,
         overflow: "hidden",
     },
-    expandedTopicHeader: { backgroundColor: "#2E2A5E" },
+    expandedTopicHeader: { backgroundColor: colors.primary },
     topicHeaderInner: {
         flexDirection: "row",
         alignItems: "center",
@@ -612,22 +613,22 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 6,
     },
-    topicTitle: { fontSize: 17, fontWeight: "700", color: "#1C1C1E" },
-    topicDesc: { fontSize: 13, color: "#3A3A3C", marginTop: 4 },
-    topicPctText: { fontSize: 13, fontWeight: "700", color: "#5856D6" },
+    topicTitle: { fontSize: 17, fontWeight: "700", color: colors.textPrimary },
+    topicDesc: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
+    topicPctText: { fontSize: 13, fontWeight: "700", color: colors.primary },
     topicProgressFill: {
         position: "absolute",
         left: 0,
         top: 0,
         bottom: 0,
-        backgroundColor: "#D0E8FF", // Soft blue progress fill for collapsed topic header
+        backgroundColor: colors.primaryContainer, // Soft red progress fill for collapsed topic header
         zIndex: 1,
     },
     topicProgressFillExpanded: {
-        backgroundColor: "#5856D6", // Vibrant purple fill for expanded topic header
+        backgroundColor: colors.secondary, // Warm imperial gold fill for expanded topic header
     },
-    whiteText: { color: "#FFF" },
-    lightPurpleText: { color: "#D2D1F7" },
+    whiteText: { color: colors.textLight },
+    lightPurpleText: { color: colors.secondaryContainer },
 
     /* Map View Tree Styling */
     mapContainer: {
@@ -642,15 +643,15 @@ const styles = StyleSheet.create({
         left: "50%",
         width: 4,
         marginLeft: -2,
-        backgroundColor: "#E5E5EA",
+        backgroundColor: colors.borderMedium,
         zIndex: 0,
     },
     mindmapButton: {
         flexDirection: "row",
         alignItems: "center",
         alignSelf: "center",
-        backgroundColor: "#EAEAFE",
-        borderColor: "#D2D1F7",
+        backgroundColor: colors.primaryContainer,
+        borderColor: colors.primary,
         borderWidth: 1,
         borderRadius: 20,
         paddingVertical: 8,
@@ -659,7 +660,7 @@ const styles = StyleSheet.create({
         zIndex: 1,
         marginBottom: 32,
     },
-    mindmapText: { fontSize: 12, fontWeight: "700", color: "#5856D6" },
+    mindmapText: { fontSize: 12, fontWeight: "700", color: colors.primary },
 
     nodeItem: {
         alignItems: "center",
@@ -702,40 +703,40 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
     },
     lessonNodeCircleDone: {
-        backgroundColor: "#34C759",
+        backgroundColor: colors.success,
         borderWidth: 0,
     },
     lessonNodeCircleTodo: {
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface,
         borderWidth: 1.5,
-        borderColor: "#E5E5EA",
+        borderColor: colors.borderMedium,
     },
     lessonPctInsideText: {
         fontSize: 13,
         fontWeight: "800",
-        color: "#007AFF",
+        color: colors.primary,
     },
     
     topicTestCircle: {
-        backgroundColor: "#FFF",
-        borderColor: "#FF9500",
+        backgroundColor: colors.surface,
+        borderColor: colors.secondary,
     },
     nodeLabel: {
         fontSize: 14,
         fontWeight: "700",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         textAlign: "center",
         marginTop: 8,
         paddingHorizontal: 10,
     },
     textDisabled: {
-        color: "#AEAEB2",
+        color: colors.textMuted,
         fontWeight: "500",
     },
     testLabel: {
         fontSize: 13,
         fontWeight: "800",
-        color: "#FF9500",
+        color: colors.secondary,
         textAlign: "center",
         marginTop: 8,
         letterSpacing: 0.5,
@@ -747,7 +748,7 @@ const styles = StyleSheet.create({
         marginTop: 32,
         paddingTop: 24,
         borderTopWidth: 1,
-        borderTopColor: "#F2F2F7",
+        borderTopColor: colors.borderMedium,
     },
     finalExamBadgeContainer: { marginBottom: 12 },
     finalExamOuterRing: {
@@ -755,7 +756,7 @@ const styles = StyleSheet.create({
         height: 90,
         borderRadius: 45,
         borderWidth: 2,
-        borderColor: "#5856D6",
+        borderColor: colors.primary,
         borderStyle: "dashed",
         justifyContent: "center",
         alignItems: "center",
@@ -764,36 +765,36 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: "#5856D6",
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
     },
     finalExamTitle: {
         fontSize: 22,
         fontWeight: "800",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         letterSpacing: 0.5,
     },
     finalExamSubtitle: {
         fontSize: 14,
-        color: "#8E8E93",
+        color: colors.textMuted,
         marginTop: 4,
         marginBottom: 20,
     },
     finalExamButton: {
-        backgroundColor: "#5856D6",
+        backgroundColor: colors.primary,
         borderRadius: 25,
         width: "85%",
         paddingVertical: 14,
         alignItems: "center",
-        shadowColor: "#5856D6",
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
         elevation: 4,
     },
     finalExamButtonText: {
-        color: "#FFF",
+        color: colors.textLight,
         fontSize: 16,
         fontWeight: "700",
         letterSpacing: 0.5,
