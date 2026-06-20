@@ -17,7 +17,7 @@ interface TopBarProps {
     showStatsBar?: boolean;
     branchConfig?: {
         hierarchy: string;
-        title: string;
+        title?: string;
         subtitle?: string;
         onBackPress?: () => void;
     };
@@ -127,9 +127,11 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                         <Text style={styles.hierarchyText}>
                             {branchConfig.hierarchy.toUpperCase()}
                         </Text>
-                        <Text style={styles.titleText}>
-                            {branchConfig.title}
-                        </Text>
+                        {branchConfig.title ? (
+                            <Text style={styles.titleText}>
+                                {branchConfig.title}
+                            </Text>
+                        ) : null}
                         {branchConfig.subtitle && (
                             <Text style={styles.subtitleText}>
                                 {branchConfig.subtitle}

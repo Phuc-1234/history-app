@@ -29,7 +29,6 @@ export default function LessonSummaryScreen() {
         <ScreenWrapper
             branchConfig={{
                 hierarchy: `Bài ${summaryData.position}`,
-                title: summaryData.name,
                 onBackPress: () => router.back(),
             }}
             enableScroll={true}

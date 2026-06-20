@@ -15,7 +15,7 @@ interface TopBarWrapperProps {
     children: React.ReactNode;
     branchConfig?: {
         hierarchy: string;
-        title: string;
+        title?: string;
         subtitle?: string;
         onBackPress?: () => void;
     };

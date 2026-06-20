@@ -19,6 +19,7 @@ import {
     useGetNodeDetailQuery,
     useFinishStudyNodeMutation,
 } from "../lessonApiSlice";
+import { colors } from "../../../theme/colors";
 
 // Time (ms) user must stay on screen before it counts as "studied"
 const STUDY_THRESHOLD_MS = 8000;
@@ -145,7 +146,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
     if (isLoading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#5856D6" />
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
@@ -166,7 +167,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.headerBackBtn}>
-                    <Ionicons name="arrow-back" size={22} color="#1C1C1E" />
+                    <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <View style={styles.headerTextContainer}>
                     {parentSectionsString ? (
@@ -180,7 +181,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                         </Text>
                         {/* Completion badge */}
                         {node.isCompleted && isLoggedIn && (
-                            <Ionicons name="checkmark-circle" size={18} color="#34C759" />
+                            <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                         )}
                     </View>
                 </View>
@@ -222,7 +223,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                         onPress={onQuizPress}
                         activeOpacity={0.85}
                     >
-                        <Ionicons name="pencil" size={20} color="#FFF" />
+                        <Ionicons name="pencil" size={20} color={colors.textLight} />
                         <Text style={styles.quizButtonText}>Luyện tập</Text>
                     </TouchableOpacity>
                 )}
@@ -233,7 +234,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                         <Ionicons
                             name={studyDone ? "checkmark-circle" : "time-outline"}
                             size={16}
-                            color={studyDone ? "#34C759" : "#AEAEB2"}
+                            color={studyDone ? colors.success : colors.textMuted}
                         />
                         <Text
                             style={[
@@ -258,7 +259,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                         disabled={!onPrevPress}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="chevron-back" size={18} color={onPrevPress ? "#5856D6" : "#D1D1D6"} />
+                        <Ionicons name="chevron-back" size={18} color={onPrevPress ? colors.primary : colors.borderDark} />
                         <Text style={[styles.navFooterBtnText, !onPrevPress && styles.navFooterBtnTextDisabled]}>Trước</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -268,7 +269,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                         activeOpacity={0.7}
                     >
                         <Text style={[styles.navFooterBtnText, !onNextPress && styles.navFooterBtnTextDisabled]}>Sau</Text>
-                        <Ionicons name="chevron-forward" size={18} color={onNextPress ? "#5856D6" : "#D1D1D6"} />
+                        <Ionicons name="chevron-forward" size={18} color={onNextPress ? colors.primary : colors.borderDark} />
                     </TouchableOpacity>
                 </View>
             )}
@@ -285,7 +286,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
 
 const tagsStyles = {
     body: {
-        color: "#3A3A3C",
+        color: colors.textSecondary,
         fontSize: 16,
         lineHeight: 26,
     },
@@ -294,11 +295,11 @@ const tagsStyles = {
         marginBottom: 12,
     },
     a: {
-        color: "#5856D6",
+        color: colors.primary,
         textDecorationLine: "underline" as const,
     },
     li: {
-        color: "#3A3A3C",
+        color: colors.textSecondary,
         fontSize: 15,
         lineHeight: 22,
     },
@@ -373,21 +374,21 @@ const renderers = {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#FFF" },
+    container: { flex: 1, backgroundColor: colors.background },
     center: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#FFF",
+        backgroundColor: colors.background,
     },
-    errorText: { fontSize: 15, color: "#8E8E93", marginBottom: 16 },
+    errorText: { fontSize: 15, color: colors.textMuted, marginBottom: 16 },
     backBtn: {
-        backgroundColor: "#5856D6",
+        backgroundColor: colors.primary,
         paddingHorizontal: 20,
         paddingVertical: 10,
-        borderRadius: 20,
+        borderRadius: 5,
     },
-    backBtnText: { color: "#FFF", fontWeight: "700" },
+    backBtnText: { color: colors.textLight, fontWeight: "700" },
 
     /* Header */
     header: {
@@ -397,7 +398,7 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingBottom: 10,
         borderBottomWidth: 1,
-        borderBottomColor: "#F2F2F7",
+        borderBottomColor: colors.borderLight,
         gap: 12,
     },
     headerBackBtn: {
@@ -409,7 +410,7 @@ const styles = StyleSheet.create({
     headerSubtitle: {
         fontSize: 11,
         fontWeight: "600",
-        color: "#8E8E93",
+        color: colors.textMuted,
         textTransform: "uppercase",
         letterSpacing: 0.5,
         marginBottom: 2,
@@ -422,7 +423,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         flexShrink: 1,
     },
     completedBadge: {
@@ -437,13 +438,13 @@ const styles = StyleSheet.create({
     nodeTitle: {
         fontSize: 22,
         fontWeight: "800",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         marginBottom: 16,
         lineHeight: 30,
     },
     nodeBody: {
         fontSize: 16,
-        color: "#3A3A3C",
+        color: colors.textSecondary,
         lineHeight: 26,
         marginBottom: 24,
     },
@@ -455,7 +456,7 @@ const styles = StyleSheet.create({
     videoLabel: {
         fontSize: 15,
         fontWeight: "700",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         marginBottom: 10,
     },
 
@@ -464,19 +465,14 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#5856D6",
-        borderRadius: 16,
+        backgroundColor: colors.primary,
+        borderRadius: 5,
         paddingVertical: 14,
         gap: 8,
         marginBottom: 20,
-        elevation: 3,
-        shadowColor: "#5856D6",
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
     },
     quizButtonText: {
-        color: "#FFF",
+        color: colors.textLight,
         fontSize: 16,
         fontWeight: "700",
     },
@@ -491,10 +487,10 @@ const styles = StyleSheet.create({
     },
     studyIndicatorText: {
         fontSize: 13,
-        color: "#AEAEB2",
+        color: colors.textMuted,
     },
     studyDoneText: {
-        color: "#34C759",
+        color: colors.success,
         fontWeight: "600",
     },
 
@@ -505,8 +501,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderTopWidth: 1,
-        borderTopColor: "#F2F2F7",
-        backgroundColor: "#FFF",
+        borderTopColor: colors.borderLight,
+        backgroundColor: colors.background,
     },
     navFooterBtn: {
         flexDirection: "row",
@@ -514,8 +510,8 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingVertical: 8,
         paddingHorizontal: 16,
-        borderRadius: 20,
-        backgroundColor: "#F2F2F7",
+        borderRadius: 4,
+        backgroundColor: colors.surfaceVariant,
     },
     navFooterBtnDisabled: {
         opacity: 0.35,
@@ -523,19 +519,19 @@ const styles = StyleSheet.create({
     navFooterBtnText: {
         fontSize: 14,
         fontWeight: "700",
-        color: "#5856D6",
+        color: colors.primary,
     },
     navFooterBtnTextDisabled: {
-        color: "#D1D1D6",
+        color: colors.textMuted,
     },
 
     table: {
         borderWidth: 1,
-        borderColor: "#E5E5EA",
-        borderRadius: 8,
+        borderColor: colors.borderMedium,
+        borderRadius: 4,
         overflow: "hidden",
         marginVertical: 12,
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface,
     },
     tbody: {
         flexDirection: "column",
@@ -543,16 +539,16 @@ const styles = StyleSheet.create({
     tr: {
         flexDirection: "row",
         borderBottomWidth: 1,
-        borderBottomColor: "#E5E5EA",
+        borderBottomColor: colors.borderMedium,
     },
     td: {
         flex: 1,
         padding: 10,
         justifyContent: "center",
         borderRightWidth: 1,
-        borderRightColor: "#E5E5EA",
+        borderRightColor: colors.borderMedium,
     },
     th: {
-        backgroundColor: "#F2F2F7",
+        backgroundColor: colors.surfaceVariant,
     },
 });

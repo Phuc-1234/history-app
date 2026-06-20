@@ -3,24 +3,37 @@ import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
 
 import { FlashcardCard } from "../components/FlashcardCard";
 import { FreeFlashcardControls } from "../components/FreeFlashcardControls";
-import { useGetFlashcardsByLessonQuery } from "../flashcardApiSlice";
+import { useGetFlashcardsByLessonQuery, useGetFlashcardsBySectionQuery } from "../flashcardApiSlice";
 
 interface FlashcardFreePlayScreenProps {
     lessonId?: number;
+    sectionId?: number;
 }
 
-export default function FlashcardFreePlayScreen({ lessonId }: FlashcardFreePlayScreenProps) {
+export default function FlashcardFreePlayScreen({ lessonId, sectionId }: FlashcardFreePlayScreenProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
 
     // Fetch flashcards from API
     const {
-        data: cards,
-        isLoading,
-        isError,
+        data: lessonCards,
+        isLoading: isLessonLoading,
+        isError: isLessonError,
     } = useGetFlashcardsByLessonQuery(lessonId!, {
         skip: !lessonId,
     });
+
+    const {
+        data: sectionCards,
+        isLoading: isSectionLoading,
+        isError: isSectionError,
+    } = useGetFlashcardsBySectionQuery(sectionId!, {
+        skip: !sectionId,
+    });
+
+    const cards = lessonId ? lessonCards : sectionCards;
+    const isLoading = lessonId ? isLessonLoading : isSectionLoading;
+    const isError = lessonId ? isLessonError : isSectionError;
 
     const totalCount = cards?.length ?? 0;
     const currentCard = cards?.[currentIndex] ?? null;

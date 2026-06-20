@@ -10,11 +10,12 @@ import type { FlashcardMode } from "../../features/flashcard";
 
 export default function FlashcardRoute() {
     const router = useRouter();
-    const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
+    const { lessonId, sectionId } = useLocalSearchParams<{ lessonId: string; sectionId: string }>();
     const [selectedMode, setSelectedMode] = useState<FlashcardMode | null>(null);
     const [modalVisible, setModalVisible] = useState(true);
 
     const numericLessonId = lessonId ? Number(lessonId) : undefined;
+    const numericSectionId = sectionId ? Number(sectionId) : undefined;
 
     const handleBack = () => {
         if (router.canGoBack()) {
@@ -54,10 +55,10 @@ export default function FlashcardRoute() {
 
             {/* Render selected mode */}
             {selectedMode === "memorize" && (
-                <FlashcardPlayScreen lessonId={numericLessonId} />
+                <FlashcardPlayScreen lessonId={numericLessonId} sectionId={numericSectionId} />
             )}
             {selectedMode === "free" && (
-                <FlashcardFreePlayScreen lessonId={numericLessonId} />
+                <FlashcardFreePlayScreen lessonId={numericLessonId} sectionId={numericSectionId} />
             )}
         </ScreenWrapper>
     );

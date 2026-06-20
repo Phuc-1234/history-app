@@ -24,7 +24,7 @@ import HistoricalBackground from "./HistoricalBackground";
 // ─── Branch Config (matches existing TopBarWrapper/TopBar interface) ────────
 export interface BranchConfig {
     hierarchy: string;
-    title: string;
+    title?: string;
     subtitle?: string;
     onBackPress?: () => void;
 }
