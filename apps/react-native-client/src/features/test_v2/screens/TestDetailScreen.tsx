@@ -19,6 +19,7 @@ import type {
 } from "../types";
 import { colors } from "../../../theme/colors";
 import Mascot from "@/components/Mascot";
+import { Check, X } from "lucide-react-native";
 
 export default function TestDetailScreen() {
     const { logId } = useLocalSearchParams<{ logId: string }>();
@@ -187,6 +188,7 @@ function ChooseReview({
 }) {
     const selected = userAnswer?.selectedOptions ?? [];
     const correct = correctAnswer.correctOption ?? [];
+    const single = correct.length <= 1;
 
     return (
         <View style={styles.optionsList}>
@@ -201,33 +203,9 @@ function ChooseReview({
                 if (isSelected && isCorrect) {
                     itemStyle.push(styles.optCorrect);
                     textStyle.push(styles.optTextCorrect);
-                    badge = (
-                        <View
-                            style={[
-                                styles.reviewBadge,
-                                styles.reviewBadgeCorrect,
-                            ]}
-                        >
-                            <Text style={styles.reviewBadgeTextCorrect}>
-                                Lựa chọn đúng
-                            </Text>
-                        </View>
-                    );
                 } else if (isSelected && !isCorrect) {
                     itemStyle.push(styles.optWrong);
                     textStyle.push(styles.optTextWrong);
-                    badge = (
-                        <View
-                            style={[
-                                styles.reviewBadge,
-                                styles.reviewBadgeWrong,
-                            ]}
-                        >
-                            <Text style={styles.reviewBadgeTextWrong}>
-                                Lựa chọn sai
-                            </Text>
-                        </View>
-                    );
                 } else if (!isSelected && isCorrect) {
                     itemStyle.push(styles.optMissing);
                     textStyle.push(styles.optTextMissing);
@@ -257,9 +235,39 @@ function ChooseReview({
                             },
                         ]}
                     >
-                        <Text style={[textStyle, { flex: 1 }]}>
-                            {String.fromCharCode(65 + idx)}. {opt}
-                        </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                            <View style={[
+                                single ? styles.radio : styles.checkbox,
+                                isSelected && (single ? styles.radioSelected : styles.checkboxSelected),
+                                isSelected && isCorrect && (single ? styles.radioCorrect : styles.checkboxCorrect),
+                                isSelected && !isCorrect && (single ? styles.radioWrong : styles.checkboxWrong),
+                                !isSelected && isCorrect && (single ? styles.radioMissing : styles.checkboxMissing),
+                            ]}>
+                                {isSelected && (
+                                    !isCorrect ? (
+                                        <X
+                                            size={12}
+                                            color={colors.textLight}
+                                            strokeWidth={4}
+                                        />
+                                    ) : single ? (
+                                        <View style={[
+                                            styles.radioDot,
+                                            isCorrect && styles.radioDotCorrect,
+                                        ]} />
+                                    ) : (
+                                        <Check
+                                            size={12}
+                                            color={colors.textLight}
+                                            strokeWidth={4}
+                                        />
+                                    )
+                                )}
+                            </View>
+                            <Text style={[textStyle, { flex: 1 }]}>
+                                {String.fromCharCode(65 + idx)}. {opt}
+                            </Text>
+                        </View>
                         {badge}
                     </View>
                 );
@@ -585,4 +593,23 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     explText: { fontSize: 13, color: colors.textSuccess, lineHeight: 20 },
+    radio: {
+        width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.borderDark,
+        justifyContent: "center", alignItems: "center",
+    },
+    radioSelected: { borderColor: colors.textLight },
+    radioCorrect: { borderColor: colors.textLight },
+    radioWrong: { borderColor: colors.textLight },
+    radioMissing: { borderColor: colors.warning, borderStyle: "dashed" },
+    radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.textLight },
+    radioDotCorrect: { backgroundColor: colors.textLight },
+    radioDotWrong: { backgroundColor: colors.textLight },
+    checkbox: {
+        width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: colors.borderDark,
+        justifyContent: "center", alignItems: "center",
+    },
+    checkboxSelected: { borderColor: colors.textLight },
+    checkboxCorrect: { borderColor: colors.textLight },
+    checkboxWrong: { borderColor: colors.textLight },
+    checkboxMissing: { borderColor: colors.warning, borderStyle: "dashed" },
 });

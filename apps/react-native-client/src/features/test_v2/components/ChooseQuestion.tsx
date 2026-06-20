@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import Animated, { FadeInLeft, useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
-import { Check } from "lucide-react-native";
+import { Check, X } from "lucide-react-native";
 import type { QuestionV2, ChooseAnswerData, UserChooseAnswer, QuestionEvalResult } from "../types";
 import { isSingleChoice } from "../services/scoreEngine";
 import { colors } from "../../../theme/colors";
@@ -79,11 +79,16 @@ function ChooseOptionItem({
                             showCorrect && !isSelected && isCorrect && (single ? styles.radioMissing : styles.checkboxMissing),
                         ]}>
                             {isSelected && (
-                                single ? (
+                                showCorrect && !isCorrect ? (
+                                    <X
+                                        size={12}
+                                        color={colors.textLight}
+                                        strokeWidth={4}
+                                    />
+                                ) : single ? (
                                     <View style={[
                                         styles.radioDot,
                                         showCorrect && isCorrect && styles.radioDotCorrect,
-                                        showCorrect && !isCorrect && styles.radioDotWrong,
                                     ]} />
                                 ) : (
                                     <Check
@@ -140,19 +145,9 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
                     if (isSelected && isCorrect) {
                         optStyle.push(styles.optionCorrect);
                         textStyle.push(styles.textCorrect);
-                        badge = (
-                            <View style={[styles.badge, styles.badgeCorrect]}>
-                                <Text style={styles.badgeTextCorrect}>Đúng</Text>
-                            </View>
-                        );
                     } else if (isSelected && !isCorrect) {
                         optStyle.push(styles.optionWrong);
                         textStyle.push(styles.textWrong);
-                        badge = (
-                            <View style={[styles.badge, styles.badgeWrong]}>
-                                <Text style={styles.badgeTextWrong}>Sai</Text>
-                            </View>
-                        );
                     } else if (!isSelected && isCorrect) {
                         optStyle.push(styles.optionMissing);
                         textStyle.push(styles.textMissing);
