@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         height: 40,
         width: Platform.OS === "web" ? 72 : 64,
-        borderRadius: 10,
+        borderRadius: 20,
         // Removed any system margins that were offsetting icons inside layout views
     },
     activePillBackground: {

@@ -28,6 +28,7 @@ export interface BranchConfig {
     subtitle?: string;
     onBackPress?: () => void;
     onHomePress?: () => void;
+    uppercaseHierarchy?: boolean;
 }
 
 // ─── Props ──────────────────────────────────────────────────────────────────

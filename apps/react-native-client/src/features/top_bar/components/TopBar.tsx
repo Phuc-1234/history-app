@@ -21,6 +21,7 @@ interface TopBarProps {
         subtitle?: string;
         onBackPress?: () => void;
         onHomePress?: () => void;
+        uppercaseHierarchy?: boolean;
     };
     onOpenStreak?: () => void;
 }
@@ -126,7 +127,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
 
                     <View style={styles.branchTextContainer}>
                         <Text style={styles.hierarchyText}>
-                            {branchConfig.hierarchy.toUpperCase()}
+                            {branchConfig.uppercaseHierarchy ? branchConfig.hierarchy.toUpperCase() : branchConfig.hierarchy}
                         </Text>
                         {branchConfig.title ? (
                             <Text style={styles.titleText}>
