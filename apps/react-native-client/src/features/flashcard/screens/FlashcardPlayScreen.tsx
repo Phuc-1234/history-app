@@ -5,15 +5,16 @@ import { useRouter } from "expo-router";
 import { FlashcardCard } from "../components/FlashcardCard";
 import { FlashcardControls } from "../components/FlashcardControls";
 import { FlashcardProgress } from "../components/FlashcardProgress";
-import { useGetFlashcardsByLessonQuery, useGetFlashcardsBySectionQuery } from "../flashcardApiSlice";
+import { useGetFlashcardsByLessonQuery, useGetFlashcardsBySectionQuery, useGetFlashcardsByNodeQuery } from "../flashcardApiSlice";
 import { CardState } from "../types";
 
 interface FlashcardPlayScreenProps {
     lessonId?: number;
     sectionId?: number;
+    nodeId?: number;
 }
 
-export default function FlashcardPlayScreen({ lessonId, sectionId }: FlashcardPlayScreenProps) {
+export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: FlashcardPlayScreenProps) {
     const router = useRouter();
 
     // Fetch flashcards from API
@@ -35,10 +36,19 @@ export default function FlashcardPlayScreen({ lessonId, sectionId }: FlashcardPl
         skip: !sectionId,
     });
 
-    const flashcards = lessonId ? lessonFlashcards : sectionFlashcards;
-    const isLoading = lessonId ? isLessonLoading : isSectionLoading;
-    const isError = lessonId ? isLessonError : isSectionError;
-    const error = lessonId ? lessonError : sectionError;
+    const {
+        data: nodeFlashcards,
+        isLoading: isNodeLoading,
+        isError: isNodeError,
+        error: nodeError,
+    } = useGetFlashcardsByNodeQuery(nodeId!, {
+        skip: !nodeId,
+    });
+
+    const flashcards = lessonId ? lessonFlashcards : (sectionId ? sectionFlashcards : nodeFlashcards);
+    const isLoading = lessonId ? isLessonLoading : (sectionId ? isSectionLoading : isNodeLoading);
+    const isError = lessonId ? isLessonError : (sectionId ? isSectionError : isNodeError);
+    const error = lessonId ? lessonError : (sectionId ? sectionError : nodeError);
 
     // Initialize 20 cards with 0 memorized count
     const [deck, setDeck] = useState<CardState[]>([]);

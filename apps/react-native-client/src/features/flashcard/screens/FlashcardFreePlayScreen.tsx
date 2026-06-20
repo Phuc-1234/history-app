@@ -3,14 +3,15 @@ import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
 
 import { FlashcardCard } from "../components/FlashcardCard";
 import { FreeFlashcardControls } from "../components/FreeFlashcardControls";
-import { useGetFlashcardsByLessonQuery, useGetFlashcardsBySectionQuery } from "../flashcardApiSlice";
+import { useGetFlashcardsByLessonQuery, useGetFlashcardsBySectionQuery, useGetFlashcardsByNodeQuery } from "../flashcardApiSlice";
 
 interface FlashcardFreePlayScreenProps {
     lessonId?: number;
     sectionId?: number;
+    nodeId?: number;
 }
 
-export default function FlashcardFreePlayScreen({ lessonId, sectionId }: FlashcardFreePlayScreenProps) {
+export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }: FlashcardFreePlayScreenProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
 
@@ -31,9 +32,17 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId }: Flashca
         skip: !sectionId,
     });
 
-    const cards = lessonId ? lessonCards : sectionCards;
-    const isLoading = lessonId ? isLessonLoading : isSectionLoading;
-    const isError = lessonId ? isLessonError : isSectionError;
+    const {
+        data: nodeCards,
+        isLoading: isNodeLoading,
+        isError: isNodeError,
+    } = useGetFlashcardsByNodeQuery(nodeId!, {
+        skip: !nodeId,
+    });
+
+    const cards = lessonId ? lessonCards : (sectionId ? sectionCards : nodeCards);
+    const isLoading = lessonId ? isLessonLoading : (sectionId ? isSectionLoading : isNodeLoading);
+    const isError = lessonId ? isLessonError : (sectionId ? isSectionError : isNodeError);
 
     const totalCount = cards?.length ?? 0;
     const currentCard = cards?.[currentIndex] ?? null;

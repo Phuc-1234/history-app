@@ -11,6 +11,7 @@ import {
     useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
 import VideoPlayer from "../../videostream/components/VideoPlayer";
 import { Toast } from "../../../components/Toast";
@@ -20,9 +21,6 @@ import {
     useFinishStudyNodeMutation,
 } from "../lessonApiSlice";
 import { colors } from "../../../theme/colors";
-
-// Time (ms) user must stay on screen before it counts as "studied"
-const STUDY_THRESHOLD_MS = 8000;
 
 function convertHslToHex(html: string): string {
     if (!html) return "";
@@ -66,6 +64,7 @@ interface NodeScreenProps {
 }
 
 export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPress, lessonName }: NodeScreenProps) {
+    const router = useRouter();
     const { width } = useWindowDimensions();
     const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
     const { data: node, isLoading, error } = useGetNodeDetailQuery(nodeId);
@@ -74,9 +73,6 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
     const [studyDone, setStudyDone] = useState(false);
-
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const entryTimeRef = useRef(Date.now());
 
     const parentSectionsString = useAppSelector((state: any) => {
         const queries = state.api?.queries || {};
@@ -108,40 +104,27 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
         return "";
     });
 
-    // Start the study timer when screen mounts (or node changes)
     useEffect(() => {
-        if (!isLoggedIn || !node) {
-            return;
+        if (node) {
+            setStudyDone(!!node.isCompleted);
         }
+    }, [node]);
 
-        if (node.isCompleted) {
-            setStudyDone(true);
-            return;
+    const handleMarkComplete = async () => {
+        if (!isLoggedIn || !node) return;
+        setStudyDone(true);
+        try {
+            const result = await finishStudy(nodeId).unwrap();
+            const msg =
+                result.consequences?.find((c: any) => c.message)?.message ??
+                "Đã ghi nhận hoàn thành!";
+            setToastMessage(msg);
+            setToastVisible(true);
+        } catch {
+            setToastMessage("Đã ghi nhận hoàn thành!");
+            setToastVisible(true);
         }
-
-        entryTimeRef.current = Date.now();
-        setStudyDone(false);
-
-        timerRef.current = setTimeout(async () => {
-            setStudyDone(true);
-            try {
-                const result = await finishStudy(nodeId).unwrap();
-                const msg =
-                    result.consequences.find((c) => c.message)?.message ??
-                    "Đã ghi nhận học bài!";
-                setToastMessage(msg);
-                setToastVisible(true);
-            } catch {
-                // silently fail — user still gets credit locally
-                setToastMessage("Đã ghi nhận học bài!");
-                setToastVisible(true);
-            }
-        }, STUDY_THRESHOLD_MS);
-
-        return () => {
-            if (timerRef.current) clearTimeout(timerRef.current);
-        };
-    }, [nodeId, isLoggedIn, node]);
+    };
 
     if (isLoading) {
         return (
@@ -164,33 +147,19 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
 
     return (
         <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={onBack} style={styles.headerBackBtn}>
-                    <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-                </TouchableOpacity>
-                <View style={styles.headerTextContainer}>
-                    {parentSectionsString ? (
-                        <Text style={styles.headerSubtitle} numberOfLines={1}>
-                            {parentSectionsString}
-                        </Text>
-                    ) : null}
-                    <View style={styles.headerTitleRow}>
-                        <Text style={styles.headerTitle} numberOfLines={1}>
-                            {node.header ?? `Phần ${node.position}`}
-                        </Text>
-                        {/* Completion badge */}
-                        {node.isCompleted && isLoggedIn && (
-                            <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                        )}
-                    </View>
-                </View>
-            </View>
-
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
+                {/* Node Title & Completion Tick */}
+                <View style={styles.nodeTitleContainer}>
+                    <Text style={styles.nodeTitleText}>
+                        {node.header ?? `Phần ${node.position}`}
+                    </Text>
+                    {studyDone && isLoggedIn && (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.success} style={styles.completedTickIcon} />
+                    )}
+                </View>
 
                 {/* Body — HTML rendered content */}
                 <View style={{ marginBottom: 24 }}>
@@ -215,40 +184,54 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                         />
                     </View>
                 )}
-
-                {/* Practice test button — only if relevant questions exist */}
-                {node.hasRelevantQuestions && (
-                    <TouchableOpacity
-                        style={styles.quizButton}
-                        onPress={onQuizPress}
-                        activeOpacity={0.85}
-                    >
-                        <Ionicons name="pencil" size={20} color={colors.textLight} />
-                        <Text style={styles.quizButtonText}>Luyện tập</Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Study timer indicator */}
-                {isLoggedIn && (
-                    <View style={styles.studyIndicator}>
-                        <Ionicons
-                            name={studyDone ? "checkmark-circle" : "time-outline"}
-                            size={16}
-                            color={studyDone ? colors.success : colors.textMuted}
-                        />
-                        <Text
-                            style={[
-                                styles.studyIndicatorText,
-                                studyDone && styles.studyDoneText,
-                            ]}
-                        >
-                            {studyDone
-                                ? (node?.isCompleted ? "Bạn đã học bài này" : "Đã ghi nhận học bài")
-                                : "Đọc bài để hoàn thành…"}
-                        </Text>
-                    </View>
-                )}
             </ScrollView>
+
+            {/* Action Buttons Container (Anchored at the bottom) */}
+            <View style={styles.actionButtonsContainer}>
+                <View style={styles.topRowButtons}>
+                    {isLoggedIn && (
+                        <TouchableOpacity
+                            style={[
+                                styles.completeBtn,
+                                studyDone ? styles.completeBtnFilled : styles.completeBtnFlipped,
+                            ]}
+                            onPress={handleMarkComplete}
+                            disabled={studyDone}
+                        >
+                            <Ionicons
+                                name={studyDone ? "checkmark-circle" : "checkmark-circle-outline"}
+                                size={18}
+                                color={studyDone ? colors.textLight : colors.success}
+                            />
+                            <Text
+                                style={[
+                                    styles.completeBtnText,
+                                    studyDone ? styles.completeBtnTextLight : styles.completeBtnTextSuccess,
+                                ]}
+                            >
+                                {studyDone ? "Đã hoàn thành" : "Hoàn thành mục này"}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity
+                        style={styles.squareFcardBtn}
+                        onPress={() => {
+                            router.push(`/(3_4_lessons)/4_4_fcard?nodeId=${node.id}`);
+                        }}
+                    >
+                        <Ionicons name="copy" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                    style={styles.practiceBtn}
+                    onPress={onQuizPress}
+                >
+                    <Ionicons name="document-text" size={18} color={colors.textLight} />
+                    <Text style={styles.practiceBtnText}>Luyện tập</Text>
+                </TouchableOpacity>
+            </View>
 
             {/* Prev / Next navigation footer */}
             {(onPrevPress || onNextPress) && (
@@ -390,57 +373,28 @@ const styles = StyleSheet.create({
     },
     backBtnText: { color: colors.textLight, fontWeight: "700" },
 
-    /* Header */
-    header: {
+    nodeTitleContainer: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.borderLight,
+        justifyContent: "space-between",
+        marginBottom: 16,
         gap: 12,
     },
-    headerBackBtn: {
-        padding: 4,
-    },
-    headerTextContainer: {
-        flex: 1,
-    },
-    headerSubtitle: {
-        fontSize: 11,
-        fontWeight: "600",
-        color: colors.textMuted,
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-        marginBottom: 2,
-    },
-    headerTitleRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: "700",
+    nodeTitleText: {
+        fontSize: 22,
+        fontWeight: "800",
         color: colors.textPrimary,
-        flexShrink: 1,
+        flex: 1,
+        lineHeight: 30,
     },
-    completedBadge: {
-        padding: 4,
+    completedTickIcon: {
+        flexShrink: 0,
     },
 
     /* Content */
     scrollContent: {
         padding: 20,
         paddingBottom: 60,
-    },
-    nodeTitle: {
-        fontSize: 22,
-        fontWeight: "800",
-        color: colors.textPrimary,
-        marginBottom: 16,
-        lineHeight: 30,
     },
     nodeBody: {
         fontSize: 16,
@@ -460,38 +414,71 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
 
-    /* Quiz button */
-    quizButton: {
+    /* Action Buttons */
+    actionButtonsContainer: {
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        paddingBottom: 12,
+        backgroundColor: colors.background,
+        borderTopWidth: 1,
+        borderTopColor: colors.borderLight,
+        gap: 12,
+    },
+    topRowButtons: {
+        flexDirection: "row",
+        gap: 10,
+        alignItems: "center",
+    },
+    completeBtn: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 12,
+        borderRadius: 5,
+        gap: 6,
+    },
+    completeBtnFlipped: {
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.success,
+    },
+    completeBtnFilled: {
+        backgroundColor: colors.success,
+    },
+    completeBtnText: {
+        fontSize: 15,
+        fontWeight: "700",
+    },
+    completeBtnTextSuccess: {
+        color: colors.success,
+    },
+    completeBtnTextLight: {
+        color: colors.textLight,
+    },
+    squareFcardBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: colors.primary,
+        backgroundColor: colors.surface,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    practiceBtn: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.primary,
         borderRadius: 5,
-        paddingVertical: 14,
+        paddingVertical: 12,
         gap: 8,
-        marginBottom: 20,
     },
-    quizButtonText: {
+    practiceBtnText: {
         color: colors.textLight,
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "700",
-    },
-
-    /* Study indicator */
-    studyIndicator: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        paddingVertical: 10,
-    },
-    studyIndicatorText: {
-        fontSize: 13,
-        color: colors.textMuted,
-    },
-    studyDoneText: {
-        color: colors.success,
-        fontWeight: "600",
     },
 
     /* Prev / Next footer */

@@ -130,8 +130,44 @@ export default function NodeDetailScreen() {
         ? () => handleStepNavigation(steps[currentIdx + 1]) 
         : (fallbackNextNodeId != null ? () => navigateToNode(fallbackNextNodeId) : undefined);
 
+    const parentSectionsString = useAppSelector((state: any) => {
+        const queries = state.api?.queries || {};
+        for (const queryKey of Object.keys(queries)) {
+            if (queryKey.startsWith("getLessonTree(")) {
+                const qData = queries[queryKey]?.data;
+                if (qData && qData.sections) {
+                    const getParentPath = (sections: any[], targetNodeId: number): any[] | null => {
+                        for (const sec of sections) {
+                            if (sec.nodes && sec.nodes.some((n: any) => n.id === targetNodeId)) {
+                                return [sec];
+                            }
+                            if (sec.children && sec.children.length > 0) {
+                                const path = getParentPath(sec.children, targetNodeId);
+                                if (path) {
+                                    return [sec, ...path];
+                                }
+                            }
+                        }
+                        return null;
+                    };
+                    const path = getParentPath(qData.sections, id);
+                    if (path) {
+                        return path.map((s: any) => s.name).join(" > ");
+                    }
+                }
+            }
+        }
+        return "";
+    });
+
     return (
-        <ScreenWrapper>
+        <ScreenWrapper
+            branchConfig={{
+                hierarchy: lessonName || "BÀI HỌC",
+                title: parentSectionsString,
+                onBackPress: () => router.back(),
+            }}
+        >
             <NodeScreen
                 nodeId={id}
                 lessonName={lessonName}
