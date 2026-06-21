@@ -105,16 +105,21 @@ const baseQueryWithReauth: BaseQueryFn<
   if (result.error && Number(result.error.status) === 401) {
     console.log('[apiSlice] Access token expired, entering reauth flow...');
 
+    const state = api.getState() as any;
+    const isLoggedIn = !!state?.auth?.profile;
+
     const refreshToken = await getStorageItem(REFRESH_TOKEN_KEY);
 
-    // 3. Không có refresh token thì logout
+    // 3. Không có refresh token thì logout hoặc show dialog
     if (!refreshToken) {
       console.log('[apiSlice] No refresh token found in storage, logging out...');
 
       await clearAuthTokens();
 
-      const { appLogout } = await import('@/features/auth/store/authSlice');
-      api.dispatch(appLogout());
+      if (isLoggedIn) {
+        const { setSessionExpired } = await import('@/features/auth/store/authSlice');
+        api.dispatch(setSessionExpired(true));
+      }
 
       return result;
     }
@@ -204,8 +209,10 @@ const baseQueryWithReauth: BaseQueryFn<
 
         await clearAuthTokens();
 
-        const { appLogout } = await import('@/features/auth/store/authSlice');
-        api.dispatch(appLogout());
+        if (isLoggedIn) {
+          const { setSessionExpired } = await import('@/features/auth/store/authSlice');
+          api.dispatch(setSessionExpired(true));
+        }
       }
     } catch (err) {
       // 9. Lỗi mạng hoặc lỗi parse response
@@ -213,8 +220,10 @@ const baseQueryWithReauth: BaseQueryFn<
 
       await clearAuthTokens();
 
-      const { appLogout } = await import('@/features/auth/store/authSlice');
-      api.dispatch(appLogout());
+      if (isLoggedIn) {
+        const { setSessionExpired } = await import('@/features/auth/store/authSlice');
+        api.dispatch(setSessionExpired(true));
+      }
     }
   }
 

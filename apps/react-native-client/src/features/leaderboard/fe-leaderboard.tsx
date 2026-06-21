@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { TopNavBar } from "../../components/TopNavBar";
+
 interface User {
   id: number;
   name: string;
@@ -69,6 +71,7 @@ const RankingScreen: React.FC = () => {
   const { width } = useWindowDimensions();
   const isSmallDevice = width < 390;
   const styles = React.useMemo(() => createStyles(isSmallDevice), [isSmallDevice]);
+  const [activeTab, setActiveTab] = React.useState("xp");
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -91,18 +94,20 @@ const RankingScreen: React.FC = () => {
         </View>
       </View>
 
+      <TopNavBar
+        tabs={[
+          { key: "xp", label: "Hạng" },
+          { key: "streak", label: "Chuỗi" },
+        ]}
+        activeTab={activeTab}
+        onChangeTab={setActiveTab}
+        containerStyle={styles.tabContainer}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.tabContainer}>
-          <TouchableOpacity style={[styles.tabButton, styles.activeTabButton]}>
-            <Text style={styles.activeTabText}>Hạng</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabButton}>
-            <Text style={styles.inactiveTabText}>Chuỗi</Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={styles.podiumSection}>
           <View style={styles.podiumColumn}>
@@ -250,35 +255,8 @@ const createStyles = (isSmallDevice: boolean) =>
       paddingBottom: 120,
     },
     tabContainer: {
-      backgroundColor: "#E2DDD7",
-      borderRadius: 12,
-      padding: 4,
-      flexDirection: "row",
-    },
-    tabButton: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 11,
-      borderRadius: 10,
-    },
-    activeTabButton: {
-      backgroundColor: "#F5F2EF",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08,
-      shadowRadius: 2,
-      elevation: 1,
-    },
-    activeTabText: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: "#4E3FE0",
-    },
-    inactiveTabText: {
-      fontSize: 15,
-      fontWeight: "500",
-      color: "#4E4A58",
+      marginTop: 0,
+      marginHorizontal: 0,
     },
     podiumSection: {
       marginTop: 18,
@@ -404,28 +382,21 @@ const createStyles = (isSmallDevice: boolean) =>
     rankRow: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: "#F7F7F7",
-      borderRadius: 14,
+      backgroundColor: "#5641E8",
+      borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 14,
       marginBottom: 14,
     },
     meRow: {
-      backgroundColor: "#DCD8F6",
-      borderWidth: 1,
-      borderColor: "#B8ADEE",
-      shadowColor: "#7F6BFF",
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.12,
-      shadowRadius: 8,
-      elevation: 2,
+      backgroundColor: "#4B37DB",
     },
     rowPosition: {
       width: 22,
       marginRight: 10,
       fontSize: 15,
       fontWeight: "500",
-      color: "#4A4A58",
+      color: "#FFFFFF",
     },
     rowAvatar: {
       width: 40,
@@ -439,29 +410,29 @@ const createStyles = (isSmallDevice: boolean) =>
       height: 40,
       borderRadius: 20,
       marginRight: 14,
-      backgroundColor: "#7D56C8",
+      backgroundColor: "#EBE8FF",
       justifyContent: "center",
       alignItems: "center",
     },
     rowDefaultAvatarText: {
-      color: "#FFFFFF",
+      color: "#5641E8",
       fontSize: 16,
       fontWeight: "700",
     },
     rowName: {
       flex: 1,
       fontSize: isSmallDevice ? 14 : 15,
-      color: "#222222",
+      color: "#FFFFFF",
       fontWeight: "500",
       marginRight: 8,
     },
     rowXp: {
       fontSize: isSmallDevice ? 14 : 15,
-      color: "#4E3FE0",
+      color: "#FFFFFF",
       fontWeight: "700",
     },
     meText: {
-      color: "#4E3FE0",
+      color: "#FFFFFF",
       fontWeight: "700",
     },
     bottomTabWrap: {

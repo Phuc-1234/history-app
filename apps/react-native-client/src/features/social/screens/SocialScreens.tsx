@@ -189,31 +189,24 @@ type CardAction = {
 };
 
 function searchActions(user: SocialUser): {
-    primary: CardAction;
-    secondary?: CardAction;
+    follow: CardAction;
+    friend: CardAction;
 } {
-    if (user.relation === "friend") {
-        return {
-            primary: { label: "Thách đấu", icon: "flash", variant: "secondary" },
-            secondary: { label: "Hồ sơ", icon: "person-outline", variant: "ghost" },
-        };
-    }
-    if (user.relation === "pending") {
-        return {
-            primary: { label: "Đã gửi", icon: "time", variant: "disabled" },
-            secondary: { label: "Theo dõi", icon: "person-add", variant: "outline" },
-        };
-    }
-    if (user.relation === "following") {
-        return {
-            primary: { label: "Kết bạn", icon: "person-add", variant: "primary" },
-            secondary: { label: "Đang theo dõi", icon: "checkmark", variant: "outline" },
-        };
-    }
-    return {
-        primary: { label: "Kết bạn", icon: "person-add", variant: "primary" },
-        secondary: { label: "Theo dõi", icon: "person-add", variant: "outline" },
-    };
+    // Button 1: Follow status — outline style
+    const follow: CardAction =
+        user.relation === "following" || user.relation === "friend"
+            ? { label: "Đang theo dõi", icon: "checkmark", variant: "outline" }
+            : { label: "Theo dõi", icon: "person-add-outline", variant: "outline" };
+
+    // Button 2: Friend status — filled style
+    const friend: CardAction =
+        user.relation === "friend"
+            ? { label: "Bạn bè", icon: "people", variant: "primary" }
+            : user.relation === "pending"
+              ? { label: "Đã gửi", icon: "time", variant: "disabled" }
+              : { label: "Kết bạn", icon: "person-add", variant: "primary" };
+
+    return { follow, friend };
 }
 
 function EmptyState({
@@ -280,6 +273,8 @@ function Avatar({ user, size = 52 }: { user: SocialUser; size?: number }) {
                         width: size,
                         height: size,
                         borderRadius: size / 2,
+                        borderWidth: 2,
+                        borderColor: colors.borderMedium,
                     },
                 ]}
             >
@@ -292,7 +287,13 @@ function Avatar({ user, size = 52 }: { user: SocialUser; size?: number }) {
     return (
         <Image
             source={{ uri: user.avatar }}
-            style={{ width: size, height: size, borderRadius: size / 2 }}
+            style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                borderWidth: 2,
+                borderColor: colors.borderMedium,
+            }}
         />
     );
 }
@@ -403,6 +404,7 @@ function UserCard({
     secondaryIcon,
     secondaryOnPress,
     secondaryVariant = "outline",
+    style,
 }: {
     user: SocialUser;
     onPress?: () => void;
@@ -414,6 +416,7 @@ function UserCard({
     secondaryIcon?: keyof typeof Ionicons.glyphMap;
     secondaryOnPress?: () => void;
     secondaryVariant?: "primary" | "outline" | "soft" | "danger";
+    style?: ViewStyle;
 }) {
     const actions =
         primaryLabel && secondaryLabel ? (
@@ -441,13 +444,14 @@ function UserCard({
                     label={primaryLabel}
                     icon={primaryIcon}
                     variant={primaryVariant}
+                    style={styles.cardActionButton}
                     onPress={primaryOnPress}
                 />
             )
         ) : null;
 
     return (
-        <TouchableOpacity style={styles.userCard} onPress={onPress} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.userCard, style]} onPress={onPress} activeOpacity={0.85}>
             <Avatar user={user} />
             <View style={styles.userInfo}>
                 <View style={styles.rowCenter}>
@@ -519,43 +523,40 @@ function rankPillFor(user: SocialUser): { label: string; icon: keyof typeof Ioni
 function SearchActionButton({
     action,
     onPress,
+    type,
 }: {
     action: CardAction;
     onPress?: () => void;
+    type: "outline" | "filled";
 }) {
-    const variantStyle =
-        action.variant === "primary"
-            ? styles.searchBtnPrimary
-            : action.variant === "outline"
-              ? styles.searchBtnOutline
-              : action.variant === "disabled"
-                ? styles.searchBtnDisabled
-                : action.variant === "secondary"
-                  ? styles.searchBtnSecondary
-                  : action.variant === "ghost"
-                    ? styles.searchBtnGhost
-                    : styles.searchBtnOutline;
-    const textColor =
-        action.variant === "primary" || action.variant === "secondary"
-            ? "#FFFFFF"
-            : action.variant === "disabled"
-              ? colors.textMuted
-              : action.variant === "ghost" || action.variant === "outline"
-                ? colors.primary
-                : colors.textPrimary;
-    const iconColor = textColor;
     const disabled = action.variant === "disabled";
+
+    const btnStyle =
+        type === "outline"
+            ? {
+                  backgroundColor: "transparent" as const,
+                  borderWidth: 2,
+                  borderColor: colors.primary,
+              }
+            : {
+                  backgroundColor: disabled ? colors.inputBackground : colors.primary,
+              };
+
+    const iconColor =
+        type === "outline"
+            ? colors.primary
+            : disabled
+              ? colors.textMuted
+              : "#FFFFFF";
+
     return (
         <TouchableOpacity
-            style={[styles.searchBtn, variantStyle]}
+            style={[styles.searchBtn, btnStyle]}
             onPress={onPress}
             activeOpacity={disabled ? 1 : 0.85}
             disabled={disabled}
         >
             <Ionicons name={action.icon} size={17} color={iconColor} />
-            <Text style={[styles.searchBtnText, { color: textColor }]} numberOfLines={1}>
-                {action.label}
-            </Text>
         </TouchableOpacity>
     );
 }
@@ -563,57 +564,57 @@ function SearchActionButton({
 function SearchUserCard({
     user,
     onOpen,
-    onPrimary,
-    onSecondary,
+    onFollow,
+    onFriend,
 }: {
     user: SocialUser;
     onOpen: () => void;
-    onPrimary: () => void;
-    onSecondary: () => void;
+    onFollow: () => void;
+    onFriend: () => void;
 }) {
-    const actions = searchActions(user);
-    const rank = rankPillFor(user);
-    const rankColor = user.relation === "friend" ? colors.success : colors.warning;
+    const initiallyFollowing = user.relation === "following" || user.relation === "friend";
+    const [localFollowing, setLocalFollowing] = useState(initiallyFollowing);
+    const effectiveRelation: SocialUser["relation"] =
+        localFollowing && user.relation === "none" ? "following" : user.relation;
+    const actions = searchActions({ ...user, relation: effectiveRelation });
+
     return (
-        <View style={styles.searchCard}>
-            <TouchableOpacity
-                style={styles.searchCardHead}
-                onPress={onOpen}
-                activeOpacity={0.85}
-            >
-                <Avatar user={user} size={56} />
-                <View style={styles.userInfo}>
-                    <View style={styles.searchNameRow}>
-                        <Text style={styles.userName} numberOfLines={1}>
-                            {user.name}
-                        </Text>
-                        {rank ? (
-                            <View style={[styles.rankPill, { borderColor: rankColor, borderWidth: 2, backgroundColor: "transparent" }]}>
-                                <Ionicons name={rank.icon} size={12} color={rankColor} />
-                                <Text style={[styles.rankText, { color: rankColor }]} numberOfLines={1}>
-                                    {rank.label}
-                                </Text>
-                            </View>
-                        ) : null}
-                    </View>
-                    <View style={styles.searchMetaRow}>
-                        <Ionicons name="star" size={14} color={colors.primary} />
-                        <Text style={styles.searchMetaText}>
-                            {user.xp.toLocaleString()} XP
-                        </Text>
-                        <View style={styles.searchMetaDot} />
-                        <Ionicons name="flame" size={14} color={colors.error} />
-                        <Text style={styles.searchMetaText}>{user.streak} ngày</Text>
+        <TouchableOpacity
+            style={styles.searchCard}
+            onPress={onOpen}
+            activeOpacity={0.85}
+        >
+            <Avatar user={user} />
+            <View style={styles.userInfo}>
+                <View style={styles.rowCenter}>
+                    <Text style={styles.userName} numberOfLines={1}>
+                        {user.name}
+                    </Text>
+                    <View style={styles.levelPill}>
+                        <Text style={styles.levelText}>Lv. {user.level}</Text>
                     </View>
                 </View>
-            </TouchableOpacity>
-            <View style={styles.searchButtonRow}>
-                <SearchActionButton action={actions.primary} onPress={onPrimary} />
-                {actions.secondary ? (
-                    <SearchActionButton action={actions.secondary} onPress={onSecondary} />
-                ) : null}
+                <Text style={styles.userTitle} numberOfLines={1}>
+                    {user.title}
+                </Text>
+                <Text style={styles.userMeta}>
+                    {user.xp.toLocaleString()} XP - {user.mutualFriends} bạn chung
+                </Text>
             </View>
-        </View>
+            <View style={styles.searchButtonRow}>
+                <SearchActionButton
+                    action={actions.follow}
+                    type="outline"
+                    onPress={() => {
+                        if (!localFollowing) {
+                            setLocalFollowing(true);
+                            onFollow();
+                        }
+                    }}
+                />
+                <SearchActionButton action={actions.friend} onPress={onFriend} type="filled" />
+            </View>
+        </TouchableOpacity>
     );
 }
 
@@ -669,20 +670,18 @@ export function SearchUsersScreen() {
                         key={user.id}
                         user={user}
                         onOpen={() => pushRoute(router, `/(social)/profile?userId=${user.id}`)}
-                        onPrimary={() => {
-                            if (user.relation === "none" || user.relation === "following") {
-                                sendFriendRequest({ receiverId: user.id });
-                            } else if (user.relation === "friend") {
-                                pushRoute(router, `/(social)/challenge-create?userId=${user.id}`);
+                        onFollow={() => {
+                            if (user.relation === "following" || user.relation === "friend") {
+                                // already following — no-op for now
+                            } else {
+                                followUser(user.id);
                             }
                         }}
-                        onSecondary={() => {
-                            if (user.relation === "none" || user.relation === "pending") {
-                                followUser(user.id);
-                            } else if (user.relation === "following") {
-                                unfollowUser(user.id);
-                            } else if (user.relation === "friend") {
-                                pushRoute(router, `/(social)/profile?userId=${user.id}`);
+                        onFriend={() => {
+                            if (user.relation === "friend" || user.relation === "pending") {
+                                // already friend or pending — no-op
+                            } else {
+                                sendFriendRequest({ receiverId: user.id });
                             }
                         }}
                     />
@@ -888,31 +887,24 @@ export function FriendRequestsScreen() {
                     const user = request.user ? toViewUser(request.user) : null;
                     if (!user) return null;
                     return (
-                        <View key={request.id} style={styles.requestCard}>
-                            <UserCard user={user} />
-                            {activeTab === "Đã nhận" ? (
-                                <View style={styles.actionRow}>
-                                    <PrimaryButton
-                                        label="Chấp nhận"
-                                        icon="checkmark"
-                                        onPress={() => acceptRequest(request.id)}
-                                    />
-                                    <PrimaryButton
-                                        label="Từ chối"
-                                        icon="close"
-                                        variant="outline"
-                                        onPress={() => rejectRequest(request.id)}
-                                    />
-                                </View>
-                            ) : (
-                                <PrimaryButton
-                                    label="Hủy lời mời"
-                                    icon="close"
-                                    variant="outline"
-                                    onPress={() => cancelRequest(request.id)}
-                                />
-                            )}
-                        </View>
+                        <UserCard
+                            key={request.id}
+                            user={user}
+                            primaryLabel={activeTab === "Đã nhận" ? "Chấp nhận" : "Huỷ"}
+                            primaryIcon={activeTab === "Đã nhận" ? "checkmark" : "close"}
+                            primaryVariant="primary"
+                            primaryOnPress={() => {
+                                if (activeTab === "Đã nhận") {
+                                    acceptRequest(request.id);
+                                } else {
+                                    cancelRequest(request.id);
+                                }
+                            }}
+                            secondaryLabel={activeTab === "Đã nhận" ? "Từ chối" : undefined}
+                            secondaryIcon={activeTab === "Đã nhận" ? "close" : undefined}
+                            secondaryVariant="primary"
+                            secondaryOnPress={() => rejectRequest(request.id)}
+                        />
                     );
                 })}
             </ScrollView>
@@ -1196,7 +1188,7 @@ const styles = StyleSheet.create({
     iconButton: {
         width: 40,
         height: 40,
-        borderRadius: 15,
+        borderRadius: 12,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.surface,
@@ -1209,21 +1201,21 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primaryContainer,
     },
     avatarFallbackText: {
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.primary,
     },
     headerTitle: {
         flex: 1,
         textAlign: "center",
         fontSize: 18,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.textPrimary,
     },
     headerAction: {
         minWidth: 40,
         textAlign: "right",
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.primary,
     },
     content: {
@@ -1240,7 +1232,7 @@ const styles = StyleSheet.create({
     },
     searchBox: {
         height: 48,
-        borderRadius: 5,
+        borderRadius: 12,
         borderWidth: 2,
         borderColor: colors.borderDark,
         backgroundColor: colors.surface,
@@ -1253,18 +1245,18 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 15,
         color: colors.textPrimary,
-        fontWeight: "600",
+        fontWeight: "400",
     },
     segment: {
         flexDirection: "row",
         padding: 4,
-        borderRadius: 5,
+        borderRadius: 12,
         backgroundColor: colors.inputBackground,
     },
     segmentItem: {
         flex: 1,
         paddingVertical: 10,
-        borderRadius: 5,
+        borderRadius: 12,
         alignItems: "center",
     },
     segmentItemActive: {
@@ -1272,7 +1264,7 @@ const styles = StyleSheet.create({
     },
     segmentText: {
         fontSize: 12,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
     },
     segmentTextActive: {
@@ -1285,28 +1277,26 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 17,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.textPrimary,
     },
     sectionHint: {
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
     },
     emptyState: {
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: colors.surface,
-        borderRadius: 5,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
+        backgroundColor: colors.inputBackground,
+        borderRadius: 12,
         padding: 20,
         gap: 10,
     },
     emptyTitle: {
         fontSize: 14,
-        fontWeight: "700",
-        color: colors.textMuted,
+        fontWeight: "500",
+        color: colors.textPrimary,
         lineHeight: 20,
         textAlign: "center",
     },
@@ -1314,11 +1304,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
-        backgroundColor: colors.surface,
-        borderRadius: 5,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
         padding: 14,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
     },
     userInfo: {
         flex: 1,
@@ -1332,21 +1320,25 @@ const styles = StyleSheet.create({
     cardActionButton: {
         flex: 0,
         flexShrink: 0,
+        minWidth: 80,
+        paddingHorizontal: 10,
+        gap: 5,
+        borderRadius: 4,
     },
     buttonIconOnly: {
         paddingHorizontal: 0,
         width: 40,
         minHeight: 40,
         height: 40,
-        borderRadius: 15,
+        borderRadius: 30,
     },
     searchCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 5,
-        padding: 16,
-        gap: 16,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        padding: 14,
     },
     searchCardHead: {
         flexDirection: "row",
@@ -1365,11 +1357,11 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingHorizontal: 8,
         paddingVertical: 3,
-        borderRadius: 5,
+        borderRadius: 30,
     },
     rankText: {
         fontSize: 11,
-        fontWeight: "800",
+        fontWeight: "600",
     },
     searchMetaRow: {
         marginTop: 6,
@@ -1379,7 +1371,7 @@ const styles = StyleSheet.create({
     },
     searchMetaText: {
         fontSize: 13,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
     },
     searchMetaDot: {
@@ -1391,25 +1383,23 @@ const styles = StyleSheet.create({
     },
     searchButtonRow: {
         flexDirection: "row",
-        gap: 12,
+        gap: 8,
+        flexShrink: 0,
+        alignItems: "center",
     },
     searchBtn: {
-        flex: 1,
-        minHeight: 40,
-        paddingVertical: 10,
-        borderRadius: 5,
-        flexDirection: "row",
+        width: 40,
+        height: 40,
+        borderRadius: 4,
         alignItems: "center",
         justifyContent: "center",
-        gap: 7,
+        backgroundColor: colors.primary,
     },
     searchBtnPrimary: {
         backgroundColor: colors.primary,
     },
     searchBtnOutline: {
-        backgroundColor: "transparent",
-        borderWidth: 2,
-        borderColor: colors.primary,
+        backgroundColor: colors.primary,
     },
     searchBtnDisabled: {
         backgroundColor: colors.inputBackground,
@@ -1418,11 +1408,12 @@ const styles = StyleSheet.create({
         backgroundColor: colors.secondary,
     },
     searchBtnGhost: {
-        backgroundColor: "transparent",
+        backgroundColor: colors.primary,
     },
     searchBtnText: {
         fontSize: 13,
-        fontWeight: "800",
+        fontWeight: "600",
+        textAlign: "center",
     },
     rowCenter: {
         flexDirection: "row",
@@ -1431,40 +1422,40 @@ const styles = StyleSheet.create({
     },
     userName: {
         fontSize: 15,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.textPrimary,
     },
     userTitle: {
         marginTop: 3,
         fontSize: 13,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
     },
     userMeta: {
         marginTop: 4,
         fontSize: 12,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
         lineHeight: 17,
     },
     levelPill: {
         paddingHorizontal: 8,
         paddingVertical: 3,
-        borderRadius: 5,
+        borderRadius: 30,
         borderWidth: 2,
         borderColor: colors.warning,
         backgroundColor: "transparent",
     },
     levelText: {
         fontSize: 11,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.warning,
     },
     button: {
         minHeight: 42,
         paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 15,
+        borderRadius: 30,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -1492,29 +1483,28 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         fontSize: 13,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.primary,
+        textAlign: "center",
     },
     buttonTextPrimary: {
         color: "#FFFFFF",
     },
     profileHero: {
         alignItems: "center",
-        backgroundColor: colors.surface,
-        borderRadius: 5,
+        backgroundColor: colors.inputBackground,
+        borderRadius: 12,
         padding: 20,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
         gap: 10,
     },
     profileName: {
         fontSize: 22,
-        fontWeight: "900",
+        fontWeight: "600",
         color: colors.textPrimary,
     },
     profileSubtitle: {
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
     },
     profileStats: {
@@ -1530,20 +1520,20 @@ const styles = StyleSheet.create({
     statCard: {
         flex: 1,
         backgroundColor: colors.primary,
-        borderRadius: 5,
+        borderRadius: 12,
         paddingVertical: 14,
         alignItems: "center",
         borderWidth: 0,
     },
     statValue: {
         fontSize: 18,
-        fontWeight: "900",
+        fontWeight: "600",
         color: "#FFFFFF",
     },
     statLabel: {
         marginTop: 3,
         fontSize: 11,
-        fontWeight: "700",
+        fontWeight: "500",
         color: "#FFFFFF",
         textAlign: "center",
     },
@@ -1554,7 +1544,7 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: colors.surface,
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 16,
         borderWidth: 2,
         borderColor: colors.borderDark,
@@ -1566,7 +1556,7 @@ const styles = StyleSheet.create({
     },
     badgeCard: {
         flex: 1,
-        borderRadius: 5,
+        borderRadius: 12,
         backgroundColor: "transparent",
         borderWidth: 2,
         padding: 14,
@@ -1575,45 +1565,43 @@ const styles = StyleSheet.create({
     },
     badgeTitle: {
         fontSize: 12,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.textPrimary,
         textAlign: "center",
     },
     requestCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 5,
-        padding: 12,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
-        gap: 10,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        padding: 14,
+        gap: 12,
     },
     challengeHero: {
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 18,
         gap: 18,
     },
     challengeEyebrow: {
         fontSize: 12,
-        fontWeight: "900",
+        fontWeight: "600",
         color: colors.primaryContainer,
         textTransform: "uppercase",
     },
     challengeTitle: {
         marginTop: 4,
         fontSize: 26,
-        fontWeight: "900",
+        fontWeight: "600",
         color: "#FFFFFF",
     },
     challengeCopy: {
         marginTop: 6,
         fontSize: 13,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.primaryContainer,
         lineHeight: 19,
     },
     topicText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textPrimary,
         lineHeight: 20,
     },
@@ -1625,7 +1613,7 @@ const styles = StyleSheet.create({
     chip: {
         paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 5,
+        borderRadius: 30,
         backgroundColor: colors.inputBackground,
     },
     chipActive: {
@@ -1633,7 +1621,7 @@ const styles = StyleSheet.create({
     },
     chipText: {
         fontSize: 12,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.textMuted,
     },
     chipTextActive: {
@@ -1644,7 +1632,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 12,
         backgroundColor: colors.surface,
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 14,
         borderWidth: 2,
         borderColor: colors.borderDark,
@@ -1657,7 +1645,7 @@ const styles = StyleSheet.create({
     packIcon: {
         width: 46,
         height: 46,
-        borderRadius: 5,
+        borderRadius: 12,
         backgroundColor: "transparent",
         borderWidth: 2,
         borderColor: colors.primary,
@@ -1667,12 +1655,12 @@ const styles = StyleSheet.create({
     rewardText: {
         marginTop: 5,
         fontSize: 12,
-        fontWeight: "900",
+        fontWeight: "600",
         color: colors.success,
     },
     bodyText: {
         fontSize: 13,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
         lineHeight: 20,
     },
@@ -1700,8 +1688,8 @@ const styles = StyleSheet.create({
         paddingTop: 8,
         paddingHorizontal: 16,
         backgroundColor: colors.surfaceVariant,
-        borderTopLeftRadius: 5,
-        borderTopRightRadius: 5,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
         borderWidth: 2,
         borderColor: colors.borderDark,
     },
@@ -1722,7 +1710,7 @@ const styles = StyleSheet.create({
     },
     footerHint: {
         fontSize: 12,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
         textAlign: "center",
     },
@@ -1731,7 +1719,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: colors.surface,
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 16,
         borderWidth: 2,
         borderColor: colors.borderDark,
@@ -1743,26 +1731,26 @@ const styles = StyleSheet.create({
     },
     scoreText: {
         fontSize: 28,
-        fontWeight: "900",
+        fontWeight: "600",
         color: colors.primary,
     },
     roundPill: {
         paddingHorizontal: 12,
         paddingVertical: 7,
-        borderRadius: 5,
+        borderRadius: 30,
         borderWidth: 2,
         borderColor: colors.warning,
         backgroundColor: "transparent",
     },
     roundPillText: {
         fontSize: 12,
-        fontWeight: "900",
+        fontWeight: "600",
         color: colors.warning,
     },
     questionText: {
         fontSize: 21,
         lineHeight: 29,
-        fontWeight: "900",
+        fontWeight: "600",
         color: colors.textPrimary,
     },
     answerCard: {
@@ -1770,7 +1758,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 12,
         backgroundColor: colors.surface,
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 15,
         borderWidth: 2,
         borderColor: colors.borderDark,
@@ -1788,7 +1776,7 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         backgroundColor: colors.inputBackground,
         color: colors.textMuted,
-        fontWeight: "900",
+        fontWeight: "600",
     },
     answerKeySelected: {
         backgroundColor: "#FFFFFF",
@@ -1797,14 +1785,14 @@ const styles = StyleSheet.create({
     answerText: {
         flex: 1,
         fontSize: 15,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.textPrimary,
     },
     livePanel: {
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 12,
         borderWidth: 2,
         borderColor: colors.success,
@@ -1817,25 +1805,25 @@ const styles = StyleSheet.create({
         backgroundColor: colors.success,
     },
     resultHero: {
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 22,
         alignItems: "center",
         gap: 8,
     },
     resultTitle: {
         fontSize: 28,
-        fontWeight: "900",
+        fontWeight: "600",
         color: "#FFFFFF",
     },
     finalScore: {
         fontSize: 42,
-        fontWeight: "900",
+        fontWeight: "600",
         color: "#FFFFFF",
     },
     comparisonCard: {
         flexDirection: "row",
         backgroundColor: colors.surface,
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 16,
         borderWidth: 2,
         borderColor: colors.borderDark,

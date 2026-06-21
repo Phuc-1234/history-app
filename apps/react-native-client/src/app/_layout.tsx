@@ -8,6 +8,7 @@ import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { store, persistor } from "../store/store";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { GlobalSessionModal } from "../components/GlobalSessionModal";
 
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
 SplashScreen.preventAutoHideAsync();
@@ -40,6 +41,7 @@ export default function RootLayout() {
                             options={{ presentation: "modal" }}
                         />
                     </Stack>
+                    <GlobalSessionModal />
                 </PersistGate>
             </Provider>
         </SafeAreaProvider>

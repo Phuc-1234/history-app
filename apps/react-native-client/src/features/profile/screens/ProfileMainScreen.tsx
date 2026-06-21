@@ -79,36 +79,38 @@ export default function ProfileMainScreen() {
             </View>
 
             <View style={styles.menuSection}>
-                <ProfileMenuItem
-                    icon="person-outline"
-                    label="Sửa thông tin"
-                    onPress={handleEditProfile}
-                />
-                <ProfileMenuItem
-                    icon="lock-closed-outline"
-                    label="Đổi mật khẩu"
-                    onPress={handleChangePassword}
-                />
-                <ProfileMenuItem
-                    icon="document-text-outline"
-                    label="Lịch sử làm bài"
-                    onPress={handleViewHistory}
-                />
-                <ProfileMenuItem
-                    icon="people-outline"
-                    label="Bạn bè & theo dõi"
-                    onPress={handleOpenFriends}
-                />
-                <ProfileMenuItem
-                    icon="flash-outline"
-                    label="Thi đấu với bạn bè"
-                    onPress={handleOpenChallenges}
-                />
-                <ProfileMenuItem
-                    icon="link-outline"
-                    label="Liên kết tài khoản"
-                    onPress={handleLinkAccounts}
-                />
+                <View style={styles.menuContainer}>
+                    <ProfileMenuItem
+                        icon="person-outline"
+                        label="Sửa thông tin"
+                        onPress={handleEditProfile}
+                    />
+                    <ProfileMenuItem
+                        icon="lock-closed-outline"
+                        label="Đổi mật khẩu"
+                        onPress={handleChangePassword}
+                    />
+                    <ProfileMenuItem
+                        icon="document-text-outline"
+                        label="Lịch sử làm bài"
+                        onPress={handleViewHistory}
+                    />
+                    <ProfileMenuItem
+                        icon="people-outline"
+                        label="Bạn bè & theo dõi"
+                        onPress={handleOpenFriends}
+                    />
+                    <ProfileMenuItem
+                        icon="flash-outline"
+                        label="Thi đấu với bạn bè"
+                        onPress={handleOpenChallenges}
+                    />
+                    <ProfileMenuItem
+                        icon="link-outline"
+                        label="Liên kết tài khoản"
+                        onPress={handleLinkAccounts}
+                    />
+                </View>
             </View>
 
             <TouchableOpacity
@@ -158,6 +160,11 @@ const styles = StyleSheet.create({
     menuSection: {
         paddingHorizontal: 20,
         marginTop: 8,
+    },
+    menuContainer: {
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        paddingVertical: 8,
     },
     logoutButton: {
         flexDirection: "row",

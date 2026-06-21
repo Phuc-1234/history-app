@@ -233,6 +233,7 @@ export default function ProfileEditScreen() {
                                     setName(text);
                                     if (errorMsg) setErrorMsg(null);
                                 }}
+                                style={styles.inputField}
                             />
 
                             <Text style={styles.fieldLabel}>Email</Text>
@@ -245,6 +246,7 @@ export default function ProfileEditScreen() {
                                     setEmail(text);
                                     if (errorMsg) setErrorMsg(null);
                                 }}
+                                style={styles.inputField}
                             />
 
                             {errorMsg && (
@@ -291,10 +293,8 @@ const styles = StyleSheet.create({
     },
 
     card: {
-        backgroundColor: colors.surface,
-        borderRadius: 5,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
         paddingHorizontal: 18,
         paddingTop: 22,
         paddingBottom: 24,
@@ -341,5 +341,8 @@ const styles = StyleSheet.create({
         paddingTop: 12,
 
         backgroundColor: colors.background,
+    },
+    inputField: {
+        backgroundColor: colors.surface,
     },
 });

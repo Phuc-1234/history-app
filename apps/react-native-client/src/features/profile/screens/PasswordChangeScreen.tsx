@@ -61,6 +61,7 @@ export default function PasswordChangeScreen() {
                             isPassword
                             value={state.currentPassword}
                             onChangeText={state.setCurrentPassword}
+                            style={styles.inputField}
                         />
                         {state.currentPasswordError ? (
                             <Text style={styles.errorText}>{state.currentPasswordError}</Text>
@@ -73,6 +74,7 @@ export default function PasswordChangeScreen() {
                             isPassword
                             value={state.newPassword}
                             onChangeText={state.setNewPassword}
+                            style={styles.inputField}
                         />
                         {state.newPasswordError ? (
                             <Text style={styles.errorText}>{state.newPasswordError}</Text>
@@ -85,6 +87,7 @@ export default function PasswordChangeScreen() {
                             isPassword
                             value={state.confirmPassword}
                             onChangeText={state.setConfirmPassword}
+                            style={styles.inputField}
                         />
                         {state.confirmPasswordError ? (
                             <Text style={styles.errorText}>{state.confirmPasswordError}</Text>
@@ -139,10 +142,8 @@ const styles = StyleSheet.create({
         paddingBottom: 24,
     },
     card: {
-        backgroundColor: colors.surface,
-        borderRadius: 5,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
         paddingHorizontal: 24,
         paddingTop: 26,
         paddingBottom: 24,
@@ -186,5 +187,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 30,
         paddingTop: 12,
         backgroundColor: colors.background,
+    },
+    inputField: {
+        backgroundColor: colors.surface,
     },
 });

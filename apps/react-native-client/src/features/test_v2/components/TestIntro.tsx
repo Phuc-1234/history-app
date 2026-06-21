@@ -84,18 +84,14 @@ export default function TestIntro({
                 {/* Sub-containers: number of ques, time */}
                 <View style={styles.gridContainer}>
                     {/* Questions count */}
-                    <View style={styles.gridItem}>
-                        <View style={[styles.iconWrapper, styles.blueBg]}>
-                            <FileText size={20} color={colors.info} />
-                        </View>
+                    <View style={[styles.gridItem, { backgroundColor: colors.primary }]}>
+                        <FileText size={20} color="#FFFFFF" />
                         <Text style={styles.gridText}>{resolvedQuestionCount} câu hỏi</Text>
                     </View>
 
                     {/* Time limit */}
-                    <View style={styles.gridItem}>
-                        <View style={[styles.iconWrapper, styles.indigoBg]}>
-                            <Clock size={20} color={colors.primary} />
-                        </View>
+                    <View style={[styles.gridItem, { backgroundColor: colors.secondary }]}>
+                        <Clock size={20} color="#FFFFFF" />
                         <Text style={styles.gridText}>
                             {resolvedTimeLimit !== null ? `${resolvedTimeLimit} phút` : "Không giới hạn"}
                         </Text>
@@ -177,9 +173,6 @@ const styles = StyleSheet.create({
     },
     gridItem: {
         flex: 1,
-        backgroundColor: colors.surfaceVariant,
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
         borderRadius: 5,
         paddingVertical: 18,
         paddingHorizontal: 12,
@@ -187,23 +180,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         gap: 10,
     },
-    iconWrapper: {
-        width: 44,
-        height: 44,
-        borderRadius: 5,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    blueBg: {
-        backgroundColor: colors.infoContainer,
-    },
-    indigoBg: {
-        backgroundColor: colors.primaryContainer,
-    },
     gridText: {
         fontSize: 13,
         fontWeight: "700",
-        color: colors.textPrimary,
+        color: "#FFFFFF",
         textAlign: "center",
     },
     footer: {
@@ -219,7 +199,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.primary,
-        borderRadius: 5,
+        borderRadius: 30,
         paddingVertical: 12,
         paddingHorizontal: 24,
         gap: 8,
@@ -245,7 +225,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primaryContainer,
         borderWidth: 1,
         borderColor: colors.primary,
-        borderRadius: 5,
+        borderRadius: 15,
         paddingVertical: 12,
         paddingHorizontal: 24,
         marginTop: 12,

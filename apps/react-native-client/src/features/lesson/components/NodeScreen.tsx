@@ -154,7 +154,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 {/* Node Title & Completion Tick */}
                 <View style={styles.nodeTitleContainer}>
                     <Text style={styles.nodeTitleText}>
-                        {node.header ?? `Phần ${node.position}`}
+                        {node.header || "Nội dung phần này"}
                     </Text>
                     {studyDone && isLoggedIn && (
                         <Ionicons name="checkmark-circle" size={24} color={colors.success} style={styles.completedTickIcon} />
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
         paddingHorizontal: 20,
         paddingVertical: 10,
-        borderRadius: 5,
+        borderRadius: 30,
     },
     backBtnText: { color: colors.textLight, fontWeight: "700" },
 
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingVertical: 12,
-        borderRadius: 5,
+        borderRadius: 30,
         gap: 6,
     },
     completeBtnFlipped: {
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     squareFcardBtn: {
         width: 48,
         height: 48,
-        borderRadius: 5,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.primary,
         backgroundColor: colors.surface,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.primary,
-        borderRadius: 5,
+        borderRadius: 30,
         paddingVertical: 12,
         gap: 8,
     },
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingVertical: 8,
         paddingHorizontal: 16,
-        borderRadius: 4,
+        borderRadius: 30,
         backgroundColor: colors.surfaceVariant,
     },
     navFooterBtnDisabled: {

@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: colors.primary,
-        borderRadius: 5,
+        borderRadius: 30,
         paddingVertical: 10,
         gap: 6,
         marginTop: 12,

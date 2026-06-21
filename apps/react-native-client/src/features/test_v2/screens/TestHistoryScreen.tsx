@@ -93,10 +93,9 @@ const styles = StyleSheet.create({
     emptyText: { fontSize: 15, color: colors.textMuted, fontWeight: "600" },
     list: { padding: 16, gap: 12 },
     card: {
-        backgroundColor: colors.surface, borderRadius: 5, padding: 16,
-        borderWidth: 2.5, borderColor: colors.borderDark,
-
-
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        padding: 16,
     },
     cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 5 },
