@@ -13,6 +13,7 @@ import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import ProfileAvatar from "../components/ProfileAvatar";
 import ProfileMenuItem from "../components/ProfileMenuItem";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import { colors } from "../../../theme/colors";
 
 export default function ProfileMainScreen() {
     const router = useRouter();
@@ -78,36 +79,38 @@ export default function ProfileMainScreen() {
             </View>
 
             <View style={styles.menuSection}>
-                <ProfileMenuItem
-                    icon="person-outline"
-                    label="Sửa thông tin"
-                    onPress={handleEditProfile}
-                />
-                <ProfileMenuItem
-                    icon="lock-closed-outline"
-                    label="Đổi mật khẩu"
-                    onPress={handleChangePassword}
-                />
-                <ProfileMenuItem
-                    icon="document-text-outline"
-                    label="Lịch sử làm bài"
-                    onPress={handleViewHistory}
-                />
-                <ProfileMenuItem
-                    icon="people-outline"
-                    label="Bạn bè & theo dõi"
-                    onPress={handleOpenFriends}
-                />
-                <ProfileMenuItem
-                    icon="flash-outline"
-                    label="Thi đấu với bạn bè"
-                    onPress={handleOpenChallenges}
-                />
-                <ProfileMenuItem
-                    icon="link-outline"
-                    label="Liên kết tài khoản"
-                    onPress={handleLinkAccounts}
-                />
+                <View style={styles.menuContainer}>
+                    <ProfileMenuItem
+                        icon="person-outline"
+                        label="Sửa thông tin"
+                        onPress={handleEditProfile}
+                    />
+                    <ProfileMenuItem
+                        icon="lock-closed-outline"
+                        label="Đổi mật khẩu"
+                        onPress={handleChangePassword}
+                    />
+                    <ProfileMenuItem
+                        icon="document-text-outline"
+                        label="Lịch sử làm bài"
+                        onPress={handleViewHistory}
+                    />
+                    <ProfileMenuItem
+                        icon="people-outline"
+                        label="Bạn bè & theo dõi"
+                        onPress={handleOpenFriends}
+                    />
+                    <ProfileMenuItem
+                        icon="flash-outline"
+                        label="Thi đấu với bạn bè"
+                        onPress={handleOpenChallenges}
+                    />
+                    <ProfileMenuItem
+                        icon="link-outline"
+                        label="Liên kết tài khoản"
+                        onPress={handleLinkAccounts}
+                    />
+                </View>
             </View>
 
             <TouchableOpacity
@@ -115,7 +118,7 @@ export default function ProfileMainScreen() {
                 onPress={handleLogout}
                 activeOpacity={0.7}
             >
-                <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+                <Ionicons name="log-out-outline" size={20} color={colors.textLight} />
                 <Text style={styles.logoutText}>Đăng xuất</Text>
             </TouchableOpacity>
             </View>
@@ -126,7 +129,7 @@ export default function ProfileMainScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F9F8FD",
+        backgroundColor: colors.background,
     },
     contentContainer: {
         paddingBottom: 40,
@@ -139,24 +142,29 @@ const styles = StyleSheet.create({
     userName: {
         fontSize: 20,
         fontWeight: "700",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         marginTop: 16,
     },
     tierBadge: {
-        backgroundColor: "#E8E4F4",
+        backgroundColor: colors.primaryContainer,
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 12,
+        borderRadius: 5,
         marginTop: 6,
     },
     tierText: {
         fontSize: 13,
         fontWeight: "600",
-        color: "#5856D6",
+        color: colors.primary,
     },
     menuSection: {
         paddingHorizontal: 20,
         marginTop: 8,
+    },
+    menuContainer: {
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        paddingVertical: 8,
     },
     logoutButton: {
         flexDirection: "row",
@@ -165,15 +173,13 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginTop: 24,
         paddingVertical: 16,
-        backgroundColor: "#FFF0F0",
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "#FFE0E0",
+        backgroundColor: colors.error,
+        borderRadius: 25,
     },
     logoutText: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#FF3B30",
+        color: colors.textLight,
         marginLeft: 8,
     },
 });

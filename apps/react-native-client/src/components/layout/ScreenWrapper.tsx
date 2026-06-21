@@ -18,13 +18,17 @@ import {
     StreakModal,
     RewardModal,
 } from "../../features/streak";
+import { colors } from "../../theme/colors";
+import HistoricalBackground from "./HistoricalBackground";
 
 // ─── Branch Config (matches existing TopBarWrapper/TopBar interface) ────────
 export interface BranchConfig {
     hierarchy: string;
-    title: string;
+    title?: string;
     subtitle?: string;
     onBackPress?: () => void;
+    onHomePress?: () => void;
+    uppercaseHierarchy?: boolean;
 }
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -66,6 +70,9 @@ export interface ScreenWrapperProps {
 
     /** Additional style applied to the content container below the top bar */
     style?: StyleProp<ViewStyle>;
+
+    /** Show historical moving background (default: true) */
+    showHistoricalBackground?: boolean;
 }
 
 // ─── Internal: Content layer with optional KAV + Scroll ─────────────────────
@@ -104,8 +111,8 @@ function ContentLayer({
                         <RefreshControl
                             refreshing={refreshing ?? false}
                             onRefresh={onRefresh}
-                            colors={["#5856D6"]}
-                            tintColor="#5856D6"
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
                         />
                     ) : undefined
                 }
@@ -144,6 +151,7 @@ function ScreenWithTopBar({
     safeAreaEdges,
     backgroundColor,
     style,
+    showHistoricalBackground = true,
     ...contentProps
 }: ScreenWrapperProps) {
     const { data, streakManager } = useTopBarData();
@@ -159,7 +167,7 @@ function ScreenWithTopBar({
         <SafeAreaView
             style={[
                 styles.safeArea,
-                { backgroundColor: backgroundColor ?? "#5856D6" },
+                { backgroundColor: backgroundColor ?? colors.background },
             ]}
             edges={resolvedEdges}
         >
@@ -170,6 +178,7 @@ function ScreenWithTopBar({
             />
 
             <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
+                {showHistoricalBackground && <HistoricalBackground />}
                 <ContentLayer {...contentProps}>
                     {children}
                 </ContentLayer>
@@ -206,8 +215,10 @@ function ScreenWithoutTopBar({
     safeAreaEdges,
     backgroundColor,
     style,
+    showHistoricalBackground = true,
+    branchConfig,
     ...contentProps
-}: Omit<ScreenWrapperProps, "showTopBar" | "branchConfig">) {
+}: Omit<ScreenWrapperProps, "showTopBar">) {
     const segments = useSegments() as string[];
     const insets = useSafeAreaInsets();
 
@@ -220,11 +231,18 @@ function ScreenWithoutTopBar({
         <SafeAreaView
             style={[
                 styles.safeArea,
-                { backgroundColor: backgroundColor ?? "#FFF" },
+                { backgroundColor: backgroundColor ?? colors.background },
             ]}
             edges={resolvedEdges}
         >
+            {branchConfig && (
+                <TopBar
+                    showStatsBar={false}
+                    branchConfig={branchConfig}
+                />
+            )}
             <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
+                {showHistoricalBackground && <HistoricalBackground />}
                 <ContentLayer {...contentProps}>
                     {children}
                 </ContentLayer>
@@ -236,12 +254,13 @@ function ScreenWithoutTopBar({
 // ─── Public API ─────────────────────────────────────────────────────────────
 export function ScreenWrapper({
     showTopBar = true,
+    showHistoricalBackground = true,
     ...rest
 }: ScreenWrapperProps) {
     if (showTopBar) {
-        return <ScreenWithTopBar showTopBar {...rest} />;
+        return <ScreenWithTopBar showTopBar showHistoricalBackground={showHistoricalBackground} {...rest} />;
     }
-    return <ScreenWithoutTopBar {...rest} />;
+    return <ScreenWithoutTopBar showHistoricalBackground={showHistoricalBackground} {...rest} />;
 }
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
@@ -251,7 +270,7 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        backgroundColor: "#FFF",
+        backgroundColor: colors.background,
     },
     flex: {
         flex: 1,

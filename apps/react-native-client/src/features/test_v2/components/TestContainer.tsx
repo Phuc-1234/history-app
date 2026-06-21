@@ -26,8 +26,9 @@ import Animated, {
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { CustomModal } from "@/components/Modal";
 import Mascot from "@/components/Mascot";
-import TestIntro from "../../test/components/TestIntro";
+import TestIntro from "./TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
+import { colors } from "@/theme/colors";
 import { useGetTestInfoQuery } from "../services/testApi";
 import ChooseQuestion from "./ChooseQuestion";
 import FillQuestion from "./FillQuestion";
@@ -231,6 +232,7 @@ export default function TestContainerV2({
         hierarchy: params.purposeType === "EXAM" ? "KIỂM TRA > BÀI THI" : "KIỂM TRA > LUYỆN TẬP",
         title: displayTitle,
         onBackPress: handleBack,
+        onHomePress: handleBack,
     };
 
     // Auto-start on mount only if not EXAM
@@ -243,16 +245,15 @@ export default function TestContainerV2({
     // ── Exam Intro state ──────────────────────────────────────────────
     if (status === "idle" && params.purposeType === "EXAM") {
         return (
-            <ScreenWrapper showTopBar={true}>
-                <TestIntro
-                    title={testInfo?.title}
-                    questionCount={testInfo?.questionCount}
-                    timeLimit={testInfo?.timeLimit}
-                    loading={isInfoLoading}
-                    onStart={actions.start}
-                    onBack={handleBack}
-                />
-            </ScreenWrapper>
+            <TestIntro
+                title={testInfo?.title}
+                questionCount={testInfo?.questionCount}
+                timeLimit={testInfo?.timeLimit}
+                loading={isInfoLoading}
+                onStart={actions.start}
+                onBack={handleBack}
+                purposeType={params.purposeType}
+            />
         );
     }
 
@@ -261,7 +262,7 @@ export default function TestContainerV2({
         return (
             <ScreenWrapper branchConfig={branchConfig}>
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#5D45F9" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={styles.loadingText}>Đang tải bài kiểm tra...</Text>
                 </View>
             </ScreenWrapper>
@@ -297,7 +298,7 @@ export default function TestContainerV2({
         );
 
         return (
-            <ScreenWrapper branchConfig={branchConfig}>
+            <ScreenWrapper branchConfig={branchConfig} >
                 <ScrollView
                     style={styles.container}
                     contentContainerStyle={styles.scrollContent}
@@ -333,7 +334,7 @@ export default function TestContainerV2({
                             style={styles.exitBtn}
                             onPress={onExit || (() => router.back())}
                         >
-                            <Text style={styles.exitBtnText}>Thoát</Text>
+                            <Text style={styles.exitBtnText}>Quay lại</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -384,7 +385,7 @@ export default function TestContainerV2({
     const showFeedback = purposeType === "PRACTICE" && !!evalResult;
 
     return (
-        <ScreenWrapper branchConfig={branchConfig}>
+        <ScreenWrapper branchConfig={branchConfig} showTopBar={false}>
             <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
@@ -552,7 +553,7 @@ export default function TestContainerV2({
                             onPress={() => setIsListModalVisible(true)}
                             activeOpacity={0.7}
                         >
-                            <Grid size={16} color="#718096" />
+                            <Grid size={16} color={colors.textMuted} />
                             <Text style={styles.listLinkText}>
                                 Xem danh sách {totalCount} câu hỏi
                             </Text>
@@ -650,7 +651,7 @@ export default function TestContainerV2({
             {status === "submitting" && (
                 <View style={styles.modalOverlay}>
                     <View style={[styles.modalCard, { paddingVertical: 30, width: 250 }]}>
-                        <ActivityIndicator size="large" color="#5D45F9" />
+                        <ActivityIndicator size="large" color={colors.primary} />
                         <Text style={[styles.modalTitle, { marginTop: 16, marginBottom: 0 }]}>Đang nộp bài...</Text>
                     </View>
                 </View>
@@ -753,7 +754,7 @@ function CollapsibleDocument({ text }: { text: string }) {
 const { height: screenHeight } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#F8F7FF" },
+    container: { flex: 1 },
     centerContainer: {
         flex: 1,
         justifyContent: "center",
@@ -763,23 +764,23 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 16,
         fontSize: 15,
-        color: "#718096",
+        color: colors.textMuted,
         fontWeight: "600",
     },
     errorText: {
         fontSize: 15,
-        color: "#DC2626",
+        color: colors.textError,
         fontWeight: "600",
         textAlign: "center",
         marginBottom: 16,
     },
     retryBtn: {
-        backgroundColor: "#5D45F9",
-        borderRadius: 12,
+        backgroundColor: colors.primary,
+        borderRadius: 5,
         paddingHorizontal: 24,
         paddingVertical: 12,
     },
-    retryBtnText: { color: "#FFF", fontWeight: "700", fontSize: 14 },
+    retryBtnText: { color: colors.textLight, fontWeight: "700", fontSize: 14 },
     scrollContent: { padding: 16, paddingBottom: 40 },
 
     // Header
@@ -791,22 +792,22 @@ const styles = StyleSheet.create({
         paddingBottom: 8,
     },
     headerLeft: { flex: 1, gap: 6 },
-    headerProgress: { fontSize: 13, fontWeight: "800", color: "#5D45F9" },
-    progressBar: { height: 4, backgroundColor: "#EAE7FA", borderRadius: 2 },
+    headerProgress: { fontSize: 13, fontWeight: "800", color: colors.primary },
+    progressBar: { height: 4, backgroundColor: colors.borderMedium, borderRadius: 2 },
     progressFill: {
         height: "100%",
-        backgroundColor: "#5D45F9",
+        backgroundColor: colors.primary,
         borderRadius: 2,
     },
     timerBadge: {
-        backgroundColor: "#F5F3FF",
-        borderRadius: 20,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 5,
         paddingHorizontal: 12,
         paddingVertical: 6,
     },
-    timerWarning: { backgroundColor: "#FEF2F2" },
-    timerText: { fontSize: 13, fontWeight: "800", color: "#5D45F9" },
-    timerTextWarning: { color: "#DC2626" },
+    timerWarning: { backgroundColor: colors.errorContainer },
+    timerText: { fontSize: 13, fontWeight: "800", color: colors.primary },
+    timerTextWarning: { color: colors.textError },
 
     // Question
     questionScroll: { flex: 1 },
@@ -814,7 +815,7 @@ const styles = StyleSheet.create({
     questionPrompt: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         lineHeight: 24,
         marginBottom: 16,
     },
@@ -822,17 +823,17 @@ const styles = StyleSheet.create({
     // Document
     docContainer: {
         marginBottom: 16,
-        backgroundColor: "#FFF",
-        borderRadius: 12,
+        backgroundColor: colors.surface,
+        borderRadius: 5,
         borderWidth: 1,
-        borderColor: "#EAE7FA",
+        borderColor: colors.borderMedium,
         overflow: "hidden",
     },
     docToggle: { padding: 12 },
-    docToggleText: { fontSize: 13, fontWeight: "700", color: "#5D45F9" },
+    docToggleText: { fontSize: 13, fontWeight: "700", color: colors.primary },
     docText: {
         fontSize: 14,
-        color: "#4A5568",
+        color: colors.textSecondary,
         lineHeight: 22,
         padding: 12,
         paddingTop: 0,
@@ -841,19 +842,18 @@ const styles = StyleSheet.create({
     // Explanation
     explanationBox: {
         marginTop: 16,
-        backgroundColor: "#F0FDF4",
-        borderRadius: 12,
+        borderRadius: 5,
         padding: 14,
         borderWidth: 1,
-        borderColor: "#BBF7D0",
+        borderColor: colors.success,
     },
     explanationLabel: {
         fontSize: 12,
         fontWeight: "800",
-        color: "#059669",
+        color: colors.textSuccess,
         marginBottom: 4,
     },
-    explanationText: { fontSize: 14, color: "#065F46", lineHeight: 20 },
+    explanationText: { fontSize: 14, color: colors.textSuccess, lineHeight: 20 },
 
     // Footer
     footer: {
@@ -861,36 +861,36 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 10,
         borderTopWidth: 1,
-        borderTopColor: "#EAE7FA",
+        borderTopColor: colors.borderMedium,
     },
     navBtn: {
         flex: 1,
-        backgroundColor: "#FFF",
-        borderRadius: 14,
+        backgroundColor: colors.surface,
+        borderRadius: 5,
         paddingVertical: 14,
         alignItems: "center",
         borderWidth: 1.5,
-        borderColor: "#E5E7EB",
+        borderColor: colors.borderMedium,
     },
     navBtnDisabled: { opacity: 0.4 },
-    navBtnText: { fontSize: 14, fontWeight: "700", color: "#4A5568" },
+    navBtnText: { fontSize: 14, fontWeight: "700", color: colors.textSecondary },
     submitBtn: {
         flex: 1,
-        backgroundColor: "#5D45F9",
-        borderRadius: 14,
+        backgroundColor: colors.primary,
+        borderRadius: 5,
         paddingVertical: 14,
         alignItems: "center",
     },
-    submitBtnText: { fontSize: 14, fontWeight: "700", color: "#FFF" },
+    submitBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
     nextBtn: {
         flex: 1,
-        backgroundColor: "#5D45F9",
-        borderRadius: 14,
+        backgroundColor: colors.primary,
+        borderRadius: 5,
         paddingVertical: 14,
         alignItems: "center",
     },
     nextBtnDisabled: { opacity: 0.4 },
-    nextBtnText: { fontSize: 14, fontWeight: "700", color: "#FFF" },
+    nextBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
     blockIndicatorsRow: {
         flexDirection: "row",
         justifyContent: "center",
@@ -902,13 +902,13 @@ const styles = StyleSheet.create({
         width: 15,
         height: 3,
         borderRadius: 100,
-        backgroundColor: "#E2E8F0",
+        backgroundColor: colors.borderMedium,
     },
     blockIndicatorAnswered: {
-        backgroundColor: "#818CF8",
+        backgroundColor: colors.info,
     },
     blockIndicatorActive: {
-        backgroundColor: "#5D45F9",
+        backgroundColor: colors.primary,
         width: 28,
     },
     navButtonsRow: {
@@ -925,7 +925,7 @@ const styles = StyleSheet.create({
     listLinkText: {
         fontSize: 13,
         fontWeight: "700",
-        color: "#718096",
+        color: colors.textMuted,
     },
     drawerOverlay: {
         flex: 1,
@@ -933,16 +933,16 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
     },
     modalDrawerContainer: {
-        backgroundColor: "#FFFFFF",
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
+        backgroundColor: colors.surface,
+        borderTopLeftRadius: 5,
+        borderTopRightRadius: 5,
         maxHeight: screenHeight * 0.7,
         paddingBottom: 32,
     },
     modalDragIndicator: {
         width: 36,
         height: 5,
-        backgroundColor: "#E2E8F0",
+        backgroundColor: colors.borderMedium,
         borderRadius: 100,
         alignSelf: "center",
         marginTop: 10,
@@ -955,25 +955,25 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingBottom: 18,
         borderBottomWidth: 1,
-        borderBottomColor: "#F1F5F9",
+        borderBottomColor: colors.borderLight,
     },
     modalDrawerTitle: {
         fontSize: 18,
         fontWeight: "800",
-        color: "#1A202C",
+        color: colors.textPrimary,
     },
     modalCloseButton: {
         paddingVertical: 6,
         paddingHorizontal: 14,
-        borderRadius: 100,
-        backgroundColor: "#F7FAFC",
+        borderRadius: 5,
+        backgroundColor: colors.surfaceVariant,
         borderWidth: 1,
-        borderColor: "#E2E8F0",
+        borderColor: colors.borderMedium,
     },
     modalCloseText: {
         fontSize: 12,
         fontWeight: "700",
-        color: "#718096",
+        color: colors.textMuted,
     },
     modalDrawerGrid: {
         flexDirection: "row",
@@ -984,115 +984,115 @@ const styles = StyleSheet.create({
     gridItemDrawer: {
         width: 56,
         height: 56,
-        borderRadius: 100,
+        borderRadius: 5,
         borderWidth: 1.5,
-        borderColor: "#E2E8F0",
-        backgroundColor: "#FFFFFF",
+        borderColor: colors.borderMedium,
+        backgroundColor: colors.surface,
         alignItems: "center",
         justifyContent: "center",
     },
     gridItemAnsweredDrawer: {
-        backgroundColor: "#EEF2FF",
-        borderColor: "#C7D2FE",
+        backgroundColor: colors.primaryContainer,
+        borderColor: colors.borderMedium,
     },
     gridItemActiveDrawer: {
-        backgroundColor: "#5D45F9",
-        borderColor: "#5D45F9",
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     gridItemTextDrawer: {
         fontSize: 16,
         fontWeight: "800",
-        color: "#718096",
+        color: colors.textMuted,
     },
     gridItemTextAnsweredDrawer: {
-        color: "#5D45F9",
+        color: colors.primary,
     },
     gridItemTextActiveDrawer: {
-        color: "#FFFFFF",
+        color: colors.textLight,
     },    // Result screen
     resultCard: {
-        backgroundColor: "#FFF",
-        borderRadius: 24,
+        backgroundColor: colors.surface,
+        borderRadius: 5,
         padding: 24,
         alignItems: "center",
         borderWidth: 1,
-        borderColor: "#EAE7FA",
+        borderColor: colors.borderMedium,
         marginBottom: 20,
     },
     resultEmoji: { fontSize: 48, marginBottom: 8 },
     resultTitle: {
         fontSize: 22,
         fontWeight: "900",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     scoreRow: { flexDirection: "row", alignItems: "baseline" },
-    scoreValue: { fontSize: 48, fontWeight: "900", color: "#5D45F9" },
+    scoreValue: { fontSize: 48, fontWeight: "900", color: colors.primary },
     scoreMax: {
         fontSize: 20,
         fontWeight: "700",
-        color: "#718096",
+        color: colors.textMuted,
         marginLeft: 2,
     },
     resultSubtext: {
         fontSize: 14,
-        color: "#718096",
+        color: colors.textMuted,
         fontWeight: "600",
         marginTop: 4,
     },
     consequenceText: {
         fontSize: 13,
-        color: "#059669",
+        color: colors.textSuccess,
         fontWeight: "600",
         marginTop: 6,
     },
     resultActions: { gap: 10, marginBottom: 24 },
     redoBtn: {
-        backgroundColor: "#F59E0B",
-        borderRadius: 14,
+        backgroundColor: colors.warning,
+        borderRadius: 30,
         paddingVertical: 14,
         alignItems: "center",
     },
-    redoBtnText: { fontSize: 14, fontWeight: "700", color: "#FFF" },
+    redoBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
     restartBtn: {
-        backgroundColor: "#5D45F9",
-        borderRadius: 14,
+        backgroundColor: colors.primary,
+        borderRadius: 30,
         paddingVertical: 14,
         alignItems: "center",
     },
-    restartBtnText: { fontSize: 14, fontWeight: "700", color: "#FFF" },
+    restartBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
     exitBtn: {
-        backgroundColor: "#FFF",
-        borderRadius: 14,
+        backgroundColor: colors.surface,
+        borderRadius: 30,
         paddingVertical: 14,
         alignItems: "center",
         borderWidth: 1.5,
-        borderColor: "#E5E7EB",
+        borderColor: colors.primary,
     },
-    exitBtnText: { fontSize: 14, fontWeight: "700", color: "#4A5568" },
+    exitBtnText: { fontSize: 14, fontWeight: "700", color: colors.primary },
     viewDetailsBtn: {
-        backgroundColor: "#FFF",
-        borderRadius: 14,
+        backgroundColor: colors.surface,
+        borderRadius: 30,
         paddingVertical: 14,
         alignItems: "center",
         borderWidth: 1.5,
-        borderColor: "#5D45F9",
+        borderColor: colors.primary,
     },
-    viewDetailsBtnText: { fontSize: 14, fontWeight: "700", color: "#5D45F9" },
+    viewDetailsBtnText: { fontSize: 14, fontWeight: "700", color: colors.primary },
 
     // Review
     sectionTitle: {
         fontSize: 16,
         fontWeight: "800",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         marginBottom: 12,
     },
     reviewCard: {
-        backgroundColor: "#FFF",
-        borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderRadius: 5,
         padding: 14,
         borderWidth: 1,
-        borderColor: "#EAE7FA",
+        borderColor: colors.borderMedium,
         marginBottom: 10,
     },
     reviewHeader: {
@@ -1101,21 +1101,21 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 6,
     },
-    reviewIndex: { fontSize: 12, fontWeight: "800", color: "#A0AEC0" },
+    reviewIndex: { fontSize: 12, fontWeight: "800", color: colors.textPlaceholder },
     reviewBadge: {
         paddingHorizontal: 10,
         paddingVertical: 3,
-        borderRadius: 100,
+        borderRadius: 5,
     },
-    badgeCorrect: { backgroundColor: "#ECFDF5" },
-    badgeWrong: { backgroundColor: "#FEF2F2" },
+    badgeCorrect: { backgroundColor: colors.successContainer },
+    badgeWrong: { backgroundColor: colors.errorContainer },
     reviewBadgeText: { fontSize: 11, fontWeight: "800" },
-    badgeTextCorrect: { color: "#059669" },
-    badgeTextWrong: { color: "#DC2626" },
+    badgeTextCorrect: { color: colors.textSuccess },
+    badgeTextWrong: { color: colors.textError },
     reviewQuestion: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#4A5568",
+        color: colors.textSecondary,
         lineHeight: 20,
     },
     modalOverlay: {
@@ -1130,8 +1130,8 @@ const styles = StyleSheet.create({
         zIndex: 1000,
     },
     modalCard: {
-        backgroundColor: "#FFF",
-        borderRadius: 24,
+        backgroundColor: colors.surface,
+        borderRadius: 5,
         padding: 24,
         width: "85%",
         maxWidth: 400,
@@ -1145,12 +1145,12 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 18,
         fontWeight: "800",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         marginBottom: 10,
     },
     modalMessage: {
         fontSize: 14,
-        color: "#718096",
+        color: colors.textMuted,
         textAlign: "center",
         marginBottom: 20,
         lineHeight: 20,
@@ -1163,71 +1163,71 @@ const styles = StyleSheet.create({
     modalCancelBtn: {
         flex: 1,
         paddingVertical: 14,
-        borderRadius: 16,
-        backgroundColor: "#F3F4F6",
+        borderRadius: 5,
+        backgroundColor: colors.surfaceVariant,
         alignItems: "center",
     },
     modalCancelText: {
         fontSize: 15,
         fontWeight: "700",
-        color: "#4B5563",
+        color: colors.textSecondary,
     },
     modalConfirmBtn: {
         flex: 1,
         paddingVertical: 14,
-        borderRadius: 16,
-        backgroundColor: "#5D45F9",
+        borderRadius: 5,
+        backgroundColor: colors.primary,
         alignItems: "center",
     },
     modalConfirmText: {
         fontSize: 15,
         fontWeight: "700",
-        color: "#FFF",
+        color: colors.textLight,
     },
     optionsList: { gap: 8, marginTop: 8 },
-    optItem: { backgroundColor: "#FFF", borderWidth: 1.5, borderColor: "#E5E7EB", borderRadius: 14, padding: 12 },
-    optCorrect: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
-    optWrong: { borderColor: "#EF4444", backgroundColor: "#FEF2F2" },
-    optText: { fontSize: 14, fontWeight: "600", color: "#4A5568" },
-    optTextCorrect: { color: "#065F46" },
-    optTextWrong: { color: "#991B1B" },
-    fillContainer: { backgroundColor: "#F8FAFC", borderRadius: 14, padding: 12, gap: 8, marginTop: 8 },
+    optItem: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.borderMedium, borderRadius: 5, padding: 12 },
+    optCorrect: { borderColor: colors.success, backgroundColor: colors.successContainer },
+    optWrong: { borderColor: colors.error, backgroundColor: colors.errorContainer },
+    optText: { fontSize: 14, fontWeight: "600", color: colors.textSecondary },
+    optTextCorrect: { color: colors.textSuccess },
+    optTextWrong: { color: colors.textError },
+    fillContainer: { backgroundColor: colors.surfaceVariant, borderRadius: 5, padding: 12, gap: 8, marginTop: 8 },
     fillRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-    fillLabel: { fontSize: 13, fontWeight: "600", color: "#718096" },
+    fillLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
     fillValue: { fontSize: 14, fontWeight: "700" },
-    textGreen: { color: "#059669" },
-    textRed: { color: "#DC2626" },
+    textGreen: { color: colors.success },
+    textRed: { color: colors.error },
     matchContainer: { gap: 8, marginTop: 8 },
-    matchRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#F8FAFC", borderRadius: 12, padding: 10, borderWidth: 1, gap: 6, flexWrap: "wrap" },
-    matchCorrect: { borderColor: "#10B981" },
-    matchWrong: { borderColor: "#EF4444" },
-    matchText: { fontSize: 13, fontWeight: "600", color: "#4A5568" },
-    matchArrow: { fontSize: 14, color: "#718096" },
-    matchCorrectHint: { fontSize: 11, color: "#059669", fontWeight: "600" },
-    explBox: { marginTop: 12, backgroundColor: "#F0FDF4", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#BBF7D0" },
-    explLabel: { fontSize: 12, fontWeight: "800", color: "#059669", marginBottom: 4 },
-    explText: { fontSize: 13, color: "#065F46", lineHeight: 20 },
+    matchRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceVariant, borderRadius: 5, padding: 10, borderWidth: 1, gap: 6, flexWrap: "wrap" },
+    matchCorrect: { borderColor: colors.success },
+    matchWrong: { borderColor: colors.error },
+    matchText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary },
+    matchArrow: { fontSize: 14, color: colors.textMuted },
+    matchCorrectHint: { fontSize: 11, color: colors.success, fontWeight: "600" },
+    explBox: { marginTop: 12, borderRadius: 5, padding: 12, borderWidth: 1, borderColor: colors.success },
+    explLabel: { fontSize: 12, fontWeight: "800", color: colors.textSuccess, marginBottom: 4 },
+    explText: { fontSize: 13, color: colors.textSuccess, lineHeight: 20 },
     scoreBadge: {
-        backgroundColor: "#E0F2FE",
-        borderRadius: 20,
+        backgroundColor: colors.successContainer,
+        borderRadius: 5,
         paddingHorizontal: 12,
         paddingVertical: 6,
     },
     scoreBadgeText: {
         fontSize: 13,
         fontWeight: "800",
-        color: "#0369A1",
+        color: colors.textSuccess,
     },
     possiblePointsText: {
         fontSize: 13,
         fontWeight: "600",
-        color: "#718096",
+        color: colors.textMuted,
         marginBottom: 16,
     },
     diffPointsText: {
         fontSize: 14,
         fontWeight: "900",
-        color: "#10B981",
+        color: colors.success,
     },
     promptHeader: {
         flexDirection: "row",
@@ -1237,8 +1237,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     pointPill: {
-        backgroundColor: "#F3F4F6",
-        borderRadius: 12,
+        backgroundColor: colors.successContainer,
+        borderRadius: 5,
         paddingHorizontal: 8,
         paddingVertical: 4,
         alignSelf: "flex-start",
@@ -1246,7 +1246,7 @@ const styles = StyleSheet.create({
     pointPillText: {
         fontSize: 11,
         fontWeight: "700",
-        color: "#6B7280",
+        color: colors.textSuccess,
     },
 });
 

@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { LessonSection } from "../hooks/useLessonSummary";
+import { colors } from "../../../theme/colors";
+
+const getSectionDisplaySuffix = (name: string): string => {
+    const match = name.trim().match(/^([0-9]+|[IVXLCDMivxlcdm]+)\./);
+    return match ? match[1] : "này";
+};
 
 interface ExpandableSectionProps {
     section: LessonSection;
@@ -16,14 +23,11 @@ export function ExpandableSection({
     onNodePress,
     onSectionTestPress,
 }: ExpandableSectionProps) {
-    const [isExpanded, setIsExpanded] = useState(isTopLevel ? false : true);
+    const router = useRouter();
+    const [isExpanded, setIsExpanded] = useState(true);
 
     const hasSubsections = section.children && section.children.length > 0;
     const hasNodes = section.nodes && section.nodes.length > 0;
-
-    const totalNodes = section.progress?.totalNodes ?? 0;
-    const completedNodes = section.progress?.completedNodes ?? 0;
-    const percentage = totalNodes > 0 ? (completedNodes / totalNodes) * 100 : 0;
 
     return (
         <View
@@ -32,18 +36,6 @@ export function ExpandableSection({
                 isTopLevel ? styles.topLevelCard : styles.nestedCard,
             ]}
         >
-            {isTopLevel && percentage > 0 && (
-                <View
-                    style={[
-                        styles.progressFill,
-                        {
-                            width: percentage >= 99 ? undefined : `${percentage}%`,
-                            right: percentage >= 99 ? 0 : undefined,
-                        },
-                    ]}
-                />
-            )}
-
             {/* Header Container */}
             <TouchableOpacity
                 style={styles.header}
@@ -62,18 +54,21 @@ export function ExpandableSection({
                 <View style={styles.headerRight}>
                     <TouchableOpacity
                         style={styles.threeDots}
-                        onPress={(e) => e.stopPropagation()}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            router.push(`/(3_4_lessons)/4_4_fcard?sectionId=${section.id}`);
+                        }}
                     >
                         <Ionicons
-                            name="ellipsis-vertical"
+                            name="copy"
                             size={16}
-                            color="#8E8E93"
+                            color={colors.primary}
                         />
                     </TouchableOpacity>
                     <Ionicons
                         name={isExpanded ? "chevron-up" : "chevron-down"}
                         size={18}
-                        color={isTopLevel ? "#1C1C1E" : "#5856D6"}
+                        color={isTopLevel ? colors.textPrimary : colors.primary}
                     />
                 </View>
             </TouchableOpacity>
@@ -111,7 +106,7 @@ export function ExpandableSection({
                                             styles.nodeText,
                                             node.isComplete && styles.nodeTextCompleted,
                                         ]}
-                                        numberOfLines={1}
+                                        numberOfLines={2}
                                     >
                                         {displayText}
                                     </Text>
@@ -122,7 +117,7 @@ export function ExpandableSection({
                                                 : "chevron-forward"
                                         }
                                         size={14}
-                                        color={node.isComplete ? "#34C759" : "#AEAEB2"}
+                                        color={node.isComplete ? colors.textLight : colors.textMuted}
                                         style={styles.nodeChevron}
                                     />
                                 </TouchableOpacity>
@@ -148,8 +143,10 @@ export function ExpandableSection({
                             onPress={() => onSectionTestPress(section.id)}
                             activeOpacity={0.8}
                         >
-                            <Ionicons name="document-text" size={16} color="#FFF" />
-                            <Text style={styles.sectionTestBtnText}>Kiểm tra mục này</Text>
+                            <Ionicons name="document-text" size={16} color={colors.primary} />
+                            <Text style={styles.sectionTestBtnText}>
+                                Luyện tập mục {getSectionDisplaySuffix(section.name)}
+                            </Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -160,29 +157,22 @@ export function ExpandableSection({
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: "#FFF",
+        backgroundColor: "transparent",
         width: "100%",
     },
     topLevelCard: {
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "#E5E5EA",
         marginBottom: 12,
         overflow: "hidden",
     },
     nestedCard: {
         marginTop: 10,
-        borderLeftWidth: 1,
-        borderLeftColor: "#D2D1F7",
-        paddingLeft: 4,
         backgroundColor: "transparent",
     },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingVertical: 12,
         zIndex: 1,
     },
     headerRight: {
@@ -197,62 +187,53 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     topLevelTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: "700",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
     },
     nestedTitle: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: "600",
-        color: "#5856D6",
+        color: colors.primary,
     },
     contentContainer: {
-        paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingBottom: 8,
         zIndex: 1,
-    },
-    progressFill: {
-        position: "absolute",
-        left: 0,
-        top: 0,
-        bottom: 0,
-        backgroundColor: "#E3F2FD", // Beautiful soft blue progress fill
-        zIndex: 0,
     },
     nodeRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginTop: 8,
-        paddingHorizontal: 4,
-        paddingVertical: 6,
-        backgroundColor: "#FAFAFF",
-        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        marginBottom: 10,
+        backgroundColor: "transparent",
         borderWidth: 1,
-        borderColor: "#EEEEF2",
+        borderColor: colors.borderDark,
+        borderRadius: 5,
     },
     nodeRowCompleted: {
-        backgroundColor: "#F2FBF6",
-        borderColor: "#D3F2E1",
+        backgroundColor: colors.success,
+        borderWidth: 0,
     },
     bulletPoint: {
-        width: 5,
-        height: 5,
-        borderRadius: 2.5,
-        backgroundColor: "#5856D6",
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: colors.primary,
         marginRight: 10,
         flexShrink: 0,
     },
     bulletPointCompleted: {
-        backgroundColor: "#34C759",
+        backgroundColor: colors.textLight,
     },
     nodeText: {
         flex: 1,
-        fontSize: 14,
-        color: "#3A3A3C",
-        lineHeight: 20,
+        fontSize: 15,
+        color: colors.textSecondary,
+        lineHeight: 22,
     },
     nodeTextCompleted: {
-        color: "#2C3E50",
+        color: colors.textLight,
         fontWeight: "600",
     },
     nodeChevron: {
@@ -263,15 +244,18 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#5856D6",
-        borderRadius: 12,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.primary,
+        borderRadius: 30,
         paddingVertical: 10,
         gap: 6,
         marginTop: 12,
     },
     sectionTestBtnText: {
-        color: "#FFF",
+        color: colors.primary,
         fontSize: 13,
         fontWeight: "700",
+        textAlign: "center",
     },
 });

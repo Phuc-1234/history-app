@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../../theme/colors";
 
 interface SubPageHeaderProps {
     title: string;
@@ -18,7 +19,7 @@ export default function SubPageHeader({
                 style={styles.backButton}
                 activeOpacity={0.7}
             >
-                <Ionicons name="arrow-back" size={24} color="#2D2D3A" />
+                <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.title}>{title}</Text>
             {/* Spacer to center the title */}
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 16,
         paddingVertical: 14,
-        backgroundColor: "#F8F7FF",
+        backgroundColor: colors.background,
     },
     backButton: {
         width: 40,
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         fontSize: 18,
         fontWeight: "700",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
     },
     spacer: {
         width: 40,

@@ -5,25 +5,50 @@ import { useRouter } from "expo-router";
 import { FlashcardCard } from "../components/FlashcardCard";
 import { FlashcardControls } from "../components/FlashcardControls";
 import { FlashcardProgress } from "../components/FlashcardProgress";
-import { useGetFlashcardsByLessonQuery } from "../flashcardApiSlice";
+import { useGetFlashcardsByLessonQuery, useGetFlashcardsBySectionQuery, useGetFlashcardsByNodeQuery } from "../flashcardApiSlice";
 import { CardState } from "../types";
 
 interface FlashcardPlayScreenProps {
     lessonId?: number;
+    sectionId?: number;
+    nodeId?: number;
 }
 
-export default function FlashcardPlayScreen({ lessonId }: FlashcardPlayScreenProps) {
+export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: FlashcardPlayScreenProps) {
     const router = useRouter();
 
     // Fetch flashcards from API
     const {
-        data: flashcards,
-        isLoading,
-        isError,
-        error,
+        data: lessonFlashcards,
+        isLoading: isLessonLoading,
+        isError: isLessonError,
+        error: lessonError,
     } = useGetFlashcardsByLessonQuery(lessonId!, {
         skip: !lessonId,
     });
+
+    const {
+        data: sectionFlashcards,
+        isLoading: isSectionLoading,
+        isError: isSectionError,
+        error: sectionError,
+    } = useGetFlashcardsBySectionQuery(sectionId!, {
+        skip: !sectionId,
+    });
+
+    const {
+        data: nodeFlashcards,
+        isLoading: isNodeLoading,
+        isError: isNodeError,
+        error: nodeError,
+    } = useGetFlashcardsByNodeQuery(nodeId!, {
+        skip: !nodeId,
+    });
+
+    const flashcards = lessonId ? lessonFlashcards : (sectionId ? sectionFlashcards : nodeFlashcards);
+    const isLoading = lessonId ? isLessonLoading : (sectionId ? isSectionLoading : isNodeLoading);
+    const isError = lessonId ? isLessonError : (sectionId ? isSectionError : isNodeError);
+    const error = lessonId ? lessonError : (sectionId ? sectionError : nodeError);
 
     // Initialize 20 cards with 0 memorized count
     const [deck, setDeck] = useState<CardState[]>([]);

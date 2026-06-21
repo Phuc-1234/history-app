@@ -85,6 +85,7 @@ export interface CompactTestDto {
     title: string;
     questionNumber: number;
     timeLimit: number | null;
+    isPassed?: boolean | null;
 }
 
 export interface TopicWithContentsDto {

@@ -11,6 +11,8 @@ import {
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { PodiumSection } from "./PodiumSection";
 import { RankingList } from "./RankingList";
+import { colors } from "../../../theme/colors";
+import { TopNavBar } from "../../../components/TopNavBar";
 
 export const RankingView: React.FC = () => {
     const {
@@ -27,47 +29,20 @@ export const RankingView: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Navigation Tabs Header */}
-            <View style={styles.tabContainer}>
-                <TouchableOpacity
-                    style={[
-                        styles.tabButton,
-                        activeTab === "xp" && styles.activeTabButton,
-                    ]}
-                    onPress={() => setActiveTab("xp")}
-                >
-                    <Text
-                        style={
-                            activeTab === "xp"
-                                ? styles.activeTabText
-                                : styles.inactiveTabText
-                        }
-                    >
-                        Hạng
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[
-                        styles.tabButton,
-                        activeTab === "streak" && styles.activeTabButton,
-                    ]}
-                    onPress={() => setActiveTab("streak")}
-                >
-                    <Text
-                        style={
-                            activeTab === "streak"
-                                ? styles.activeTabText
-                                : styles.inactiveTabText
-                        }
-                    >
-                        Chuỗi
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            <TopNavBar
+                tabs={[
+                    { key: "xp", label: "XP" },
+                    { key: "streak", label: "Chuỗi" },
+                ]}
+                activeTab={activeTab}
+                onChangeTab={(key) => setActiveTab(key as "xp" | "streak")}
+                containerStyle={styles.tabContainer}
+            />
 
             {/* Content */}
             {isLoading ? (
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#4E3FE0" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={styles.loadingText}>Đang tải bảng xếp hạng...</Text>
                 </View>
             ) : isError ? (
@@ -85,8 +60,8 @@ export const RankingView: React.FC = () => {
                         <RefreshControl
                             refreshing={isLoading}
                             onRefresh={refetch}
-                            colors={["#4E3FE0"]}
-                            tintColor="#4E3FE0"
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
                         />
                     }
                 >
@@ -124,40 +99,10 @@ export const RankingView: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F3EFEA",
     },
     tabContainer: {
-        backgroundColor: "#E2DDD7",
-        borderRadius: 12,
-        padding: 4,
-        flexDirection: "row",
-        marginHorizontal: 22,
-        marginTop: 16,
-    },
-    tabButton: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: 11,
-        borderRadius: 10,
-    },
-    activeTabButton: {
-        backgroundColor: "#F5F2EF",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 2,
-        elevation: 1,
-    },
-    activeTabText: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: "#4E3FE0",
-    },
-    inactiveTabText: {
-        fontSize: 15,
-        fontWeight: "500",
-        color: "#4E4A58",
+        marginHorizontal: 0,
+        marginTop: 0,
     },
     scrollContent: {
         paddingHorizontal: 22,
@@ -173,29 +118,29 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 12,
         fontSize: 14,
-        color: "#4E4A58",
+        color: colors.textSecondary,
         fontWeight: "500",
     },
     errorText: {
         fontSize: 15,
-        color: "#E74C3C",
+        color: colors.error,
         fontWeight: "600",
         marginBottom: 16,
     },
     retryButton: {
-        backgroundColor: "#4E3FE0",
+        backgroundColor: colors.primary,
         paddingHorizontal: 24,
         paddingVertical: 10,
-        borderRadius: 20,
+        borderRadius: 5,
     },
     retryButtonText: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 14,
         fontWeight: "700",
     },
     emptyText: {
         fontSize: 15,
-        color: "#4E4A58",
+        color: colors.textSecondary,
         fontWeight: "500",
     },
 });

@@ -32,6 +32,8 @@ import type { SocialProfile, SocialUser as ApiSocialUser } from "../types/social
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useAppSelector } from "@/store/storeHook";
 import type { ViewStyle } from "react-native";
+import { colors } from "@/theme/colors";
+import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 
 type SocialUser = {
     id: string;
@@ -52,23 +54,6 @@ type Challenge = {
     topic: string;
     status: "incoming" | "outgoing" | "done";
     score?: string;
-};
-
-const colors = {
-    background: "#FAFAF9",
-    surface: "#FFFFFF",
-    primary: "#4F46E5",
-    primaryDark: "#3525CD",
-    primarySoft: "#EEF2FF",
-    amber: "#F59E0B",
-    amberSoft: "#FEF3C7",
-    emerald: "#10B981",
-    emeraldSoft: "#D1FAE5",
-    rose: "#F43F5E",
-    roseSoft: "#FFE4E6",
-    text: "#1C1917",
-    textMuted: "#78716C",
-    border: "#E7E5E4",
 };
 
 const users: SocialUser[] = [
@@ -204,31 +189,24 @@ type CardAction = {
 };
 
 function searchActions(user: SocialUser): {
-    primary: CardAction;
-    secondary?: CardAction;
+    follow: CardAction;
+    friend: CardAction;
 } {
-    if (user.relation === "friend") {
-        return {
-            primary: { label: "Thách đấu", icon: "flash", variant: "secondary" },
-            secondary: { label: "Hồ sơ", icon: "person-outline", variant: "ghost" },
-        };
-    }
-    if (user.relation === "pending") {
-        return {
-            primary: { label: "Đã gửi", icon: "time", variant: "disabled" },
-            secondary: { label: "Theo dõi", icon: "person-add", variant: "outline" },
-        };
-    }
-    if (user.relation === "following") {
-        return {
-            primary: { label: "Kết bạn", icon: "person-add", variant: "primary" },
-            secondary: { label: "Đang theo dõi", icon: "checkmark", variant: "outline" },
-        };
-    }
-    return {
-        primary: { label: "Kết bạn", icon: "person-add", variant: "primary" },
-        secondary: { label: "Theo dõi", icon: "person-add", variant: "outline" },
-    };
+    // Button 1: Follow status — outline style
+    const follow: CardAction =
+        user.relation === "following" || user.relation === "friend"
+            ? { label: "Đang theo dõi", icon: "checkmark", variant: "outline" }
+            : { label: "Theo dõi", icon: "person-add-outline", variant: "outline" };
+
+    // Button 2: Friend status — filled style
+    const friend: CardAction =
+        user.relation === "friend"
+            ? { label: "Bạn bè", icon: "people", variant: "primary" }
+            : user.relation === "pending"
+              ? { label: "Đã gửi", icon: "time", variant: "disabled" }
+              : { label: "Kết bạn", icon: "person-add", variant: "primary" };
+
+    return { follow, friend };
 }
 
 function EmptyState({
@@ -251,58 +229,6 @@ function EmptyState({
     );
 }
 
-function SocialBottomBar() {
-    const router = useRouter();
-    const insets = useSafeAreaInsets();
-    const isWeb = Platform.OS === "web";
-    const bottomPadding = isWeb ? 12 : insets.bottom > 0 ? insets.bottom + 4 : 16;
-    const bottomHeight = isWeb ? 70 : insets.bottom > 0 ? 50 + insets.bottom : 68;
-
-    const tabs: Array<{
-        route: string;
-        icon: keyof typeof Ionicons.glyphMap;
-        activeIcon: keyof typeof Ionicons.glyphMap;
-        active?: boolean;
-    }> = [
-        { route: "/(tabs)/2_1_lessons", icon: "book-outline", activeIcon: "book" },
-        { route: "/(tabs)/5_1_national_tests", icon: "clipboard-outline", activeIcon: "clipboard" },
-        { route: "/(tabs)/7_1_inventory", icon: "cube-outline", activeIcon: "cube" },
-        { route: "/(tabs)/8_1_store", icon: "storefront-outline", activeIcon: "storefront" },
-        { route: "/(tabs)/9_1_leaderboard", icon: "stats-chart-outline", activeIcon: "stats-chart" },
-        { route: "/(tabs)/10_1_profile", icon: "person-outline", activeIcon: "person", active: true },
-    ];
-
-    return (
-        <View
-            style={[
-                styles.bottomBar,
-                {
-                    height: bottomHeight,
-                    paddingBottom: bottomPadding,
-                },
-            ]}
-        >
-            {tabs.map((tab) => (
-                <TouchableOpacity
-                    key={tab.route}
-                    style={styles.bottomBarItem}
-                    onPress={() => replaceRoute(router, tab.route)}
-                    activeOpacity={0.78}
-                    hitSlop={8}
-                >
-                    <View style={[styles.bottomIconWrapper, tab.active && styles.bottomIconActive]}>
-                        <Ionicons
-                            name={tab.active ? tab.activeIcon : tab.icon}
-                            size={22}
-                            color={tab.active ? "#FFFFFF" : "#4E4A58"}
-                        />
-                    </View>
-                </TouchableOpacity>
-            ))}
-        </View>
-    );
-}
-
 function ScreenShell({
     title,
     rightLabel,
@@ -313,31 +239,20 @@ function ScreenShell({
     children: React.ReactNode;
 }) {
     const router = useRouter();
+    const branchConfig = {
+        hierarchy: title,
+        onBackPress: () => router.back(),
+        onHomePress: () => router.push("/(tabs)/2_1_lessons"),
+    };
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => router.back()}
-                    activeOpacity={0.75}
-                >
-                    <Ionicons name="chevron-back" size={22} color={colors.text} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle} numberOfLines={1}>
-                    {title}
-                </Text>
-                {rightLabel ? (
-                    <TouchableOpacity activeOpacity={0.75}>
-                        <Text style={styles.headerAction}>{rightLabel}</Text>
-                    </TouchableOpacity>
-                ) : (
-                    <View style={styles.iconButton} />
-                )}
-            </View>
+        <ScreenWrapper
+            showTopBar={false}
+            branchConfig={branchConfig}
+            style={styles.safeArea}
+        >
             {children}
-            <SocialBottomBar />
-        </SafeAreaView>
+        </ScreenWrapper>
     );
 }
 
@@ -358,6 +273,8 @@ function Avatar({ user, size = 52 }: { user: SocialUser; size?: number }) {
                         width: size,
                         height: size,
                         borderRadius: size / 2,
+                        borderWidth: 2,
+                        borderColor: colors.borderMedium,
                     },
                 ]}
             >
@@ -370,7 +287,13 @@ function Avatar({ user, size = 52 }: { user: SocialUser; size?: number }) {
     return (
         <Image
             source={{ uri: user.avatar }}
-            style={{ width: size, height: size, borderRadius: size / 2 }}
+            style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                borderWidth: 2,
+                borderColor: colors.borderMedium,
+            }}
         />
     );
 }
@@ -433,19 +356,25 @@ function SegmentTabs({
     tabs,
     active,
     onChange,
+    activeColors,
 }: {
     tabs: string[];
     active: string;
     onChange: (tab: string) => void;
+    activeColors?: Record<string, string>;
 }) {
     return (
         <View style={styles.segment}>
             {tabs.map((tab) => {
                 const selected = tab === active;
+                const activeColor = activeColors?.[tab] || colors.primary;
                 return (
                     <TouchableOpacity
                         key={tab}
-                        style={[styles.segmentItem, selected && styles.segmentItemActive]}
+                        style={[
+                            styles.segmentItem,
+                            selected && { backgroundColor: activeColor },
+                        ]}
                         onPress={() => onChange(tab)}
                         activeOpacity={0.8}
                     >
@@ -475,6 +404,7 @@ function UserCard({
     secondaryIcon,
     secondaryOnPress,
     secondaryVariant = "outline",
+    style,
 }: {
     user: SocialUser;
     onPress?: () => void;
@@ -486,6 +416,7 @@ function UserCard({
     secondaryIcon?: keyof typeof Ionicons.glyphMap;
     secondaryOnPress?: () => void;
     secondaryVariant?: "primary" | "outline" | "soft" | "danger";
+    style?: ViewStyle;
 }) {
     const actions =
         primaryLabel && secondaryLabel ? (
@@ -506,16 +437,21 @@ function UserCard({
                 />
             </View>
         ) : primaryLabel ? (
-            <PrimaryButton
-                label={primaryLabel}
-                icon={primaryIcon}
-                variant={primaryVariant}
-                onPress={primaryOnPress}
-            />
+            primaryIcon === "chevron-forward" ? (
+                <Ionicons name="chevron-forward" size={24} color={colors.primary} />
+            ) : (
+                <PrimaryButton
+                    label={primaryLabel}
+                    icon={primaryIcon}
+                    variant={primaryVariant}
+                    style={styles.cardActionButton}
+                    onPress={primaryOnPress}
+                />
+            )
         ) : null;
 
     return (
-        <TouchableOpacity style={styles.userCard} onPress={onPress} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.userCard, style]} onPress={onPress} activeOpacity={0.85}>
             <Avatar user={user} />
             <View style={styles.userInfo}>
                 <View style={styles.rowCenter}>
@@ -538,9 +474,37 @@ function UserCard({
     );
 }
 
-function StatCard({ value, label }: { value: string; label: string }) {
+function StatCard({
+    value,
+    label,
+    backgroundColor,
+    variant = "solid",
+}: {
+    value: string;
+    label: string;
+    backgroundColor?: string;
+    variant?: "solid" | "accent-outline";
+}) {
+    if (variant === "accent-outline") {
+        return (
+            <View
+                style={[
+                    styles.statCard,
+                    {
+                        backgroundColor: "transparent",
+                        borderWidth: 2,
+                        borderColor: colors.primary,
+                    },
+                ]}
+            >
+                <Text style={[styles.statValue, { color: colors.primary }]}>{value}</Text>
+                <Text style={[styles.statLabel, { color: colors.primary }]}>{label}</Text>
+            </View>
+        );
+    }
+
     return (
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, backgroundColor ? { backgroundColor } : null]}>
             <Text style={styles.statValue}>{value}</Text>
             <Text style={styles.statLabel}>{label}</Text>
         </View>
@@ -559,43 +523,40 @@ function rankPillFor(user: SocialUser): { label: string; icon: keyof typeof Ioni
 function SearchActionButton({
     action,
     onPress,
+    type,
 }: {
     action: CardAction;
     onPress?: () => void;
+    type: "outline" | "filled";
 }) {
-    const variantStyle =
-        action.variant === "primary"
-            ? styles.searchBtnPrimary
-            : action.variant === "outline"
-              ? styles.searchBtnOutline
-              : action.variant === "disabled"
-                ? styles.searchBtnDisabled
-                : action.variant === "secondary"
-                  ? styles.searchBtnSecondary
-                  : action.variant === "ghost"
-                    ? styles.searchBtnGhost
-                    : styles.searchBtnOutline;
-    const textColor =
-        action.variant === "primary"
-            ? "#FFFFFF"
-            : action.variant === "disabled"
-              ? colors.textMuted
-              : action.variant === "ghost"
-                ? colors.primary
-                : colors.text;
-    const iconColor = textColor;
     const disabled = action.variant === "disabled";
+
+    const btnStyle =
+        type === "outline"
+            ? {
+                  backgroundColor: "transparent" as const,
+                  borderWidth: 2,
+                  borderColor: colors.primary,
+              }
+            : {
+                  backgroundColor: disabled ? colors.inputBackground : colors.primary,
+              };
+
+    const iconColor =
+        type === "outline"
+            ? colors.primary
+            : disabled
+              ? colors.textMuted
+              : "#FFFFFF";
+
     return (
         <TouchableOpacity
-            style={[styles.searchBtn, variantStyle]}
+            style={[styles.searchBtn, btnStyle]}
             onPress={onPress}
             activeOpacity={disabled ? 1 : 0.85}
             disabled={disabled}
         >
             <Ionicons name={action.icon} size={17} color={iconColor} />
-            <Text style={[styles.searchBtnText, { color: textColor }]} numberOfLines={1}>
-                {action.label}
-            </Text>
         </TouchableOpacity>
     );
 }
@@ -603,57 +564,57 @@ function SearchActionButton({
 function SearchUserCard({
     user,
     onOpen,
-    onPrimary,
-    onSecondary,
+    onFollow,
+    onFriend,
 }: {
     user: SocialUser;
     onOpen: () => void;
-    onPrimary: () => void;
-    onSecondary: () => void;
+    onFollow: () => void;
+    onFriend: () => void;
 }) {
-    const actions = searchActions(user);
-    const rank = rankPillFor(user);
-    const rankColor = user.relation === "friend" ? colors.emerald : colors.amber;
+    const initiallyFollowing = user.relation === "following" || user.relation === "friend";
+    const [localFollowing, setLocalFollowing] = useState(initiallyFollowing);
+    const effectiveRelation: SocialUser["relation"] =
+        localFollowing && user.relation === "none" ? "following" : user.relation;
+    const actions = searchActions({ ...user, relation: effectiveRelation });
+
     return (
-        <View style={styles.searchCard}>
-            <TouchableOpacity
-                style={styles.searchCardHead}
-                onPress={onOpen}
-                activeOpacity={0.85}
-            >
-                <Avatar user={user} size={56} />
-                <View style={styles.userInfo}>
-                    <View style={styles.searchNameRow}>
-                        <Text style={styles.userName} numberOfLines={1}>
-                            {user.name}
-                        </Text>
-                        {rank ? (
-                            <View style={[styles.rankPill, { backgroundColor: `${rankColor}1A` }]}>
-                                <Ionicons name={rank.icon} size={12} color={rankColor} />
-                                <Text style={[styles.rankText, { color: rankColor }]} numberOfLines={1}>
-                                    {rank.label}
-                                </Text>
-                            </View>
-                        ) : null}
-                    </View>
-                    <View style={styles.searchMetaRow}>
-                        <Ionicons name="star" size={14} color={colors.primary} />
-                        <Text style={styles.searchMetaText}>
-                            {user.xp.toLocaleString()} XP
-                        </Text>
-                        <View style={styles.searchMetaDot} />
-                        <Ionicons name="flame" size={14} color={colors.rose} />
-                        <Text style={styles.searchMetaText}>{user.streak} ngày</Text>
+        <TouchableOpacity
+            style={styles.searchCard}
+            onPress={onOpen}
+            activeOpacity={0.85}
+        >
+            <Avatar user={user} />
+            <View style={styles.userInfo}>
+                <View style={styles.rowCenter}>
+                    <Text style={styles.userName} numberOfLines={1}>
+                        {user.name}
+                    </Text>
+                    <View style={styles.levelPill}>
+                        <Text style={styles.levelText}>Lv. {user.level}</Text>
                     </View>
                 </View>
-            </TouchableOpacity>
-            <View style={styles.searchButtonRow}>
-                <SearchActionButton action={actions.primary} onPress={onPrimary} />
-                {actions.secondary ? (
-                    <SearchActionButton action={actions.secondary} onPress={onSecondary} />
-                ) : null}
+                <Text style={styles.userTitle} numberOfLines={1}>
+                    {user.title}
+                </Text>
+                <Text style={styles.userMeta}>
+                    {user.xp.toLocaleString()} XP - {user.mutualFriends} bạn chung
+                </Text>
             </View>
-        </View>
+            <View style={styles.searchButtonRow}>
+                <SearchActionButton
+                    action={actions.follow}
+                    type="outline"
+                    onPress={() => {
+                        if (!localFollowing) {
+                            setLocalFollowing(true);
+                            onFollow();
+                        }
+                    }}
+                />
+                <SearchActionButton action={actions.friend} onPress={onFriend} type="filled" />
+            </View>
+        </TouchableOpacity>
     );
 }
 
@@ -709,20 +670,18 @@ export function SearchUsersScreen() {
                         key={user.id}
                         user={user}
                         onOpen={() => pushRoute(router, `/(social)/profile?userId=${user.id}`)}
-                        onPrimary={() => {
-                            if (user.relation === "none" || user.relation === "following") {
-                                sendFriendRequest({ receiverId: user.id });
-                            } else if (user.relation === "friend") {
-                                pushRoute(router, `/(social)/challenge-create?userId=${user.id}`);
+                        onFollow={() => {
+                            if (user.relation === "following" || user.relation === "friend") {
+                                // already following — no-op for now
+                            } else {
+                                followUser(user.id);
                             }
                         }}
-                        onSecondary={() => {
-                            if (user.relation === "none" || user.relation === "pending") {
-                                followUser(user.id);
-                            } else if (user.relation === "following") {
-                                unfollowUser(user.id);
-                            } else if (user.relation === "friend") {
-                                pushRoute(router, `/(social)/profile?userId=${user.id}`);
+                        onFriend={() => {
+                            if (user.relation === "friend" || user.relation === "pending") {
+                                // already friend or pending — no-op
+                            } else {
+                                sendFriendRequest({ receiverId: user.id });
                             }
                         }}
                     />
@@ -769,9 +728,9 @@ export function OtherProfileScreen() {
                     <Text style={styles.profileName}>{profile.name}</Text>
                     <Text style={styles.profileSubtitle}>Lv. {profile.level} - {profile.title}</Text>
                     <View style={styles.profileStats}>
-                        <StatCard value={String(apiProfile?.stats.friends ?? 0)} label="Bạn bè" />
-                        <StatCard value={String(apiProfile?.stats.followers ?? 0)} label="Người theo dõi" />
-                        <StatCard value={profile.winRate ? `${profile.winRate}%` : "--"} label="Thắng" />
+                        <StatCard value={String(apiProfile?.stats.friends ?? 0)} label="Bạn bè" backgroundColor="#3182CE" />
+                        <StatCard value={String(apiProfile?.stats.followers ?? 0)} label="Người theo dõi" backgroundColor="#FF6B00" />
+                        <StatCard value={profile.winRate ? `${profile.winRate}%` : "--"} label="Thắng" variant="accent-outline" />
                     </View>
                     <PrimaryButton
                         label="Thách đấu"
@@ -780,21 +739,21 @@ export function OtherProfileScreen() {
                     />
                 </View>
 
-                <View style={styles.card}>
+                <View style={{ gap: 12 }}>
                     <Text style={styles.sectionTitle}>Thành tích nổi bật</Text>
                     <View style={styles.badgeGrid}>
-                        <View style={styles.badgeCard}>
-                            <Ionicons name="trophy" size={24} color={colors.amber} />
-                            <Text style={styles.badgeTitle}>{profile.xp.toLocaleString()} XP</Text>
+                        <View style={[styles.badgeCard, { backgroundColor: colors.warning, borderWidth: 0 }]}>
+                            <Ionicons name="trophy" size={24} color="#FFFFFF" />
+                            <Text style={[styles.badgeTitle, { color: "#FFFFFF" }]}>{profile.xp.toLocaleString()} XP</Text>
                         </View>
-                        <View style={styles.badgeCard}>
-                            <Ionicons name="flame" size={24} color={colors.rose} />
-                            <Text style={styles.badgeTitle}>Chuỗi học {apiProfile?.currentStreak ?? 0}</Text>
+                        <View style={[styles.badgeCard, { backgroundColor: colors.error, borderWidth: 0 }]}>
+                            <Ionicons name="flame" size={24} color="#FFFFFF" />
+                            <Text style={[styles.badgeTitle, { color: "#FFFFFF" }]}>Chuỗi học {apiProfile?.currentStreak ?? 0}</Text>
                         </View>
                     </View>
                 </View>
 
-                <View style={styles.card}>
+                <View style={{ gap: 12 }}>
                     <Text style={styles.sectionTitle}>Bạn chung</Text>
                     <EmptyState title="Chưa có dữ liệu bạn chung." />
                 </View>
@@ -844,26 +803,31 @@ export function FriendsAndFollowScreen() {
         <ScreenShell title="Bạn bè & Theo dõi" rightLabel="Tìm bạn">
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.summaryGrid}>
-                    <StatCard value={friendsQuery.isFetching ? "--" : String(friends.length)} label="Bạn bè" />
-                    <StatCard value={followersQuery.isFetching ? "--" : String(followers.length)} label="Người theo dõi" />
-                    <StatCard value={followingQuery.isFetching ? "--" : String(following.length)} label="Đang theo dõi" />
+                    <StatCard value={friendsQuery.isFetching ? "--" : String(friends.length)} label="Bạn bè" backgroundColor="#3182CE" />
+                    <StatCard value={followersQuery.isFetching ? "--" : String(followers.length)} label="Người theo dõi" backgroundColor="#FF6B00" />
+                    <StatCard value={followingQuery.isFetching ? "--" : String(following.length)} label="Đang theo dõi" backgroundColor="#10B981" />
                 </View>
                 <SegmentTabs
-                    tabs={["Bạn bè", "Đang theo dõi", "Người theo dõi"]}
+                    tabs={["Bạn bè", "Người theo dõi", "Đang theo dõi"]}
                     active={activeTab}
                     onChange={setActiveTab}
+                    activeColors={{
+                        "Bạn bè": "#3182CE",
+                        "Đang theo dõi": "#10B981",
+                        "Người theo dõi": "#FF6B00",
+                    }}
                 />
                 <View style={styles.actionRow}>
                     <PrimaryButton
                         label="Tìm bạn"
                         icon="search"
-                        variant="soft"
+                        variant="primary"
                         onPress={() => pushRoute(router, "/(social)/search")}
                     />
                     <PrimaryButton
                         label="Lời mời"
                         icon="mail-unread"
-                        variant="soft"
+                        variant="primary"
                         onPress={() => pushRoute(router, "/(social)/requests")}
                     />
                 </View>
@@ -923,31 +887,24 @@ export function FriendRequestsScreen() {
                     const user = request.user ? toViewUser(request.user) : null;
                     if (!user) return null;
                     return (
-                        <View key={request.id} style={styles.requestCard}>
-                            <UserCard user={user} />
-                            {activeTab === "Đã nhận" ? (
-                                <View style={styles.actionRow}>
-                                    <PrimaryButton
-                                        label="Chấp nhận"
-                                        icon="checkmark"
-                                        onPress={() => acceptRequest(request.id)}
-                                    />
-                                    <PrimaryButton
-                                        label="Từ chối"
-                                        icon="close"
-                                        variant="outline"
-                                        onPress={() => rejectRequest(request.id)}
-                                    />
-                                </View>
-                            ) : (
-                                <PrimaryButton
-                                    label="Hủy lời mời"
-                                    icon="close"
-                                    variant="outline"
-                                    onPress={() => cancelRequest(request.id)}
-                                />
-                            )}
-                        </View>
+                        <UserCard
+                            key={request.id}
+                            user={user}
+                            primaryLabel={activeTab === "Đã nhận" ? "Chấp nhận" : "Huỷ"}
+                            primaryIcon={activeTab === "Đã nhận" ? "checkmark" : "close"}
+                            primaryVariant="primary"
+                            primaryOnPress={() => {
+                                if (activeTab === "Đã nhận") {
+                                    acceptRequest(request.id);
+                                } else {
+                                    cancelRequest(request.id);
+                                }
+                            }}
+                            secondaryLabel={activeTab === "Đã nhận" ? "Từ chối" : undefined}
+                            secondaryIcon={activeTab === "Đã nhận" ? "close" : undefined}
+                            secondaryVariant="primary"
+                            secondaryOnPress={() => rejectRequest(request.id)}
+                        />
                     );
                 })}
             </ScrollView>
@@ -1136,13 +1093,13 @@ export function BattleScreen() {
                             <Text style={[styles.answerKey, selected && styles.answerKeySelected]}>
                                 {key}
                             </Text>
-                            <Text style={styles.answerText}>{value}</Text>
+                            <Text style={[styles.answerText, selected && { color: "#FFFFFF" }]}>{value}</Text>
                         </TouchableOpacity>
                     );
                 })}
                 <View style={styles.livePanel}>
                     <View style={styles.onlineDot} />
-                    <Text style={styles.userMeta}>Lan Chi vừa trả lời câu 5 - 3 giây trước</Text>
+                    <Text style={[styles.userMeta, { color: colors.success }]}>Lan Chi vừa trả lời câu 5 - 3 giây trước</Text>
                 </View>
             </ScrollView>
             <View style={styles.footer}>
@@ -1231,49 +1188,53 @@ const styles = StyleSheet.create({
     iconButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
+        borderRadius: 12,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.surface,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     avatarFallback: {
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: colors.primarySoft,
+        backgroundColor: colors.primaryContainer,
     },
     avatarFallbackText: {
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.primary,
     },
     headerTitle: {
         flex: 1,
         textAlign: "center",
         fontSize: 18,
-        fontWeight: "800",
-        color: colors.text,
+        fontWeight: "600",
+        color: colors.textPrimary,
     },
     headerAction: {
         minWidth: 40,
         textAlign: "right",
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.primary,
     },
     content: {
         paddingHorizontal: 20,
+        paddingTop: 16,
         paddingBottom: 116,
         gap: 14,
     },
     contentWithFooter: {
         paddingHorizontal: 20,
+        paddingTop: 16,
         paddingBottom: 208,
         gap: 14,
     },
     searchBox: {
         height: 48,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         backgroundColor: colors.surface,
         paddingHorizontal: 14,
         flexDirection: "row",
@@ -1283,14 +1244,14 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         fontSize: 15,
-        color: colors.text,
-        fontWeight: "600",
+        color: colors.textPrimary,
+        fontWeight: "400",
     },
     segment: {
         flexDirection: "row",
         padding: 4,
-        borderRadius: 16,
-        backgroundColor: "#EEEAE6",
+        borderRadius: 12,
+        backgroundColor: colors.inputBackground,
     },
     segmentItem: {
         flex: 1,
@@ -1299,19 +1260,15 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     segmentItemActive: {
-        backgroundColor: colors.surface,
-        shadowColor: colors.primary,
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 1,
+        backgroundColor: colors.primary,
     },
     segmentText: {
         fontSize: 12,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
     },
     segmentTextActive: {
-        color: colors.primary,
+        color: "#FFFFFF",
     },
     sectionHeader: {
         flexDirection: "row",
@@ -1320,28 +1277,26 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 17,
-        fontWeight: "800",
-        color: colors.text,
+        fontWeight: "600",
+        color: colors.textPrimary,
     },
     sectionHint: {
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
     },
     emptyState: {
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: colors.surface,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: colors.border,
+        backgroundColor: colors.inputBackground,
+        borderRadius: 12,
         padding: 20,
         gap: 10,
     },
     emptyTitle: {
         fontSize: 14,
-        fontWeight: "700",
-        color: colors.textMuted,
+        fontWeight: "500",
+        color: colors.textPrimary,
         lineHeight: 20,
         textAlign: "center",
     },
@@ -1349,16 +1304,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
-        backgroundColor: colors.surface,
-        borderRadius: 18,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
         padding: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
-        shadowColor: colors.primary,
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 1,
     },
     userInfo: {
         flex: 1,
@@ -1372,26 +1320,25 @@ const styles = StyleSheet.create({
     cardActionButton: {
         flex: 0,
         flexShrink: 0,
+        minWidth: 80,
+        paddingHorizontal: 10,
+        gap: 5,
+        borderRadius: 4,
     },
     buttonIconOnly: {
         paddingHorizontal: 0,
         width: 40,
         minHeight: 40,
         height: 40,
-        borderRadius: 14,
+        borderRadius: 30,
     },
     searchCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 18,
-        padding: 16,
-        gap: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        shadowColor: colors.primary,
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        padding: 14,
     },
     searchCardHead: {
         flexDirection: "row",
@@ -1410,11 +1357,11 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingHorizontal: 8,
         paddingVertical: 3,
-        borderRadius: 999,
+        borderRadius: 30,
     },
     rankText: {
         fontSize: 11,
-        fontWeight: "800",
+        fontWeight: "600",
     },
     searchMetaRow: {
         marginTop: 6,
@@ -1424,58 +1371,49 @@ const styles = StyleSheet.create({
     },
     searchMetaText: {
         fontSize: 13,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
     },
     searchMetaDot: {
         width: 3,
         height: 3,
         borderRadius: 1.5,
-        backgroundColor: colors.border,
+        backgroundColor: colors.borderDark,
         marginHorizontal: 2,
     },
     searchButtonRow: {
         flexDirection: "row",
-        gap: 12,
+        gap: 8,
+        flexShrink: 0,
+        alignItems: "center",
     },
     searchBtn: {
-        flex: 1,
-        minHeight: 40,
-        paddingVertical: 10,
-        borderRadius: 999,
-        flexDirection: "row",
+        width: 40,
+        height: 40,
+        borderRadius: 4,
         alignItems: "center",
         justifyContent: "center",
-        gap: 7,
+        backgroundColor: colors.primary,
     },
     searchBtnPrimary: {
         backgroundColor: colors.primary,
-        shadowColor: colors.primary,
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        elevation: 2,
     },
     searchBtnOutline: {
-        backgroundColor: "transparent",
-        borderWidth: 2,
-        borderColor: colors.border,
+        backgroundColor: colors.primary,
     },
     searchBtnDisabled: {
-        backgroundColor: "#F5F5F4",
+        backgroundColor: colors.inputBackground,
     },
     searchBtnSecondary: {
-        backgroundColor: colors.primarySoft,
-        shadowColor: colors.primary,
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-        elevation: 1,
+        backgroundColor: colors.secondary,
     },
     searchBtnGhost: {
-        backgroundColor: "transparent",
+        backgroundColor: colors.primary,
     },
     searchBtnText: {
         fontSize: 13,
-        fontWeight: "800",
+        fontWeight: "600",
+        textAlign: "center",
     },
     rowCenter: {
         flexDirection: "row",
@@ -1484,38 +1422,40 @@ const styles = StyleSheet.create({
     },
     userName: {
         fontSize: 15,
-        fontWeight: "800",
-        color: colors.text,
+        fontWeight: "600",
+        color: colors.textPrimary,
     },
     userTitle: {
         marginTop: 3,
         fontSize: 13,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
     },
     userMeta: {
         marginTop: 4,
         fontSize: 12,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
         lineHeight: 17,
     },
     levelPill: {
         paddingHorizontal: 8,
         paddingVertical: 3,
-        borderRadius: 999,
-        backgroundColor: colors.amberSoft,
+        borderRadius: 30,
+        borderWidth: 2,
+        borderColor: colors.warning,
+        backgroundColor: "transparent",
     },
     levelText: {
         fontSize: 11,
-        fontWeight: "800",
-        color: "#92400E",
+        fontWeight: "600",
+        color: colors.warning,
     },
     button: {
         minHeight: 42,
         paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 999,
+        borderRadius: 30,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
@@ -1524,49 +1464,47 @@ const styles = StyleSheet.create({
     buttonPrimary: {
         flex: 1,
         backgroundColor: colors.primary,
-        shadowColor: colors.primary,
-        shadowOpacity: 0.18,
-        shadowRadius: 12,
-        elevation: 2,
     },
     buttonOutline: {
         flex: 1,
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.surface,
+        borderWidth: 2,
+        borderColor: colors.primary,
+        backgroundColor: "transparent",
     },
     buttonSoft: {
-        backgroundColor: colors.primarySoft,
+        flex: 1,
+        borderWidth: 2,
+        borderColor: colors.primary,
+        backgroundColor: "transparent",
     },
     buttonDanger: {
         flex: 1,
-        backgroundColor: colors.rose,
+        backgroundColor: colors.error,
     },
     buttonText: {
         fontSize: 13,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.primary,
+        textAlign: "center",
     },
     buttonTextPrimary: {
         color: "#FFFFFF",
     },
     profileHero: {
         alignItems: "center",
-        backgroundColor: colors.surface,
-        borderRadius: 24,
+        backgroundColor: colors.inputBackground,
+        borderRadius: 12,
         padding: 20,
-        borderWidth: 1,
-        borderColor: colors.border,
         gap: 10,
     },
     profileName: {
         fontSize: 22,
-        fontWeight: "900",
-        color: colors.text,
+        fontWeight: "600",
+        color: colors.textPrimary,
     },
     profileSubtitle: {
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
     },
     profileStats: {
@@ -1581,23 +1519,22 @@ const styles = StyleSheet.create({
     },
     statCard: {
         flex: 1,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
+        backgroundColor: colors.primary,
+        borderRadius: 12,
         paddingVertical: 14,
         alignItems: "center",
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: 0,
     },
     statValue: {
         fontSize: 18,
-        fontWeight: "900",
-        color: colors.primary,
+        fontWeight: "600",
+        color: "#FFFFFF",
     },
     statLabel: {
         marginTop: 3,
         fontSize: 11,
-        fontWeight: "700",
-        color: colors.textMuted,
+        fontWeight: "500",
+        color: "#FFFFFF",
         textAlign: "center",
     },
     actionRow: {
@@ -1607,10 +1544,10 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: colors.surface,
-        borderRadius: 18,
+        borderRadius: 12,
         padding: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         gap: 12,
     },
     badgeGrid: {
@@ -1619,54 +1556,53 @@ const styles = StyleSheet.create({
     },
     badgeCard: {
         flex: 1,
-        borderRadius: 16,
-        backgroundColor: "#F8F7FF",
+        borderRadius: 12,
+        backgroundColor: "transparent",
+        borderWidth: 2,
         padding: 14,
         alignItems: "center",
         gap: 8,
     },
     badgeTitle: {
         fontSize: 12,
-        fontWeight: "800",
-        color: colors.text,
+        fontWeight: "600",
+        color: colors.textPrimary,
         textAlign: "center",
     },
     requestCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 20,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
-        gap: 10,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        padding: 14,
+        gap: 12,
     },
     challengeHero: {
-        borderRadius: 24,
+        borderRadius: 12,
         padding: 18,
         gap: 18,
     },
     challengeEyebrow: {
         fontSize: 12,
-        fontWeight: "900",
-        color: "#DDD6FE",
+        fontWeight: "600",
+        color: colors.primaryContainer,
         textTransform: "uppercase",
     },
     challengeTitle: {
         marginTop: 4,
         fontSize: 26,
-        fontWeight: "900",
+        fontWeight: "600",
         color: "#FFFFFF",
     },
     challengeCopy: {
         marginTop: 6,
         fontSize: 13,
-        fontWeight: "600",
-        color: "#EDE9FE",
+        fontWeight: "400",
+        color: colors.primaryContainer,
         lineHeight: 19,
     },
     topicText: {
         fontSize: 14,
-        fontWeight: "700",
-        color: colors.text,
+        fontWeight: "500",
+        color: colors.textPrimary,
         lineHeight: 20,
     },
     chipRow: {
@@ -1677,15 +1613,15 @@ const styles = StyleSheet.create({
     chip: {
         paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 999,
-        backgroundColor: "#F5F5F4",
+        borderRadius: 30,
+        backgroundColor: colors.inputBackground,
     },
     chipActive: {
         backgroundColor: colors.primary,
     },
     chipText: {
         fontSize: 12,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.textMuted,
     },
     chipTextActive: {
@@ -1696,32 +1632,35 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 12,
         backgroundColor: colors.surface,
-        borderRadius: 18,
+        borderRadius: 12,
         padding: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     packCardSelected: {
+        borderWidth: 2,
         borderColor: colors.primary,
-        backgroundColor: "#F8F7FF",
+        backgroundColor: "transparent",
     },
     packIcon: {
         width: 46,
         height: 46,
-        borderRadius: 14,
-        backgroundColor: colors.primarySoft,
+        borderRadius: 12,
+        backgroundColor: "transparent",
+        borderWidth: 2,
+        borderColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
     },
     rewardText: {
         marginTop: 5,
         fontSize: 12,
-        fontWeight: "900",
-        color: colors.emerald,
+        fontWeight: "600",
+        color: colors.success,
     },
     bodyText: {
         fontSize: 13,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
         lineHeight: 20,
     },
@@ -1734,8 +1673,8 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingBottom: 24,
         backgroundColor: colors.background,
-        borderTopWidth: 1,
-        borderTopColor: colors.border,
+        borderTopWidth: 2,
+        borderTopColor: colors.borderDark,
         gap: 10,
     },
     bottomBar: {
@@ -1748,14 +1687,11 @@ const styles = StyleSheet.create({
         justifyContent: "space-around",
         paddingTop: 8,
         paddingHorizontal: 16,
-        backgroundColor: "#F3EFEA",
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        shadowColor: "#000000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
-        elevation: 8,
+        backgroundColor: colors.surfaceVariant,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     bottomBarItem: {
         flex: 1,
@@ -1770,11 +1706,11 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     bottomIconActive: {
-        backgroundColor: "#5F4DE5",
+        backgroundColor: colors.primary,
     },
     footerHint: {
         fontSize: 12,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
         textAlign: "center",
     },
@@ -1783,10 +1719,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: colors.surface,
-        borderRadius: 20,
+        borderRadius: 12,
         padding: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     playerScore: {
         flex: 1,
@@ -1795,39 +1731,41 @@ const styles = StyleSheet.create({
     },
     scoreText: {
         fontSize: 28,
-        fontWeight: "900",
+        fontWeight: "600",
         color: colors.primary,
     },
     roundPill: {
         paddingHorizontal: 12,
         paddingVertical: 7,
-        borderRadius: 999,
-        backgroundColor: colors.amberSoft,
+        borderRadius: 30,
+        borderWidth: 2,
+        borderColor: colors.warning,
+        backgroundColor: "transparent",
     },
     roundPillText: {
         fontSize: 12,
-        fontWeight: "900",
-        color: "#92400E",
+        fontWeight: "600",
+        color: colors.warning,
     },
     questionText: {
         fontSize: 21,
         lineHeight: 29,
-        fontWeight: "900",
-        color: colors.text,
+        fontWeight: "600",
+        color: colors.textPrimary,
     },
     answerCard: {
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
         backgroundColor: colors.surface,
-        borderRadius: 18,
+        borderRadius: 12,
         padding: 15,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     answerCardSelected: {
-        borderColor: colors.primary,
-        backgroundColor: colors.primarySoft,
+        borderWidth: 0,
+        backgroundColor: colors.primary,
     },
     answerKey: {
         width: 32,
@@ -1836,61 +1774,63 @@ const styles = StyleSheet.create({
         textAlign: "center",
         lineHeight: 32,
         overflow: "hidden",
-        backgroundColor: "#F5F5F4",
+        backgroundColor: colors.inputBackground,
         color: colors.textMuted,
-        fontWeight: "900",
+        fontWeight: "600",
     },
     answerKeySelected: {
-        backgroundColor: colors.primary,
-        color: "#FFFFFF",
+        backgroundColor: "#FFFFFF",
+        color: colors.primary,
     },
     answerText: {
         flex: 1,
         fontSize: 15,
-        fontWeight: "800",
-        color: colors.text,
+        fontWeight: "600",
+        color: colors.textPrimary,
     },
     livePanel: {
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        borderRadius: 16,
+        borderRadius: 12,
         padding: 12,
-        backgroundColor: colors.emeraldSoft,
+        borderWidth: 2,
+        borderColor: colors.success,
+        backgroundColor: "transparent",
     },
     onlineDot: {
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: colors.emerald,
+        backgroundColor: colors.success,
     },
     resultHero: {
-        borderRadius: 26,
+        borderRadius: 12,
         padding: 22,
         alignItems: "center",
         gap: 8,
     },
     resultTitle: {
         fontSize: 28,
-        fontWeight: "900",
+        fontWeight: "600",
         color: "#FFFFFF",
     },
     finalScore: {
         fontSize: 42,
-        fontWeight: "900",
+        fontWeight: "600",
         color: "#FFFFFF",
     },
     comparisonCard: {
         flexDirection: "row",
         backgroundColor: colors.surface,
-        borderRadius: 20,
+        borderRadius: 12,
         padding: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     divider: {
-        width: 1,
-        backgroundColor: colors.border,
+        width: 2,
+        backgroundColor: colors.borderDark,
         marginHorizontal: 12,
     },
 });

@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LessonSummaryData, LessonSection } from "../hooks/useLessonSummary";
 import { ExpandableSection } from "./ExpandableSection";
 import VideoPlayer from "../../videostream/components/VideoPlayer";
+import { colors } from "../../../theme/colors";
 
 interface LessonSummaryProps {
     data: LessonSummaryData;
@@ -22,6 +23,26 @@ interface LessonSummaryProps {
     onSectionTestPress?: (sectionId: number) => void;
 }
 
+const getLessonProgress = (sections: LessonSection[]) => {
+    let completed = 0;
+    let total = 0;
+    const traverse = (sec: LessonSection) => {
+        if (sec.nodes) {
+            sec.nodes.forEach((node) => {
+                total++;
+                if (node.isComplete) {
+                    completed++;
+                }
+            });
+        }
+        if (sec.children) {
+            sec.children.forEach(traverse);
+        }
+    };
+    sections.forEach(traverse);
+    return { completed, total };
+};
+
 export function LessonSummary({
     data,
     sections,
@@ -29,6 +50,8 @@ export function LessonSummary({
     onNodePress,
     onSectionTestPress,
 }: LessonSummaryProps) {
+    const { completed, total } = getLessonProgress(sections);
+
     return (
         <View style={styles.container}>
             {/* --- Top Banner Display --- */}
@@ -39,7 +62,7 @@ export function LessonSummary({
                         uri: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500",
                     }}
                     style={styles.bannerBg}
-                    imageStyle={{ borderRadius: 16 }}
+                    imageStyle={{ borderRadius: 5 }}
                 >
                     <View style={styles.tag}>
                         <Text style={styles.tagText}>
@@ -51,6 +74,21 @@ export function LessonSummary({
 
             {/* --- Main Hero Content --- */}
             <View style={styles.heroContent}>
+                {/* Progress bar and counter above title */}
+                <View style={styles.progressContainer}>
+                    <View style={styles.progressBarBg}>
+                        <View
+                            style={[
+                                styles.progressBarFill,
+                                { width: total > 0 ? `${(completed / total) * 100}%` : "0%" },
+                            ]}
+                        />
+                    </View>
+                    <Text style={styles.progressText}>
+                        {completed}/{total} phần
+                    </Text>
+                </View>
+
                 <Text style={styles.lessonHeading}>
                     Bài {data.position}: {data.name}
                 </Text>
@@ -66,10 +104,10 @@ export function LessonSummary({
                     <View
                         style={[
                             styles.iconWrapper,
-                            { backgroundColor: "#EAEAFE" },
+                            { backgroundColor: colors.primaryContainer },
                         ]}
                     >
-                        <Ionicons name="copy" size={16} color="#5856D6" />
+                        <Ionicons name="copy" size={16} color={colors.primary} />
                     </View>
                     <Text style={styles.gridButtonText}>Thẻ lật</Text>
                 </TouchableOpacity>
@@ -81,13 +119,13 @@ export function LessonSummary({
                     <View
                         style={[
                             styles.iconWrapper,
-                            { backgroundColor: "#FFEAD2" },
+                            { backgroundColor: colors.secondaryContainer },
                         ]}
                     >
                         <Ionicons
                             name="git-network"
                             size={16}
-                            color="#FF9500"
+                            color={colors.secondary}
                         />
                     </View>
                     <Text style={styles.gridButtonText}>Mind map</Text>
@@ -98,10 +136,10 @@ export function LessonSummary({
                     onPress={() => onActionPress("quiz")}
                 >
                     <View style={styles.iconWrapperTransparent}>
-                        <Ionicons name="document-text" size={16} color="#FFF" />
+                        <Ionicons name="document-text" size={16} color={colors.textLight} />
                     </View>
                     <Text style={[styles.gridButtonText, styles.whiteText]}>
-                        Test toàn bài
+                        Kiểm tra toàn bài
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -121,14 +159,16 @@ export function LessonSummary({
 
             {/* --- Render Root Document Node Tree --- */}
             <View style={styles.sectionsList}>
-                {sections.map((section) => (
-                    <ExpandableSection
-                        key={section.id}
-                        section={section}
-                        isTopLevel={true}
-                        onNodePress={onNodePress}
-                        onSectionTestPress={onSectionTestPress}
-                    />
+                {sections.map((section, index) => (
+                    <React.Fragment key={section.id}>
+                        {index > 0 && <View style={styles.divider} />}
+                        <ExpandableSection
+                            section={section}
+                            isTopLevel={true}
+                            onNodePress={onNodePress}
+                            onSectionTestPress={onSectionTestPress}
+                        />
+                    </React.Fragment>
                 ))}
             </View>
 
@@ -138,7 +178,7 @@ export function LessonSummary({
                 onPress={() => onActionPress("quiz")}
                 activeOpacity={0.8}
             >
-                <Ionicons name="document-text" size={18} color="#FFF" />
+                <Ionicons name="document-text" size={18} color={colors.textLight} />
                 <Text style={styles.pillTestButtonText}>Kiểm tra toàn bài</Text>
             </TouchableOpacity>
         </View>
@@ -146,25 +186,49 @@ export function LessonSummary({
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 16, backgroundColor: "#FFF", paddingBottom: 40 },
+    container: { padding: 16, backgroundColor: colors.background, paddingBottom: 40 },
     bannerContainer: { height: 160, marginBottom: 16 },
     bannerBg: { flex: 1, justifyContent: "flex-end", padding: 12 },
     tag: {
-        backgroundColor: "#FF9500",
+        backgroundColor: colors.secondary,
         alignSelf: "flex-start",
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: 12,
+        borderRadius: 15,
     },
-    tagText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
+    tagText: { color: colors.textLight, fontSize: 12, fontWeight: "700" },
     heroContent: { marginBottom: 20 },
+    progressContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 12,
+        gap: 12,
+    },
+    progressBarBg: {
+        flex: 1,
+        height: 6,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 3,
+        overflow: "hidden",
+    },
+    progressBarFill: {
+        height: "100%",
+        backgroundColor: colors.primary,
+        borderRadius: 3,
+    },
+    progressText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: colors.textSecondary,
+    },
     lessonHeading: {
         fontSize: 22,
-        fontWeight: "800",
-        color: "#5856D6",
+        fontWeight: "normal",
+        color: colors.primary,
         marginBottom: 8,
     },
-    lessonDescription: { fontSize: 14, color: "#3A3A3C", lineHeight: 22 },
+    lessonDescription: { fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
 
     /* Feature Navigation Grid Matrix */
     gridContainer: {
@@ -174,21 +238,21 @@ const styles = StyleSheet.create({
     },
     gridButton: {
         flex: 1,
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: "#E5E5EA",
-        borderRadius: 12,
+        borderColor: colors.borderMedium,
+        borderRadius: 9,
         paddingVertical: 10,
         paddingHorizontal: 4,
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
     },
-    filledGridButton: { backgroundColor: "#5856D6", borderColor: "#5856D6" },
+    filledGridButton: { backgroundColor: colors.primary, borderColor: colors.primary },
     iconWrapper: {
         width: 32,
         height: 32,
-        borderRadius: 16,
+        borderRadius: 4,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -198,11 +262,17 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    gridButtonText: { fontSize: 12, fontWeight: "700", color: "#1C1C1E" },
-    whiteText: { color: "#FFF" },
+    gridButtonText: { fontSize: 12, fontWeight: "700", color: colors.textPrimary },
+    whiteText: { color: colors.textLight },
 
     /* Tree List Wrapper */
     sectionsList: { marginTop: 8 },
+    divider: {
+        height: 2,
+        backgroundColor: colors.borderDark,
+        marginVertical: 16,
+        marginHorizontal: 8,
+    },
 
     /* Video Player */
     videoContainer: {
@@ -211,7 +281,7 @@ const styles = StyleSheet.create({
     videoTitle: {
         fontSize: 18,
         fontWeight: "800",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         marginBottom: 12,
     },
 
@@ -220,8 +290,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#5856D6",
-        borderRadius: 24,
+        backgroundColor: colors.primary,
+        borderRadius: 40,
         paddingVertical: 12,
         paddingHorizontal: 24,
         gap: 8,
@@ -230,8 +300,8 @@ const styles = StyleSheet.create({
         width: "80%",
     },
     pillTestButtonText: {
-        color: "#FFF",
-        fontSize: 15,
+        color: colors.textLight,
+        fontSize: 17,
         fontWeight: "700",
     },
 });
