@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: colors.background,
         zIndex: 5,
-        borderBottomWidth: 2,
+        borderBottomWidth: 1.5,
         borderBottomColor: colors.borderDark,
     },
     purpleBar: {
@@ -267,14 +267,14 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     hierarchyText: {
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: "600",
         color: colors.textMuted,
         letterSpacing: 0.5,
         marginBottom: 2,
     },
     titleText: {
-        fontSize: 22,
+        fontSize: 18,
         fontWeight: "700",
         color: colors.textPrimary,
     },

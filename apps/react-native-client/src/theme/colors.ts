@@ -65,7 +65,7 @@ export const colors = {
     // -------------------------------------------------------------
     borderLight: "rgba(0, 0, 0, 0.08)", // Soft border for cards and input boxes on light backgrounds
     borderMedium: "#E2E8F0", // Standard border color
-    borderDark: "#CBD5E0", // High contrast border color
+    borderDark: "#a89292ff", // High contrast border color
     divider: "#E2E8F0", // Line separators
 
     // -------------------------------------------------------------

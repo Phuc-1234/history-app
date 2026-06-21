@@ -31,13 +31,8 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: colors.surface,
-        paddingVertical: 16,
-        paddingHorizontal: 20,
-        borderRadius: 5,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
-        marginBottom: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
     },
     icon: {
         marginRight: 14,

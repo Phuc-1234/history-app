@@ -37,16 +37,16 @@ function CourseCard({
 
     return (
         <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, { backgroundColor: bgColor }]}
             onPress={onPress}
             activeOpacity={0.85}
         >
             {/* Left Image Section */}
-            <View style={[styles.imageContainer, { backgroundColor: bgColor }]}>
+            <View style={[styles.imageContainer, { backgroundColor: colors.surface }]}>
                 <Ionicons name="book" size={40} color={themeColor} />
                 
                 {/* Overlapping Pill Badge */}
-                <View style={styles.badge}>
+                <View style={[styles.badge, { backgroundColor: themeColor }]}>
                     <Text style={styles.badgeText}>{percentage}%</Text>
                 </View>
             </View>
@@ -120,7 +120,7 @@ export function CourseMenuScreen() {
         >
             <View style={styles.container}>
                 <Text style={styles.screenHeader}>Khóa Học</Text>
-                <Text style={styles.screenSubtitle}>Chọn sách giáo khoa để bắt đầu học tập</Text>
+                <Text style={styles.screenSubtitle}>Chọn khoá học để bắt đầu</Text>
 
                 {isLoading ? (
                     <View style={styles.centerLoader}>
@@ -164,14 +164,16 @@ const styles = StyleSheet.create({
     },
     screenHeader: {
         fontSize: 26,
-        fontWeight: "800",
+        fontWeight: "700",
         color: colors.textPrimary,
         marginBottom: 4,
+        textAlign: "center",
     },
     screenSubtitle: {
         fontSize: 15,
         color: colors.textSecondary,
         marginBottom: 24,
+        textAlign: "center",
     },
     centerLoader: {
         marginTop: 100,
@@ -183,18 +185,17 @@ const styles = StyleSheet.create({
     },
     card: {
         flexDirection: "row",
-        backgroundColor: colors.surface,
-        borderRadius: 10,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
+        borderRadius: 8,
         marginBottom: 18,
         overflow: "hidden",
-        
         height: 110,
+        alignItems: "center",
     },
     imageContainer: {
-        width: 110,
-        height: 110,
+        width: 86,
+        height: 86,
+        borderRadius: 8,
+        marginLeft: 12,
         justifyContent: "center",
         alignItems: "center",
         position: "relative",
@@ -204,10 +205,9 @@ const styles = StyleSheet.create({
         bottom: 8,
         right: 8,
         backgroundColor: colors.primary,
-        borderRadius: 5,
+        borderRadius: 12,
         paddingHorizontal: 8,
         paddingVertical: 3,
-        
     },
     badgeText: {
         color: colors.textLight,

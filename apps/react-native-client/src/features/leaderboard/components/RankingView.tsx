@@ -12,6 +12,7 @@ import { useLeaderboard } from "../hooks/useLeaderboard";
 import { PodiumSection } from "./PodiumSection";
 import { RankingList } from "./RankingList";
 import { colors } from "../../../theme/colors";
+import { TopNavBar } from "../../../components/TopNavBar";
 
 export const RankingView: React.FC = () => {
     const {
@@ -28,42 +29,15 @@ export const RankingView: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Navigation Tabs Header */}
-            <View style={styles.tabContainer}>
-                <TouchableOpacity
-                    style={[
-                        styles.tabButton,
-                        activeTab === "xp" ? styles.activeTabButton : styles.inactiveTabButton,
-                    ]}
-                    onPress={() => setActiveTab("xp")}
-                >
-                    <Text
-                        style={
-                            activeTab === "xp"
-                                ? styles.activeTabText
-                                : styles.inactiveTabText
-                        }
-                    >
-                        XP
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[
-                        styles.tabButton,
-                        activeTab === "streak" ? styles.activeTabButton : styles.inactiveTabButton,
-                    ]}
-                    onPress={() => setActiveTab("streak")}
-                >
-                    <Text
-                        style={
-                            activeTab === "streak"
-                                ? styles.activeTabText
-                                : styles.inactiveTabText
-                        }
-                    >
-                        Chuỗi
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            <TopNavBar
+                tabs={[
+                    { key: "xp", label: "XP" },
+                    { key: "streak", label: "Chuỗi" },
+                ]}
+                activeTab={activeTab}
+                onChangeTab={(key) => setActiveTab(key as "xp" | "streak")}
+                containerStyle={styles.tabContainer}
+            />
 
             {/* Content */}
             {isLoading ? (
@@ -127,36 +101,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     tabContainer: {
-        flexDirection: "row",
-        marginHorizontal: 22,
-        marginTop: 16,
-        gap: 8,
-    },
-    tabButton: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: 11,
-        borderRadius: 5,
-        borderWidth: 2,
-    },
-    activeTabButton: {
-        backgroundColor: colors.accent,
-        borderColor: colors.accent,
-    },
-    inactiveTabButton: {
-        backgroundColor: colors.surface,
-        borderColor: colors.accent,
-    },
-    activeTabText: {
-        fontSize: 15,
-        fontWeight: "700",
-        color: colors.textLight,
-    },
-    inactiveTabText: {
-        fontSize: 15,
-        fontWeight: "700",
-        color: colors.accent,
+        marginHorizontal: 0,
+        marginTop: 0,
     },
     scrollContent: {
         paddingHorizontal: 22,

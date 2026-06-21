@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     },
     logoText: {
         fontSize: 38,
-        fontWeight: "900",
+        fontWeight: "800",
         color: colors.primary,
         letterSpacing: 2,
         textShadowColor: "rgba(0, 0, 0, 0.15)",
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     headlineText: {
         color: colors.textDark,
         fontSize: 28,
-        fontWeight: "800",
+        fontWeight: "600",
         textAlign: "center",
         marginBottom: 8,
     },

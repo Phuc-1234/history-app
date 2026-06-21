@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     },
     topicDividerText: {
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
         textAlign: "center",
         letterSpacing: 0.5,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     },
     nodeLabel: {
         fontSize: 14,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textPrimary,
         textAlign: "center",
         marginTop: 8,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     },
     testLabel: {
         fontSize: 13,
-        fontWeight: "800",
+        fontWeight: "500",
         color: colors.secondary,
         textAlign: "center",
         marginTop: 8,
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     finalExamBadgeContainer: { marginBottom: 12 },
     finalExamTitle: {
         fontSize: 22,
-        fontWeight: "800",
+        fontWeight: "700",
         color: colors.textPrimary,
         letterSpacing: 0.5,
     },
@@ -511,6 +511,6 @@ const styles = StyleSheet.create({
     goldBadgeText: {
         color: "#4A3B00",
         fontSize: 10,
-        fontWeight: "800",
+        fontWeight: "600",
     },
 });
