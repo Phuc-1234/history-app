@@ -7,10 +7,12 @@ import { Platform } from "react-native";
 
 interface AuthState {
     profile: UserProfileSummary | null;
+    isSessionExpired: boolean;
 }
 
 const initialState: AuthState = {
     profile: null,
+    isSessionExpired: false,
 };
 
 export const appLogout = createAsyncThunk(
@@ -67,14 +69,25 @@ export const authSlice = createSlice({
         },
         logout: (state) => {
             state.profile = null;
+            state.isSessionExpired = false;
+        },
+        setSessionExpired: (state, action: PayloadAction<boolean>) => {
+            state.isSessionExpired = action.payload;
         },
     },// Listen for the appLogout async lifecycle actions to clear state
     extraReducers: (builder) => {
         builder.addCase(appLogout.fulfilled, (state) => {
             state.profile = null;
+            state.isSessionExpired = false;
+        });
+        builder.addCase("persist/REHYDRATE", (state, action: any) => {
+            if (action.payload && action.payload.auth) {
+                state.profile = action.payload.auth.profile;
+            }
+            state.isSessionExpired = false;
         });
     }
 });
 
-export const { setProfile, logout } = authSlice.actions; 
+export const { setProfile, logout, setSessionExpired } = authSlice.actions; 
 export default authSlice.reducer;
