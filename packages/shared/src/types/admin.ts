@@ -149,13 +149,19 @@ export interface CreateQuestionBody {
     type: "CHOOSE" | "FILL" | "MATCH";
     difficulty: number;
     promptText: string;
-    document?: string;
-    gradeId?: number;
-    topicId?: number;
-    lessonId?: number;
-    sectionId?: number;
-    nodeId?: number;
-    answers: {
+    document?: string | null;
+    explanation?: string | null;
+    isActive?: boolean;
+    scopeId?: number | null;
+    scopeType?: "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | "NATIONAL" | null;
+    answerDataJson: any;
+    // Backup
+    gradeId?: number | null;
+    topicId?: number | null;
+    lessonId?: number | null;
+    sectionId?: number | null;
+    nodeId?: number | null;
+    answers?: {
         content: string;
         isCorrect?: boolean | null;
         leftText?: string | null;
@@ -168,12 +174,18 @@ export interface UpdateQuestionBody {
     type?: "CHOOSE" | "FILL" | "MATCH";
     difficulty?: number;
     promptText?: string;
-    document?: string;
-    gradeId?: number;
-    topicId?: number;
-    lessonId?: number;
-    sectionId?: number;
-    nodeId?: number;
+    document?: string | null;
+    explanation?: string | null;
+    isActive?: boolean;
+    scopeId?: number | null;
+    scopeType?: "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | "NATIONAL" | null;
+    answerDataJson?: any;
+    // Backup
+    gradeId?: number | null;
+    topicId?: number | null;
+    lessonId?: number | null;
+    sectionId?: number | null;
+    nodeId?: number | null;
     answers?: {
         content: string;
         isCorrect?: boolean | null;
@@ -198,6 +210,12 @@ export interface AdminQuestionDto {
     difficulty: number;
     promptText: string;
     document: string | null;
+    explanation: string | null;
+    isActive: boolean;
+    scopeId: number | null;
+    scopeType: string | null;
+    answerDataJson: any;
+    // Backup
     gradeId: number | null;
     topicId: number | null;
     lessonId: number | null;
@@ -210,44 +228,57 @@ export interface AdminQuestionDto {
 
 export interface CreateTestBody {
     title: string;
-    summary?: string;
-    isManual: boolean;
+    summary?: string | null;
+    presetId?: string | null;
+    scopeId?: number | null;
+    scopeType?: "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | "NATIONAL" | null;
     isNationalTest: boolean;
-    questionNumber: number;
-    timeLimit?: number;
-    xpReward: number;
-    goldReward: number;
-    passThreshold: number;
-    gradeId?: number;
-    topicId?: number;
-    lessonId?: number;
-    sectionId?: number;
     questionIds?: number[];
+    // Backup
+    isManual?: boolean;
+    questionNumber?: number;
+    timeLimit?: number | null;
+    xpReward?: number;
+    goldReward?: number;
+    passThreshold?: number;
+    gradeId?: number | null;
+    topicId?: number | null;
+    lessonId?: number | null;
+    sectionId?: number | null;
 }
 
 export interface UpdateTestBody {
     title?: string;
-    summary?: string;
-    isManual?: boolean;
+    summary?: string | null;
+    presetId?: string | null;
+    scopeId?: number | null;
+    scopeType?: "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | "NATIONAL" | null;
     isNationalTest?: boolean;
+    questionIds?: number[];
+    // Backup
+    isManual?: boolean;
     questionNumber?: number;
-    timeLimit?: number;
+    timeLimit?: number | null;
     xpReward?: number;
     goldReward?: number;
     passThreshold?: number;
-    gradeId?: number;
-    topicId?: number;
-    lessonId?: number;
-    sectionId?: number;
-    questionIds?: number[];
+    gradeId?: number | null;
+    topicId?: number | null;
+    lessonId?: number | null;
+    sectionId?: number | null;
 }
 
 export interface AdminTestDto {
     id: string;
     title: string;
     summary: string | null;
-    isManual: boolean;
+    presetId: string | null;
+    scopeId: number | null;
+    scopeType: string | null;
     isNationalTest: boolean;
+    questionIds: number[];
+    // Backup
+    isManual: boolean;
     questionNumber: number;
     timeLimit: number | null;
     xpReward: number;
@@ -257,7 +288,6 @@ export interface AdminTestDto {
     topicId: number | null;
     lessonId: number | null;
     sectionId: number | null;
-    questionIds: number[];
 }
 
 // ─── Flashcard ───────────────────────────────────────────────────────────────
@@ -289,5 +319,50 @@ export interface UpdateFlashcardBody {
 
 export type AdminFlashcardResponse = FlashcardDto | { error: string };
 export type AdminFlashcardsResponse = { flashcards: FlashcardDto[] } | { error: string };
+
+// ─── Test Preset ─────────────────────────────────────────────────────────────
+
+export interface CreateTestPresetBody {
+    name: string;
+    purposeType: "EXAM" | "PRACTICE";
+    questionCount?: number | null;
+    passThreshold?: number;
+    timeLimit?: number | null;
+    difficultyRatioJson?: any;
+}
+
+export interface UpdateTestPresetBody {
+    name?: string;
+    purposeType?: "EXAM" | "PRACTICE";
+    questionCount?: number | null;
+    passThreshold?: number;
+    timeLimit?: number | null;
+    difficultyRatioJson?: any;
+}
+
+export interface TestPresetDto {
+    id: string;
+    name: string;
+    purposeType: "EXAM" | "PRACTICE";
+    questionCount: number | null;
+    passThreshold: number;
+    timeLimit: number | null;
+    difficultyRatioJson: any;
+}
+
+// ─── Scope Test Preset Default ────────────────────────────────────────────────
+
+export interface ScopeTestPresetDefaultDto {
+    scopeType: "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | "NATIONAL";
+    purposeType: "EXAM" | "PRACTICE";
+    defaultTestPresetId: string;
+}
+
+export interface SetScopeTestPresetDefaultBody {
+    scopeType: "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | "NATIONAL";
+    purposeType: "EXAM" | "PRACTICE";
+    defaultTestPresetId: string;
+}
+
 
 
