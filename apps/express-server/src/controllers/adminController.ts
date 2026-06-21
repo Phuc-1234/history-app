@@ -429,9 +429,20 @@ export const listQuestions = async (req: Request, res: Response) => {
         const lessonId = req.query.lessonId ? Number(req.query.lessonId) : undefined;
         const sectionId = req.query.sectionId ? Number(req.query.sectionId) : undefined;
         const nodeId = req.query.nodeId ? Number(req.query.nodeId) : undefined;
+        const scopeId = req.query.scopeId ? Number(req.query.scopeId) : undefined;
+        const scopeType = req.query.scopeType as string | undefined;
         const type = req.query.type as string | undefined;
 
-        const questions = await adminService.listQuestions(gradeId, topicId, lessonId, sectionId, nodeId, type);
+        const questions = await adminService.listQuestions(
+            gradeId,
+            topicId,
+            lessonId,
+            sectionId,
+            nodeId,
+            type,
+            scopeId,
+            scopeType
+        );
         return res.status(200).json({ questions });
     } catch (err) {
         console.error("List questions error:", err);
@@ -441,9 +452,9 @@ export const listQuestions = async (req: Request, res: Response) => {
 
 export const createQuestion = async (req: Request<{}, any, CreateQuestionBody>, res: Response) => {
     try {
-        const { type, difficulty, promptText, answers } = req.body;
-        if (!type || difficulty === undefined || !promptText || !answers || !Array.isArray(answers)) {
-            return res.status(400).json({ error: "type, difficulty, promptText, and answers array are required." });
+        const { type, difficulty, promptText, answerDataJson } = req.body;
+        if (!type || difficulty === undefined || !promptText || !answerDataJson) {
+            return res.status(400).json({ error: "type, difficulty, promptText, and answerDataJson are required." });
         }
         const question = await adminService.createQuestion(req.body);
         return res.status(201).json(question);
@@ -495,9 +506,9 @@ export const listTests = async (req: Request, res: Response) => {
 
 export const createTest = async (req: Request<{}, any, CreateTestBody>, res: Response) => {
     try {
-        const { title, isManual, isNationalTest, questionNumber, xpReward, goldReward, passThreshold } = req.body;
-        if (!title || isManual === undefined || isNationalTest === undefined || questionNumber === undefined || xpReward === undefined || goldReward === undefined || passThreshold === undefined) {
-            return res.status(400).json({ error: "Missing required fields for Test." });
+        const { title } = req.body;
+        if (!title) {
+            return res.status(400).json({ error: "title is required." });
         }
         const test = await adminService.createTest(req.body);
         return res.status(201).json(test);
@@ -769,6 +780,97 @@ export const generateAIContent = async (req: Request<{}, any, { type: "mindmap" 
     } catch (err: any) {
         console.error("AI Generation error:", err);
         return res.status(500).json({ error: err.message || "Failed to generate content using AI." });
+    }
+};
+
+// ─────────────────────────────── TEST PRESET ───────────────────────────────────
+
+export const listTestPresets = async (req: Request, res: Response) => {
+    try {
+        const presets = await adminService.listTestPresets();
+        return res.status(200).json({ presets });
+    } catch (err) {
+        console.error("List test presets error:", err);
+        return res.status(500).json({ error: "Failed to list test presets." });
+    }
+};
+
+export const createTestPreset = async (req: Request, res: Response) => {
+    try {
+        const { name, purposeType } = req.body;
+        if (!name || !purposeType) {
+            return res.status(400).json({ error: "name and purposeType are required." });
+        }
+        const preset = await adminService.createTestPreset(req.body);
+        return res.status(201).json(preset);
+    } catch (err) {
+        console.error("Create test preset error:", err);
+        return res.status(500).json({ error: "Failed to create test preset." });
+    }
+};
+
+export const updateTestPreset = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const preset = await adminService.updateTestPreset(id, req.body);
+        if (!preset) return res.status(404).json({ error: "Test preset not found." });
+        return res.status(200).json(preset);
+    } catch (err) {
+        console.error("Update test preset error:", err);
+        return res.status(500).json({ error: "Failed to update test preset." });
+    }
+};
+
+export const deleteTestPreset = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const deleted = await adminService.deleteTestPreset(id);
+        if (!deleted) return res.status(404).json({ error: "Test preset not found." });
+        return res.status(200).json({ message: "Test preset deleted successfully." });
+    } catch (err) {
+        console.error("Delete test preset error:", err);
+        return res.status(500).json({ error: "Failed to delete test preset." });
+    }
+};
+
+// ─────────────────────────────── SCOPE TEST PRESET DEFAULT ──────────────────────
+
+export const listScopeTestPresetDefaults = async (req: Request, res: Response) => {
+    try {
+        const defaults = await adminService.listScopeTestPresetDefaults();
+        return res.status(200).json({ defaults });
+    } catch (err) {
+        console.error("List scope test preset defaults error:", err);
+        return res.status(500).json({ error: "Failed to list defaults." });
+    }
+};
+
+export const setScopeTestPresetDefault = async (req: Request, res: Response) => {
+    try {
+        const { scopeType, purposeType, defaultTestPresetId } = req.body;
+        if (!scopeType || !purposeType || !defaultTestPresetId) {
+            return res.status(400).json({ error: "scopeType, purposeType, and defaultTestPresetId are required." });
+        }
+        const defaultPreset = await adminService.setScopeTestPresetDefault(req.body);
+        return res.status(200).json(defaultPreset);
+    } catch (err) {
+        console.error("Set scope test preset default error:", err);
+        return res.status(500).json({ error: "Failed to set default." });
+    }
+};
+
+export const deleteScopeTestPresetDefault = async (req: Request, res: Response) => {
+    try {
+        const { scopeType, purposeType } = req.params;
+        if (!scopeType || !purposeType) {
+            return res.status(400).json({ error: "scopeType and purposeType are required params." });
+        }
+        const deleted = await adminService.deleteScopeTestPresetDefault(scopeType, purposeType);
+        if (!deleted) return res.status(404).json({ error: "Mapping not found." });
+        return res.status(200).json({ message: "Mapping deleted successfully." });
+    } catch (err) {
+        console.error("Delete scope test preset default error:", err);
+        return res.status(500).json({ error: "Failed to delete default." });
     }
 };
 

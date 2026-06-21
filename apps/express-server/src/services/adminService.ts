@@ -436,7 +436,9 @@ export class AdminService {
         lessonId?: number,
         sectionId?: number,
         nodeId?: number,
-        type?: string
+        type?: string,
+        scopeId?: number,
+        scopeType?: string
     ): Promise<AdminQuestionDto[]> {
         const questions = await prisma.question.findMany({
             where: {
@@ -447,6 +449,8 @@ export class AdminService {
                     sectionId ? { sectionId } : {},
                     nodeId ? { nodeId } : {},
                     type ? { type: type as any } : {},
+                    scopeId ? { scopeId } : {},
+                    scopeType ? { scopeType: scopeType as any } : {},
                 ],
             },
             include: {
@@ -462,6 +466,11 @@ export class AdminService {
             difficulty: q.difficulty,
             promptText: q.promptText,
             document: q.document ?? null,
+            explanation: q.explanation ?? null,
+            isActive: q.isActive,
+            scopeId: q.scopeId,
+            scopeType: q.scopeType,
+            answerDataJson: q.answerDataJson ?? null,
             gradeId: q.gradeId,
             topicId: q.topicId,
             lessonId: q.lessonId,
@@ -485,12 +494,17 @@ export class AdminService {
                 difficulty: data.difficulty,
                 promptText: data.promptText,
                 document: data.document ?? null,
+                explanation: data.explanation ?? null,
+                isActive: data.isActive ?? true,
+                scopeId: data.scopeId ?? null,
+                scopeType: data.scopeType ? (data.scopeType as any) : null,
+                answerDataJson: data.answerDataJson ?? null,
                 gradeId: data.gradeId ?? null,
                 topicId: data.topicId ?? null,
                 lessonId: data.lessonId ?? null,
                 sectionId: data.sectionId ?? null,
                 nodeId: data.nodeId ?? null,
-                answers: {
+                answers: data.answers ? {
                     create: data.answers.map(a => ({
                         content: a.content,
                         isCorrect: a.isCorrect ?? null,
@@ -498,7 +512,7 @@ export class AdminService {
                         rightText: a.rightText ?? null,
                         correctAnswer: a.correctAnswer ?? null,
                     })),
-                },
+                } : undefined,
             },
             include: {
                 answers: true,
@@ -511,6 +525,11 @@ export class AdminService {
             difficulty: question.difficulty,
             promptText: question.promptText,
             document: question.document ?? null,
+            explanation: question.explanation ?? null,
+            isActive: question.isActive,
+            scopeId: question.scopeId,
+            scopeType: question.scopeType,
+            answerDataJson: question.answerDataJson ?? null,
             gradeId: question.gradeId,
             topicId: question.topicId,
             lessonId: question.lessonId,
@@ -532,7 +551,7 @@ export class AdminService {
         if (!existing) return null;
 
         const question = await prisma.$transaction(async (tx) => {
-            if (data.answers !== undefined) {
+            if (data.answers !== undefined && data.answers !== null) {
                 await tx.questionAnswer.deleteMany({ where: { questionId: id } });
             }
 
@@ -543,12 +562,17 @@ export class AdminService {
                     ...(data.difficulty !== undefined && { difficulty: data.difficulty }),
                     ...(data.promptText !== undefined && { promptText: data.promptText }),
                     ...(data.document !== undefined && { document: data.document }),
+                    ...(data.explanation !== undefined && { explanation: data.explanation }),
+                    ...(data.isActive !== undefined && { isActive: data.isActive }),
+                    ...(data.scopeId !== undefined && { scopeId: data.scopeId }),
+                    ...(data.scopeType !== undefined && { scopeType: data.scopeType ? (data.scopeType as any) : null }),
+                    ...(data.answerDataJson !== undefined && { answerDataJson: data.answerDataJson }),
                     ...(data.gradeId !== undefined && { gradeId: data.gradeId }),
                     ...(data.topicId !== undefined && { topicId: data.topicId }),
                     ...(data.lessonId !== undefined && { lessonId: data.lessonId }),
                     ...(data.sectionId !== undefined && { sectionId: data.sectionId }),
                     ...(data.nodeId !== undefined && { nodeId: data.nodeId }),
-                    ...(data.answers !== undefined && {
+                    ...(data.answers !== undefined && data.answers !== null && {
                         answers: {
                             create: data.answers.map(a => ({
                                 content: a.content,
@@ -572,6 +596,11 @@ export class AdminService {
             difficulty: question.difficulty,
             promptText: question.promptText,
             document: question.document ?? null,
+            explanation: question.explanation ?? null,
+            isActive: question.isActive,
+            scopeId: question.scopeId,
+            scopeType: question.scopeType,
+            answerDataJson: question.answerDataJson ?? null,
             gradeId: question.gradeId,
             topicId: question.topicId,
             lessonId: question.lessonId,
@@ -613,6 +642,9 @@ export class AdminService {
             id: t.id,
             title: t.title,
             summary: t.summary ?? null,
+            presetId: t.presetId,
+            scopeId: t.scopeId,
+            scopeType: t.scopeType,
             isManual: t.isManual,
             isNationalTest: t.isNationalTest,
             questionNumber: t.questionNumber,
@@ -634,13 +666,16 @@ export class AdminService {
                 data: {
                     title: data.title,
                     summary: data.summary ?? null,
-                    isManual: data.isManual,
+                    presetId: data.presetId ?? null,
+                    scopeId: data.scopeId ?? null,
+                    scopeType: data.scopeType ? (data.scopeType as any) : null,
+                    isManual: data.isManual ?? false,
                     isNationalTest: data.isNationalTest,
-                    questionNumber: data.questionNumber,
+                    questionNumber: data.questionNumber ?? 10,
                     timeLimit: data.timeLimit ?? null,
-                    xpReward: data.xpReward,
-                    goldReward: data.goldReward,
-                    passThreshold: data.passThreshold,
+                    xpReward: data.xpReward ?? 0,
+                    goldReward: data.goldReward ?? 0,
+                    passThreshold: data.passThreshold ?? 70,
                     gradeId: data.gradeId ?? null,
                     topicId: data.topicId ?? null,
                     lessonId: data.lessonId ?? null,
@@ -670,6 +705,9 @@ export class AdminService {
             id: test.id,
             title: test.title,
             summary: test.summary ?? null,
+            presetId: test.presetId,
+            scopeId: test.scopeId,
+            scopeType: test.scopeType,
             isManual: test.isManual,
             isNationalTest: test.isNationalTest,
             questionNumber: test.questionNumber,
@@ -695,6 +733,9 @@ export class AdminService {
                 data: {
                     ...(data.title !== undefined && { title: data.title }),
                     ...(data.summary !== undefined && { summary: data.summary }),
+                    ...(data.presetId !== undefined && { presetId: data.presetId }),
+                    ...(data.scopeId !== undefined && { scopeId: data.scopeId }),
+                    ...(data.scopeType !== undefined && { scopeType: data.scopeType ? (data.scopeType as any) : null }),
                     ...(data.isManual !== undefined && { isManual: data.isManual }),
                     ...(data.isNationalTest !== undefined && { isNationalTest: data.isNationalTest }),
                     ...(data.questionNumber !== undefined && { questionNumber: data.questionNumber }),
@@ -735,6 +776,9 @@ export class AdminService {
             id: updated.id,
             title: updated.title,
             summary: updated.summary ?? null,
+            presetId: updated.presetId,
+            scopeId: updated.scopeId,
+            scopeType: updated.scopeType,
             isManual: updated.isManual,
             isNationalTest: updated.isNationalTest,
             questionNumber: updated.questionNumber,
@@ -911,6 +955,117 @@ export class AdminService {
                 });
             }
         });
+    }
+
+    // ─── TEST PRESET ─────────────────────────────────────────────────────────
+
+    async listTestPresets(): Promise<any[]> {
+        const presets = await prisma.testPreset.findMany({
+            orderBy: { name: "asc" }
+        });
+        return presets.map(p => ({
+            id: p.id,
+            name: p.name,
+            purposeType: p.purposeType,
+            questionCount: p.questionCount,
+            passThreshold: p.passThreshold,
+            timeLimit: p.timeLimit,
+            difficultyRatioJson: p.difficultyRatioJson ?? null,
+        }));
+    }
+
+    async createTestPreset(data: any): Promise<any> {
+        const preset = await prisma.testPreset.create({
+            data: {
+                name: data.name,
+                purposeType: data.purposeType as any,
+                questionCount: data.questionCount ?? null,
+                passThreshold: data.passThreshold ?? 80,
+                timeLimit: data.timeLimit ?? null,
+                difficultyRatioJson: data.difficultyRatioJson ?? null,
+            }
+        });
+        return preset;
+    }
+
+    async updateTestPreset(id: string, data: any): Promise<any | null> {
+        const existing = await prisma.testPreset.findUnique({ where: { id } });
+        if (!existing) return null;
+
+        const updated = await prisma.testPreset.update({
+            where: { id },
+            data: {
+                ...(data.name !== undefined && { name: data.name }),
+                ...(data.purposeType !== undefined && { purposeType: data.purposeType as any }),
+                ...(data.questionCount !== undefined && { questionCount: data.questionCount }),
+                ...(data.passThreshold !== undefined && { passThreshold: data.passThreshold }),
+                ...(data.timeLimit !== undefined && { timeLimit: data.timeLimit }),
+                ...(data.difficultyRatioJson !== undefined && { difficultyRatioJson: data.difficultyRatioJson }),
+            }
+        });
+        return updated;
+    }
+
+    async deleteTestPreset(id: string): Promise<boolean> {
+        const existing = await prisma.testPreset.findUnique({ where: { id } });
+        if (!existing) return false;
+        await prisma.testPreset.delete({ where: { id } });
+        return true;
+    }
+
+    // ─── SCOPE TEST PRESET DEFAULT ───────────────────────────────────────────
+
+    async listScopeTestPresetDefaults(): Promise<any[]> {
+        const defaults = await prisma.scopeTestPresetDefault.findMany({
+            include: { defaultTestPreset: true }
+        });
+        return defaults.map(d => ({
+            scopeType: d.scopeType,
+            purposeType: d.purposeType,
+            defaultTestPresetId: d.defaultTestPresetId,
+            presetName: d.defaultTestPreset.name
+        }));
+    }
+
+    async setScopeTestPresetDefault(data: any): Promise<any> {
+        const upserted = await prisma.scopeTestPresetDefault.upsert({
+            where: {
+                scopeType_purposeType: {
+                    scopeType: data.scopeType as any,
+                    purposeType: data.purposeType as any
+                }
+            },
+            update: {
+                defaultTestPresetId: data.defaultTestPresetId
+            },
+            create: {
+                scopeType: data.scopeType as any,
+                purposeType: data.purposeType as any,
+                defaultTestPresetId: data.defaultTestPresetId
+            },
+            include: { defaultTestPreset: true }
+        });
+        return {
+            scopeType: upserted.scopeType,
+            purposeType: upserted.purposeType,
+            defaultTestPresetId: upserted.defaultTestPresetId,
+            presetName: upserted.defaultTestPreset.name
+        };
+    }
+
+    async deleteScopeTestPresetDefault(scopeType: string, purposeType: string): Promise<boolean> {
+        const key = {
+            scopeType: scopeType as any,
+            purposeType: purposeType as any
+        };
+        const existing = await prisma.scopeTestPresetDefault.findUnique({
+            where: { scopeType_purposeType: key }
+        });
+        if (!existing) return false;
+        await prisma.scopeTestPresetDefault.delete({
+            where: { scopeType_purposeType: key }
+        });
+        return true;
     }
 }
 

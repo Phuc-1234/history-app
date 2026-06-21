@@ -40,6 +40,13 @@ import {
     bulkSaveMindMap,
     getAdminMindMap,
     generateAIContent,
+    listTestPresets,
+    createTestPreset,
+    updateTestPreset,
+    deleteTestPreset,
+    listScopeTestPresetDefaults,
+    setScopeTestPresetDefault,
+    deleteScopeTestPresetDefault,
 } from "../controllers/adminController";
 
 const router = Router();
@@ -172,5 +179,23 @@ router.post("/lessons/:lessonId/mindmap/bulk", bulkSaveMindMap);
 // ─── AI Generate ─────────────────────────────────────────────────────────────
 // POST   /api/admin/ai/generate
 router.post("/ai/generate", generateAIContent);
+
+// ─── Test Preset ───────────────────────────────────────────────────────────────
+// GET    /api/admin/test-presets
+router.get("/test-presets", listTestPresets);
+// POST   /api/admin/test-presets
+router.post("/test-presets", createTestPreset);
+// PATCH  /api/admin/test-presets/:id
+router.patch("/test-presets/:id", updateTestPreset);
+// DELETE /api/admin/test-presets/:id
+router.delete("/test-presets/:id", deleteTestPreset);
+
+// ─── Scope Test Preset Default ───────────────────────────────────────────────
+// GET    /api/admin/scope-test-preset-defaults
+router.get("/scope-test-preset-defaults", listScopeTestPresetDefaults);
+// POST   /api/admin/scope-test-preset-defaults
+router.post("/scope-test-preset-defaults", setScopeTestPresetDefault);
+// DELETE /api/admin/scope-test-preset-defaults/:scopeType/:purposeType
+router.delete("/scope-test-preset-defaults/:scopeType/:purposeType", deleteScopeTestPresetDefault);
 
 export default router;
