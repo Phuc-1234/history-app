@@ -110,3 +110,14 @@ export const getTestInfo = async (req: Request, res: Response) => {
         return res.status(500).json({ error: "Failed to get test info" });
     }
 };
+
+export const getNationalTests = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const resp = await testServiceV2.getNationalTests();
+        return res.status(200).json(resp);
+    } catch (err: any) {
+        console.error("getNationalTests error:", err?.message ?? err);
+        return res.status(500).json({ error: "Failed to get national tests" });
+    }
+};

@@ -139,6 +139,9 @@ export interface TestInfoV2Response {
     scopeType: ScopeType | null;
     scopeId: number | null;
     purposeType: PurposeType;
+    goldReward: number;
+    xpReward: number;
+    attemptNumber: number;
 }
 
 // ─── Local evaluation result ─────────────────────────────────────────────

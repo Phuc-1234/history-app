@@ -125,13 +125,7 @@ const baseQueryWithReauth: BaseQueryFn<
     }
 
     try {
-      /**
-       * Base URL nhóm bạn:
-       * https://history-app-feature-branch.onrender.com
-       *
-       * API refresh token:
-       * https://history-app-feature-branch.onrender.com/api/auth/refresh-token
-       */
+      
       const refreshResult = await fetch(
         `${API_BASE_URL}/api/auth/refresh-token`,
         {

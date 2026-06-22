@@ -51,6 +51,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: ["User"],
         }),
 
         // POST /api/tests-v2/:logId/abandon
@@ -73,6 +74,10 @@ export const testApiV2 = apiSlice.injectEndpoints({
         getAttemptDetail: builder.query<TestAttemptDetailV2Response, { logId: string }>({
             query: ({ logId }) => `/api/tests-v2/history/${logId}`,
         }),
+        // GET /api/tests-v2/national
+        getNationalTests: builder.query<{ id: string; title: string; summary: string | null }[], void>({
+            query: () => "/api/tests-v2/national",
+        }),
     }),
     overrideExisting: __DEV__,
 });
@@ -90,4 +95,6 @@ export const {
     useLazyGetTestHistoryQuery,
     useGetAttemptDetailQuery,
     useLazyGetAttemptDetailQuery,
+    useGetNationalTestsQuery,
+    useLazyGetNationalTestsQuery,
 } = testApiV2;

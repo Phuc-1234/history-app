@@ -8,6 +8,7 @@ import {
     getHistory,
     getAttemptDetail,
     getTestInfo,
+    getNationalTests,
 } from "../controllers/testControllerV2";
 import { requireStudent } from "../middlewares/authMiddleware";
 
@@ -15,6 +16,9 @@ const router = Router();
 
 // GET /api/tests-v2/resumable
 router.get("/resumable", requireStudent, checkResumable);
+
+// GET /api/tests-v2/national
+router.get("/national", requireStudent, getNationalTests);
 
 // POST /api/tests-v2/info
 router.post("/info", requireStudent, getTestInfo);

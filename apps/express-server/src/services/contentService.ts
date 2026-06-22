@@ -552,9 +552,10 @@ export class ContentService {
             sectionNodeMap.get(n.sectionId)!.push(n.id);
         }
 
-        // Fetch completed node IDs if logged in
+        // Fetch completed node IDs and passed tests if logged in
         const completedNodeIds = new Set<number>();
         const passedTestIds = new Set<string>();
+        const passedScopeKeys = new Set<string>(); // "SECTION:5", "LESSON:3", etc.
         if (userId) {
             const [progresses, passedTests] = await Promise.all([
                 prisma.userNodeProgress.findMany({
@@ -570,13 +571,16 @@ export class ContentService {
                         userId,
                         isPassed: true,
                     },
-                    select: { testId: true },
+                    select: { testId: true, scopeType: true, scopeId: true },
                 }),
             ]);
 
             for (const p of progresses) completedNodeIds.add(p.nodeId);
             for (const pt of passedTests) {
                 if (pt.testId) passedTestIds.add(pt.testId);
+                if (pt.scopeType && pt.scopeId != null) {
+                    passedScopeKeys.add(`${pt.scopeType}:${pt.scopeId}`);
+                }
             }
         }
 
@@ -601,6 +605,11 @@ export class ContentService {
                     ).length;
                 }
 
+                // Lesson test as progress unit
+                const lessonTestPassed = passedScopeKeys.has(`LESSON:${lesson.id}`);
+                lessonTotal += 1; // lesson test counts as 1 unit
+                if (lessonTestPassed) lessonCompleted += 1;
+
                 topicTotal += lessonTotal;
                 topicCompleted += lessonCompleted;
 
@@ -611,8 +620,16 @@ export class ContentService {
                     position: lesson.position,
                     topicId: lesson.topicId,
                     progress: { totalNodes: lessonTotal, completedNodes: userId ? lessonCompleted : 0 },
+                    testPassed: userId ? lessonTestPassed : null,
                 };
             });
+
+            // Topic test as progress unit
+            const topicTestPassed = firstTopicTest
+                ? passedTestIds.has(firstTopicTest.id)
+                : passedScopeKeys.has(`TOPIC:${topic.id}`);
+            topicTotal += 1;
+            if (topicTestPassed) topicCompleted += 1;
 
             gradeTotal += topicTotal;
             gradeCompleted += topicCompleted;
@@ -629,12 +646,19 @@ export class ContentService {
                           title: firstTopicTest.title,
                           questionNumber: firstTopicTest.questionNumber,
                           timeLimit: firstTopicTest.timeLimit,
-                          isPassed: passedTestIds.has(firstTopicTest.id),
+                          isPassed: topicTestPassed,
                       }
                     : null,
                 progress: { totalNodes: topicTotal, completedNodes: userId ? topicCompleted : 0 },
             };
         });
+
+        // Grade test as progress unit
+        const gradeTestPassed = gradeTest
+            ? passedTestIds.has(gradeTest.id)
+            : passedScopeKeys.has(`GRADE:${gradeId}`);
+        gradeTotal += 1;
+        if (gradeTestPassed) gradeCompleted += 1;
 
         return {
             topics: formattedTopics,
@@ -644,7 +668,7 @@ export class ContentService {
                       title: gradeTest.title,
                       questionNumber: gradeTest.questionNumber,
                       timeLimit: gradeTest.timeLimit,
-                      isPassed: passedTestIds.has(gradeTest.id),
+                      isPassed: gradeTestPassed,
                   }
                 : null,
             progress: { totalNodes: gradeTotal, completedNodes: userId ? gradeCompleted : 0 },

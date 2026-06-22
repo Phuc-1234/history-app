@@ -92,8 +92,8 @@ export class ProgressEngine {
                 },
             });
 
-            // Both conditions met → complete
-            if (progress.studiedAt && !progress.nodeCompletedAt) {
+            // Passing node test directly completes the node (no studiedAt gate)
+            if (!progress.nodeCompletedAt) {
                 await client.userNodeProgress.update({
                     where: { userId_nodeId: { userId, nodeId } },
                     data: { nodeCompletedAt: new Date() },

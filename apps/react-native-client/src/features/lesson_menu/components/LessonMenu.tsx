@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     StyleSheet,
     Text,
@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
+    TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
@@ -173,6 +174,55 @@ function ProgressRing({
     );
 }
 
+function matchesSearch(text: string, query: string, isTest: boolean = false): boolean {
+    const normText = text.toLowerCase().trim();
+    const normQuery = query.toLowerCase().trim();
+    
+    if (normText.includes(normQuery)) return true;
+    
+    const testKeywords = ["quiz", "test", "kiểm tra", "đề", "exam"];
+    
+    if (isTest) {
+        const isGeneric = testKeywords.some(k => normQuery === k);
+        if (isGeneric) return true;
+    }
+    
+    const queryHasTestKey = testKeywords.some(k => normQuery.includes(k) && (k !== "đề" || !normQuery.includes("chủ đề")));
+    
+    if (isTest && queryHasTestKey) {
+        let cleanQuery = normQuery;
+        let cleanText = normText;
+        testKeywords.forEach(k => {
+            cleanQuery = cleanQuery.replace(k, "").trim();
+            cleanText = cleanText.replace(k, "").trim();
+        });
+        
+        cleanQuery = cleanQuery.replace("chủ đề", "").trim();
+        cleanText = cleanText.replace("chủ đề", "").trim();
+        
+        if (cleanQuery && (cleanText.includes(cleanQuery) || cleanQuery.includes(cleanText))) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+function matchesTopicOrLesson(name: string, position: number, prefix: string, query: string): boolean {
+    const normQuery = query.toLowerCase().trim();
+    const normName = name.toLowerCase().trim();
+    const prefixWithPos = `${prefix} ${position}`.toLowerCase();
+    const fullName = `${prefixWithPos}: ${normName}`;
+    
+    if (fullName.includes(normQuery) || normName.includes(normQuery)) return true;
+    
+    if (/^\d+$/.test(normQuery) && parseInt(normQuery, 10) === position) {
+        return true;
+    }
+    
+    return false;
+}
+
 export function LessonMenu({
     selectedGrade,
     onLessonPress,
@@ -188,6 +238,38 @@ export function LessonMenu({
         refetch,
         isFetching,
     } = useLessonMenu(selectedGrade);
+
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredTopics = React.useMemo(() => {
+        if (!searchQuery.trim()) return topics;
+        const query = searchQuery.trim();
+        return topics
+            .map((topic) => {
+                const topicMatches = matchesTopicOrLesson(topic.name, topic.position, "chủ đề", query);
+
+                const matchedLessons = topic.lessons.filter((lesson) =>
+                    matchesTopicOrLesson(lesson.name, lesson.position, "bài", query)
+                );
+
+                const firstTestMatches = !!topic.firstTest && matchesSearch(topic.firstTest.title, query, true);
+
+                if (topicMatches || matchedLessons.length > 0 || firstTestMatches) {
+                    return {
+                        ...topic,
+                        lessons: matchedLessons.length > 0 ? matchedLessons : (topicMatches ? topic.lessons : []),
+                    };
+                }
+                return null;
+            })
+            .filter(Boolean) as typeof topics;
+    }, [topics, searchQuery]);
+
+    const shouldShowFinalTest = React.useMemo(() => {
+        if (!finalTest) return false;
+        if (!searchQuery.trim()) return true;
+        return matchesSearch(finalTest.title, searchQuery, true);
+    }, [finalTest, searchQuery]);
 
     const branchConfig = {
         hierarchy: "Khóa học",
@@ -206,21 +288,32 @@ export function LessonMenu({
                         />
                     </View>
                 ) : (
-                    <ScrollView
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={isFetching && !loading}
-                                onRefresh={refetch}
-                                colors={[colors.primary]}
-                                tintColor={colors.primary}
+                    <>
+                        <View style={styles.searchContainer}>
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Tìm kiếm bài học..."
+                                placeholderTextColor={colors.textPlaceholder}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                underlineColorAndroid="transparent"
                             />
-                        }
-                    >
-                        {topics.map((topic) => {
-                            return (
-                                <View key={topic.id} style={styles.topicWrapper}>
+                        </View>
+                        <ScrollView
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={isFetching && !loading}
+                                    onRefresh={refetch}
+                                    colors={[colors.primary]}
+                                    tintColor={colors.primary}
+                                />
+                            }
+                        >
+                            {filteredTopics.map((topic) => {
+                                return (
+                                    <View key={topic.id} style={styles.topicWrapper}>
                                     {/* Faint Divider Heading */}
                                     <View style={styles.topicDivider}>
                                         <View style={styles.dividerLine} />
@@ -342,7 +435,7 @@ export function LessonMenu({
                         })}
 
                         {/* --- Grade Level Finale Test Section --- */}
-                        {finalTest && (() => {
+                        {shouldShowFinalTest && finalTest && (() => {
                             const finalTestAny = finalTest as any;
                             const finalPassed = !!finalTestAny?.isPassed;
                             const finalCompleted = finalPassed ? 1 : 0;
@@ -379,6 +472,7 @@ export function LessonMenu({
                             );
                         })()}
                     </ScrollView>
+                    </>
                 )}
             </View>
         </ScreenWrapper>
@@ -512,5 +606,19 @@ const styles = StyleSheet.create({
         color: "#4A3B00",
         fontSize: 10,
         fontWeight: "600",
+    },
+    searchContainer: {
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 4,
+    },
+    searchInput: {
+        height: 48,
+        backgroundColor: colors.inputBackground,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        fontSize: 14,
+        fontWeight: "300",
+        color: colors.textPrimary,
     },
 });

@@ -11,7 +11,7 @@ import {
     Modal,
     Dimensions,
 } from "react-native";
-import { Grid } from "lucide-react-native";
+import { Grid, Zap, Coins, Flame, Trophy } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Animated, {
     FadeIn,
@@ -253,6 +253,9 @@ export default function TestContainerV2({
                 onStart={actions.start}
                 onBack={handleBack}
                 purposeType={params.purposeType}
+                xpReward={testInfo?.xpReward}
+                goldReward={testInfo?.goldReward}
+                attemptNumber={testInfo?.attemptNumber}
             />
         );
     }
@@ -321,11 +324,57 @@ export default function TestContainerV2({
                             {formatScore(userTestLog.scoreAwarded)}/
                             {formatScore(userTestLog.maxScore)} điểm
                         </Text>
-                        {consequences.map((c, i) => (
-                            <Text key={i} style={styles.consequenceText}>
-                                {c.message}
-                            </Text>
-                        ))}
+
+                        {/* Reward consequences */}
+                        {consequences.length > 0 && (
+                            <View style={styles.consequencesBlock}>
+                                {consequences.map((c, i) => {
+                                    if (c.eventType === "REWARD_EARNED") {
+                                        return (
+                                            <View key={i} style={styles.rewardRow}>
+                                                {(c.xpGained ?? 0) > 0 && (
+                                                    <View style={[styles.rewardChip, styles.rewardChipXp]}>
+                                                        <Zap size={13} color="#FFF" />
+                                                        <Text style={styles.rewardChipText}>+{c.xpGained} XP</Text>
+                                                    </View>
+                                                )}
+                                                {(c.goldGained ?? 0) > 0 && (
+                                                    <View style={[styles.rewardChip, styles.rewardChipGold]}>
+                                                        <Coins size={13} color="#4A3B00" />
+                                                        <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{c.goldGained} vàng</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        );
+                                    }
+                                    if (c.eventType === "STREAK_MILESTONE") {
+                                        return (
+                                            <View key={i} style={styles.milestoneRow}>
+                                                <Flame size={14} color={colors.warning} />
+                                                <Text style={styles.milestoneText}>{c.message}</Text>
+                                            </View>
+                                        );
+                                    }
+                                    if (c.eventType === "TIER_GAINED") {
+                                        return (
+                                            <View key={i} style={styles.milestoneRow}>
+                                                <Trophy size={14} color={colors.gold} />
+                                                <Text style={styles.milestoneText}>{c.message}</Text>
+                                            </View>
+                                        );
+                                    }
+                                    if (c.eventType === "STREAK_UPDATED") {
+                                        return (
+                                            <View key={i} style={styles.streakRow}>
+                                                <Flame size={13} color={colors.warning} />
+                                                <Text style={styles.streakText}>{c.message}</Text>
+                                            </View>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </View>
+                        )}
                     </Animated.View>
 
                     {/* Action buttons */}
@@ -1040,12 +1089,44 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         marginTop: 4,
     },
-    consequenceText: {
-        fontSize: 13,
-        color: colors.textSuccess,
-        fontWeight: "600",
-        marginTop: 6,
+    consequencesBlock: {
+        marginTop: 12,
+        gap: 8,
+        alignItems: "center",
     },
+    rewardRow: {
+        flexDirection: "row",
+        gap: 8,
+        justifyContent: "center",
+        flexWrap: "wrap",
+    },
+    rewardChip: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        borderRadius: 30,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    rewardChipXp: { backgroundColor: colors.primary },
+    rewardChipGold: { backgroundColor: colors.gold },
+    rewardChipText: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
+    milestoneRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: colors.warningContainer,
+        borderRadius: 30,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    milestoneText: { fontSize: 12, fontWeight: "700", color: colors.textWarning },
+    streakRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+    },
+    streakText: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
     resultActions: { gap: 10, marginBottom: 24 },
     redoBtn: {
         backgroundColor: colors.warning,
