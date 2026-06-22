@@ -62,6 +62,7 @@ export default function PasswordChangeScreen() {
                             value={state.currentPassword}
                             onChangeText={state.setCurrentPassword}
                             style={styles.inputField}
+                            containerStyle={styles.inputContainer}
                         />
                         {state.currentPasswordError ? (
                             <Text style={styles.errorText}>{state.currentPasswordError}</Text>
@@ -75,6 +76,7 @@ export default function PasswordChangeScreen() {
                             value={state.newPassword}
                             onChangeText={state.setNewPassword}
                             style={styles.inputField}
+                            containerStyle={styles.inputContainer}
                         />
                         {state.newPasswordError ? (
                             <Text style={styles.errorText}>{state.newPasswordError}</Text>
@@ -88,6 +90,7 @@ export default function PasswordChangeScreen() {
                             value={state.confirmPassword}
                             onChangeText={state.setConfirmPassword}
                             style={styles.inputField}
+                            containerStyle={styles.inputContainer}
                         />
                         {state.confirmPasswordError ? (
                             <Text style={styles.errorText}>{state.confirmPasswordError}</Text>
@@ -106,22 +109,19 @@ export default function PasswordChangeScreen() {
                     </View>
                 </ScrollView>
 
-                <View
+                <Button
+                    title={state.isLoading ? "Đang lưu..." : text.save}
+                    onPress={state.handleChangePassword}
                     style={[
-                        styles.buttonContainer,
+                        styles.saveButton,
                         {
-                            paddingBottom:
+                            bottom:
                                 Platform.OS === "android"
                                     ? insets.bottom + 20
                                     : insets.bottom + 16,
                         },
                     ]}
-                >
-                    <Button
-                        title={state.isLoading ? "Đang lưu..." : text.save}
-                        onPress={state.handleChangePassword}
-                    />
-                </View>
+                />
             </KeyboardAvoidingView>
         </View>
     );
@@ -130,21 +130,21 @@ export default function PasswordChangeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: "transparent",
     },
     flex: {
         flex: 1,
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 30,
+        paddingHorizontal: 16,
         paddingTop: 32,
-        paddingBottom: 24,
+        paddingBottom: 120,
     },
     card: {
         backgroundColor: colors.primaryContainer,
         borderRadius: 12,
-        paddingHorizontal: 24,
+        paddingHorizontal: 16,
         paddingTop: 26,
         paddingBottom: 24,
     },
@@ -160,15 +160,15 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 20,
         fontWeight: "700",
-        marginBottom: 10,
-        marginTop: 8,
+        marginBottom: 6,
+        marginTop: 6,
     },
     errorText: {
         color: colors.error,
         fontSize: 12,
         lineHeight: 17,
-        marginTop: -8,
-        marginBottom: 10,
+        marginTop: -4,
+        marginBottom: 6,
         fontWeight: "500",
     },
     feedbackText: {
@@ -183,12 +183,17 @@ const styles = StyleSheet.create({
     feedbackError: {
         color: colors.error,
     },
-    buttonContainer: {
-        paddingHorizontal: 30,
-        paddingTop: 12,
-        backgroundColor: colors.background,
+    saveButton: {
+        position: "absolute",
+        left: 16,
+        right: 16,
+        width: "auto",
+        marginVertical: 0,
     },
     inputField: {
         backgroundColor: colors.surface,
+    },
+    inputContainer: {
+        marginVertical: 4,
     },
 });

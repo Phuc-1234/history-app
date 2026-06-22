@@ -278,7 +278,7 @@ export default function ProfileEditScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: "transparent",
     },
 
     flex: {
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 12,
 
-        backgroundColor: colors.background,
+        backgroundColor: "transparent",
     },
     inputField: {
         backgroundColor: colors.surface,
