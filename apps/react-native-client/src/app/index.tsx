@@ -10,19 +10,15 @@ export default function Index() {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
-        // Kiểm tra xem máy đã lưu cờ "đã xem onboarding" chưa
         const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
         
         if (hasSeenOnboarding === 'true') {
-          // Nếu đã xem rồi -> Đá thẳng sang màn hình Welcome của auth
-           router.replace("/(1_auth)/1_1_login")
+          router.replace("/(tabs)/2_1_lessons");
         } else {
-          // Nếu là lần đầu tiên -> Đẩy vào màn hình Onboarding số 1
           router.replace('/(routing)/screen1');
         }
       } catch (error) {
         console.log('Lỗi kiểm tra Onboarding:', error);
-        // Nếu lỗi, mặc định cho xem onboarding cho an toàn
         router.replace('/(routing)/screen1');
       } finally {
         setIsLoading(false);
