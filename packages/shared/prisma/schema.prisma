@@ -240,13 +240,11 @@ model User {
   sentFriendRequests     FriendRequest[]    @relation("FriendRequestSender")
   friendshipsAsFriend    Friendship[]       @relation("FriendshipFriend")
   friendshipsAsUser      Friendship[]       @relation("FriendshipUser")
-  pendingRewards         PendingReward[]
+  goldPurchases          GoldPurchase[]
   userFlashcards         UserFlashcard[]
-  userItems              UserItem[]
   nodeProgresses         UserNodeProgress[]
   testLogs               UserTestLog[]
   tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
-  goldPurchases          GoldPurchase[]
 
   @@map("users")
 }
@@ -356,70 +354,6 @@ model UserAnswerLog {
   @@map("user_answer_logs")
 }
 
-model Item {
-  id               Int               @id @default(autoincrement())
-  cost             Int?              @default(0)
-  isConsumable     Boolean           @map("is_consumable")
-  isPurchaseable   Boolean           @map("is_purchaseable")
-  imgUrl           String?           @map("img_url")
-  description      String?
-  type             ItemType
-  value            Float?
-  testLimit        Int?              @map("test_limit")
-  timeLimit        Int?              @map("time_limit")
-  name             String
-  milestoneRewards MilestoneReward[]
-  pendingRewards   PendingReward[]
-  userItems        UserItem[]
-
-  @@map("items")
-}
-
-model UserItem {
-  userId     String    @map("user_id")
-  itemId     Int       @map("item_id")
-  quantity   Int       @default(1)
-  isActive   Boolean   @default(false) @map("is_active")
-  activateAt DateTime? @map("activate_at")
-  item       Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, itemId])
-  @@map("user_items")
-}
-
-model PendingReward {
-  id           Int              @id @default(autoincrement())
-  goldAmount   Int              @default(0) @map("gold_amount")
-  xpAmount     Int              @default(0) @map("xp_amount")
-  itemQuantity Int              @default(0) @map("item_quantity")
-  sourceType   RewardSourceType @map("source_type")
-  sourceValue  Int              @map("source_value")
-  isClaimed    Boolean          @default(false) @map("is_claimed")
-  userId       String           @map("user_id")
-  itemId       Int?             @map("item_id")
-  rewardType   RewardType       @map("reward_type")
-  item         Item?            @relation(fields: [itemId], references: [id])
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("pending_rewards")
-}
-
-model MilestoneReward {
-  id           Int              @id @default(autoincrement())
-  goldAmount   Int              @default(0) @map("gold_amount")
-  xpAmount     Int              @default(0) @map("xp_amount")
-  itemQuantity Int              @default(1) @map("item_quantity")
-  sourceType   RewardSourceType @map("source_type")
-  sourceValue  Int              @map("source_value")
-  itemId       Int?             @map("item_id")
-  name         String
-  rewardType   RewardType       @map("reward_type")
-  item         Item?            @relation(fields: [itemId], references: [id])
-
-  @@map("milestone_rewards")
-}
-
 model UserNodeProgress {
   userId          String    @map("user_id")
   nodeId          Int       @map("node_id")
@@ -446,7 +380,6 @@ model ScopeTestPresetDefault {
 
 model TestPreset {
   id                  String                   @id @default(uuid())
-  
   name                String
   purposeType         PurposeType              @map("purpose_type")
   questionCount       Int?                     @map("question_count")
@@ -458,6 +391,22 @@ model TestPreset {
   userTestLogs        UserTestLog[]
 
   @@map("test_presets")
+}
+
+model GoldPurchase {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  goldAmount      Int             @map("gold_amount")
+  amountVnd       Int             @map("amount_vnd")
+  provider        PaymentProvider
+  status          PaymentStatus   @default(PENDING)
+  providerOrderId String          @unique @map("provider_order_id")
+  providerTransId String?         @map("provider_trans_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("gold_purchases")
 }
 
 enum HierachyState {
@@ -531,22 +480,6 @@ enum TestStatus {
   ABANDONED
 }
 
-model GoldPurchase {
-  id              String          @id @default(uuid())
-  userId          String          @map("user_id")
-  goldAmount      Int             @map("gold_amount")
-  amountVnd       Int             @map("amount_vnd")
-  provider        PaymentProvider
-  status          PaymentStatus   @default(PENDING)
-  providerOrderId String          @unique @map("provider_order_id")
-  providerTransId String?         @map("provider_trans_id")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("gold_purchases")
-}
-
 enum PaymentProvider {
   MOMO
   ZALOPAY
@@ -557,4 +490,3 @@ enum PaymentStatus {
   SUCCESS
   FAILED
 }
-
