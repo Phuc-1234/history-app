@@ -437,11 +437,11 @@ export class TestService {
             });
 
             if (leveledUp) {
-                const mRewards = await tx.milestoneReward.findMany({
+                const mRewards = await (tx as any).milestoneReward.findMany({
                     where: { sourceType: "TIER", sourceValue: newTierIndex },
                 });
                 for (const r of mRewards) {
-                    await tx.pendingReward.create({
+                    await (tx as any).pendingReward.create({
                         data: {
                             goldAmount: r.goldAmount,
                             xpAmount: r.xpAmount,
@@ -565,7 +565,7 @@ export class TestService {
 
         return {
             userTestLogId: "", // 0 or null signifies that the session hasn't started yet
-            totalQuestionCount: test.isManual
+            totalQuestionCount: (test as any).isManual
                 ? await this.getManualQuestionCount(testId)
                 : test.questionNumber,
             timeLimitSeconds: test.timeLimit ?? null,
@@ -649,7 +649,7 @@ export class TestService {
 
         // --- Generate Fresh Dynamic/Manual Sequence ---
         let sequence: number[] = [];
-        if (test.isManual) {
+        if ((test as any).isManual) {
             const tqs = await prisma.testQuestion.findMany({
                 where: { testId },
                 orderBy: { position: "asc" },

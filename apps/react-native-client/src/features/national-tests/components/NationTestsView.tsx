@@ -8,199 +8,117 @@ import {
   View,
   SafeAreaView,
   StatusBar,
+  Image,
+  ActivityIndicator,
+  TextInput,
 } from "react-native";
+import { colors } from "@/theme/colors";
+import { useGetNationalTestsQuery } from "@/features/test_v2/services/testApi";
 
-// Định nghĩa cấu trúc dữ liệu cho các đề thi
-interface TestItem {
-  id: string;
-  type: 'official' | 'sample';
-  year: string;
-  code?: string;
-  publisher?: string;
-  questions: string;
-  time: string;
-  score?: string;
-  title: string;
-  status?: 'new' | 'completed';
-  icon: 'book' | 'star' | 'cap';
-}
+const VIBRANT_COLORS = [
+  "#E11D48", // Rose
+  "#2563EB", // Blue
+  "#D97706", // Amber/Gold
+  "#059669", // Emerald
+  "#7C3AED", // Violet
+  "#0D9488", // Teal
+  "#EA580C", // Orange
+  "#4F46E5", // Indigo
+];
 
-const filterTabs = ["Tất cả", "Mới", "Chưa làm", "Phổ biến"];
-
-const testData: TestItem[] = [
-  {
-    id: "1",
-    type: "official",
-    year: "2022",
-    code: "301",
-    questions: "40 câu",
-    time: "50'",
-    title: "Đề chính thức 2022",
-    status: "new",
-    icon: "book",
-  },
-  {
-    id: "2",
-    type: "official",
-    year: "2021",
-    score: "Đạt 8.5/10 điểm",
-    questions: "40 câu",
-    time: "50'",
-    title: "Đề chính thức 2021",
-    status: "completed",
-    icon: "star",
-  },
-  {
-    id: "3",
-    type: "sample",
-    year: "2022",
-    publisher: "Bộ GD&ĐT",
-    questions: "40 câu",
-    time: "50'",
-    title: "Đề minh họa 2022",
-    icon: "cap",
-  },
+const CARD_IMAGES = [
+  "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=150&auto=format&fit=crop&q=80",
 ];
 
 export const NationalTestsView: React.FC = () => {
-  const [selectedFilter, setSelectedFilter] = useState("Tất cả");
-
   const router = useRouter();
+  const { data: tests, isLoading, error } = useGetNationalTestsQuery();
+  const [searchQuery, setSearchQuery] = useState("");
+
   const handleTestPress = (id: string) => {
-    router.push({ pathname: "/(6_tests)/6_2_ques_choose", params: { testId: "d3cac572-7861-4554-8867-9beaadefd50b"} });
+    router.push({
+      pathname: "/(6_tests)/6_2_ques_choose",
+      params: { testId: id, purposeType: "EXAM" },
+    });
   };
 
-  const renderIcon = (iconType: string) => {
-    switch (iconType) {
-      case "book": return "📖";
-      case "star": return "⭐";
-      case "cap": return "🎓";
-      default: return "📄";
-    }
-  };
+  const filteredTests = tests?.filter((item) =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.summary && item.summary.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAF8F5" />
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Đề thi Quốc gia</Text>
+      </View>
+
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Tìm kiếm đề thi..."
+          placeholderTextColor={colors.textPlaceholder}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          underlineColorAndroid="transparent"
+        />
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Khối Đề Thi Đang Làm (Thẻ Lớn Bên Trên) */}
-        <TouchableOpacity
-          style={styles.ongoingCard}
-          onPress={() => handleTestPress("ongoing_2023")}
-          activeOpacity={0.9}
-        >
-          <View style={styles.ongoingImageContainer}>
-            <View style={styles.ongoingIconOverlay}>
-              <Text style={styles.ongoingIconText}>📝</Text>
-            </View>
+        {isLoading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
-          
-          <View style={styles.ongoingPlayButton}>
-            <Text style={styles.playIconText}>▶️</Text>
+        ) : error ? (
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorText}>Không thể tải danh sách đề thi.</Text>
           </View>
-
-          <View style={styles.ongoingDetails}>
-            <View style={styles.ongoingTitleBlock}>
-              <View style={styles.badgeDangLam}>
-                <Text style={styles.badgeTextDangLam}>Đang làm</Text>
-              </View>
-              <Text style={styles.ongoingTitle} numberOfLines={2}>
-                Đề thi THPT Quốc gia 2023
-              </Text>
-            </View>
-            
-            <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>Tiến độ</Text>
-              <View style={styles.progressBarBackground}>
-                <View style={[styles.progressBarFill, { width: '60%' }]} />
-              </View>
-              <Text style={styles.progressPercent}>60%</Text>
-            </View>
-            <Text style={styles.questionsRemaining}>Đã hoàn thành 24/40 câu hỏi</Text>
+        ) : !filteredTests || filteredTests.length === 0 ? (
+          <View style={styles.centerContainer}>
+            <Text style={styles.emptyText}>
+              {searchQuery ? "Không tìm thấy đề thi phù hợp." : "Hiện chưa có đề thi quốc gia nào."}
+            </Text>
           </View>
-        </TouchableOpacity>
-
-        {/* Ngăn Bộ Lọc (Filter Tabs) */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContainer}
-        >
-          {filterTabs.map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setSelectedFilter(tab)}
-              style={[
-                styles.filterTab,
-                selectedFilter === tab && styles.filterTabSelected,
-              ]}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.filterTabText,
-                  selectedFilter === tab && styles.filterTabTextSelected,
-                ]}
+        ) : (
+          filteredTests.map((item, index) => {
+            const cardBgColor = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
+            return (
+              <TouchableOpacity
+                key={item.id}
+                activeOpacity={0.8}
+                onPress={() => handleTestPress(item.id)}
+                style={[styles.testCard, { backgroundColor: cardBgColor }]}
               >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Danh Sách Các Đề Thi Dạng Thẻ Ngang */}
-        <View style={styles.testList}>
-          {testData.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              activeOpacity={0.7}
-              onPress={() => handleTestPress(item.id)}
-              style={styles.testCard}
-            >
-              <View style={styles.testCardLeft}>
-                <View style={[
-                  styles.testIconContainer, 
-                  { backgroundColor: item.type === 'official' ? '#EAE6FF' : '#F3EFFE' }
-                ]}>
-                  <Text style={styles.testIconText}>{renderIcon(item.icon)}</Text>
-                </View>
-                
-                <View style={styles.testDetails}>
-                  <Text style={styles.testTitle}>{item.title}</Text>
-                  <Text style={styles.testSubTitle}>
-                    {item.code ? `Mã đề ${item.code}` : item.publisher}
+                <Image
+                  source={{ uri: CARD_IMAGES[index % CARD_IMAGES.length] }}
+                  style={styles.cardImage}
+                />
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>
+                    {item.title}
                   </Text>
-                  <Text style={styles.testMeta}>
-                    📊 {item.questions}   ⏱️ {item.time} {item.score ? `   🔸 ${item.score}` : ''}
-                  </Text>
+                  {item.summary ? (
+                    <Text style={styles.cardSummary} numberOfLines={2}>
+                      {item.summary}
+                    </Text>
+                  ) : null}
                 </View>
-              </View>
-
-              <View style={styles.testCardRight}>
-                {item.status === 'new' && (
-                  <View style={styles.badgeMoi}>
-                    <Text style={styles.badgeTextMoi}>MỚI</Text>
-                  </View>
-                )}
-                {item.status === 'completed' && (
-                  <View style={styles.badgeHoanThanh}>
-                    <Text style={styles.badgeTextHoanThanh}>HOÀN THÀNH</Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Nút Xem Thêm */}
-        <TouchableOpacity style={styles.seeMoreButton} activeOpacity={0.7}>
-          <Text style={styles.seeMoreText}>Xem thêm </Text>
-          <Text style={styles.seeMoreIcon}>🔽</Text>
-        </TouchableOpacity>
+              </TouchableOpacity>
+            );
+          })
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -209,246 +127,80 @@ export const NationalTestsView: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAF8F5",
+    backgroundColor: "transparent",
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    textAlign: "center",
+  },
+  searchContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 8,
+  },
+  searchInput: {
+    height: 48,
+    backgroundColor: colors.inputBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 14,
+    fontWeight: "300",
+    color: colors.textPrimary,
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 40, // Đã giảm bớt khoảng trống phía dưới sau khi xóa Tab Bar
+    paddingTop: 16,
+    paddingBottom: 40,
   },
-  ongoingCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-    paddingBottom: 20,
-    position: 'relative',
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 100,
   },
-  ongoingImageContainer: {
-    width: '100%',
-    height: 180,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#5046E5', // Dùng màu tím nền đồng bộ thay vì load ảnh mạng bị chậm
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  ongoingIconOverlay: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 12,
-    borderRadius: 30,
-  },
-  ongoingIconText: {
-    fontSize: 28,
-  },
-  ongoingPlayButton: {
-    position: 'absolute',
-    top: 160,
-    right: 24,
-    width: 40,
-    height: 40,
-    backgroundColor: '#5046E5',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  playIconText: {
+  errorText: {
+    color: colors.error,
     fontSize: 14,
-    marginLeft: 2,
+    fontWeight: "300",
   },
-  ongoingDetails: {
-    paddingHorizontal: 20,
-  },
-  ongoingTitleBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  badgeDangLam: {
-    backgroundColor: '#EFEBE6',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  badgeTextDangLam: {
-    color: '#6E6A75',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  ongoingTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1E1E1E",
-    flex: 1,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  progressLabel: {
-    fontSize: 12,
-    color: '#6E6A75',
-    marginRight: 10,
-  },
-  progressBarBackground: {
-    flex: 1,
-    height: 6,
-    backgroundColor: '#EFEBE6',
-    borderRadius: 3,
-    marginRight: 10,
-  },
-  progressBarFill: {
-    height: 6,
-    backgroundColor: '#5046E5',
-    borderRadius: 3,
-  },
-  progressPercent: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#5046E5',
-  },
-  questionsRemaining: {
-    fontSize: 12,
-    color: '#6E6A75',
-  },
-  filterContainer: {
-    flexDirection: "row",
-    paddingVertical: 4,
-    marginBottom: 24,
-  },
-  filterTab: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    marginRight: 12,
-    borderColor: '#EFEBE6',
-    borderWidth: 1,
-  },
-  filterTabSelected: {
-    backgroundColor: "#5046E5",
-    borderColor: '#5046E5',
-  },
-  filterTabText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6E6A75",
-  },
-  filterTabTextSelected: {
-    color: "#FFFFFF",
-  },
-  testList: {
-    marginBottom: 16,
+  emptyText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: "300",
   },
   testCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 16,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
   },
-  testCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  cardImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    marginRight: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  },
+  cardContent: {
     flex: 1,
   },
-  testIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  testIconText: {
-    fontSize: 20,
-  },
-  testDetails: {
-    flex: 1,
-  },
-  testTitle: {
+  cardTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#1E1E1E",
-    marginBottom: 2,
-  },
-  testSubTitle: {
-    fontSize: 12,
-    color: '#6E6A75',
+    fontWeight: "500",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
-  testMeta: {
-    fontSize: 11,
-    color: '#A09CA6',
-  },
-  testCardRight: {
-    marginLeft: 8,
-  },
-  badgeMoi: {
-    backgroundColor: '#FAF8F5',
-    borderColor: '#5046E5',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  badgeTextMoi: {
-    color: '#5046E5',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  badgeHoanThanh: {
-    backgroundColor: '#FAF8F5',
-    borderColor: '#FF7D00',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  badgeTextHoanThanh: {
-    color: '#FF7D00',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  seeMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: '#EFEBE6',
-    borderRadius: 20,
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  seeMoreText: {
-    fontSize: 13,
-    color: '#5046E5',
-    fontWeight: '600',
-  },
-  seeMoreIcon: {
-    fontSize: 9,
+  cardSummary: {
+    fontSize: 12,
+    fontWeight: "300",
+    color: "rgba(255, 255, 255, 0.8)",
   },
 });

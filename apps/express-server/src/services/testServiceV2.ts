@@ -17,6 +17,7 @@ import {
     DraftAnswerEntry,
     AnswerData,
     TestInfoV2Response,
+    NationalTestDto,
 } from "../types/testV2Types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -842,6 +843,19 @@ export class TestServiceV2 {
             xpReward: rewardPreview.xp,
             attemptNumber: rewardPreview.attemptNumber,
         };
+    }
+
+    async getNationalTests(): Promise<NationalTestDto[]> {
+        return prisma.test.findMany({
+            where: {
+                isNationalTest: true,
+            },
+            select: {
+                id: true,
+                title: true,
+                summary: true,
+            },
+        });
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
