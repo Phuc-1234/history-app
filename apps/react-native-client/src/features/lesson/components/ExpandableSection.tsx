@@ -10,6 +10,12 @@ const getSectionDisplaySuffix = (name: string): string => {
     return match ? match[1] : "này";
 };
 
+const stripHtml = (html: string | undefined | null): string => {
+    if (!html) return "";
+    const clean = html.replace(/<[^>]*>/g, " ");
+    return clean.replace(/\s+/g, " ").trim();
+};
+
 interface ExpandableSectionProps {
     section: LessonSection;
     isTopLevel?: boolean;
@@ -79,11 +85,12 @@ export function ExpandableSection({
                     {/* 1. Render node rows — header or truncated body, tap → NodeScreen */}
                     {hasNodes &&
                         section.nodes?.map((node) => {
+                            const cleanBody = stripHtml(node.body);
                             const displayText =
                                 node.header
                                     ? node.header
-                                    : node.body.slice(0, 80).trim() +
-                                      (node.body.length > 80 ? "…" : "");
+                                    : cleanBody.slice(0, 80).trim() +
+                                      (cleanBody.length > 80 ? "…" : "");
 
                             return (
                                 <TouchableOpacity

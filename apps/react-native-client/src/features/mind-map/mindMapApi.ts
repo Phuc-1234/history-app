@@ -13,16 +13,23 @@ function getQueryPath(query: MindMapQuery): string {
     return `/api/content/mindmap?lessonId=${encodeURIComponent(query.lessonId)}`;
 }
 
-function shortLabel(value: string | undefined | null): string {
-    const text = (value ?? "").replace(/\s+/g, " ").trim();
+function stripHtml(html: string | undefined | null): string {
+    if (!html) return "";
+    const clean = html.replace(/<[^>]*>/g, " ");
+    return clean.replace(/\s+/g, " ").trim();
+}
+
+function shortLabel(value: string | undefined | null, isHtml = false): string {
+    const cleanValue = isHtml ? stripHtml(value) : value;
+    const text = (cleanValue ?? "").replace(/\s+/g, " ").trim();
     if (text.length <= 120) return text;
     return `${text.slice(0, 117).trim()}...`;
 }
 
 function getNodeLabel(node: ApiMindMapNode): string {
     if (node.type === "grade") return node.name || `Lop ${node.id}`;
-    if (node.type === "node") return shortLabel(node.header || node.body || `Noi dung ${node.id}`);
-    return shortLabel(node.name || node.header || node.body || `${node.type} ${node.id}`);
+    if (node.type === "node") return shortLabel(node.header || node.body || `Noi dung ${node.id}`, !node.header);
+    return shortLabel(node.name || node.header || node.body || `${node.type} ${node.id}`, !node.name && !node.header);
 }
 
 function toVisualNode(
