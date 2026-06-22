@@ -51,6 +51,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: ["User"],
         }),
 
         // POST /api/tests-v2/:logId/abandon
