@@ -146,7 +146,7 @@ model Test {
   title          String
   summary        String?        @default("Kiểm tra kiến thức của bạn")
   goldReward     Int            @default(0) @map("gold_reward")
-  isManual       Boolean        @default(false) @map("is_manual")
+  
   passThreshold  Int            @default(70) @map("pass_threshold")
   questionNumber Int            @default(10) @map("question_number")
   timeLimit      Int?           @map("time_limit")
@@ -243,6 +243,7 @@ model User {
   goldPurchases          GoldPurchase[]
   userFlashcards         UserFlashcard[]
   nodeProgresses         UserNodeProgress[]
+  rewardLogs             UserRewardLog[]
   testLogs               UserTestLog[]
   tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
 
@@ -329,6 +330,7 @@ model UserTestLog {
   status                TestStatus?     @map("status")
   timeLimit             Int?            @map("time_limit")
   answerLogs            UserAnswerLog[]
+  rewardLogs            UserRewardLog[]
   generatedFromPreset   TestPreset?     @relation(fields: [generatedFromPresetId], references: [id])
   test                  Test?           @relation(fields: [testId], references: [id], onDelete: Cascade)
   user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -448,15 +450,15 @@ enum ItemType {
   BOOST_GOLD_PASS
 }
 
-enum RewardSourceType {
-  STREAK
-  TIER
-}
-
-enum RewardType {
-  ITEM
-  XP
-  GOLD
+enum RewardTriggerType {
+  MANUAL_TEST_COMPLETE
+  AUTO_NODE_TEST_COMPLETE
+  AUTO_SECTION_TEST_COMPLETE
+  AUTO_LESSON_TEST_COMPLETE
+  AUTO_TOPIC_TEST_COMPLETE
+  AUTO_GRADE_TEST_COMPLETE
+  STREAK_REACHED
+  TIER_REACHED
 }
 
 enum ScopeType {
@@ -489,4 +491,36 @@ enum PaymentStatus {
   PENDING
   SUCCESS
   FAILED
+}
+
+model RewardRule {
+  id              Int               @id @default(autoincrement())
+  triggerType     RewardTriggerType @map("trigger_type")
+  triggerTargetId String?           @map("trigger_target_id")
+  triggerTimeMin  Int               @map("trigger_time_min")
+  triggerTimeMax  Int?              @map("trigger_time_max")
+  xp              Int               @default(0)
+  gold            Int               @default(0)
+  rewardLogs      UserRewardLog[]
+
+  @@unique([triggerType, triggerTargetId, triggerTimeMin, triggerTimeMax])
+  @@map("reward_rules")
+}
+
+model UserRewardLog {
+  id              Int               @id @default(autoincrement())
+  userId          String            @map("user_id")
+  rewardRuleId    Int               @map("reward_rule_id")
+  triggerType     RewardTriggerType @map("trigger_type")
+  triggerTargetId String?           @map("trigger_target_id")
+  triggerTime     Int               @map("trigger_time")
+  xpAwarded       Int               @default(0) @map("xp_awarded")
+  goldAwarded     Int               @default(0) @map("gold_awarded")
+  userTestLogId   String?           @map("user_test_log_id")
+  rewardRule      RewardRule        @relation(fields: [rewardRuleId], references: [id])
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userTestLog     UserTestLog?      @relation(fields: [userTestLogId], references: [id])
+
+  @@unique([userId, rewardRuleId, triggerTime])
+  @@map("user_reward_logs")
 }

@@ -1,6 +1,7 @@
 // controllers/authController.ts
 import { Request, Response } from "express";
 import { AuthService } from "../services/authService";
+import { rewardEngine } from "../services/rewardEngine";
 import {
     RegisterRequestBody,
     RegisterResponseBody,
@@ -166,7 +167,7 @@ export const loginUser = async (
             totalXp: userProfile.totalXp,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,
-            currentStreak: userProfile.currentStreak,
+            currentStreak: await rewardEngine.checkStreakOnLogin(userProfile.id),
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
             role: userProfile.role as any,
@@ -422,7 +423,7 @@ export const verifyGoogleSession = async (
             email: userProfile.email,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,
-            currentStreak: userProfile.currentStreak,
+            currentStreak: await rewardEngine.checkStreakOnLogin(userProfile.id),
             tierName: userProfile.tier?.name || "Bronze",
             badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
             role: userProfile.role as any,
@@ -509,7 +510,7 @@ export const verifyFacebookSession = async (
             email: userProfile.email,
             totalGold: userProfile.totalGold,
             profileImgUrl: userProfile.profileImgUrl,
-            currentStreak: userProfile.currentStreak,
+            currentStreak: await rewardEngine.checkStreakOnLogin(userProfile.id),
             tierName: userProfile.tier?.name || "Bronze",
             badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
             role: userProfile.role as any,

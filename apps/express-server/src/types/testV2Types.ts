@@ -154,4 +154,7 @@ export interface TestInfoV2Response {
     scopeType: string | null;
     scopeId: number | null;
     purposeType: string;
+    goldReward: number;
+    xpReward: number;
+    attemptNumber: number;  // what attempt # this will be if user starts now
 }

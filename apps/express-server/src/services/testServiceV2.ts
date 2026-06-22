@@ -2,6 +2,7 @@
 import { prisma } from "@history-app/shared";
 import { Prisma } from "@prisma/client";
 import { progressEngine } from "./progressEngine";
+import { rewardEngine } from "./rewardEngine";
 import { scoreAllQuestions } from "./scoreEngine";
 import {
     StartTestV2Request,
@@ -595,7 +596,7 @@ export class TestServiceV2 {
                 });
             }
 
-            // Update log
+            // Update log with scores
             await tx.userTestLog.update({
                 where: { id: logId },
                 data: {
@@ -607,16 +608,38 @@ export class TestServiceV2 {
                 },
             });
 
-            // Progress engine
+            // Reward + progress engine
             let consequences: any[] = [];
             if (isPassed) {
-                consequences = await progressEngine.onTestPassed(
+                // 1. Reward engine: test reward → streak → xp/gold application → tier check
+                const rewardResult = await rewardEngine.processTestPassRewards(
+                    userId,
+                    log.testId,
+                    log.scopeType,
+                    log.scopeId,
+                    logId,
+                    tx,
+                );
+                consequences.push(...rewardResult.consequences);
+
+                // 2. Update test log with earned rewards (test portion only for display)
+                await tx.userTestLog.update({
+                    where: { id: logId },
+                    data: {
+                        xpEarned: rewardResult.totalXpGained,
+                        goldEarned: rewardResult.totalGoldGained,
+                    },
+                });
+
+                // 3. Progress engine (node completion etc.)
+                const progressConsequences = await progressEngine.onTestPassed(
                     userId,
                     log.scopeType,
                     log.scopeId,
                     `Test attempt #${log.attemptNumber}`,
                     tx,
                 );
+                consequences.push(...progressConsequences);
             }
 
             // Build response
@@ -800,6 +823,14 @@ export class TestServiceV2 {
         const title = await resolveTestTitle(mockLog);
         const timeLimit = preset?.timeLimit ?? null;
 
+        // Reward preview
+        const rewardPreview = await rewardEngine.previewTestReward(
+            testId,
+            scopeType,
+            scopeId,
+            userId,
+        );
+
         return {
             title,
             questionCount,
@@ -807,6 +838,9 @@ export class TestServiceV2 {
             scopeType,
             scopeId,
             purposeType,
+            goldReward: rewardPreview.gold,
+            xpReward: rewardPreview.xp,
+            attemptNumber: rewardPreview.attemptNumber,
         };
     }
 
