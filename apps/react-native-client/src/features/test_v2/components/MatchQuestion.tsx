@@ -287,39 +287,37 @@ export default function MatchQuestion({
             <Text style={styles.label}>Nối các cặp tương ứng:</Text>
 
             {/* Unmatched items */}
-            <View style={styles.columnsRow}>
-                <View style={styles.column}>
-                    {shuffledLeftItems.map((left, idx) => (
-                        <MatchItem
-                            key={idx}
-                            idx={idx}
-                            item={left}
-                            isLeft={true}
-                            itemStyle={getItemStyle(left, true)}
-                            itemTextStyle={getItemTextStyle(left, true)}
-                            onPress={() => handleLeftPress(left)}
-                            disabled={
-                                !!disabled || !!(showFeedback && evalResult)
-                            }
-                        />
-                    ))}
-                </View>
-                <View style={styles.column}>
-                    {shuffledRightItems.map((right, idx) => (
-                        <MatchItem
-                            key={idx}
-                            idx={idx}
-                            item={right}
-                            isLeft={false}
-                            itemStyle={getItemStyle(right, false)}
-                            itemTextStyle={getItemTextStyle(right, false)}
-                            onPress={() => handleRightPress(right)}
-                            disabled={
-                                !!disabled || !!(showFeedback && evalResult)
-                            }
-                        />
-                    ))}
-                </View>
+            <View style={styles.rowsContainer}>
+                {Array.from({ length: shuffledLeftItems.length }).map((_, idx) => (
+                    <View key={idx} style={styles.rowWrapper}>
+                        <View style={styles.cellContainer}>
+                            <MatchItem
+                                idx={idx}
+                                item={shuffledLeftItems[idx]}
+                                isLeft={true}
+                                itemStyle={getItemStyle(shuffledLeftItems[idx], true)}
+                                itemTextStyle={getItemTextStyle(shuffledLeftItems[idx], true)}
+                                onPress={() => handleLeftPress(shuffledLeftItems[idx])}
+                                disabled={
+                                    !!disabled || !!(showFeedback && evalResult)
+                                }
+                            />
+                        </View>
+                        <View style={styles.cellContainer}>
+                            <MatchItem
+                                idx={idx}
+                                item={shuffledRightItems[idx]}
+                                isLeft={false}
+                                itemStyle={getItemStyle(shuffledRightItems[idx], false)}
+                                itemTextStyle={getItemTextStyle(shuffledRightItems[idx], false)}
+                                onPress={() => handleRightPress(shuffledRightItems[idx])}
+                                disabled={
+                                    !!disabled || !!(showFeedback && evalResult)
+                                }
+                            />
+                        </View>
+                    </View>
+                ))}
             </View>
 
             {/* Show correct pairs on feedback */}
@@ -409,17 +407,23 @@ export default function MatchQuestion({
 const styles = StyleSheet.create({
     container: { gap: 12 },
     label: { fontSize: 13, fontWeight: "600", color: "#718096" },
-    columnsRow: { flexDirection: "row", gap: 12 },
-    column: { flex: 1, gap: 8 },
+    rowsContainer: { gap: 8 },
+    rowWrapper: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    cellContainer: {
+        flex: 1,
+    },
     item: {
         backgroundColor: "#FFF",
         borderWidth: 1.5,
         borderColor: "#E5E7EB",
-        borderRadius: 5,
+        borderRadius: 12,
         padding: 12,
         alignItems: "center",
         justifyContent: "center",
-        height: 70,
     },
     itemActive: { borderColor: "#5D45F9", backgroundColor: "#F5F3FF" },
     itemSelectable: { borderColor: "#A78BFA", borderStyle: "dashed" },
