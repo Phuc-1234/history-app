@@ -130,6 +130,24 @@ export default function MatchQuestion({
         [normalizedPairs],
     );
 
+    const shuffledLeftItems = React.useMemo(() => {
+        const items = [...leftItems];
+        for (let i = items.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [items[i], items[j]] = [items[j], items[i]];
+        }
+        return items;
+    }, [leftItems, question.id]);
+
+    const shuffledRightItems = React.useMemo(() => {
+        const items = [...rightItems];
+        for (let i = items.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [items[i], items[j]] = [items[j], items[i]];
+        }
+        return items;
+    }, [rightItems, question.id]);
+
     const handleLeftPress = (left: string) => {
         if (disabled || (showFeedback && evalResult)) return;
 
@@ -271,7 +289,7 @@ export default function MatchQuestion({
             {/* Unmatched items */}
             <View style={styles.columnsRow}>
                 <View style={styles.column}>
-                    {leftItems.map((left, idx) => (
+                    {shuffledLeftItems.map((left, idx) => (
                         <MatchItem
                             key={idx}
                             idx={idx}
@@ -287,7 +305,7 @@ export default function MatchQuestion({
                     ))}
                 </View>
                 <View style={styles.column}>
-                    {rightItems.map((right, idx) => (
+                    {shuffledRightItems.map((right, idx) => (
                         <MatchItem
                             key={idx}
                             idx={idx}

@@ -60,7 +60,7 @@ export default function FlashcardCompleteScreen() {
                             onPress={handleBack}
                             activeOpacity={0.8}
                         >
-                            <Text style={styles.backButtonText}>Quay lại</Text>
+                            <Text style={styles.backButtonText}>Thoát</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

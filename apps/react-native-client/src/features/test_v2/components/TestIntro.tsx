@@ -87,43 +87,45 @@ export default function TestIntro({
                     </Text>
                 </View>
 
-                {/* Sub-containers: number of ques, time */}
+                {/* Sub-containers: number of ques, time, xp, gold */}
                 <View style={styles.gridContainer}>
                     {/* Questions count */}
-                    <View style={[styles.gridItem, { backgroundColor: colors.primary }]}>
-                        <FileText size={20} color="#FFFFFF" />
-                        <Text style={styles.gridText}>{resolvedQuestionCount} câu hỏi</Text>
+                    <View style={[styles.gridItem, styles.gridItemQuestions]}>
+                        <FileText size={20} color={colors.primary} />
+                        <Text style={styles.gridTextQuestions}>{resolvedQuestionCount} câu hỏi</Text>
                     </View>
 
                     {/* Time limit */}
-                    <View style={[styles.gridItem, { backgroundColor: colors.secondary }]}>
-                        <Clock size={20} color="#FFFFFF" />
-                        <Text style={styles.gridText}>
+                    <View style={[styles.gridItem, styles.gridItemTime]}>
+                        <Clock size={20} color={colors.secondary} />
+                        <Text style={styles.gridTextTime}>
                             {resolvedTimeLimit !== null ? `${resolvedTimeLimit} phút` : "Không giới hạn"}
                         </Text>
                     </View>
+
+                    {/* XP reward */}
+                    {xpReward != null && xpReward > 0 && (
+                        <View style={[styles.gridItem, styles.gridItemXp]}>
+                            <Zap size={20} color="#FFFFFF" />
+                            <Text style={styles.gridTextReward}>+{xpReward} XP</Text>
+                        </View>
+                    )}
+
+                    {/* Gold reward */}
+                    {goldReward != null && goldReward > 0 && (
+                        <View style={[styles.gridItem, styles.gridItemGold]}>
+                            <Coins size={20} color="#FFFFFF" />
+                            <Text style={styles.gridTextReward}>+{goldReward} vàng</Text>
+                        </View>
+                    )}
                 </View>
 
-                {/* Reward preview chips */}
-                {(xpReward != null || goldReward != null) && (
+                {/* Attempt preview chip */}
+                {attemptNumber != null && (
                     <View style={styles.rewardRow}>
-                        {attemptNumber != null && (
-                            <View style={styles.attemptChip}>
-                                <Text style={styles.attemptChipText}>Lần {attemptNumber}</Text>
-                            </View>
-                        )}
-                        {xpReward != null && xpReward > 0 && (
-                            <View style={[styles.rewardChip, styles.rewardChipXp]}>
-                                <Zap size={14} color="#FFFFFF" />
-                                <Text style={styles.rewardChipText}>+{xpReward} XP</Text>
-                            </View>
-                        )}
-                        {goldReward != null && goldReward > 0 && (
-                            <View style={[styles.rewardChip, styles.rewardChipGold]}>
-                                <Coins size={14} color="#4A3B00" />
-                                <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{goldReward} vàng</Text>
-                            </View>
-                        )}
+                        <View style={styles.attemptChip}>
+                            <Text style={styles.attemptChipText}>Lần {attemptNumber}</Text>
+                        </View>
                     </View>
                 )}
             </ScrollView>
@@ -185,29 +187,55 @@ const styles = StyleSheet.create({
     },
     gridContainer: {
         flexDirection: "row",
+        flexWrap: "wrap",
         justifyContent: "space-between",
-        gap: 12,
+        rowGap: 12,
         marginTop: 8,
     },
     gridItem: {
-        flex: 1,
-        borderRadius: 5,
+        width: "48%",
+        borderRadius: 12,
         paddingVertical: 18,
         paddingHorizontal: 12,
         alignItems: "center",
         justifyContent: "center",
         gap: 10,
     },
-    gridText: {
+    gridItemQuestions: {
+        borderWidth: 2,
+        borderColor: colors.primary,
+        backgroundColor: "transparent",
+    },
+    gridItemTime: {
+        borderWidth: 2,
+        borderColor: colors.secondary,
+        backgroundColor: "transparent",
+    },
+    gridItemXp: {
+        backgroundColor: "#2563EB",
+    },
+    gridItemGold: {
+        backgroundColor: "#FFD700",
+    },
+    gridTextQuestions: {
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
+        color: colors.primary,
+        textAlign: "center",
+    },
+    gridTextTime: {
+        fontSize: 13,
+        fontWeight: "500",
+        color: colors.secondary,
+        textAlign: "center",
+    },
+    gridTextReward: {
+        fontSize: 13,
+        fontWeight: "500",
         color: "#FFFFFF",
         textAlign: "center",
     },
     footer: {
-        backgroundColor: colors.background,
-        borderTopWidth: 1,
-        borderTopColor: colors.borderMedium,
         paddingHorizontal: 20,
         paddingTop: 16,
         paddingBottom: 24,
@@ -285,24 +313,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "600",
         color: colors.textMuted,
-    },
-    rewardChip: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 5,
-        borderRadius: 30,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-    },
-    rewardChipXp: {
-        backgroundColor: colors.primary,
-    },
-    rewardChipGold: {
-        backgroundColor: colors.gold,
-    },
-    rewardChipText: {
-        fontSize: 12,
-        fontWeight: "700",
-        color: "#FFFFFF",
     },
 });

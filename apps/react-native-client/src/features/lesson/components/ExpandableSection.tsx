@@ -12,7 +12,44 @@ const getSectionDisplaySuffix = (name: string): string => {
 
 const stripHtml = (html: string | undefined | null): string => {
     if (!html) return "";
-    const clean = html.replace(/<[^>]*>/g, " ");
+    let clean = html.replace(/<[^>]*>/g, " ");
+    
+    // Decode common HTML entities
+    const entities: { [key: string]: string } = {
+        "&nbsp;": " ",
+        "&lt;": "<",
+        "&gt;": ">",
+        "&amp;": "&",
+        "&quot;": '"',
+        "&apos;": "'",
+        "&cent;": "¢",
+        "&pound;": "£",
+        "&yen;": "¥",
+        "&euro;": "€",
+        "&copy;": "©",
+        "&reg;": "®",
+        "&ldquo;": "“",
+        "&rdquo;": "”",
+        "&lsquo;": "‘",
+        "&rsquo;": "’",
+    };
+    
+    clean = clean.replace(/&[a-zA-Z0-9#]+;/g, (match) => {
+        if (entities[match]) {
+            return entities[match];
+        }
+        if (match.startsWith("&#")) {
+            const code = parseInt(match.slice(2, -1), 10);
+            if (!isNaN(code)) {
+                return String.fromCharCode(code);
+            }
+        }
+        return match;
+    });
+
+    // Strip HTML again in case any entities decoded to HTML tags
+    clean = clean.replace(/<[^>]*>/g, " ");
+
     return clean.replace(/\s+/g, " ").trim();
 };
 

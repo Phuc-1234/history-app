@@ -17,6 +17,7 @@ interface Props {
 
 function ChooseOptionItem({
     idx,
+    originalIdx,
     option,
     isSelected,
     isCorrect,
@@ -29,6 +30,7 @@ function ChooseOptionItem({
     badge,
 }: {
     idx: number;
+    originalIdx: number;
     option: string;
     isSelected: boolean;
     isCorrect: boolean;
@@ -65,7 +67,7 @@ function ChooseOptionItem({
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
                 style={optStyle}
-                onPress={() => handlePress(idx)}
+                onPress={() => handlePress(originalIdx)}
                 disabled={disabled}
                 activeOpacity={0.9}
             >
@@ -115,6 +117,15 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
     const single = isSingleChoice(question);
     const selectedOptions = userAnswer?.selectedOptions ?? [];
 
+    const displayOrder = React.useMemo(() => {
+        const indices = data.options.map((_, i) => i);
+        for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        return indices;
+    }, [data.options, question.id]);
+
     const handlePress = (index: number) => {
         if (disabled) return;
         if (single) {
@@ -132,9 +143,10 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
             <Text style={styles.label}>
                 {single ? "Chọn một đáp án:" : "Chọn 1-4 đáp án:"}
             </Text>
-            {data.options.map((option, idx) => {
-                const isSelected = selectedOptions.includes(idx);
-                const isCorrect = data.correctOption.includes(idx);
+            {displayOrder.map((originalIdx, displayIdx) => {
+                const option = data.options[originalIdx];
+                const isSelected = selectedOptions.includes(originalIdx);
+                const isCorrect = data.correctOption.includes(originalIdx);
                 const showCorrect = !!(showFeedback && evalResult);
 
                 let optStyle: any[] = [styles.option];
@@ -164,8 +176,9 @@ export default function ChooseQuestion({ question, userAnswer, onAnswer, showFee
 
                 return (
                     <ChooseOptionItem
-                        key={idx}
-                        idx={idx}
+                        key={originalIdx}
+                        idx={displayIdx}
+                        originalIdx={originalIdx}
                         option={option}
                         isSelected={isSelected}
                         isCorrect={isCorrect}

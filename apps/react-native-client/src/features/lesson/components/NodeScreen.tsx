@@ -154,7 +154,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 {/* Node Title & Completion Tick */}
                 <View style={styles.nodeTitleContainer}>
                     <Text style={styles.nodeTitleText}>
-                        {node.header || "Nội dung phần này"}
+                        {node.header || ""}
                     </Text>
                     {studyDone && isLoggedIn && (
                         <Ionicons name="checkmark-circle" size={24} color={colors.success} style={styles.completedTickIcon} />
