@@ -27,14 +27,7 @@ const VIBRANT_COLORS = [
 ];
 
 const CARD_IMAGES = [
-  "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=150&auto=format&fit=crop&q=80",
+  "https://img.magnific.com/free-vector/illustration-graduation-hat_53876-5920.jpg?semt=ais_hybrid&w=740&q=80"
 ];
 
 export const NationalTestsView: React.FC = () => {

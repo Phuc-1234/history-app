@@ -1,6 +1,5 @@
 import React from "react";
 import {
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -12,6 +11,8 @@ import {
 } from "react-native";
 import { useShop, ShopItem } from "../hooks/useShop";
 import { useRouter } from "expo-router";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import { colors } from "../../../theme/colors";
 
 export const ShopView: React.FC = () => {
     const router = useRouter();
@@ -33,83 +34,81 @@ export const ShopView: React.FC = () => {
     const itemWidth = (width - (paddingHorizontal * 2 + gap)) / 2;
 
     return (
-        <View style={styles.screenWrapper}>
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+        <ScreenWrapper
+            enableScroll
+            contentContainerStyle={styles.scrollContent}
+            style={styles.screenWrapper}
+        >
+            {/* Search Bar Group */}
+            <View style={styles.searchBarRow}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                <TextInput
+                    placeholder="Search"
+                    placeholderTextColor={colors.textPlaceholder}
+                    style={styles.searchInput}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                />
+            </View>
+
+            {/* Buy Gold Promo Banner */}
+            <TouchableOpacity
+                style={styles.buyGoldBanner}
+                activeOpacity={0.8}
+                onPress={() => router.push("/(tabs)/8_2_buy_gold")}
             >
-                {/* Search Bar Group */}
-                <View style={styles.searchBarRow}>
-                    <Text style={styles.searchIcon}>🔍</Text>
-                    <TextInput
-                        placeholder="Search"
-                        placeholderTextColor="#9A9A9A"
-                        style={styles.searchInput}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                </View>
-
-                {/* Buy Gold Promo Banner */}
-                <TouchableOpacity
-                    style={styles.buyGoldBanner}
-                    activeOpacity={0.8}
-                    onPress={() => router.push("/(tabs)/8_2_buy_gold")}
-                >
-                    <View style={styles.buyGoldBannerLeft}>
-                        <Text style={styles.buyGoldBannerIcon}>🪙</Text>
-                        <View>
-                            <Text style={styles.buyGoldBannerTitle}>Nạp thêm Gold</Text>
-                            <Text style={styles.buyGoldBannerSub}>Mua vật phẩm đặc biệt trong cửa hàng</Text>
-                        </View>
+                <View style={styles.buyGoldBannerLeft}>
+                    <Text style={styles.buyGoldBannerIcon}>🪙</Text>
+                    <View>
+                        <Text style={styles.buyGoldBannerTitle}>Nạp thêm Gold</Text>
+                        <Text style={styles.buyGoldBannerSub}>Mua vật phẩm đặc biệt trong cửa hàng</Text>
                     </View>
-                    <Text style={styles.buyGoldBannerButton}>Nạp ngay</Text>
+                </View>
+                <Text style={styles.buyGoldBannerButton}>Nạp ngay</Text>
+            </TouchableOpacity>
+
+            {/* Mock Filter Controls Dropdown Row */}
+            <View style={styles.filterRow}>
+                <TouchableOpacity
+                    style={styles.filterButton}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.filterButtonText}>
+                        ⏳ Sort filter
+                    </Text>
                 </TouchableOpacity>
+            </View>
 
-
-                {/* Mock Filter Controls Dropdown Row */}
-                <View style={styles.filterRow}>
+            {/* 2-Column Store Products Grid Matrix */}
+            <View style={styles.gridContainer}>
+                {filteredItems.map((item) => (
                     <TouchableOpacity
-                        style={styles.filterButton}
-                        activeOpacity={0.7}
+                        key={item.id}
+                        activeOpacity={0.8}
+                        style={[styles.productCell, { width: itemWidth }]}
+                        onPress={() => setSelectedItem(item)}
                     >
-                        <Text style={styles.filterButtonText}>
-                            ⏳ Sort filter
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* 2-Column Store Products Grid Matrix */}
-                <View style={styles.gridContainer}>
-                    {filteredItems.map((item) => (
-                        <TouchableOpacity
-                            key={item.id}
-                            activeOpacity={0.8}
-                            style={[styles.productCell, { width: itemWidth }]}
-                            onPress={() => setSelectedItem(item)}
-                        >
-                            <View style={styles.thumbnailWrapper}>
-                                <Image
-                                    source={{ uri: item.imageUrl }}
-                                    style={styles.cellImage}
-                                />
-                                <Text style={styles.fallbackBoxIcon}>📦</Text>
-                            </View>
-                            <View style={styles.cellFooter}>
-                                <Text style={styles.cellName} numberOfLines={1}>
-                                    {item.name}
+                        <View style={styles.thumbnailWrapper}>
+                            <Image
+                                source={{ uri: item.imageUrl }}
+                                style={styles.cellImage}
+                            />
+                            <Text style={styles.fallbackBoxIcon}>📦</Text>
+                        </View>
+                        <View style={styles.cellFooter}>
+                            <Text style={styles.cellName} numberOfLines={1}>
+                                {item.name}
+                            </Text>
+                            <View style={styles.coinCostRow}>
+                                <Text style={styles.coinMiniIcon}>🪙</Text>
+                                <Text style={styles.coinCostText}>
+                                    {item.cost.toLocaleString()}
                                 </Text>
-                                <View style={styles.coinCostRow}>
-                                    <Text style={styles.coinMiniIcon}>🪙</Text>
-                                    <Text style={styles.coinCostText}>
-                                        {item.cost.toLocaleString()}
-                                    </Text>
-                                </View>
                             </View>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </ScrollView>
+                        </View>
+                    </TouchableOpacity>
+                ))}
+            </View>
 
             {/* Dynamic Native Overlay Modal view sheet */}
             <Modal
@@ -170,14 +169,14 @@ export const ShopView: React.FC = () => {
                     )}
                 </View>
             </Modal>
-        </View>
+        </ScreenWrapper>
     );
 };
 
 const styles = StyleSheet.create({
     screenWrapper: {
         flex: 1,
-        backgroundColor: "#FAF8F5",
+        backgroundColor: colors.background,
     },
     scrollContent: {
         paddingHorizontal: 18,
@@ -187,10 +186,10 @@ const styles = StyleSheet.create({
     searchBarRow: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "#E2DDD7",
-        borderRadius: 14,
+        backgroundColor: colors.surface,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
+        borderRadius: 12,
         paddingHorizontal: 14,
         height: 48,
         marginBottom: 12,
@@ -202,8 +201,8 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         fontSize: 15,
-        color: "#2C2A2E",
-        fontWeight: "500",
+        color: colors.textPrimary,
+        fontWeight: "400",
     },
     filterRow: {
         flexDirection: "row",
@@ -213,17 +212,17 @@ const styles = StyleSheet.create({
     filterButton: {
         flexDirection: "row",
         alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#D2CBDC",
-        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
+        borderRadius: 30,
         paddingHorizontal: 14,
         paddingVertical: 6,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.surface,
     },
     filterButtonText: {
         fontSize: 13,
-        fontWeight: "500",
-        color: "#5C5665",
+        fontWeight: "400",
+        color: colors.textPrimary,
     },
     gridContainer: {
         flexDirection: "row",
@@ -231,17 +230,17 @@ const styles = StyleSheet.create({
         gap: 14,
     },
     productCell: {
-        backgroundColor: "#ECEAF7",
-        borderRadius: 20,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         overflow: "hidden",
-        borderWidth: 1,
-        borderColor: "#E3E0F2",
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         marginBottom: 4,
     },
     thumbnailWrapper: {
         width: "100%",
         aspectRatio: 1.1,
-        backgroundColor: "#EDE7E1",
+        backgroundColor: colors.surfaceVariant,
         alignItems: "center",
         justifyContent: "center",
         position: "relative",
@@ -255,17 +254,17 @@ const styles = StyleSheet.create({
     },
     fallbackBoxIcon: {
         fontSize: 36,
-        color: "#AEA9B5",
+        color: colors.textMuted,
         zIndex: 1,
     },
     cellFooter: {
         padding: 12,
-        backgroundColor: "#FAF9FE",
+        backgroundColor: colors.surface,
     },
     cellName: {
         fontSize: 14,
-        fontWeight: "700",
-        color: "#202020",
+        fontWeight: "500",
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     coinCostRow: {
@@ -278,8 +277,8 @@ const styles = StyleSheet.create({
     },
     coinCostText: {
         fontSize: 13,
-        fontWeight: "600",
-        color: "#7E7686",
+        fontWeight: "400",
+        color: colors.textSecondary,
     },
 
     /* Modal Architectural System Overrides */
@@ -293,15 +292,12 @@ const styles = StyleSheet.create({
     modalCardContainer: {
         width: "100%",
         maxWidth: 360,
-        backgroundColor: "#FCFAF7",
-        borderRadius: 32,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         overflow: "hidden",
         position: "relative",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.2,
-        shadowRadius: 24,
-        elevation: 10,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     closeButtonPin: {
         position: "absolute",
@@ -310,22 +306,22 @@ const styles = StyleSheet.create({
         width: 34,
         height: 34,
         borderRadius: 17,
-        backgroundColor: "rgba(255, 255, 255, 0.85)",
+        backgroundColor: colors.surface,
         alignItems: "center",
         justifyContent: "center",
         zIndex: 10,
-        borderWidth: 1,
-        borderColor: "#EBEBEB",
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     closeButtonText: {
         fontSize: 14,
-        fontWeight: "700",
-        color: "#333333",
+        fontWeight: "400",
+        color: colors.textPrimary,
     },
     modalImageBanner: {
         width: "100%",
         aspectRatio: 1,
-        backgroundColor: "#D9D0F7",
+        backgroundColor: colors.surfaceVariant,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -339,24 +335,26 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 22,
-        fontWeight: "800",
-        color: "#18141C",
+        fontWeight: "600",
+        color: colors.textPrimary,
         marginBottom: 8,
         lineHeight: 28,
     },
     modalDescription: {
         fontSize: 14,
-        color: "#5C5666",
+        color: colors.textSecondary,
         lineHeight: 20,
         marginBottom: 20,
     },
     modalCostIndicatorRow: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F3EFF5",
+        backgroundColor: colors.surface,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         paddingVertical: 12,
         paddingHorizontal: 16,
-        borderRadius: 14,
+        borderRadius: 12,
         marginBottom: 16,
     },
     modalCoinIcon: {
@@ -365,36 +363,31 @@ const styles = StyleSheet.create({
     },
     modalCostLabelText: {
         fontSize: 15,
-        fontWeight: "700",
-        color: "#24202B",
+        fontWeight: "500",
+        color: colors.textPrimary,
     },
     checkoutActionButton: {
-        backgroundColor: "#4E3FE0", // Branding Primary Purple Accent Block
-        borderRadius: 16,
+        backgroundColor: colors.primary,
+        borderRadius: 30,
         paddingVertical: 14,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#4E3FE0",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 3,
     },
     checkoutButtonText: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 15,
-        fontWeight: "700",
+        fontWeight: "500",
     },
     buyGoldBanner: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: "#FFF4E5",
-        borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 14,
         marginBottom: 16,
-        borderWidth: 1.5,
-        borderColor: "#FFE0B2",
+        borderWidth: 2,
+        borderColor: colors.borderDark,
     },
     buyGoldBannerLeft: {
         flexDirection: "row",
@@ -407,23 +400,23 @@ const styles = StyleSheet.create({
     },
     buyGoldBannerTitle: {
         fontSize: 15,
-        fontWeight: "800",
-        color: "#E65100",
+        fontWeight: "500",
+        color: colors.textPrimary,
     },
     buyGoldBannerSub: {
         fontSize: 11,
-        color: "#F57C00",
-        fontWeight: "500",
+        color: colors.textSecondary,
+        fontWeight: "400",
         marginTop: 2,
     },
     buyGoldBannerButton: {
         fontSize: 13,
-        fontWeight: "800",
-        color: "#FFFFFF",
-        backgroundColor: "#FF9800",
+        fontWeight: "500",
+        color: colors.textLight,
+        backgroundColor: colors.secondary,
         paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 12,
+        borderRadius: 30,
         overflow: "hidden",
     },
 });

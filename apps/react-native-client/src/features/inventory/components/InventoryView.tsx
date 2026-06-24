@@ -1,6 +1,5 @@
 import React from "react";
 import {
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -10,6 +9,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInventory, InventoryItem } from "../hooks/useInventory";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import { colors } from "../../../theme/colors";
 
 export const InventoryView: React.FC = () => {
     const { inventory, selectedItem, setSelectedItemId, handleUseItem } =
@@ -24,10 +25,10 @@ export const InventoryView: React.FC = () => {
     const cellWidth = Math.floor((gridWidth - gap * 2) / 3) - 1;
 
     return (
-        <ScrollView
-            showsVerticalScrollIndicator={false}
-            style={styles.scrollView}
+        <ScreenWrapper
+            enableScroll
             contentContainerStyle={styles.scrollContent}
+            style={styles.scrollView}
         >
             {/* 1. Featured Item Preview Card */}
             {selectedItem && (
@@ -109,41 +110,36 @@ export const InventoryView: React.FC = () => {
                     );
                 })}
             </View>
-        </ScrollView>
+        </ScreenWrapper>
     );
 };
 
 const styles = StyleSheet.create({
     scrollView: {
         flex: 1,
-        backgroundColor: "#FAF8F5",
+        backgroundColor: colors.background,
     },
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 20,
         paddingBottom: 32,
-        backgroundColor: "#FAF8F5",
+        backgroundColor: colors.background,
     },
     featuredCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 20,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 16,
         flexDirection: "row",
         alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#EAEAEA",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 2,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
         marginBottom: 28,
     },
     featuredImage: {
         width: 100,
         height: 100,
-        borderRadius: 16,
-        backgroundColor: "#F0F0F0",
+        borderRadius: 12,
+        backgroundColor: colors.surfaceVariant,
     },
     featuredInfo: {
         flex: 1,
@@ -152,46 +148,42 @@ const styles = StyleSheet.create({
     },
     featuredName: {
         fontSize: 18,
-        fontWeight: "700",
-        color: "#1F1F1F",
+        fontWeight: "500",
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     featuredDescription: {
         fontSize: 13,
-        color: "#666666",
+        color: colors.textSecondary,
         lineHeight: 18,
         marginBottom: 6,
+        fontWeight: "400",
     },
     featuredQuantity: {
         fontSize: 13,
-        color: "#444444",
+        color: colors.textSecondary,
         marginBottom: 8,
     },
     boldQty: {
-        fontWeight: "700",
-        color: "#1F1F1F",
+        fontWeight: "500",
+        color: colors.textPrimary,
     },
     useButton: {
-        backgroundColor: "#58CC02", // Duolingo dynamic vibrant green action color
-        borderRadius: 12,
+        backgroundColor: colors.primary,
+        borderRadius: 30,
         paddingVertical: 6,
         paddingHorizontal: 20,
         alignSelf: "flex-start",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 1,
     },
     useButtonText: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 13,
-        fontWeight: "700",
+        fontWeight: "500",
     },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: "700",
-        color: "#2C2C2C",
+        fontWeight: "500",
+        color: colors.textPrimary,
         marginBottom: 16,
     },
     gridContainer: {
@@ -200,27 +192,27 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     gridCell: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 12,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 2,
-        borderColor: "#E5E5E5",
+        borderColor: colors.borderDark,
         height: 124,
         position: "relative",
     },
     selectedGridCell: {
-        borderColor: "#58CC02",
-        backgroundColor: "#F7FFF0",
+        borderColor: colors.primary,
+        backgroundColor: colors.surface,
     },
     badgeCount: {
         position: "absolute",
         top: 8,
         right: 10,
         fontSize: 12,
-        fontWeight: "600",
-        color: "#777777",
+        fontWeight: "400",
+        color: colors.textSecondary,
     },
     iconCircle: {
         width: 44,
@@ -236,8 +228,8 @@ const styles = StyleSheet.create({
     },
     cellName: {
         fontSize: 13,
-        fontWeight: "600",
-        color: "#3C3C3C",
+        fontWeight: "400",
+        color: colors.textPrimary,
         textAlign: "center",
         lineHeight: 16,
     },
