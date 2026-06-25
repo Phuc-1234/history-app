@@ -22,18 +22,36 @@ export default function RewardItem({ reward }: RewardItemProps) {
 
     return (
         <View style={styles.rewardCard}>
-            <View style={[styles.rewardIcon, reward.icon === "badge" && styles.rewardIconBadge, isLocked && styles.rewardIconLocked]}>
+            <View
+                style={[
+                    styles.rewardIcon,
+                    reward.icon === "badge" && styles.rewardIconBadge,
+                    isLocked && styles.rewardIconLocked,
+                ]}
+            >
                 {reward.icon === "frame" ? (
-                    <Image source={avatarFrameIcon} style={styles.avatarFrameIcon} resizeMode="contain" />
+                    <Image
+                        source={avatarFrameIcon}
+                        style={styles.avatarFrameIcon}
+                        resizeMode="contain"
+                    />
                 ) : reward.icon === "badge" ? (
-                    <Image source={medalIcon} style={styles.rewardMedalIcon} resizeMode="contain" />
+                    <Image
+                        source={medalIcon}
+                        style={styles.rewardMedalIcon}
+                        resizeMode="contain"
+                    />
                 ) : (
                     <Text style={styles.rewardIconText}>$</Text>
                 )}
             </View>
             <View style={styles.rewardInfo}>
-                <Text style={styles.rewardTitle} numberOfLines={2}>{reward.title}</Text>
-                <Text style={styles.rewardDescription} numberOfLines={2}>{reward.description}</Text>
+                <Text style={styles.rewardTitle} numberOfLines={2}>
+                    {reward.title}
+                </Text>
+                <Text style={styles.rewardDescription} numberOfLines={2}>
+                    {reward.description}
+                </Text>
             </View>
             <Pressable
                 disabled={isClaimed || isLocked}
@@ -43,8 +61,17 @@ export default function RewardItem({ reward }: RewardItemProps) {
                     isLocked && styles.rewardButtonLocked,
                 ]}
             >
-                <Text style={[styles.rewardButtonText, (isClaimed || isLocked) && styles.rewardButtonTextMuted]}>
-                    {isClaimed ? text.claimed : isLocked ? text.locked : text.claim}
+                <Text
+                    style={[
+                        styles.rewardButtonText,
+                        (isClaimed || isLocked) && styles.rewardButtonTextMuted,
+                    ]}
+                >
+                    {isClaimed
+                        ? text.claimed
+                        : isLocked
+                          ? text.locked
+                          : text.claim}
                 </Text>
             </Pressable>
         </View>
@@ -83,8 +110,18 @@ const styles = StyleSheet.create({
     rewardMedalIcon: { width: 20, height: 20, tintColor: "#6D5DF6" },
     avatarFrameIcon: { width: 20, height: 20, tintColor: "#5947E8" },
     rewardInfo: { flex: 1, minWidth: 0, paddingRight: 2 },
-    rewardTitle: { color: "#1D1B18", fontSize: 16, lineHeight: 21, fontWeight: "700" },
-    rewardDescription: { color: "#474555", fontSize: 14, lineHeight: 19, marginTop: 2 },
+    rewardTitle: {
+        color: "#1D1B18",
+        fontSize: 16,
+        lineHeight: 21,
+        fontWeight: "700",
+    },
+    rewardDescription: {
+        color: "#474555",
+        fontSize: 14,
+        lineHeight: 19,
+        marginTop: 2,
+    },
     rewardButton: {
         minWidth: 74,
         minHeight: 36,
@@ -98,6 +135,12 @@ const styles = StyleSheet.create({
     },
     rewardButtonClaimed: { backgroundColor: "#E8E2DC" },
     rewardButtonLocked: { backgroundColor: "#F2EDE7" },
-    rewardButtonText: { color: "#FFFFFF", fontSize: 14, lineHeight: 18, fontWeight: "700", textAlign: "center" },
+    rewardButtonText: {
+        color: "#FFFFFF",
+        fontSize: 14,
+        lineHeight: 18,
+        fontWeight: "700",
+        textAlign: "center",
+    },
     rewardButtonTextMuted: { color: "#474555" },
 });

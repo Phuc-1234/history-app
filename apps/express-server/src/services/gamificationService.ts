@@ -80,8 +80,6 @@ export class GamificationService {
             xpThreshold: t.xpThreshold,
         }));
     }
-
-    
 }
 
 export const gamificationService = new GamificationService();

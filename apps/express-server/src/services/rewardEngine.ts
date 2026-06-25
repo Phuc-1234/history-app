@@ -1,10 +1,7 @@
 // services/rewardEngine.ts — Central reward resolution, granting, streak & tier logic
 import { prisma } from "@history-app/shared";
 import { Prisma, RewardTriggerType } from "@prisma/client";
-import {
-    ProgressEventType,
-    ProgressConsequence,
-} from "../types/progressTypes";
+import { ProgressEventType, ProgressConsequence } from "../types/progressTypes";
 
 // Default fallback reward for test triggers when no RewardRule exists
 const DEFAULT_TEST_REWARD = { xp: 10, gold: 5 };
@@ -32,12 +29,18 @@ function todayUtc(): string {
  */
 function scopeToAutoTrigger(scopeType: string): RewardTriggerType {
     switch (scopeType) {
-        case "NODE": return RewardTriggerType.AUTO_NODE_TEST_COMPLETE;
-        case "SECTION": return RewardTriggerType.AUTO_SECTION_TEST_COMPLETE;
-        case "LESSON": return RewardTriggerType.AUTO_LESSON_TEST_COMPLETE;
-        case "TOPIC": return RewardTriggerType.AUTO_TOPIC_TEST_COMPLETE;
-        case "GRADE": return RewardTriggerType.AUTO_GRADE_TEST_COMPLETE;
-        default: return RewardTriggerType.AUTO_NODE_TEST_COMPLETE;
+        case "NODE":
+            return RewardTriggerType.AUTO_NODE_TEST_COMPLETE;
+        case "SECTION":
+            return RewardTriggerType.AUTO_SECTION_TEST_COMPLETE;
+        case "LESSON":
+            return RewardTriggerType.AUTO_LESSON_TEST_COMPLETE;
+        case "TOPIC":
+            return RewardTriggerType.AUTO_TOPIC_TEST_COMPLETE;
+        case "GRADE":
+            return RewardTriggerType.AUTO_GRADE_TEST_COMPLETE;
+        default:
+            return RewardTriggerType.AUTO_NODE_TEST_COMPLETE;
     }
 }
 
@@ -116,7 +119,11 @@ export class RewardEngine {
         });
 
         if (exactRule) {
-            return { ruleId: exactRule.id, xp: exactRule.xp, gold: exactRule.gold };
+            return {
+                ruleId: exactRule.id,
+                xp: exactRule.xp,
+                gold: exactRule.gold,
+            };
         }
 
         // Try fallback (triggerTargetId = null)
@@ -135,7 +142,11 @@ export class RewardEngine {
             });
 
             if (fallbackRule) {
-                return { ruleId: fallbackRule.id, xp: fallbackRule.xp, gold: fallbackRule.gold };
+                return {
+                    ruleId: fallbackRule.id,
+                    xp: fallbackRule.xp,
+                    gold: fallbackRule.gold,
+                };
             }
         }
 
@@ -227,7 +238,11 @@ export class RewardEngine {
         userId: string,
         userTestLogId: string | null,
         tx: TxClient,
-    ): Promise<{ consequences: ProgressConsequence[]; totalXp: number; totalGold: number }> {
+    ): Promise<{
+        consequences: ProgressConsequence[];
+        totalXp: number;
+        totalGold: number;
+    }> {
         const consequences: ProgressConsequence[] = [];
         let totalXp = 0;
         let totalGold = 0;
@@ -307,7 +322,12 @@ export class RewardEngine {
                     });
 
                     // Apply tier reward XP/gold immediately so cascading tier check works
-                    await this.applyXpAndGold(userId, granted.xpAwarded, granted.goldAwarded, tx);
+                    await this.applyXpAndGold(
+                        userId,
+                        granted.xpAwarded,
+                        granted.goldAwarded,
+                        tx,
+                    );
 
                     // Could cascade into another tier
                     keepChecking = true;
@@ -330,14 +350,22 @@ export class RewardEngine {
         userId: string,
         userTestLogId: string | null,
         tx: TxClient,
-    ): Promise<{ consequences: ProgressConsequence[]; totalXp: number; totalGold: number }> {
+    ): Promise<{
+        consequences: ProgressConsequence[];
+        totalXp: number;
+        totalGold: number;
+    }> {
         const consequences: ProgressConsequence[] = [];
         let totalXp = 0;
         let totalGold = 0;
 
         const user = await tx.user.findUniqueOrThrow({
             where: { id: userId },
-            select: { lastTestPassedAt: true, currentStreak: true, highestStreak: true },
+            select: {
+                lastTestPassedAt: true,
+                currentStreak: true,
+                highestStreak: true,
+            },
         });
 
         const today = todayUtc();
@@ -437,20 +465,38 @@ export class RewardEngine {
         scopeId: number | null,
         userTestLogId: string,
         tx: TxClient,
-    ): Promise<{ consequences: ProgressConsequence[]; totalXpGained: number; totalGoldGained: number }> {
+    ): Promise<{
+        consequences: ProgressConsequence[];
+        totalXpGained: number;
+        totalGoldGained: number;
+    }> {
         const consequences: ProgressConsequence[] = [];
         let totalXpGained = 0;
         let totalGoldGained = 0;
 
         // 1. Determine trigger
-        const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId);
+        const { triggerType, triggerTargetId } = this.determineTrigger(
+            testId,
+            scopeType,
+            scopeId,
+        );
 
         // 2. Count previous passes for trigger time
-        const prevTimes = await this.countPreviousTriggerTimes(userId, triggerType, triggerTargetId, tx);
+        const prevTimes = await this.countPreviousTriggerTimes(
+            userId,
+            triggerType,
+            triggerTargetId,
+            tx,
+        );
         const triggerTime = prevTimes + 1;
 
         // 3. Resolve reward
-        const testReward = await this.resolveReward(triggerType, triggerTargetId, triggerTime, tx);
+        const testReward = await this.resolveReward(
+            triggerType,
+            triggerTargetId,
+            triggerTime,
+            tx,
+        );
 
         let testXp = 0;
         let testGold = 0;
@@ -488,7 +534,11 @@ export class RewardEngine {
         }
 
         // 4. Process streak
-        const streakResult = await this.processStreak(userId, userTestLogId, tx);
+        const streakResult = await this.processStreak(
+            userId,
+            userTestLogId,
+            tx,
+        );
         consequences.push(...streakResult.consequences);
         totalXpGained += streakResult.totalXp;
         totalGoldGained += streakResult.totalGold;
@@ -555,7 +605,11 @@ export class RewardEngine {
         scopeId: number | null,
         userId: string,
     ): Promise<{ xp: number; gold: number; attemptNumber: number }> {
-        const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId);
+        const { triggerType, triggerTargetId } = this.determineTrigger(
+            testId,
+            scopeType,
+            scopeId,
+        );
 
         // Count previous reward grants for this trigger
         const prevTimes = await prisma.userRewardLog.count({
@@ -568,7 +622,12 @@ export class RewardEngine {
         const nextTriggerTime = prevTimes + 1;
 
         const reward = await prisma.$transaction(async (tx) => {
-            return this.resolveReward(triggerType, triggerTargetId, nextTriggerTime, tx);
+            return this.resolveReward(
+                triggerType,
+                triggerTargetId,
+                nextTriggerTime,
+                tx,
+            );
         });
 
         return {

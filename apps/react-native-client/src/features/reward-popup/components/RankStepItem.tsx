@@ -17,15 +17,28 @@ export default function RankStepItem({ rank }: RankStepItemProps) {
 
     return (
         <View style={styles.rankStep}>
-            <View style={[styles.rankStepIcon, isCurrent && styles.rankStepIconCurrent]}>
+            <View
+                style={[
+                    styles.rankStepIcon,
+                    isCurrent && styles.rankStepIconCurrent,
+                ]}
+            >
                 {isUpcoming ? (
-                    <Image source={lockIcon} style={styles.lockIcon} resizeMode="contain" />
+                    <Image
+                        source={lockIcon}
+                        style={styles.lockIcon}
+                        resizeMode="contain"
+                    />
                 ) : isCurrent ? (
                     <View style={styles.currentMedalCircle}>
                         <Text style={styles.currentMedalStar}>{"\u2605"}</Text>
                     </View>
                 ) : (
-                    <Image source={medalIcon} style={styles.medalIcon} resizeMode="contain" />
+                    <Image
+                        source={medalIcon}
+                        style={styles.medalIcon}
+                        resizeMode="contain"
+                    />
                 )}
                 {isPassed && (
                     <View style={styles.doneBadge}>
@@ -33,7 +46,14 @@ export default function RankStepItem({ rank }: RankStepItemProps) {
                     </View>
                 )}
             </View>
-            <Text style={[styles.rankStepLabel, isCurrent && styles.rankStepLabelCurrent]}>{rank.label}</Text>
+            <Text
+                style={[
+                    styles.rankStepLabel,
+                    isCurrent && styles.rankStepLabelCurrent,
+                ]}
+            >
+                {rank.label}
+            </Text>
         </View>
     );
 }

@@ -22,26 +22,45 @@ interface RewardPopupProps {
 
 const text = {
     title: "\u0043\u1ea5\u0070\u0020\u0062\u1ead\u0063\u0020\u0063\u1ee7\u0061\u0020\u0062\u1ea1\u006e",
-    description: "\u0054\u00ed\u0063\u0068\u0020\u006c\u0169\u0079\u0020\u0058\u0050\u0020\u0062\u1eb1\u006e\u0067\u0020\u0063\u00e1\u0063\u0068\u0020\u0068\u1ecdc\u0020\u0062\u00e0\u0069\u0020\u0076\u00e0\u0020\u006c\u00e0\u006d\u0020\u0111\u1ec1\u0020\u0111\u1ec3\u0020\u0074\u0068\u0103\u006e\u0067\u0020\u0068\u1ea1\u006e\u0067\u002e",
+    description:
+        "\u0054\u00ed\u0063\u0068\u0020\u006c\u0169\u0079\u0020\u0058\u0050\u0020\u0062\u1eb1\u006e\u0067\u0020\u0063\u00e1\u0063\u0068\u0020\u0068\u1ecdc\u0020\u0062\u00e0\u0069\u0020\u0076\u00e0\u0020\u006c\u00e0\u006d\u0020\u0111\u1ec1\u0020\u0111\u1ec3\u0020\u0074\u0068\u0103\u006e\u0067\u0020\u0068\u1ea1\u006e\u0067\u002e",
 };
 
-export default function RewardPopup({ visible, data, onClose }: RewardPopupProps) {
+export default function RewardPopup({
+    visible,
+    data,
+    onClose,
+}: RewardPopupProps) {
     return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+        <Modal
+            visible={visible}
+            transparent
+            animationType="slide"
+            onRequestClose={onClose}
+        >
             <View style={styles.backdrop}>
                 <Pressable style={styles.dismissArea} onPress={onClose} />
                 <View style={styles.sheet}>
                     <View style={styles.header}>
                         <View style={styles.headerTextWrap}>
                             <Text style={styles.title}>{text.title}</Text>
-                            <Text style={styles.description}>{text.description}</Text>
+                            <Text style={styles.description}>
+                                {text.description}
+                            </Text>
                         </View>
-                        <Pressable onPress={onClose} style={styles.closeButton} hitSlop={8}>
+                        <Pressable
+                            onPress={onClose}
+                            style={styles.closeButton}
+                            hitSlop={8}
+                        >
                             <Text style={styles.closeText}>{"\u00d7"}</Text>
                         </Pressable>
                     </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.content}
+                    >
                         <RankHero currentRank={data.currentRank} />
                         <XpProgressSection
                             currentXp={data.currentXp}
@@ -49,7 +68,10 @@ export default function RewardPopup({ visible, data, onClose }: RewardPopupProps
                             nextRank={data.nextRank}
                         />
                         <RankPathSection ranks={data.ranks} />
-                        <RewardListSection currentRank={data.currentRank} rewards={data.rewards} />
+                        <RewardListSection
+                            currentRank={data.currentRank}
+                            rewards={data.rewards}
+                        />
                     </ScrollView>
                 </View>
             </View>
@@ -90,9 +112,30 @@ const styles = StyleSheet.create({
         borderBottomColor: "#EEEAF4",
     },
     headerTextWrap: { flex: 1, paddingRight: 16 },
-    title: { color: "#1D1B18", fontSize: 22, fontWeight: "700", lineHeight: 28 },
-    description: { color: "#474555", fontSize: 14, lineHeight: 20, marginTop: 4 },
-    closeButton: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+    title: {
+        color: "#1D1B18",
+        fontSize: 22,
+        fontWeight: "700",
+        lineHeight: 28,
+    },
+    description: {
+        color: "#474555",
+        fontSize: 14,
+        lineHeight: 20,
+        marginTop: 4,
+    },
+    closeButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: "center",
+        justifyContent: "center",
+    },
     closeText: { color: "#474555", fontSize: 30, lineHeight: 32 },
-    content: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 34, gap: 34 },
+    content: {
+        paddingHorizontal: 24,
+        paddingTop: 20,
+        paddingBottom: 34,
+        gap: 34,
+    },
 });

@@ -45,38 +45,53 @@ async function resolveTestTitle(log: any): Promise<string> {
         });
         if (test) return test.title;
     }
-    
+
     if (log.scopeType && log.scopeId) {
         const id = log.scopeId;
         switch (log.scopeType) {
             case "LESSON": {
-                const lesson = await prisma.lesson.findUnique({ where: { id }, select: { name: true } });
+                const lesson = await prisma.lesson.findUnique({
+                    where: { id },
+                    select: { name: true },
+                });
                 if (lesson) return `Bài học: ${lesson.name}`;
                 break;
             }
             case "TOPIC": {
-                const topic = await prisma.topic.findUnique({ where: { id }, select: { name: true } });
+                const topic = await prisma.topic.findUnique({
+                    where: { id },
+                    select: { name: true },
+                });
                 if (topic) return `Chủ đề: ${topic.name}`;
                 break;
             }
             case "NODE": {
-                const node = await prisma.node.findUnique({ where: { id }, select: { header: true } });
+                const node = await prisma.node.findUnique({
+                    where: { id },
+                    select: { header: true },
+                });
                 if (node) return `Mục: ${node.header ?? "Không có tiêu đề"}`;
                 break;
             }
             case "SECTION": {
-                const section = await prisma.section.findUnique({ where: { id }, select: { name: true } });
+                const section = await prisma.section.findUnique({
+                    where: { id },
+                    select: { name: true },
+                });
                 if (section) return `Phần: ${section.name}`;
                 break;
             }
             case "GRADE": {
-                const grade = await prisma.grade.findUnique({ where: { id }, select: { id: true } });
+                const grade = await prisma.grade.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
                 if (grade) return `Lớp: ${grade.id}`;
                 break;
             }
         }
     }
-    
+
     if (log.generatedFromPresetId) {
         const preset = await prisma.testPreset.findUnique({
             where: { id: log.generatedFromPresetId },
@@ -98,7 +113,8 @@ function toLogDto(log: any, testTitle?: string | null): UserTestLogV2Dto {
         maxScore: log.maxScore ?? 0,
         isPassed: log.isPassed ?? null,
         startedAt: log.startedAt?.toISOString?.() ?? log.startedAt,
-        submittedAt: log.submittedAt?.toISOString?.() ?? log.submittedAt ?? null,
+        submittedAt:
+            log.submittedAt?.toISOString?.() ?? log.submittedAt ?? null,
         expiresAt: log.expiresAt?.toISOString?.() ?? log.expiresAt ?? null,
         attemptNumber: log.attemptNumber,
         questionCount: log.questionCount ?? 0,
@@ -141,19 +157,36 @@ async function expandScopeToQuestionWhere(
         conditions.push({ scopeType: "NODE" as any, scopeId });
     } else if (scopeType === "SECTION" && scopeId) {
         const sectionIds = await expandSectionIds([scopeId]);
-        conditions.push({ scopeType: "SECTION" as any, scopeId: { in: sectionIds } });
+        conditions.push({
+            scopeType: "SECTION" as any,
+            scopeId: { in: sectionIds },
+        });
         const nodeIds = await getNodeIdsForSections(sectionIds);
-        if (nodeIds.length) conditions.push({ scopeType: "NODE" as any, scopeId: { in: nodeIds } });
+        if (nodeIds.length)
+            conditions.push({
+                scopeType: "NODE" as any,
+                scopeId: { in: nodeIds },
+            });
     } else if (scopeType === "LESSON" && scopeId) {
         conditions.push({ scopeType: "LESSON" as any, scopeId });
         const rootSections = await prisma.section.findMany({
             where: { lessonId: scopeId },
             select: { id: true },
         });
-        const sectionIds = await expandSectionIds(rootSections.map((s) => s.id));
-        if (sectionIds.length) conditions.push({ scopeType: "SECTION" as any, scopeId: { in: sectionIds } });
+        const sectionIds = await expandSectionIds(
+            rootSections.map((s) => s.id),
+        );
+        if (sectionIds.length)
+            conditions.push({
+                scopeType: "SECTION" as any,
+                scopeId: { in: sectionIds },
+            });
         const nodeIds = await getNodeIdsForSections(sectionIds);
-        if (nodeIds.length) conditions.push({ scopeType: "NODE" as any, scopeId: { in: nodeIds } });
+        if (nodeIds.length)
+            conditions.push({
+                scopeType: "NODE" as any,
+                scopeId: { in: nodeIds },
+            });
     } else if (scopeType === "TOPIC" && scopeId) {
         conditions.push({ scopeType: "TOPIC" as any, scopeId });
         const lessons = await prisma.lesson.findMany({
@@ -161,17 +194,31 @@ async function expandScopeToQuestionWhere(
             select: { id: true },
         });
         const lessonIds = lessons.map((l) => l.id);
-        if (lessonIds.length) conditions.push({ scopeType: "LESSON" as any, scopeId: { in: lessonIds } });
+        if (lessonIds.length)
+            conditions.push({
+                scopeType: "LESSON" as any,
+                scopeId: { in: lessonIds },
+            });
         const rootSections = lessonIds.length
             ? await prisma.section.findMany({
                   where: { lessonId: { in: lessonIds } },
                   select: { id: true },
               })
             : [];
-        const sectionIds = await expandSectionIds(rootSections.map((s) => s.id));
-        if (sectionIds.length) conditions.push({ scopeType: "SECTION" as any, scopeId: { in: sectionIds } });
+        const sectionIds = await expandSectionIds(
+            rootSections.map((s) => s.id),
+        );
+        if (sectionIds.length)
+            conditions.push({
+                scopeType: "SECTION" as any,
+                scopeId: { in: sectionIds },
+            });
         const nodeIds = await getNodeIdsForSections(sectionIds);
-        if (nodeIds.length) conditions.push({ scopeType: "NODE" as any, scopeId: { in: nodeIds } });
+        if (nodeIds.length)
+            conditions.push({
+                scopeType: "NODE" as any,
+                scopeId: { in: nodeIds },
+            });
     } else if (scopeType === "GRADE" && scopeId) {
         conditions.push({ scopeType: "GRADE" as any, scopeId });
         const topics = await prisma.topic.findMany({
@@ -179,7 +226,11 @@ async function expandScopeToQuestionWhere(
             select: { id: true },
         });
         const topicIds = topics.map((t) => t.id);
-        if (topicIds.length) conditions.push({ scopeType: "TOPIC" as any, scopeId: { in: topicIds } });
+        if (topicIds.length)
+            conditions.push({
+                scopeType: "TOPIC" as any,
+                scopeId: { in: topicIds },
+            });
         const lessons = topicIds.length
             ? await prisma.lesson.findMany({
                   where: { topicId: { in: topicIds } },
@@ -187,17 +238,31 @@ async function expandScopeToQuestionWhere(
               })
             : [];
         const lessonIds = lessons.map((l) => l.id);
-        if (lessonIds.length) conditions.push({ scopeType: "LESSON" as any, scopeId: { in: lessonIds } });
+        if (lessonIds.length)
+            conditions.push({
+                scopeType: "LESSON" as any,
+                scopeId: { in: lessonIds },
+            });
         const rootSections = lessonIds.length
             ? await prisma.section.findMany({
                   where: { lessonId: { in: lessonIds } },
                   select: { id: true },
               })
             : [];
-        const sectionIds = await expandSectionIds(rootSections.map((s) => s.id));
-        if (sectionIds.length) conditions.push({ scopeType: "SECTION" as any, scopeId: { in: sectionIds } });
+        const sectionIds = await expandSectionIds(
+            rootSections.map((s) => s.id),
+        );
+        if (sectionIds.length)
+            conditions.push({
+                scopeType: "SECTION" as any,
+                scopeId: { in: sectionIds },
+            });
         const nodeIds = await getNodeIdsForSections(sectionIds);
-        if (nodeIds.length) conditions.push({ scopeType: "NODE" as any, scopeId: { in: nodeIds } });
+        if (nodeIds.length)
+            conditions.push({
+                scopeType: "NODE" as any,
+                scopeId: { in: nodeIds },
+            });
     }
 
     if (conditions.length === 0) return { isActive: true };
@@ -250,13 +315,20 @@ async function autoPickQuestions(
     const pools: Record<number, number[]> = { 1: [], 2: [], 3: [], 4: [] };
     for (let d = 1; d <= 4; d++) {
         const qs = await prisma.question.findMany({
-            where: { ...scopeWhere, difficulty: d, answerDataJson: { not: Prisma.DbNull } },
+            where: {
+                ...scopeWhere,
+                difficulty: d,
+                answerDataJson: { not: Prisma.DbNull },
+            },
             select: { id: true },
         });
         pools[d] = shuffle(qs.map((q) => q.id));
     }
 
-    const totalAvailable = Object.values(pools).reduce((a, b) => a + b.length, 0);
+    const totalAvailable = Object.values(pools).reduce(
+        (a, b) => a + b.length,
+        0,
+    );
 
     // If questionCount is null, take all
     if (questionCount == null) {
@@ -412,24 +484,26 @@ export class TestServiceV2 {
             // ── Auto-pick path ──
             // Resolve preset
             if (req.presetId) {
-                preset = await prisma.testPreset.findUnique({ where: { id: req.presetId } });
+                preset = await prisma.testPreset.findUnique({
+                    where: { id: req.presetId },
+                });
             }
             if (!preset && scopeType && purposeType) {
-                const defaultEntry = await prisma.scopeTestPresetDefault.findUnique({
-                    where: {
-                        scopeType_purposeType: {
-                            scopeType: scopeType as any,
-                            purposeType: purposeType as any,
+                const defaultEntry =
+                    await prisma.scopeTestPresetDefault.findUnique({
+                        where: {
+                            scopeType_purposeType: {
+                                scopeType: scopeType as any,
+                                purposeType: purposeType as any,
+                            },
                         },
-                    },
-                    include: { defaultTestPreset: true },
-                });
+                        include: { defaultTestPreset: true },
+                    });
                 preset = defaultEntry?.defaultTestPreset ?? null;
             }
             if (!preset && scopeType) {
                 preset = await prisma.testPreset.findFirst({
                     where: {
-                        
                         purposeType: purposeType as any,
                     },
                 });
@@ -443,13 +517,15 @@ export class TestServiceV2 {
                     timeLimit: purposeType === "EXAM" ? 15 : null,
                     difficultyRatioJson: { 1: 40, 2: 30, 3: 20, 4: 10 },
                     purposeType,
-                    
                 };
             }
 
             purposeType = preset.purposeType ?? purposeType;
 
-            const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
+            const scopeWhere = await expandScopeToQuestionWhere(
+                scopeType,
+                scopeId,
+            );
             sequence = await autoPickQuestions(
                 scopeWhere,
                 preset.questionCount,
@@ -457,9 +533,12 @@ export class TestServiceV2 {
             );
 
             if (sequence.length === 0) {
-                throw serviceError("No questions available in this scope", "NO_QUESTIONS");
+                throw serviceError(
+                    "No questions available in this scope",
+                    "NO_QUESTIONS",
+                );
             }
-        } 
+        }
 
         // Compute attempt number
         const prevCount = testId
@@ -467,7 +546,10 @@ export class TestServiceV2 {
             : await prisma.userTestLog.count({
                   where: {
                       userId,
-                      generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
+                      generatedFromPresetId:
+                          preset?.id !== "default-fallback"
+                              ? preset?.id
+                              : undefined,
                       scopeType: scopeType as any,
                       scopeId,
                       testId: null,
@@ -476,7 +558,9 @@ export class TestServiceV2 {
 
         const now = new Date();
         const timeLimit = preset?.timeLimit ?? null;
-        const expiresAt = timeLimit ? new Date(now.getTime() + timeLimit * 60000) : null;
+        const expiresAt = timeLimit
+            ? new Date(now.getTime() + timeLimit * 60000)
+            : null;
 
         const log = await prisma.userTestLog.create({
             data: {
@@ -522,7 +606,10 @@ export class TestServiceV2 {
             data: { draftAnswerJson: draftAnswerJson as any },
         });
         if (res.count === 0) {
-            throw serviceError("Test log not found or not in progress", "NOT_FOUND");
+            throw serviceError(
+                "Test log not found or not in progress",
+                "NOT_FOUND",
+            );
         }
     }
 
@@ -534,20 +621,32 @@ export class TestServiceV2 {
         finalDraft: DraftAnswerEntry[],
     ): Promise<FinishTestV2Response> {
         return await prisma.$transaction(async (tx) => {
-            const log = await tx.userTestLog.findUnique({ where: { id: logId } });
+            const log = await tx.userTestLog.findUnique({
+                where: { id: logId },
+            });
             if (!log) throw serviceError("Test log not found", "NOT_FOUND");
-            if (log.userId !== userId) throw serviceError("Unauthorized", "UNAUTHORIZED");
+            if (log.userId !== userId)
+                throw serviceError("Unauthorized", "UNAUTHORIZED");
             if (log.status === "COMPLETED" || log.submittedAt) {
-                throw serviceError("Test already submitted", "ALREADY_SUBMITTED");
+                throw serviceError(
+                    "Test already submitted",
+                    "ALREADY_SUBMITTED",
+                );
             }
 
             // Atomic lock
             const updateRes = await tx.userTestLog.updateMany({
                 where: { id: logId, submittedAt: null },
-                data: { submittedAt: new Date(), draftAnswerJson: finalDraft as any },
+                data: {
+                    submittedAt: new Date(),
+                    draftAnswerJson: finalDraft as any,
+                },
             });
             if (updateRes.count === 0) {
-                throw serviceError("Test already submitted", "ALREADY_SUBMITTED");
+                throw serviceError(
+                    "Test already submitted",
+                    "ALREADY_SUBMITTED",
+                );
             }
 
             const seq = (log.questionSequenceJson as number[]) ?? [];
@@ -574,16 +673,25 @@ export class TestServiceV2 {
                 finalDraft,
             );
 
-            const totalScoreAwarded = scoreResults.reduce((a, r) => a + r.scoreAwarded, 0);
-            const totalMaxScore = scoreResults.reduce((a, r) => a + r.maxScore, 0);
+            const totalScoreAwarded = scoreResults.reduce(
+                (a, r) => a + r.scoreAwarded,
+                0,
+            );
+            const totalMaxScore = scoreResults.reduce(
+                (a, r) => a + r.maxScore,
+                0,
+            );
             const isPassed =
                 totalMaxScore > 0
-                    ? (totalScoreAwarded / totalMaxScore) * 100 >= (log.passThreshold ?? 80)
+                    ? (totalScoreAwarded / totalMaxScore) * 100 >=
+                      (log.passThreshold ?? 80)
                     : false;
 
             // Create permanent UserAnswerLog entries
             for (const r of scoreResults) {
-                const draft = finalDraft.find((d) => d.questionId === r.questionId);
+                const draft = finalDraft.find(
+                    (d) => d.questionId === r.questionId,
+                );
                 await tx.userAnswerLog.create({
                     data: {
                         userTestLogId: logId,
@@ -592,7 +700,9 @@ export class TestServiceV2 {
                         answerDataJson: (draft?.answerData ?? {}) as any,
                         scoreAwarded: r.scoreAwarded,
                         maxScore: r.maxScore,
-                        answeredAt: draft?.answeredAt ? new Date(draft.answeredAt) : new Date(),
+                        answeredAt: draft?.answeredAt
+                            ? new Date(draft.answeredAt)
+                            : new Date(),
                     },
                 });
             }
@@ -605,7 +715,12 @@ export class TestServiceV2 {
                     maxScore: totalMaxScore,
                     isPassed,
                     status: "COMPLETED",
-                    score: totalMaxScore > 0 ? Math.floor((totalScoreAwarded / totalMaxScore) * 100) : 0,
+                    score:
+                        totalMaxScore > 0
+                            ? Math.floor(
+                                  (totalScoreAwarded / totalMaxScore) * 100,
+                              )
+                            : 0,
                 },
             });
 
@@ -644,7 +759,9 @@ export class TestServiceV2 {
             }
 
             // Build response
-            const updatedLog = await tx.userTestLog.findUnique({ where: { id: logId } });
+            const updatedLog = await tx.userTestLog.findUnique({
+                where: { id: logId },
+            });
             const title = await resolveTestTitle(updatedLog);
             const answerLogs: UserAnswerLogV2Dto[] = scoreResults.map((r) => ({
                 questionId: r.questionId,
@@ -671,7 +788,10 @@ export class TestServiceV2 {
             data: { status: "ABANDONED" },
         });
         if (res.count === 0) {
-            throw serviceError("Test log not found or not in progress", "NOT_FOUND");
+            throw serviceError(
+                "Test log not found or not in progress",
+                "NOT_FOUND",
+            );
         }
     }
 
@@ -710,9 +830,12 @@ export class TestServiceV2 {
         logId: string,
         userId: string,
     ): Promise<TestAttemptDetailV2Response> {
-        const log = await prisma.userTestLog.findUnique({ where: { id: logId } });
+        const log = await prisma.userTestLog.findUnique({
+            where: { id: logId },
+        });
         if (!log) throw serviceError("Test log not found", "NOT_FOUND");
-        if (log.userId !== userId) throw serviceError("Unauthorized", "UNAUTHORIZED");
+        if (log.userId !== userId)
+            throw serviceError("Unauthorized", "UNAUTHORIZED");
 
         const answerLogRows = await prisma.userAnswerLog.findMany({
             where: { userTestLogId: logId },
@@ -725,7 +848,8 @@ export class TestServiceV2 {
             userAnswerData: row.answerDataJson as any,
             scoreAwarded: row.scoreAwarded ?? 0,
             maxScore: row.maxScore ?? 0,
-            correctAnswerData: (row.question.answerDataJson ?? {}) as unknown as AnswerData,
+            correctAnswerData: (row.question.answerDataJson ??
+                {}) as unknown as AnswerData,
             question: toQuestionDto(row.question),
         }));
 
@@ -771,18 +895,21 @@ export class TestServiceV2 {
         } else {
             // ── Auto-pick path ──
             if (req.presetId) {
-                preset = await prisma.testPreset.findUnique({ where: { id: req.presetId } });
+                preset = await prisma.testPreset.findUnique({
+                    where: { id: req.presetId },
+                });
             }
             if (!preset && scopeType && purposeType) {
-                const defaultEntry = await prisma.scopeTestPresetDefault.findUnique({
-                    where: {
-                        scopeType_purposeType: {
-                            scopeType: scopeType as any,
-                            purposeType: purposeType as any,
+                const defaultEntry =
+                    await prisma.scopeTestPresetDefault.findUnique({
+                        where: {
+                            scopeType_purposeType: {
+                                scopeType: scopeType as any,
+                                purposeType: purposeType as any,
+                            },
                         },
-                    },
-                    include: { defaultTestPreset: true },
-                });
+                        include: { defaultTestPreset: true },
+                    });
                 preset = defaultEntry?.defaultTestPreset ?? null;
             }
             if (!preset && scopeType) {
@@ -805,7 +932,10 @@ export class TestServiceV2 {
 
             purposeType = preset.purposeType ?? purposeType;
 
-            const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
+            const scopeWhere = await expandScopeToQuestionWhere(
+                scopeType,
+                scopeId,
+            );
             const sequence = await autoPickQuestions(
                 scopeWhere,
                 preset.questionCount,
@@ -819,7 +949,8 @@ export class TestServiceV2 {
             scopeType,
             scopeId,
             purposeType,
-            generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
+            generatedFromPresetId:
+                preset?.id !== "default-fallback" ? preset?.id : undefined,
         };
         const title = await resolveTestTitle(mockLog);
         const timeLimit = preset?.timeLimit ?? null;
@@ -876,7 +1007,10 @@ export class TestServiceV2 {
         });
         // Maintain sequence order
         const qMap = new Map(questions.map((q) => [q.id, q]));
-        return ids.map((id) => qMap.get(id)).filter(Boolean).map(toQuestionDto);
+        return ids
+            .map((id) => qMap.get(id))
+            .filter(Boolean)
+            .map(toQuestionDto);
     }
 }
 

@@ -9,7 +9,8 @@ interface RankPathSectionProps {
 }
 
 const text = {
-    routeTitle: "\u004c\u1ed9\u0020\u0074\u0072\u00ec\u006e\u0068\u0020\u0074\u0068\u0103\u006e\u0067\u0020\u0068\u1ea1\u006e\u0067",
+    routeTitle:
+        "\u004c\u1ed9\u0020\u0074\u0072\u00ec\u006e\u0068\u0020\u0074\u0068\u0103\u006e\u0067\u0020\u0068\u1ea1\u006e\u0067",
 };
 
 export default function RankPathSection({ ranks }: RankPathSectionProps) {
@@ -29,6 +30,16 @@ export default function RankPathSection({ ranks }: RankPathSectionProps) {
 
 const styles = StyleSheet.create({
     routeSection: { gap: 12 },
-    sectionTitle: { color: "#1D1B18", fontSize: 16, lineHeight: 24, fontWeight: "700" },
-    rankRoute: { flexDirection: "row", justifyContent: "space-between", minWidth: "100%", paddingVertical: 4 },
+    sectionTitle: {
+        color: "#1D1B18",
+        fontSize: 16,
+        lineHeight: 24,
+        fontWeight: "700",
+    },
+    rankRoute: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        minWidth: "100%",
+        paddingVertical: 4,
+    },
 });

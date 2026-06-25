@@ -74,7 +74,10 @@ function scoreChoose(
         }
     }
 
-    return { scoreAwarded: getPartialScore(totalOptions, correctHits), maxScore };
+    return {
+        scoreAwarded: getPartialScore(totalOptions, correctHits),
+        maxScore,
+    };
 }
 
 function scoreFill(
@@ -111,7 +114,10 @@ function scoreMatch(
         let correctLeft = "";
         let correctRight = "";
         if (rawPair) {
-            if (typeof rawPair.left === "string" && typeof rawPair.right === "string") {
+            if (
+                typeof rawPair.left === "string" &&
+                typeof rawPair.right === "string"
+            ) {
                 correctLeft = rawPair.left;
                 correctRight = rawPair.right;
             } else {
@@ -177,7 +183,8 @@ export function scoreQuestion(
         type,
         scoreAwarded: result.scoreAwarded,
         maxScore: result.maxScore,
-        isCorrect: result.scoreAwarded >= result.maxScore && result.maxScore > 0,
+        isCorrect:
+            result.scoreAwarded >= result.maxScore && result.maxScore > 0,
         userAnswerData: userAnswer,
         correctAnswerData: answerData,
     };

@@ -1,10 +1,7 @@
 // services/progressEngine.ts — Central engine for all progress mutations
 import { prisma } from "@history-app/shared";
 import { Prisma } from "@prisma/client";
-import {
-    ProgressEventType,
-    ProgressConsequence,
-} from "../types/progressTypes";
+import { ProgressEventType, ProgressConsequence } from "../types/progressTypes";
 
 export class ProgressEngine {
     /**
@@ -18,7 +15,8 @@ export class ProgressEngine {
     ): Promise<ProgressConsequence[]> {
         const consequences: ProgressConsequence[] = [];
 
-        const hasRelevantQuestions = await this.nodeHasRelevantQuestions(nodeId);
+        const hasRelevantQuestions =
+            await this.nodeHasRelevantQuestions(nodeId);
 
         await prisma.userNodeProgress.upsert({
             where: {
@@ -47,8 +45,10 @@ export class ProgressEngine {
                     data: { nodeCompletedAt: new Date() },
                 });
 
-                const completionConsequences =
-                    await this.handleNodeCompletion(userId, nodeId);
+                const completionConsequences = await this.handleNodeCompletion(
+                    userId,
+                    nodeId,
+                );
                 consequences.push(...completionConsequences);
             }
         }
@@ -73,7 +73,9 @@ export class ProgressEngine {
 
         consequences.push({
             eventType: ProgressEventType.TEST_PASSED,
-            message: testTitle ? `Passed test: ${testTitle}` : "Test passed successfully!",
+            message: testTitle
+                ? `Passed test: ${testTitle}`
+                : "Test passed successfully!",
             xpGained: 0,
             goldGained: 0,
         });
@@ -99,8 +101,11 @@ export class ProgressEngine {
                     data: { nodeCompletedAt: new Date() },
                 });
 
-                const completionConsequences =
-                    await this.handleNodeCompletion(userId, nodeId, tx);
+                const completionConsequences = await this.handleNodeCompletion(
+                    userId,
+                    nodeId,
+                    tx,
+                );
                 consequences.push(...completionConsequences);
             }
         }
@@ -123,7 +128,14 @@ export class ProgressEngine {
     ): Promise<ProgressConsequence[]> {
         const consequences: ProgressConsequence[] = [];
 
-        const ordinal = attemptNumber === 1 ? "1st" : attemptNumber === 2 ? "2nd" : attemptNumber === 3 ? "3rd" : `${attemptNumber}th`;
+        const ordinal =
+            attemptNumber === 1
+                ? "1st"
+                : attemptNumber === 2
+                  ? "2nd"
+                  : attemptNumber === 3
+                    ? "3rd"
+                    : `${attemptNumber}th`;
         consequences.push({
             eventType: ProgressEventType.TEST_PASSED,
             message: `Completed test${testTitle ? ` "${testTitle}"` : ""} for the ${ordinal} time`,
