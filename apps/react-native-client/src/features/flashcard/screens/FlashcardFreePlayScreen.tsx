@@ -1,8 +1,11 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { FlashcardCard } from "../components/FlashcardCard";
 import { FreeFlashcardControls } from "../components/FreeFlashcardControls";
+import { CustomModal } from "@/components/Modal";
 import { useGetFlashcardsByLessonQuery, useGetFlashcardsBySectionQuery, useGetFlashcardsByNodeQuery } from "../flashcardApiSlice";
 
 interface FlashcardFreePlayScreenProps {
@@ -12,8 +15,11 @@ interface FlashcardFreePlayScreenProps {
 }
 
 export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }: FlashcardFreePlayScreenProps) {
+    const router = useRouter();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
+    const [memorizedSet, setMemorizedSet] = useState<Set<string>>(new Set());
+    const [showExitConfirm, setShowExitConfirm] = useState(false);
 
     // Fetch flashcards from API
     const {
@@ -67,6 +73,51 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
         }, 150);
     };
 
+    const handleJumpTo = (index: number) => {
+        if (index === currentIndex) return;
+        setIsFlipped(false);
+        setTimeout(() => {
+            setCurrentIndex(index);
+        }, 150);
+    };
+
+    const handleMarkMemorized = () => {
+        if (!currentCard) return;
+        setMemorizedSet((prev) => {
+            const next = new Set(prev);
+            next.add(currentCard.id);
+            return next;
+        });
+    };
+
+    const handleMarkNotMemorized = () => {
+        if (!currentCard) return;
+        setMemorizedSet((prev) => {
+            const next = new Set(prev);
+            next.delete(currentCard.id);
+            return next;
+        });
+    };
+
+    const handleExit = () => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace("/(tabs)/lesson" as any);
+        }
+    };
+
+    const handleComplete = () => {
+        const allMemorized = cards ? cards.every((c) => memorizedSet.has(c.id)) : false;
+        if (allMemorized) {
+            handleExit();
+        } else {
+            setShowExitConfirm(true);
+        }
+    };
+
+    const isCurrentMemorized = currentCard ? memorizedSet.has(currentCard.id) : false;
+
     // --- Loading state ---
     if (isLoading) {
         return (
@@ -105,6 +156,22 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
 
     return (
         <View style={styles.container}>
+            {/* --- Complete Button (top right) --- */}
+            <View style={styles.topBar}>
+                <View style={styles.topBarSpacer} />
+                <Text style={styles.cardCounterTopText}>
+                    {currentIndex + 1} / {totalCount}
+                </Text>
+                <TouchableOpacity
+                    style={styles.completeButton}
+                    onPress={handleComplete}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.completeButtonText}>Hoàn thành</Text>
+                    <Ionicons name="checkmark-circle" size={18} color="#FFF" />
+                </TouchableOpacity>
+            </View>
+
             {/* --- Flashcard Display --- */}
             {currentCard ? (
                 <View style={styles.cardArea}>
@@ -113,11 +180,6 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
                         isFlipped={isFlipped}
                         onFlip={handleFlip}
                     />
-
-                    {/* Card counter indicator */}
-                    <Text style={styles.cardCounterText}>
-                        {currentIndex + 1} / {totalCount}
-                    </Text>
                 </View>
             ) : (
                 <View style={styles.emptyContainer}>
@@ -131,26 +193,52 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
                     onPrev={handlePrev}
                     onNext={handleNext}
                     onFlip={handleFlip}
+                    onMarkMemorized={handleMarkMemorized}
+                    onMarkNotMemorized={handleMarkNotMemorized}
                     isFlipped={isFlipped}
                     hasPrev={currentIndex > 0}
                     hasNext={currentIndex < totalCount - 1}
+                    isMemorized={isCurrentMemorized}
                 />
 
                 {/* --- Dot indicators --- */}
                 <View style={styles.dotsContainer}>
-                    {cards.map((_, index) => (
-                        <View
-                            key={index}
-                            style={[
-                                styles.dot,
-                                index === currentIndex
-                                    ? styles.dotActive
-                                    : styles.dotInactive,
-                            ]}
-                        />
-                    ))}
+                    {cards.map((card, index) => {
+                        const isActive = index === currentIndex;
+                        const isCardMemorized = memorizedSet.has(card.id);
+
+                        return (
+                            <TouchableOpacity
+                                key={card.id}
+                                style={[
+                                    styles.dot,
+                                    isActive
+                                        ? styles.dotActive
+                                        : isCardMemorized
+                                        ? styles.dotMemorized
+                                        : styles.dotInactive,
+                                ]}
+                                onPress={() => handleJumpTo(index)}
+                                activeOpacity={0.7}
+                            />
+                        );
+                    })}
                 </View>
             </View>
+
+            {/* --- Exit Confirmation Modal --- */}
+            <CustomModal
+                visible={showExitConfirm}
+                title="Chưa hoàn thành"
+                message="Bạn còn thẻ chưa học thuộc. Bạn có muốn thoát không?"
+                confirmText="Thoát"
+                cancelText="Tiếp tục học"
+                onConfirm={() => {
+                    setShowExitConfirm(false);
+                    handleExit();
+                }}
+                onCancel={() => setShowExitConfirm(false)}
+            />
         </View>
     );
 }
@@ -163,18 +251,46 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingBottom: 24,
     },
+    topBar: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 4,
+    },
+    topBarSpacer: {
+        flex: 1,
+    },
+    cardCounterTopText: {
+        fontSize: 15,
+        color: "#5856D6",
+        fontWeight: "700",
+        textAlign: "center",
+        flex: 1,
+    },
+    completeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: "#5856D6",
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        flex: 1,
+        justifyContent: "center",
+    },
+    completeButtonText: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#FFF",
+    },
     cardArea: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
-    },
-    cardCounterText: {
-        fontSize: 15,
-        color: "#5856D6",
-        fontWeight: "700",
-        marginTop: 8,
-        textAlign: "center",
     },
     footerContainer: {
         width: "100%",
@@ -200,6 +316,9 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
+    },
+    dotMemorized: {
+        backgroundColor: "#34C759",
     },
     dotInactive: {
         backgroundColor: "#D1D1D6",

@@ -6,92 +6,147 @@ interface FreeFlashcardControlsProps {
     onPrev: () => void;
     onNext: () => void;
     onFlip: () => void;
+    onMarkMemorized: () => void;
+    onMarkNotMemorized: () => void;
     isFlipped: boolean;
     hasPrev: boolean;
     hasNext: boolean;
+    isMemorized: boolean;
 }
 
 export function FreeFlashcardControls({
     onPrev,
     onNext,
     onFlip,
+    onMarkMemorized,
+    onMarkNotMemorized,
     isFlipped,
     hasPrev,
     hasNext,
+    isMemorized,
 }: FreeFlashcardControlsProps) {
     return (
         <View style={styles.container}>
-            {/* --- Previous Button --- */}
-            <TouchableOpacity
-                style={[
-                    styles.circleButton,
-                    styles.navButton,
-                    !hasPrev && styles.disabledButton,
-                ]}
-                onPress={onPrev}
-                activeOpacity={0.7}
-                disabled={!hasPrev}
-            >
-                <Ionicons
-                    name="chevron-back"
-                    size={28}
-                    color={hasPrev ? "#5856D6" : "#C7C7CC"}
-                />
-            </TouchableOpacity>
+            {/* --- Memorize row (above nav, flanking sides) --- */}
+            <View style={styles.memorizeRow}>
+                {/* --- X (Chưa thuộc) Button --- */}
+                <TouchableOpacity
+                    style={[
+                        styles.circleButton,
+                        isMemorized
+                            ? styles.notMemorizedButton
+                            : styles.notMemorizedButtonInactive,
+                    ]}
+                    onPress={onMarkNotMemorized}
+                    activeOpacity={0.7}
+                    disabled={!isMemorized}
+                >
+                    <Ionicons
+                        name="close"
+                        size={24}
+                        color={isMemorized ? "#E53E3E" : "#C7C7CC"}
+                    />
+                </TouchableOpacity>
 
-            {/* --- Flip Button --- */}
-            <TouchableOpacity
-                style={styles.flipButton}
-                onPress={onFlip}
-                activeOpacity={0.7}
-            >
-                <Text style={styles.flipButtonText}>
-                    {isFlipped ? "Lật lại" : "Lật"}
-                </Text>
-            </TouchableOpacity>
+                {/* --- ✓ (Đã thuộc) Button --- */}
+                <TouchableOpacity
+                    style={[
+                        styles.circleButton,
+                        isMemorized
+                            ? styles.memorizedButtonActive
+                            : styles.memorizedButton,
+                    ]}
+                    onPress={onMarkMemorized}
+                    activeOpacity={0.7}
+                    disabled={isMemorized}
+                >
+                    <Ionicons
+                        name="checkmark"
+                        size={24}
+                        color={isMemorized ? "#FFF" : "#0A7E56"}
+                    />
+                </TouchableOpacity>
+            </View>
 
-            {/* --- Next Button --- */}
-            <TouchableOpacity
-                style={[
-                    styles.circleButton,
-                    styles.navButton,
-                    !hasNext && styles.disabledButton,
-                ]}
-                onPress={onNext}
-                activeOpacity={0.7}
-                disabled={!hasNext}
-            >
-                <Ionicons
-                    name="chevron-forward"
-                    size={28}
-                    color={hasNext ? "#5856D6" : "#C7C7CC"}
-                />
-            </TouchableOpacity>
+            {/* --- Navigation row (below memorize row) --- */}
+            <View style={styles.navRow}>
+                {/* --- Previous Button --- */}
+                <TouchableOpacity
+                    style={[
+                        styles.circleButton,
+                        styles.navButton,
+                        !hasPrev && styles.disabledButton,
+                    ]}
+                    onPress={onPrev}
+                    activeOpacity={0.7}
+                    disabled={!hasPrev}
+                >
+                    <Ionicons
+                        name="chevron-back"
+                        size={24}
+                        color={hasPrev ? "#5856D6" : "#C7C7CC"}
+                    />
+                </TouchableOpacity>
+
+                {/* --- Flip Button --- */}
+                <TouchableOpacity
+                    style={styles.flipButton}
+                    onPress={onFlip}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.flipButtonText}>
+                        {isFlipped ? "Lật lại" : "Lật"}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* --- Next Button --- */}
+                <TouchableOpacity
+                    style={[
+                        styles.circleButton,
+                        styles.navButton,
+                        !hasNext && styles.disabledButton,
+                    ]}
+                    onPress={onNext}
+                    activeOpacity={0.7}
+                    disabled={!hasNext}
+                >
+                    <Ionicons
+                        name="chevron-forward"
+                        size={24}
+                        color={hasNext ? "#5856D6" : "#C7C7CC"}
+                    />
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flexDirection: "row",
+        width: "100%",
+        paddingHorizontal: 24,
         alignItems: "center",
-        justifyContent: "center",
-        gap: 20,
-        marginVertical: 15,
+        gap: 16,
+        marginVertical: 12,
+    },
+    memorizeRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
         width: "100%",
         paddingHorizontal: 16,
     },
+    navRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 16,
+    },
     circleButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        elevation: 3,
     },
     navButton: {
         backgroundColor: "#FFF",
@@ -100,28 +155,41 @@ const styles = StyleSheet.create({
     },
     disabledButton: {
         opacity: 0.5,
-        shadowOpacity: 0,
-        elevation: 0,
+    },
+    notMemorizedButton: {
+        backgroundColor: "#FEE2E2",
+        borderWidth: 1,
+        borderColor: "#FCA5A5",
+    },
+    notMemorizedButtonInactive: {
+        backgroundColor: "#F3F4F6",
+        borderWidth: 1,
+        borderColor: "#E5E5EA",
+        opacity: 0.5,
+    },
+    memorizedButton: {
+        backgroundColor: "#D1FAE5",
+        borderWidth: 1,
+        borderColor: "#6EE7B7",
+    },
+    memorizedButtonActive: {
+        backgroundColor: "#0A7E56",
     },
     flipButton: {
-        paddingHorizontal: 36,
-        paddingVertical: 14,
+        paddingHorizontal: 28,
+        paddingVertical: 12,
         borderRadius: 24,
         borderWidth: 1,
         borderColor: "#AEAEB2",
         backgroundColor: "#FFF",
         justifyContent: "center",
         alignItems: "center",
-        minWidth: 120,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 1,
+        minWidth: 100,
     },
     flipButtonText: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "600",
         color: "#5856D6",
     },
 });
+
