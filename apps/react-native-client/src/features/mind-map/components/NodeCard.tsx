@@ -4,10 +4,12 @@ import Animated, {
     Easing,
     interpolate,
     useAnimatedProps,
+    useAnimatedReaction,
     useSharedValue,
     withDelay,
     withSpring,
     withTiming,
+    type SharedValue,
 } from "react-native-reanimated";
 import type { LayoutNode } from "../types";
 import { animationConfig, NODE_CONFIGS } from "../constants";
@@ -18,7 +20,8 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 interface NodeCardProps {
     node: LayoutNode;
     center: { x: number; y: number };
-    activeNodeId: string | null;
+    // Shared value so dim/highlight runs on the UI thread without re-rendering JS.
+    activeNodeId: SharedValue<string | null>;
     animateEntry?: boolean;
 }
 
@@ -74,13 +77,15 @@ function CollapseIcon({
     );
 }
 
-export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeId, animateEntry = true }: NodeCardProps) {
+export const NodeCard = React.memo(function NodeCard({
+    node,
+    center,
+    activeNodeId,
+    animateEntry = true,
+}: NodeCardProps) {
     const enter = useSharedValue(0);
     const focus = useSharedValue(0);
     const didEnter = useRef(false);
-    const hasActive = activeNodeId !== null;
-    const isActive = activeNodeId === node.id;
-    const isRelated = isActive || node.parentId === activeNodeId || node.childIds.includes(activeNodeId ?? "");
 
     const config = NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
     const hasChildren = node.childIds.length > 0;
@@ -111,14 +116,29 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [node.id]);
 
-    useEffect(() => {
-        focus.value = withTiming(isActive ? 1 : 0, {
-            duration: 160,
-            easing: Easing.out(Easing.cubic),
-        });
-    }, [focus, isActive]);
+    // Drive the focus scale spring on the UI thread from the shared activeNodeId.
+    useAnimatedReaction(
+        () => activeNodeId.value === node.id,
+        (isActive, wasActive) => {
+            if (isActive === wasActive) return;
+            focus.value = withTiming(isActive ? 1 : 0, {
+                duration: 160,
+                easing: Easing.out(Easing.cubic),
+            });
+        },
+        [focus],
+    );
 
     const animatedProps = useAnimatedProps(() => {
+        // Dim/highlight on the UI thread from the shared activeNodeId — no JS
+        // re-render when a node is pressed/hovered (this was the jank cause).
+        const active = activeNodeId.value;
+        const isActive = active === node.id;
+        const isRelated =
+            isActive ||
+            node.parentId === active ||
+            (active !== null && node.childIds.includes(active));
+
         const nodeCenterX = node.x + node.width / 2;
         const nodeCenterY = node.y + node.height / 2;
         const startX = (center.x - nodeCenterX) * animationConfig.nodeStartOffset;
@@ -132,7 +152,9 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
         const tx = interpolate(enter.value, [0, 1], [startX, 0]);
         const ty = interpolate(enter.value, [0, 1], [startY, 0]);
         const dimOpacity =
-            hasActive && !isRelated ? animationConfig.nodeDimOpacity : animationConfig.nodeIdleOpacity;
+            active !== null && !isRelated
+                ? animationConfig.nodeDimOpacity
+                : animationConfig.nodeIdleOpacity;
 
         return {
             opacity: enter.value * dimOpacity,
@@ -140,8 +162,9 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
         };
     });
 
-    const glowOpacity = isActive ? 0.26 : 0.08;
-    const shadowOpacity = isActive ? 0.18 : 0.07;
+    // Glow/shadow/border use idle values. The active node is signalled by the
+    // focus scale-pulse + the dimming of unrelated nodes (both on the UI thread),
+    // so we don't need a per-node JS state change (which was the jank cause).
 
     if (node.depth === 0) {
         return (
@@ -154,7 +177,7 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                     rx={config.rx + 8}
                     ry={config.rx + 8}
                     fill="#7C3AED"
-                    opacity={glowOpacity}
+                    opacity={0.08}
                 />
                 <Rect
                     x={node.x + 5}
@@ -164,7 +187,7 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                     rx={config.rx}
                     ry={config.rx}
                     fill="#312E81"
-                    opacity={shadowOpacity}
+                    opacity={0.07}
                 />
                 <Rect
                     x={node.x}
@@ -221,7 +244,7 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                     rx={config.rx + 7}
                     ry={config.rx + 7}
                     fill={node.accentColor}
-                    opacity={glowOpacity}
+                    opacity={0.08}
                 />
                 <Rect
                     x={node.x + 4}
@@ -231,7 +254,7 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                     rx={config.rx}
                     ry={config.rx}
                     fill="#0F172A"
-                    opacity={shadowOpacity}
+                    opacity={0.07}
                 />
                 <Rect
                     x={node.x}
@@ -250,8 +273,8 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                     rx={config.rx}
                     ry={config.rx}
                     fill={node.color}
-                    stroke={isActive ? node.accentColor : node.borderColor}
-                    strokeWidth={isActive ? 1.4 : 1}
+                    stroke={node.borderColor}
+                    strokeWidth={1}
                 />
                 <Rect
                     x={node.x + 10}
@@ -307,7 +330,7 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                 rx={config.rx + 6}
                 ry={config.rx + 6}
                 fill={node.accentColor}
-                opacity={glowOpacity}
+                opacity={0.08}
             />
             <Rect
                 x={node.x + 3}
@@ -317,7 +340,7 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                 rx={config.rx}
                 ry={config.rx}
                 fill="#0F172A"
-                opacity={shadowOpacity}
+                opacity={0.07}
             />
             <Rect
                 x={node.x}
@@ -327,8 +350,8 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                 rx={config.rx}
                 ry={config.rx}
                 fill={lightBg}
-                stroke={isActive ? node.accentColor : node.borderColor}
-                strokeWidth={isActive ? 1.25 : 0.9}
+                stroke={node.borderColor}
+                strokeWidth={0.9}
                 opacity={0.99}
             />
             <Circle
@@ -336,7 +359,7 @@ export const NodeCard = React.memo(function NodeCard({ node, center, activeNodeI
                 cy={node.y + node.height / 2}
                 r={3.5}
                 fill={node.accentColor}
-                opacity={isActive ? 0.78 : 0.52}
+                opacity={0.52}
             />
             {lines.map((line, li) => (
                 <SvgText

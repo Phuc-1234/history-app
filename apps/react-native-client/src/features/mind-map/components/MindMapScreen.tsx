@@ -20,7 +20,6 @@ import { Maximize2, ChevronsDownUp, ChevronsUpDown } from "lucide-react-native";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
-    withSpring,
     withTiming,
     Easing,
 } from "react-native-reanimated";
@@ -32,8 +31,6 @@ import {
 } from "react-native-gesture-handler";
 
 import {
-    NODE_CONFIGS,
-    SPRING_CONFIG,
     getScaleLimits,
     MOBILE_BREAKPOINT,
 } from "../constants";
@@ -52,14 +49,6 @@ import { NodeCard } from "./NodeCard";
 
 interface MindMapScreenProps {
     query?: MindMapQuery;
-}
-
-function computeLayout(tree: MindMapNode, collapsedSet: Set<string>) {
-    const maxWidths = measureMaxWidthsPerDepth(tree);
-    const { nodes: raw } = layoutTree(tree, 0, 0, null, collapsedSet, maxWidths);
-    const positioned = applyHorizontalPositions(raw);
-    const normalized = normalizeCoordinates(positioned);
-    return { nodes: normalized, bounds: computeBounds(normalized) };
 }
 
 function collectParentIds(node: MindMapNode, set: Set<string>) {
@@ -127,7 +116,9 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     });
     const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-    const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+    // Shared value: dim/highlight runs on the UI thread, so pressing a node no
+    // longer re-renders the whole node+edge tree (the main jank cause).
+    const activeNodeId = useSharedValue<string | null>(null);
 
     const containerSizeRef = useRef(containerSize);
     containerSizeRef.current = containerSize;
@@ -156,12 +147,25 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         }
     }, [mindMap]);
 
+    // Width-per-depth depends ONLY on the tree shape, not on what's collapsed, so
+    // memoize it on `mindMap` alone — otherwise Expand/Collapse all re-walks the
+    // entire tree every time for no reason.
+    const maxWidths = useMemo(
+        () => (mindMap ? measureMaxWidthsPerDepth(mindMap) : null),
+        [mindMap],
+    );
+
     const { nodes, bounds } = useMemo(
-        () =>
-            mindMap
-                ? computeLayout(mindMap, collapsedNodes)
-                : { nodes: [] as LayoutNode[], bounds: { width: 400, height: 300 } },
-        [mindMap, collapsedNodes],
+        () => {
+            if (!mindMap || !maxWidths) {
+                return { nodes: [] as LayoutNode[], bounds: { width: 400, height: 300 } };
+            }
+            const { nodes: raw } = layoutTree(mindMap, 0, 0, null, collapsedNodes, maxWidths);
+            const positioned = applyHorizontalPositions(raw);
+            const normalized = normalizeCoordinates(positioned);
+            return { nodes: normalized, bounds: computeBounds(normalized) };
+        },
+        [mindMap, maxWidths, collapsedNodes],
     );
 
     const fitScale = useMemo(
@@ -209,9 +213,11 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     ]);
 
     const fitView = useCallback(() => {
-        translateX.value = withSpring(0, SPRING_CONFIG);
-        translateY.value = withSpring(0, SPRING_CONFIG);
-        userScale.value = withSpring(1, SPRING_CONFIG);
+        // Timing (not spring) so the camera settles without overshooting/bouncing.
+        const TIMING = { duration: 300, easing: Easing.out(Easing.cubic) } as const;
+        translateX.value = withTiming(0, TIMING);
+        translateY.value = withTiming(0, TIMING);
+        userScale.value = withTiming(1, TIMING);
         savedScale.value = 1;
         pinchStartScale.value = 1;
         savedTx.value = 0;
@@ -309,9 +315,12 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
             const tx = -fromCenterX * targetScale;
             const ty = -fromCenterY * targetScale;
 
-            translateX.value = withSpring(tx, SPRING_CONFIG);
-            translateY.value = withSpring(ty, SPRING_CONFIG);
-            userScale.value = withSpring(targetScale, SPRING_CONFIG);
+            // Timing (not spring) so the camera glides to the target without the
+            // overshoot/bounce that read as the "khùng nổi / nhảy" jolt on expand.
+            const TIMING = { duration: 300, easing: Easing.out(Easing.cubic) } as const;
+            translateX.value = withTiming(tx, TIMING);
+            translateY.value = withTiming(ty, TIMING);
+            userScale.value = withTiming(targetScale, TIMING);
             savedTx.value = tx;
             savedTy.value = ty;
             savedScale.value = targetScale;
@@ -391,41 +400,113 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         return conns;
     }, [nodes]);
 
+    // Display-space rects for the transparent hit layer. We do NOT render one
+    // Pressable per node — that creates N native views and is the main cause of
+    // jank when "Expand all" mounts dozens of nodes at once on mobile. Instead we
+    // keep a single overlay Pressable and hit-test by coordinates (see below).
+    // The rects are stored in a ref so the tap handler can read the latest set
+    // without re-binding on every layout change.
+    const hitRects = useMemo(() => {
+        if (fitScale === 0) return [];
+        return nodes.map((node) => ({
+            id: node.id,
+            depth: node.depth,
+            x: node.x * fitScale,
+            y: node.y * fitScale,
+            w: node.width * fitScale,
+            h: node.height * fitScale,
+        }));
+    }, [nodes, fitScale]);
+    const hitRectsRef = useRef(hitRects);
+    hitRectsRef.current = hitRects;
+
+    const lastExpandRef = useRef<string | null>(null);
+    // Refs mirror the memoized values so handleNodePress has a STABLE identity
+    // (empty deps). That keeps React.memo(NodeCard) effective: tapping one node
+    // no longer forces every other node to re-render (jank on tap).
+    const collapsedNodesRef = useRef(collapsedNodes);
+    collapsedNodesRef.current = collapsedNodes;
+    const nodesRef = useRef(nodes);
+    nodesRef.current = nodes;
+
     const handleNodePress = useCallback(
         (nodeId: string, depth: number) => {
             if (depth === 0) return;
-            const node = nodes.find((n) => n.id === nodeId);
+            const node = nodesRef.current.find((n) => n.id === nodeId);
             if (!node || node.childIds.length === 0) return;
 
-            const willExpand = collapsedNodes.has(nodeId);
-            toggleCollapse(nodeId);
-
-            // Zoom into the newly revealed direct children.
-            if (willExpand && mindMap) {
-                const nextCollapsed = new Set(collapsedNodes);
-                nextCollapsed.delete(nodeId);
-                const { nodes: nextNodes, bounds: nextBounds } = computeLayout(
-                    mindMap,
-                    nextCollapsed,
-                );
-                const children = nextNodes.filter((n) => n.parentId === nodeId);
-                const box = getNodesBounds(children);
-                if (box) focusOnContentBox(box, nextBounds);
+            // If this tap expands the node, remember it so we can focus its direct
+            // children AFTER the memoized layout recomputes. This avoids running a
+            // second synchronous computeLayout() here on the JS thread (jank on tap).
+            if (collapsedNodesRef.current.has(nodeId)) {
+                lastExpandRef.current = nodeId;
             }
+            toggleCollapse(nodeId);
         },
-        [collapsedNodes, focusOnContentBox, mindMap, nodes, toggleCollapse],
+        [toggleCollapse],
     );
 
-    const overlayNodes = useMemo(() => {
-        if (fitScale === 0) return [];
-        return nodes.map((node) => ({
-            ...node,
-            displayX: node.x * fitScale,
-            displayY: node.y * fitScale,
-            displayW: node.width * fitScale,
-            displayH: node.height * fitScale,
-        }));
-    }, [nodes, fitScale]);
+    // Single-overlay hit testing: find the topmost node whose rect contains the
+    // tap point (in display space). Returns the node id/depth or null. This lets
+    // us replace N native Pressables with ONE overlay Pressable — the main win
+    // for "Expand all" jank on mobile (native view creation is expensive).
+    const hitTest = useCallback((px: number, py: number) => {
+        const rects = hitRectsRef.current;
+        for (let i = rects.length - 1; i >= 0; i -= 1) {
+            const r = rects[i];
+            if (
+                px >= r.x &&
+                px <= r.x + r.w &&
+                py >= r.y &&
+                py <= r.y + r.h
+            ) {
+                return r;
+            }
+        }
+        return null;
+    }, []);
+
+    // A minimal event shape covering what we read from both press and hover
+    // handlers (GestureResponderEvent / MouseEvent). locationX/locationY are
+    // present on responder/touch events; we only hit-test on those.
+    type ResponderEvent = {
+        nativeEvent: { locationX?: number; locationY?: number };
+    };
+
+    const handleOverlayPressIn = useCallback(
+        (e: ResponderEvent) => {
+            const { locationX, locationY } = e.nativeEvent;
+            if (locationX == null || locationY == null) return;
+            const hit = hitTest(locationX, locationY);
+            if (hit) activeNodeId.value = hit.id;
+        },
+        [hitTest],
+    );
+
+    const handleOverlayPressOut = useCallback(() => {
+        activeNodeId.value = null;
+    }, []);
+
+    const handleOverlayPress = useCallback(
+        (e: ResponderEvent) => {
+            const { locationX, locationY } = e.nativeEvent;
+            if (locationX == null || locationY == null) return;
+            const hit = hitTest(locationX, locationY);
+            if (hit) handleNodePress(hit.id, hit.depth);
+        },
+        [handleNodePress, hitTest],
+    );
+
+    // Focus the just-expanded node's children using the already-computed layout
+    // (nodes/bounds are memoized on collapsedNodes) instead of a 2nd layout pass.
+    useEffect(() => {
+        const expandedId = lastExpandRef.current;
+        if (!expandedId) return;
+        lastExpandRef.current = null;
+        const children = nodes.filter((n) => n.parentId === expandedId);
+        const box = getNodesBounds(children);
+        if (box) focusOnContentBox(box, bounds);
+    }, [nodes, bounds, focusOnContentBox]);
 
     return (
         <GestureHandlerRootView style={styles.root} onLayout={handleLayout}>
@@ -526,6 +607,7 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                                     key={conn.id}
                                     connection={conn}
                                     activeNodeId={activeNodeId}
+                                    animate={!isMobile}
                                 />
                             ))}
 
@@ -540,29 +622,23 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                             ))}
                         </Svg>
 
-                        {overlayNodes.map((node) => {
-                            return (
-                                <Pressable
-                                    key={`t-${node.id}`}
-                                    style={{
-                                        position: "absolute",
-                                        left: node.displayX,
-                                        top: node.displayY,
-                                        width: node.displayW,
-                                        height: node.displayH,
-                                        borderRadius:
-                                            (NODE_CONFIGS[
-                                                node.depth as keyof typeof NODE_CONFIGS
-                                            ]?.rx ?? 10) * fitScale,
-                                    }}
-                                    onHoverIn={() => setActiveNodeId(node.id)}
-                                    onHoverOut={() => setActiveNodeId(null)}
-                                    onPressIn={() => setActiveNodeId(node.id)}
-                                    onPressOut={() => setActiveNodeId(null)}
-                                    onPress={() => handleNodePress(node.id, node.depth)}
-                                />
-                            );
-                        })}
+                        {/* SINGLE transparent hit layer over the SVG. Previously this
+                            was one Pressable per node — N native views that caused heavy
+                            jank when "Expand all" mounted dozens of nodes at once. Now
+                            it's one overlay that hit-tests by tap coordinates. Dim still
+                            runs on the UI thread (shared value), so no re-render on tap. */}
+                        <Pressable
+                            style={{
+                                position: "absolute",
+                                left: 0,
+                                top: 0,
+                                width: svgDisplayWidth,
+                                height: svgDisplayHeight,
+                            }}
+                            onPressIn={handleOverlayPressIn}
+                            onPressOut={handleOverlayPressOut}
+                            onPress={handleOverlayPress}
+                        />
                     </Animated.View>
                 </GestureDetector>
             )}
