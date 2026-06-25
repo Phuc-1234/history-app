@@ -19,9 +19,11 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 
 interface NodeCardProps {
     node: LayoutNode;
-    center: { x: number; y: number };
     // Shared value so dim/highlight runs on the UI thread without re-rendering JS.
     activeNodeId: SharedValue<string | null>;
+    // SharedValue so updating the map center (on expand/collapse) doesn't
+    // re-render this component. Only used for the entry fly-in animation.
+    center: SharedValue<{ x: number; y: number }>;
     animateEntry?: boolean;
 }
 
@@ -75,6 +77,49 @@ function CollapseIcon({
             )}
         </G>
     );
+}
+
+// Custom memo comparator: layoutTree rebuilds every LayoutNode as a NEW object
+// on each expand/collapse, so the default React.memo (shallow ref compare) would
+// re-render the entire tree every time — the main remaining perf issue for
+// "Expand all". We deep-compare only the fields this card actually reads.
+function areNodePropsEqual(prev: NodeCardProps, next: NodeCardProps): boolean {
+    const a = prev.node;
+    const b = next.node;
+    if (a === b) return true;
+    // activeNodeId / center are SharedValues (stable refs), animateEntry is a bool.
+    if (
+        prev.activeNodeId !== next.activeNodeId ||
+        prev.center !== next.center ||
+        prev.animateEntry !== next.animateEntry
+    ) {
+        return false;
+    }
+    if (
+        a.id !== b.id ||
+        a.x !== b.x ||
+        a.y !== b.y ||
+        a.width !== b.width ||
+        a.height !== b.height ||
+        a.depth !== b.depth ||
+        a.parentId !== b.parentId ||
+        a.label !== b.label ||
+        a.color !== b.color ||
+        a.borderColor !== b.borderColor ||
+        a.accentColor !== b.accentColor ||
+        a.lightBg !== b.lightBg ||
+        a.collapsed !== b.collapsed
+    ) {
+        return false;
+    }
+    // childIds: compare by content (order-stable from layoutTree).
+    const ca = a.childIds;
+    const cb = b.childIds;
+    if (ca.length !== cb.length) return false;
+    for (let i = 0; i < ca.length; i += 1) {
+        if (ca[i] !== cb[i]) return false;
+    }
+    return true;
 }
 
 export const NodeCard = React.memo(function NodeCard({
@@ -141,8 +186,10 @@ export const NodeCard = React.memo(function NodeCard({
 
         const nodeCenterX = node.x + node.width / 2;
         const nodeCenterY = node.y + node.height / 2;
-        const startX = (center.x - nodeCenterX) * animationConfig.nodeStartOffset;
-        const startY = (center.y - nodeCenterY) * animationConfig.nodeStartOffset;
+        const cx = center.value.x;
+        const cy = center.value.y;
+        const startX = (cx - nodeCenterX) * animationConfig.nodeStartOffset;
+        const startY = (cy - nodeCenterY) * animationConfig.nodeStartOffset;
         const scale =
             interpolate(
                 enter.value,
@@ -392,4 +439,4 @@ export const NodeCard = React.memo(function NodeCard({
             )}
         </AnimatedG>
     );
-});
+}, areNodePropsEqual);

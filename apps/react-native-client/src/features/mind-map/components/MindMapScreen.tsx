@@ -175,10 +175,14 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
     const svgDisplayWidth = bounds.width * fitScale;
     const svgDisplayHeight = bounds.height * fitScale;
-    const mapCenter = useMemo(
-        () => ({ x: bounds.width / 2, y: bounds.height / 2 }),
-        [bounds.height, bounds.width],
-    );
+    // Map center as a SharedValue so updating it (on expand/collapse, when bounds
+    // change) does NOT re-render every NodeCard. Previously `center` was a plain
+    // object recreated each layout, which broke React.memo(NodeCard) and re-rendered
+    // the whole tree on every expand — a real perf regression on "Expand all".
+    const mapCenter = useSharedValue({ x: bounds.width / 2, y: bounds.height / 2 });
+    useEffect(() => {
+        mapCenter.value = { x: bounds.width / 2, y: bounds.height / 2 };
+    }, [bounds.width, bounds.height, mapCenter]);
 
     const handleLayout = useCallback((e: LayoutChangeEvent) => {
         const { width, height } = e.nativeEvent.layout;

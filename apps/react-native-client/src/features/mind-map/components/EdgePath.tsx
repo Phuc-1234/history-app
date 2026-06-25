@@ -31,9 +31,33 @@ interface EdgePathProps {
     animate?: boolean;
 }
 
+// Custom memo comparator: the parent rebuilds every MindMapConnection as a new
+// object on each expand/collapse, so default React.memo would re-render all
+// edges every time. Deep-compare the fields this edge reads.
+function areEdgePropsEqual(prev: EdgePathProps, next: EdgePathProps): boolean {
+    if (
+        prev.activeNodeId !== next.activeNodeId ||
+        prev.animate !== next.animate
+    ) {
+        return false;
+    }
+    const a = prev.connection;
+    const b = next.connection;
+    if (a === b) return true;
+    return (
+        a.id === b.id &&
+        a.parentId === b.parentId &&
+        a.childId === b.childId &&
+        a.depth === b.depth &&
+        a.length === b.length &&
+        a.strokeWidth === b.strokeWidth &&
+        a.path === b.path &&
+        a.color === b.color
+    );
+}
+
 export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId, animate = true }: EdgePathProps) {
     const draw = useSharedValue(animate ? 0 : 1);
-    const focus = useSharedValue(0);
 
     useEffect(() => {
         // Skip the draw-in animation entirely on mobile — animating every edge on
@@ -90,4 +114,4 @@ export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId,
             animatedProps={animatedProps}
         />
     );
-});
+}, areEdgePropsEqual);
