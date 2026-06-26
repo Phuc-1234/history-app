@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     View,
     useWindowDimensions,
+    Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -220,7 +221,11 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                             router.push(`/(3_4_lessons)/4_4_fcard?nodeId=${node.id}`);
                         }}
                     >
-                        <Ionicons name="copy" size={20} color={colors.primary} />
+                        <Image
+                            source={require("../../../../assets/images/flashcard_ic.png")}
+                            style={{ width: 20, height: 20 }}
+                            resizeMode="contain"
+                        />
                     </TouchableOpacity>
                 </View>
 
