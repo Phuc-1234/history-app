@@ -42,12 +42,12 @@ const normalizePairs = (rawPairs: any[]): { left: string; right: string }[] => {
 };
 
 const MATCH_COLORS = [
-  { bg: "#3B82F6", border: "#3B82F6", text: "#FFFFFF" }, // Blue
-  { bg: "#10B981", border: "#10B981", text: "#FFFFFF" }, // Green
-  { bg: "#F59E0B", border: "#F59E0B", text: "#FFFFFF" }, // Yellow/Amber
-  { bg: "#A855F7", border: "#A855F7", text: "#FFFFFF" }, // Purple
-  { bg: "#EF4444", border: "#EF4444", text: "#FFFFFF" }, // Red
-  { bg: "#F97316", border: "#F97316", text: "#FFFFFF" }, // Orange
+    { bg: "#3B82F6", border: "#3B82F6", text: "#FFFFFF" }, // Blue
+    { bg: "#10B981", border: "#10B981", text: "#FFFFFF" }, // Green
+    { bg: "#F59E0B", border: "#F59E0B", text: "#FFFFFF" }, // Yellow/Amber
+    { bg: "#A855F7", border: "#A855F7", text: "#FFFFFF" }, // Purple
+    { bg: "#EF4444", border: "#EF4444", text: "#FFFFFF" }, // Red
+    { bg: "#F97316", border: "#F97316", text: "#FFFFFF" }, // Orange
 ];
 
 function MatchItem({
@@ -288,36 +288,58 @@ export default function MatchQuestion({
 
             {/* Unmatched items */}
             <View style={styles.rowsContainer}>
-                {Array.from({ length: shuffledLeftItems.length }).map((_, idx) => (
-                    <View key={idx} style={styles.rowWrapper}>
-                        <View style={styles.cellContainer}>
-                            <MatchItem
-                                idx={idx}
-                                item={shuffledLeftItems[idx]}
-                                isLeft={true}
-                                itemStyle={getItemStyle(shuffledLeftItems[idx], true)}
-                                itemTextStyle={getItemTextStyle(shuffledLeftItems[idx], true)}
-                                onPress={() => handleLeftPress(shuffledLeftItems[idx])}
-                                disabled={
-                                    !!disabled || !!(showFeedback && evalResult)
-                                }
-                            />
+                {Array.from({ length: shuffledLeftItems.length }).map(
+                    (_, idx) => (
+                        <View key={idx} style={styles.rowWrapper}>
+                            <View style={styles.cellContainer}>
+                                <MatchItem
+                                    idx={idx}
+                                    item={shuffledLeftItems[idx]}
+                                    isLeft={true}
+                                    itemStyle={getItemStyle(
+                                        shuffledLeftItems[idx],
+                                        true,
+                                    )}
+                                    itemTextStyle={getItemTextStyle(
+                                        shuffledLeftItems[idx],
+                                        true,
+                                    )}
+                                    onPress={() =>
+                                        handleLeftPress(shuffledLeftItems[idx])
+                                    }
+                                    disabled={
+                                        !!disabled ||
+                                        !!(showFeedback && evalResult)
+                                    }
+                                />
+                            </View>
+                            <View style={styles.cellContainer}>
+                                <MatchItem
+                                    idx={idx}
+                                    item={shuffledRightItems[idx]}
+                                    isLeft={false}
+                                    itemStyle={getItemStyle(
+                                        shuffledRightItems[idx],
+                                        false,
+                                    )}
+                                    itemTextStyle={getItemTextStyle(
+                                        shuffledRightItems[idx],
+                                        false,
+                                    )}
+                                    onPress={() =>
+                                        handleRightPress(
+                                            shuffledRightItems[idx],
+                                        )
+                                    }
+                                    disabled={
+                                        !!disabled ||
+                                        !!(showFeedback && evalResult)
+                                    }
+                                />
+                            </View>
                         </View>
-                        <View style={styles.cellContainer}>
-                            <MatchItem
-                                idx={idx}
-                                item={shuffledRightItems[idx]}
-                                isLeft={false}
-                                itemStyle={getItemStyle(shuffledRightItems[idx], false)}
-                                itemTextStyle={getItemTextStyle(shuffledRightItems[idx], false)}
-                                onPress={() => handleRightPress(shuffledRightItems[idx])}
-                                disabled={
-                                    !!disabled || !!(showFeedback && evalResult)
-                                }
-                            />
-                        </View>
-                    </View>
-                ))}
+                    ),
+                )}
             </View>
 
             {/* Show correct pairs on feedback */}
@@ -378,9 +400,9 @@ export default function MatchQuestion({
                                             }
                                         >
                                             {isPairCorrect
-                                                ? "Đúng"
+                                                ? "Chính xác"
                                                 : userPair
-                                                  ? "Sai"
+                                                  ? "Chưa đúng"
                                                   : "Chưa ghép"}
                                         </Text>
                                     </View>
@@ -388,7 +410,7 @@ export default function MatchQuestion({
                                 {!isPairCorrect && (
                                     <View style={styles.feedbackCorrectHintRow}>
                                         <Text style={styles.feedbackHintLabel}>
-                                            Đáp án đúng:{" "}
+                                            Đáp án chính xác:{" "}
                                         </Text>
                                         <Text style={styles.feedbackHintValue}>
                                             {correct.right}

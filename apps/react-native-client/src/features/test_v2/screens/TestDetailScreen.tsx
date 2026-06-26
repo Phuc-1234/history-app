@@ -65,16 +65,16 @@ export default function TestDetailScreen() {
             >
                 {/* Result Card */}
                 <View style={styles.bannerCard}>
-                    <Mascot expression={userTestLog.isPassed ? "happy" : "sad"} />
+                    <Mascot
+                        expression={userTestLog.isPassed ? "happy" : "sad"}
+                    />
                     <View style={styles.scoreRow}>
                         <Text style={styles.bannerScore}>{scoreDisplay}</Text>
-                        <Text style={styles.bannerScoreMax}>/10</Text> 
+                        <Text style={styles.bannerScoreMax}>/10</Text>
                     </View>
                     <Text style={styles.bannerSubtext}>
-                        {userTestLog.isPassed
-                            ? "Đạt"
-                            : "Chưa đạt"}{" "}
-                        • Lần {userTestLog.attemptNumber}
+                        {userTestLog.isPassed ? "Đạt" : "Chưa đạt"} • Lần{" "}
+                        {userTestLog.attemptNumber}
                     </Text>
                     <Text style={styles.bannerDate}>{dateStr}</Text>
                 </View>
@@ -108,10 +108,10 @@ export default function TestDetailScreen() {
                                         ]}
                                     >
                                         {isCorrect
-                                            ? "ĐÚNG"
+                                            ? "CHÍNH XÁC"
                                             : log.userAnswerData === null
                                               ? "CHƯA GHÉP"
-                                              : "SAI"}
+                                              : "CHƯA ĐÚNG"}
                                     </Text>
                                 </View>
                             </View>
@@ -217,7 +217,7 @@ function ChooseReview({
                             ]}
                         >
                             <Text style={styles.reviewBadgeTextMissing}>
-                                Đáp án đúng bỏ lỡ
+                                Đáp án chính xác bỏ lỡ
                             </Text>
                         </View>
                     );
@@ -235,34 +235,60 @@ function ChooseReview({
                             },
                         ]}
                     >
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                            <View style={[
-                                single ? styles.radio : styles.checkbox,
-                                isSelected && (single ? styles.radioSelected : styles.checkboxSelected),
-                                isSelected && isCorrect && (single ? styles.radioCorrect : styles.checkboxCorrect),
-                                isSelected && !isCorrect && (single ? styles.radioWrong : styles.checkboxWrong),
-                                !isSelected && isCorrect && (single ? styles.radioMissing : styles.checkboxMissing),
-                            ]}>
-                                {isSelected && (
-                                    !isCorrect ? (
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 10,
+                                flex: 1,
+                            }}
+                        >
+                            <View
+                                style={[
+                                    single ? styles.radio : styles.checkbox,
+                                    isSelected &&
+                                        (single
+                                            ? styles.radioSelected
+                                            : styles.checkboxSelected),
+                                    isSelected &&
+                                        isCorrect &&
+                                        (single
+                                            ? styles.radioCorrect
+                                            : styles.checkboxCorrect),
+                                    isSelected &&
+                                        !isCorrect &&
+                                        (single
+                                            ? styles.radioWrong
+                                            : styles.checkboxWrong),
+                                    !isSelected &&
+                                        isCorrect &&
+                                        (single
+                                            ? styles.radioMissing
+                                            : styles.checkboxMissing),
+                                ]}
+                            >
+                                {isSelected &&
+                                    (!isCorrect ? (
                                         <X
                                             size={12}
                                             color={colors.textLight}
                                             strokeWidth={4}
                                         />
                                     ) : single ? (
-                                        <View style={[
-                                            styles.radioDot,
-                                            isCorrect && styles.radioDotCorrect,
-                                        ]} />
+                                        <View
+                                            style={[
+                                                styles.radioDot,
+                                                isCorrect &&
+                                                    styles.radioDotCorrect,
+                                            ]}
+                                        />
                                     ) : (
                                         <Check
                                             size={12}
                                             color={colors.textLight}
                                             strokeWidth={4}
                                         />
-                                    )
-                                )}
+                                    ))}
                             </View>
                             <Text style={[textStyle, { flex: 1 }]}>
                                 {String.fromCharCode(65 + idx)}. {opt}
@@ -351,10 +377,22 @@ function MatchReview({
                         ]}
                     >
                         <View style={styles.matchReviewRowTop}>
-                            <Text style={[styles.matchReviewLeftText, styles.textLight]}>
+                            <Text
+                                style={[
+                                    styles.matchReviewLeftText,
+                                    styles.textLight,
+                                ]}
+                            >
                                 {pair.left}
                             </Text>
-                            <Text style={[styles.matchReviewArrow, styles.textLight]}>→</Text>
+                            <Text
+                                style={[
+                                    styles.matchReviewArrow,
+                                    styles.textLight,
+                                ]}
+                            >
+                                →
+                            </Text>
                             <Text
                                 style={[
                                     styles.matchReviewRightText,
@@ -379,9 +417,9 @@ function MatchReview({
                                     }
                                 >
                                     {isPairCorrect
-                                        ? "Đúng"
+                                        ? "Chính xác"
                                         : userPair
-                                          ? "Sai"
+                                          ? "Chưa đúng"
                                           : "Chưa ghép"}
                                 </Text>
                             </View>
@@ -389,7 +427,7 @@ function MatchReview({
                         {!isPairCorrect && (
                             <View style={styles.matchReviewCorrectHintRow}>
                                 <Text style={styles.matchReviewHintLabel}>
-                                    Đáp án đúng:{" "}
+                                    Đáp án chính xác:{" "}
                                 </Text>
                                 <Text style={styles.matchReviewHintValue}>
                                     {pair.right}
@@ -594,19 +632,34 @@ const styles = StyleSheet.create({
     },
     explText: { fontSize: 13, color: colors.textSuccess, lineHeight: 20 },
     radio: {
-        width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.borderDark,
-        justifyContent: "center", alignItems: "center",
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
+        justifyContent: "center",
+        alignItems: "center",
     },
     radioSelected: { borderColor: colors.textLight },
     radioCorrect: { borderColor: colors.textLight },
     radioWrong: { borderColor: colors.textLight },
     radioMissing: { borderColor: colors.warning, borderStyle: "dashed" },
-    radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.textLight },
+    radioDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: colors.textLight,
+    },
     radioDotCorrect: { backgroundColor: colors.textLight },
     radioDotWrong: { backgroundColor: colors.textLight },
     checkbox: {
-        width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: colors.borderDark,
-        justifyContent: "center", alignItems: "center",
+        width: 20,
+        height: 20,
+        borderRadius: 4,
+        borderWidth: 2,
+        borderColor: colors.borderDark,
+        justifyContent: "center",
+        alignItems: "center",
     },
     checkboxSelected: { borderColor: colors.textLight },
     checkboxCorrect: { borderColor: colors.textLight },
