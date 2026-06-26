@@ -7,6 +7,7 @@ import Animated, {
     useSharedValue,
     withDelay,
     withTiming,
+    type SharedValue,
 } from "react-native-reanimated";
 import { animationConfig } from "../constants";
 
@@ -25,16 +26,46 @@ export interface MindMapConnection {
 
 interface EdgePathProps {
     connection: MindMapConnection;
-    activeNodeId: string | null;
+    // Shared value so dim/highlight runs on the UI thread without re-rendering JS.
+    activeNodeId: SharedValue<string | null>;
+    animate?: boolean;
 }
 
-export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId }: EdgePathProps) {
-    const draw = useSharedValue(0);
-    const focus = useSharedValue(0);
-    const isRelated =
-        activeNodeId === connection.parentId || activeNodeId === connection.childId;
+// Custom memo comparator: the parent rebuilds every MindMapConnection as a new
+// object on each expand/collapse, so default React.memo would re-render all
+// edges every time. Deep-compare the fields this edge reads.
+function areEdgePropsEqual(prev: EdgePathProps, next: EdgePathProps): boolean {
+    if (
+        prev.activeNodeId !== next.activeNodeId ||
+        prev.animate !== next.animate
+    ) {
+        return false;
+    }
+    const a = prev.connection;
+    const b = next.connection;
+    if (a === b) return true;
+    return (
+        a.id === b.id &&
+        a.parentId === b.parentId &&
+        a.childId === b.childId &&
+        a.depth === b.depth &&
+        a.length === b.length &&
+        a.strokeWidth === b.strokeWidth &&
+        a.path === b.path &&
+        a.color === b.color
+    );
+}
+
+export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId, animate = true }: EdgePathProps) {
+    const draw = useSharedValue(animate ? 0 : 1);
 
     useEffect(() => {
+        // Skip the draw-in animation entirely on mobile — animating every edge on
+        // load/expand is a jank burst on low-end devices. Render at full length.
+        if (!animate) {
+            draw.value = 1;
+            return;
+        }
         draw.value = 0;
         draw.value = withDelay(
             animationConfig.edgeBaseDelay +
@@ -44,21 +75,20 @@ export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId 
                 easing: Easing.out(Easing.cubic),
             }),
         );
-    }, [connection.id, connection.depth, draw]);
-
-    useEffect(() => {
-        const target = !activeNodeId ? 0.45 : isRelated ? 1 : 0;
-        focus.value = withTiming(target, {
-            duration: 180,
-            easing: Easing.out(Easing.cubic),
-        });
-    }, [activeNodeId, focus, isRelated]);
+    }, [animate, connection.id, connection.depth, draw]);
 
     const animatedProps = useAnimatedProps(() => {
+        // Dim/highlight on the UI thread from the shared activeNodeId — no JS
+        // re-render when a node is pressed/hovered (this was the jank cause).
+        const active = activeNodeId.value;
+        const isRelated =
+            active === connection.parentId || active === connection.childId;
+        const target = !active ? 0.45 : isRelated ? 1 : 0;
+
         const idleOpacity = animationConfig.edgeIdleOpacity;
-        const opacity = activeNodeId
+        const opacity = active
             ? interpolate(
-                  focus.value,
+                  target,
                   [0, 1],
                   [animationConfig.edgeDimOpacity, animationConfig.edgeActiveOpacity],
               )
@@ -69,7 +99,7 @@ export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId 
             opacity: opacity * draw.value,
             strokeWidth:
                 connection.strokeWidth +
-                interpolate(focus.value, [0, 1], [0, connection.depth === 1 ? 1 : 0.6]),
+                (isRelated ? (connection.depth === 1 ? 1 : 0.6) : 0),
         };
     });
 
@@ -84,4 +114,4 @@ export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId 
             animatedProps={animatedProps}
         />
     );
-});
+}, areEdgePropsEqual);
