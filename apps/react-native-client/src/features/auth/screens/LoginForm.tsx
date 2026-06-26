@@ -86,11 +86,11 @@ export default function LoginForm() {
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 editable={!isLoading}
-                                style={styles.customInput}
+                                // Thêm paddingRight vừa đủ để nội dung không đè lên @gmail.com
+                                style={[styles.customInput, { paddingRight: 95 }]}
                             />
                             {email.length > 0 && !email.includes("@") && (
                                 <View style={styles.ghostTextWrapper} pointerEvents="none">
-                                    <Text style={styles.textMeasureHidden}>{email}</Text>
                                     <Text style={styles.ghostEmailText}>@gmail.com</Text>
                                 </View>
                             )}
@@ -145,7 +145,7 @@ export default function LoginForm() {
                         disabled={isLoading}
                     >
                         <Text style={styles.guestText}>
-                            Tiếp tục với tư cách Khách
+                             Tiếp tục với tư cách Khách
                         </Text>
                     </TouchableOpacity>
 
@@ -255,6 +255,7 @@ const styles = StyleSheet.create({
         fontWeight: "500",
     },
     formContainer: {
+        marginTop: 10, 
     },
     inputGroup: {
         marginBottom: 12,
@@ -276,15 +277,10 @@ const styles = StyleSheet.create({
     },
     ghostTextWrapper: {
         position: "absolute",
-        left: 58,
-        flexDirection: "row",
-        alignItems: "center",
-        height: "100%",
-        paddingBottom: 2,
-    },
-    textMeasureHidden: {
-        fontSize: 15,
-        color: "transparent",
+        right: 25, // Đặt cố định gọn gàng sát lề phải của ô nhập
+        top: 0,
+        bottom: 0,
+        justifyContent: "center",
     },
     ghostEmailText: {
         fontSize: 15,

@@ -108,11 +108,10 @@ export default function RegisterForm() {
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 editable={!isAnyLoading}
-                                style={styles.customInput}
+                                style={[styles.customInput, { paddingRight: 95 }]}
                             />
                             {email.length > 0 && !email.includes("@") && (
                                 <View style={styles.ghostTextWrapper} pointerEvents="none">
-                                    <Text style={styles.textMeasureHidden}>{email}</Text>
                                     <Text style={styles.ghostEmailText}>@gmail.com</Text>
                                 </View>
                             )}
@@ -271,8 +270,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "500",
     },
-    formContainer: {
-    },
+    formContainer: {},
     inputGroup: {
         marginBottom: 12,
     },
@@ -293,15 +291,10 @@ const styles = StyleSheet.create({
     },
     ghostTextWrapper: {
         position: "absolute",
-        left: 58,
-        flexDirection: "row",
-        alignItems: "center",
-        height: "100%",
-        paddingBottom: 2,
-    },
-    textMeasureHidden: {
-        fontSize: 15,
-        color: "transparent",
+        right: 25,
+        top: 0,
+        bottom: 0,
+        justifyContent: "center",
     },
     ghostEmailText: {
         fontSize: 15,
