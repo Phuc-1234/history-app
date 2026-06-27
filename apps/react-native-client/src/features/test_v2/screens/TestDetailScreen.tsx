@@ -86,87 +86,90 @@ export default function TestDetailScreen() {
                     const isCorrect = log.scoreAwarded >= log.maxScore;
 
                     return (
-                        <View key={idx} style={styles.questionCard}>
-                            <View style={styles.qHeader}>
-                                <Text style={styles.qIndex}>
-                                    CÂU HỎI {idx + 1}
-                                </Text>
-                                <View
-                                    style={[
-                                        styles.qBadge,
-                                        isCorrect
-                                            ? styles.qBadgeCorrect
-                                            : styles.qBadgeWrong,
-                                    ]}
-                                >
-                                    <Text
+                        <View key={idx}>
+                            {idx > 0 && <View style={styles.divider} />}
+                            <View style={styles.questionCard}>
+                                <View style={styles.qHeader}>
+                                    <Text style={styles.qIndex}>
+                                        Câu hỏi {idx + 1}
+                                    </Text>
+                                    <View
                                         style={[
-                                            styles.qBadgeText,
+                                            styles.qBadge,
                                             isCorrect
-                                                ? styles.qBadgeTextCorrect
-                                                : styles.qBadgeTextWrong,
+                                                ? styles.qBadgeCorrect
+                                                : styles.qBadgeWrong,
                                         ]}
                                     >
-                                        {isCorrect
-                                            ? "CHÍNH XÁC"
-                                            : log.userAnswerData === null
-                                              ? "CHƯA GHÉP"
-                                              : "CHƯA ĐÚNG"}
-                                    </Text>
+                                        <Text
+                                            style={[
+                                                styles.qBadgeText,
+                                                isCorrect
+                                                    ? styles.qBadgeTextCorrect
+                                                    : styles.qBadgeTextWrong,
+                                            ]}
+                                        >
+                                            {isCorrect
+                                                ? "Chính xác!"
+                                                : log.userAnswerData === null
+                                                  ? "Chưa ghép!"
+                                                  : "Chưa đúng!"}
+                                        </Text>
+                                    </View>
                                 </View>
+
+                                <Text style={styles.qPrompt}>
+                                    {question.promptText}
+                                </Text>
+
+                                {/* Render answer details based on type */}
+                                {question.type === "CHOOSE" && (
+                                    <ChooseReview
+                                        question={question}
+                                        userAnswer={
+                                            log.userAnswerData as UserChooseAnswer
+                                        }
+                                        correctAnswer={
+                                            log.correctAnswerData as ChooseAnswerData
+                                        }
+                                    />
+                                )}
+
+                                {question.type === "FILL" && (
+                                    <FillReview
+                                        userAnswer={
+                                            log.userAnswerData as UserFillAnswer
+                                        }
+                                        correctAnswer={
+                                            log.correctAnswerData as FillAnswerData
+                                        }
+                                        isCorrect={isCorrect}
+                                    />
+                                )}
+
+                                {question.type === "MATCH" && (
+                                    <MatchReview
+                                        userAnswer={
+                                            log.userAnswerData as UserMatchAnswer
+                                        }
+                                        correctAnswer={
+                                            log.correctAnswerData as MatchAnswerData
+                                        }
+                                    />
+                                )}
+
+                                {/* Explanation */}
+                                {question.explanation && (
+                                    <View style={styles.explBox}>
+                                        <Text style={styles.explLabel}>
+                                            Giải thích:
+                                        </Text>
+                                        <Text style={styles.explText}>
+                                            {question.explanation}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
-
-                            <Text style={styles.qPrompt}>
-                                {question.promptText}
-                            </Text>
-
-                            {/* Render answer details based on type */}
-                            {question.type === "CHOOSE" && (
-                                <ChooseReview
-                                    question={question}
-                                    userAnswer={
-                                        log.userAnswerData as UserChooseAnswer
-                                    }
-                                    correctAnswer={
-                                        log.correctAnswerData as ChooseAnswerData
-                                    }
-                                />
-                            )}
-
-                            {question.type === "FILL" && (
-                                <FillReview
-                                    userAnswer={
-                                        log.userAnswerData as UserFillAnswer
-                                    }
-                                    correctAnswer={
-                                        log.correctAnswerData as FillAnswerData
-                                    }
-                                    isCorrect={isCorrect}
-                                />
-                            )}
-
-                            {question.type === "MATCH" && (
-                                <MatchReview
-                                    userAnswer={
-                                        log.userAnswerData as UserMatchAnswer
-                                    }
-                                    correctAnswer={
-                                        log.correctAnswerData as MatchAnswerData
-                                    }
-                                />
-                            )}
-
-                            {/* Explanation */}
-                            {question.explanation && (
-                                <View style={styles.explBox}>
-                                    <Text style={styles.explLabel}>
-                                        GIẢI THÍCH:
-                                    </Text>
-                                    <Text style={styles.explText}>
-                                        {question.explanation}
-                                    </Text>
-                                </View>
-                            )}
                         </View>
                     );
                 })}
@@ -217,7 +220,7 @@ function ChooseReview({
                             ]}
                         >
                             <Text style={styles.reviewBadgeTextMissing}>
-                                Đáp án chính xác bỏ lỡ
+                                Đáp án đúng bỏ lỡ
                             </Text>
                         </View>
                     );
@@ -483,12 +486,12 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     questionCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 5,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
-        marginBottom: 12,
+        paddingVertical: 12,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: colors.divider,
+        marginVertical: 16,
     },
     qHeader: {
         flexDirection: "row",
@@ -498,11 +501,11 @@ const styles = StyleSheet.create({
     },
     qIndex: { fontSize: 12, fontWeight: "800", color: colors.textPlaceholder },
     qBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 5 },
-    qBadgeCorrect: { backgroundColor: colors.successContainer },
-    qBadgeWrong: { backgroundColor: colors.errorContainer },
+    qBadgeCorrect: { backgroundColor: colors.success },
+    qBadgeWrong: { backgroundColor: colors.error },
     qBadgeText: { fontSize: 11, fontWeight: "800" },
-    qBadgeTextCorrect: { color: colors.textSuccess },
-    qBadgeTextWrong: { color: colors.textError },
+    qBadgeTextCorrect: { color: colors.textLight },
+    qBadgeTextWrong: { color: colors.textLight },
     qPrompt: {
         fontSize: 15,
         fontWeight: "700",
@@ -557,23 +560,23 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         marginLeft: 8,
     },
-    reviewBadgeCorrect: { backgroundColor: colors.successContainer },
-    reviewBadgeWrong: { backgroundColor: colors.errorContainer },
-    reviewBadgeMissing: { backgroundColor: colors.warningContainer },
+    reviewBadgeCorrect: { backgroundColor: colors.success },
+    reviewBadgeWrong: { backgroundColor: colors.error },
+    reviewBadgeMissing: { backgroundColor: colors.warning },
     reviewBadgeTextCorrect: {
         fontSize: 11,
         fontWeight: "700",
-        color: colors.textSuccess,
+        color: colors.textLight,
     },
     reviewBadgeTextWrong: {
         fontSize: 11,
         fontWeight: "700",
-        color: colors.textError,
+        color: colors.textLight,
     },
     reviewBadgeTextMissing: {
         fontSize: 11,
         fontWeight: "700",
-        color: colors.textWarning,
+        color: colors.textLight,
     },
     matchReviewContainer: { gap: 8, marginTop: 4 },
     matchReviewRow: { borderRadius: 5, padding: 12, borderWidth: 1, gap: 6 },
