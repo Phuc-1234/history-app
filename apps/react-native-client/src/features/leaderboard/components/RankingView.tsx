@@ -1,18 +1,18 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
     ActivityIndicator,
     RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { PodiumSection } from "./PodiumSection";
 import { RankingList } from "./RankingList";
-import { TopNavBar } from "../../../components/TopNavBar";
 import { colors } from "../../../theme/colors";
+import { TopNavBar } from "../../../components/TopNavBar";
 
 export const RankingView: React.FC = () => {
     const {
@@ -26,22 +26,9 @@ export const RankingView: React.FC = () => {
         refetch,
     } = useLeaderboard();
 
-    const MY_NAME = "Ánh Hồng"; // Tên của bạn
-    const [showSticky, setShowSticky] = useState(false);
-
-    // Tính toán thông tin của bạn
-    const allUsers = [...topUsers, ...rankingList];
-    const myIndex = allUsers.findIndex((u) => u.name === MY_NAME);
-    const myUser = myIndex !== -1 ? allUsers[myIndex] : null;
-
-    const handleScroll = (event: any) => {
-        const offsetY = event.nativeEvent.contentOffset.y;
-        // Hiện thanh Sticky khi cuộn quá 200px
-        setShowSticky(offsetY > 200);
-    };
-
     return (
-        <SafeAreaView style={styles.container} edges={["left", "right"]}>
+        <View style={styles.container}>
+            {/* Navigation Tabs Header */}
             <TopNavBar
                 tabs={[
                     { key: "xp", label: "XP" },
@@ -52,66 +39,108 @@ export const RankingView: React.FC = () => {
                 containerStyle={styles.tabContainer}
             />
 
+            {/* Content */}
             {isLoading ? (
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={styles.loadingText}>Đang tải bảng xếp hạng...</Text>
+                </View>
+            ) : isError ? (
+                <View style={styles.centerContainer}>
+                    <Text style={styles.errorText}>Không thể tải dữ liệu</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+                        <Text style={styles.retryButtonText}>Thử lại</Text>
+                    </TouchableOpacity>
                 </View>
             ) : (
                 <ScrollView
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
+                    showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
-                    refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} colors={[colors.primary]} tintColor={colors.primary} />}
-                >
-                    {topUsers.length >= 3 && (
-                        <PodiumSection topUsers={topUsers} isSmallDevice={isSmallDevice} showStreak={activeTab === "streak"} />
-                    )}
-                    {rankingList.length > 0 && (
-                        <RankingList 
-                            rankingList={rankingList} 
-                            isSmallDevice={isSmallDevice} 
-                            showStreak={activeTab === "streak"} 
-                            myName={MY_NAME} 
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isLoading}
+                            onRefresh={refetch}
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
                         />
+                    }
+                >
+                    {/* Podium Sub-view */}
+                    {topUsers.length >= 3 && (
+                        <PodiumSection
+                            topUsers={topUsers}
+                            isSmallDevice={isSmallDevice}
+                            showStreak={activeTab === "streak"}
+                        />
+                    )}
+
+                    {/* Remainder Table Rows */}
+                    {rankingList.length > 0 && (
+                        <RankingList
+                            rankingList={rankingList}
+                            isSmallDevice={isSmallDevice}
+                            showStreak={activeTab === "streak"}
+                        />
+                    )}
+
+                    {topUsers.length === 0 && rankingList.length === 0 && (
+                        <View style={styles.centerContainer}>
+                            <Text style={styles.emptyText}>
+                                Chưa có dữ liệu xếp hạng
+                            </Text>
+                        </View>
                     )}
                 </ScrollView>
             )}
-
-            {/* Sticky Footer */}
-            {showSticky && myUser && (
-                <View style={styles.stickyUserBar}>
-                    <Text style={styles.stickyText}>Hạng {myIndex + 1}</Text>
-                    <Text style={styles.stickyName}>{myUser.name}</Text>
-                    <Text style={styles.stickyXp}>{myUser.xp.toLocaleString()} XP</Text>
-                </View>
-            )}
-        </SafeAreaView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#F3EFEA" },
-    tabContainer: { marginHorizontal: 22, marginTop: 16 },
-    scrollContent: { paddingHorizontal: 22, paddingTop: 10, paddingBottom: 120 },
-    centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-    stickyUserBar: {
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-        right: 20,
-        backgroundColor: '#5641E8',
-        borderRadius: 16,
-        padding: 15,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
+    container: {
+        flex: 1,
     },
-    stickyText: { color: '#FFF', fontWeight: 'bold' },
-    stickyName: { color: '#FFF', fontWeight: '700' },
-    stickyXp: { color: '#FFD700', fontWeight: 'bold' },
+    tabContainer: {
+        marginHorizontal: 0,
+        marginTop: 0,
+    },
+    scrollContent: {
+        paddingHorizontal: 22,
+        paddingTop: 10,
+        paddingBottom: 40,
+    },
+    centerContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingTop: 60,
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: colors.textSecondary,
+        fontWeight: "500",
+    },
+    errorText: {
+        fontSize: 15,
+        color: colors.error,
+        fontWeight: "600",
+        marginBottom: 16,
+    },
+    retryButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 5,
+    },
+    retryButtonText: {
+        color: colors.textLight,
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    emptyText: {
+        fontSize: 15,
+        color: colors.textSecondary,
+        fontWeight: "500",
+    },
 });
