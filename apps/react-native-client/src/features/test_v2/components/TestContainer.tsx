@@ -145,7 +145,7 @@ export default function TestContainerV2({
     const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(
         params,
         {
-            skip: runner.status !== "idle" || params.purposeType !== "EXAM",
+            skip: runner.status !== "idle",
         },
     );
     const {
@@ -258,15 +258,25 @@ export default function TestContainerV2({
         onHomePress: handleBack,
     };
 
-    // Auto-start on mount only if not EXAM
-    useEffect(() => {
-        if (status === "idle" && params.purposeType !== "EXAM") {
-            actions.start();
-        }
-    }, []);
+    // ── Error state ──────────────────────────────────────────────────
+    if (status === "idle" && error) {
+        return (
+            <ScreenWrapper branchConfig={branchConfig}>
+                <View style={styles.centerContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity
+                        style={styles.retryBtn}
+                        onPress={actions.start}
+                    >
+                        <Text style={styles.retryBtnText}>Thử lại</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScreenWrapper>
+        );
+    }
 
     // ── Exam Intro state ──────────────────────────────────────────────
-    if (status === "idle" && params.purposeType === "EXAM") {
+    if (status === "idle") {
         return (
             <TestIntro
                 title={testInfo?.title}
@@ -295,23 +305,6 @@ export default function TestContainerV2({
                     <Text style={styles.loadingText}>
                         Đang tải bài kiểm tra...
                     </Text>
-                </View>
-            </ScreenWrapper>
-        );
-    }
-
-    // ── Error state ──────────────────────────────────────────────────
-    if (status === "idle" && error) {
-        return (
-            <ScreenWrapper branchConfig={branchConfig}>
-                <View style={styles.centerContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity
-                        style={styles.retryBtn}
-                        onPress={actions.start}
-                    >
-                        <Text style={styles.retryBtnText}>Thử lại</Text>
-                    </TouchableOpacity>
                 </View>
             </ScreenWrapper>
         );
