@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "58681316211",
+    "project_id": "datn-historyapp",
+    "storage_bucket": "datn-historyapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:58681316211:android:6045d38be426f3a8bcab06",
+        "android_client_info": {
+          "package_name": "com.historyapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwQtXIFzqRzmBYN81o1QTDI1FNTXKXH50"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -21,6 +21,7 @@ import flashcardRoutes from "./routes/flashcardRoutes";
 import socialRoutes from "./routes/socialRoutes";
 import testRoutesV2 from "./routes/testRoutesV2";
 import paymentRoutes from "./routes/paymentRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 
 
 
@@ -53,6 +54,7 @@ app.use("/api/flashcards", flashcardRoutes);
 app.use("/api/social", socialRoutes);
 app.use("/api/tests-v2", testRoutesV2);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
