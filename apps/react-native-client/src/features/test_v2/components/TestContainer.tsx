@@ -279,6 +279,9 @@ export default function TestContainerV2({
                 xpReward={testInfo?.xpReward}
                 goldReward={testInfo?.goldReward}
                 attemptNumber={testInfo?.attemptNumber}
+                passThreshold={testInfo?.passThreshold}
+                attemptCount={testInfo?.attemptCount}
+                passCount={testInfo?.passCount}
             />
         );
     }
