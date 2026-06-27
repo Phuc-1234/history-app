@@ -577,7 +577,10 @@ export default function TestContainerV2({
                 {/* Question content */}
                 <ScrollView
                     style={styles.questionScroll}
-                    contentContainerStyle={styles.questionContent}
+                    contentContainerStyle={[
+                        styles.questionContent,
+                        showFeedback && { paddingBottom: 220 },
+                    ]}
                 >
                     {currentQuestion && (
                         <Animated.View
@@ -657,21 +660,51 @@ export default function TestContainerV2({
                                     disabled={status === "submitting"}
                                 />
                             )}
-
-                            {/* Practice feedback: explanation */}
-                            {showFeedback && currentQuestion.explanation && (
-                                <View style={styles.explanationBox}>
-                                    <Text style={styles.explanationLabel}>
-                                        Giải thích:
-                                    </Text>
-                                    <Text style={styles.explanationText}>
-                                        {currentQuestion.explanation}
-                                    </Text>
-                                </View>
-                            )}
                         </Animated.View>
                     )}
                 </ScrollView>
+
+                {/* Feedback Drawer (Option B) */}
+                {showFeedback && evalResult && (
+                    <Animated.View
+                        entering={FadeInDown.duration(250)}
+                        style={[
+                            styles.feedbackDrawer,
+                            evalResult.isCorrect
+                                ? styles.feedbackDrawerCorrect
+                                : styles.feedbackDrawerWrong,
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.feedbackDrawerTitle,
+                                evalResult.isCorrect
+                                    ? styles.feedbackDrawerTitleCorrect
+                                    : styles.feedbackDrawerTitleWrong,
+                            ]}
+                        >
+                            {evalResult.isCorrect ? "Chính xác!" : "Chưa đúng!"}
+                        </Text>
+                        {currentQuestion?.explanation ? (
+                            <ScrollView
+                                style={styles.feedbackDrawerScroll}
+                                contentContainerStyle={styles.feedbackDrawerScrollContent}
+                                showsVerticalScrollIndicator={true}
+                            >
+                                <Text
+                                    style={[
+                                        styles.feedbackDrawerText,
+                                        evalResult.isCorrect
+                                            ? styles.feedbackDrawerTextCorrect
+                                            : styles.feedbackDrawerTextWrong,
+                                    ]}
+                                >
+                                    {currentQuestion.explanation}
+                                </Text>
+                            </ScrollView>
+                        ) : null}
+                    </Animated.View>
+                )}
 
                 {/* Footer navigation */}
                 <View style={styles.footer}>
@@ -1539,6 +1572,50 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: "700",
         color: colors.textSuccess,
+    },
+    feedbackDrawer: {
+        position: "absolute",
+        left: 16,
+        right: 16,
+        bottom: 85,
+        borderRadius: 12,
+        padding: 16,
+        maxHeight: 180,
+    },
+    feedbackDrawerCorrect: {
+        backgroundColor: colors.successContainer,
+    },
+    feedbackDrawerWrong: {
+        backgroundColor: colors.errorContainer,
+    },
+    feedbackDrawerTitle: {
+        fontSize: 16,
+        fontWeight: "500",
+        textAlign: "center",
+        marginBottom: 8,
+    },
+    feedbackDrawerTitleCorrect: {
+        color: colors.textSuccess,
+    },
+    feedbackDrawerTitleWrong: {
+        color: colors.textError,
+    },
+    feedbackDrawerScroll: {
+        flex: 1,
+    },
+    feedbackDrawerScrollContent: {
+        paddingBottom: 4,
+    },
+    feedbackDrawerText: {
+        fontSize: 14,
+        fontWeight: "300",
+        lineHeight: 20,
+    },
+    feedbackDrawerTextCorrect: {
+        color: colors.textSuccess,
+    },
+    feedbackDrawerTextWrong: {
+        color: colors.textError,
     },
 });
 
