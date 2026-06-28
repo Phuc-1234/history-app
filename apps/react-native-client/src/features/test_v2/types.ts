@@ -142,6 +142,9 @@ export interface TestInfoV2Response {
     goldReward: number;
     xpReward: number;
     attemptNumber: number;
+    passThreshold: number;
+    attemptCount: number;
+    passCount: number;
 }
 
 // ─── Local evaluation result ─────────────────────────────────────────────

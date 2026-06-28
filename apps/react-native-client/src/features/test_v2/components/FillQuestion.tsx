@@ -1,7 +1,12 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import type { QuestionV2, FillAnswerData, UserFillAnswer, QuestionEvalResult } from "../types";
+import type {
+    QuestionV2,
+    FillAnswerData,
+    UserFillAnswer,
+    QuestionEvalResult,
+} from "../types";
 import { colors } from "../../../theme/colors";
 
 interface Props {
@@ -13,7 +18,14 @@ interface Props {
     disabled?: boolean;
 }
 
-export default function FillQuestion({ question, userAnswer, onAnswer, showFeedback, evalResult, disabled }: Props) {
+export default function FillQuestion({
+    question,
+    userAnswer,
+    onAnswer,
+    showFeedback,
+    evalResult,
+    disabled,
+}: Props) {
     const data = question.answerData as FillAnswerData;
     const [localText, setLocalText] = useState(userAnswer?.typedAnswer ?? "");
 
@@ -23,13 +35,21 @@ export default function FillQuestion({ question, userAnswer, onAnswer, showFeedb
     };
 
     return (
-        <Animated.View entering={FadeInDown.duration(300)} style={styles.container}>
+        <Animated.View
+            entering={FadeInDown.duration(300)}
+            style={styles.container}
+        >
             <Text style={styles.label}>Nhập câu trả lời:</Text>
             <TextInput
                 style={[
                     styles.input,
-                    showFeedback && evalResult?.isCorrect && styles.inputCorrect,
-                    showFeedback && evalResult && !evalResult.isCorrect && styles.inputWrong,
+                    showFeedback &&
+                        evalResult?.isCorrect &&
+                        styles.inputCorrect,
+                    showFeedback &&
+                        evalResult &&
+                        !evalResult.isCorrect &&
+                        styles.inputWrong,
                 ]}
                 value={localText}
                 onChangeText={handleChange}
@@ -39,8 +59,11 @@ export default function FillQuestion({ question, userAnswer, onAnswer, showFeedb
                 returnKeyType="done"
             />
             {showFeedback && evalResult && !evalResult.isCorrect && (
-                <Animated.View entering={FadeInDown.delay(100).duration(300)} style={styles.feedbackContainer}>
-                    <Text style={styles.feedbackLabel}>Đáp án đúng:</Text>
+                <Animated.View
+                    entering={FadeInDown.delay(100).duration(300)}
+                    style={styles.feedbackContainer}
+                >
+                    <Text style={styles.feedbackLabel}>Đáp án chính xác:</Text>
                     <Text style={styles.feedbackValue}>
                         {data.acceptedAnswers.join(" / ")}
                     </Text>
@@ -63,8 +86,16 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: colors.textPrimary,
     },
-    inputCorrect: { backgroundColor: colors.success, borderWidth: 0, color: colors.textLight },
-    inputWrong: { backgroundColor: colors.error, borderWidth: 0, color: colors.textLight },
+    inputCorrect: {
+        backgroundColor: colors.success,
+        borderWidth: 0,
+        color: colors.textLight,
+    },
+    inputWrong: {
+        backgroundColor: colors.error,
+        borderWidth: 0,
+        color: colors.textLight,
+    },
     feedbackContainer: {
         backgroundColor: colors.successContainer,
         borderRadius: 5,
@@ -74,5 +105,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     feedbackLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-    feedbackValue: { fontSize: 14, fontWeight: "700", color: colors.textSuccess, flex: 1 },
+    feedbackValue: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.textSuccess,
+        flex: 1,
+    },
 });

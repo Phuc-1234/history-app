@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
     ImageBackground,
+    Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LessonSummaryData, LessonSection } from "../hooks/useLessonSummary";
@@ -107,7 +108,11 @@ export function LessonSummary({
                             { backgroundColor: colors.primaryContainer },
                         ]}
                     >
-                        <Ionicons name="copy" size={16} color={colors.primary} />
+                        <Image
+                            source={require("../../../../assets/images/flashcard_ic.png")}
+                            style={{ width: 16, height: 16 }}
+                            resizeMode="contain"
+                        />
                     </View>
                     <Text style={styles.gridButtonText}>Thẻ lật</Text>
                 </TouchableOpacity>

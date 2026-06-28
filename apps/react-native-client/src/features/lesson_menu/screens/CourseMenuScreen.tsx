@@ -6,6 +6,8 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     TextInput,
+    ScrollView,
+    RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
@@ -167,12 +169,19 @@ function matchesGradeStructure(grade: number, structure: any, query: string): bo
 export function CourseMenuScreen() {
     const router = useRouter();
 
-    const { data: struct10, isLoading: loading10 } = useGetGradeStructureQuery(10);
-    const { data: struct11, isLoading: loading11 } = useGetGradeStructureQuery(11);
-    const { data: struct12, isLoading: loading12 } = useGetGradeStructureQuery(12);
+    const { data: struct10, isLoading: loading10, refetch: refetch10, isFetching: isFetching10 } = useGetGradeStructureQuery(10);
+    const { data: struct11, isLoading: loading11, refetch: refetch11, isFetching: isFetching11 } = useGetGradeStructureQuery(11);
+    const { data: struct12, isLoading: loading12, refetch: refetch12, isFetching: isFetching12 } = useGetGradeStructureQuery(12);
 
     const isLoading = loading10 || loading11 || loading12;
+    const isFetching = isFetching10 || isFetching11 || isFetching12;
     const [searchQuery, setSearchQuery] = useState("");
+
+    const handleRefresh = () => {
+        refetch10();
+        refetch11();
+        refetch12();
+    };
 
     const getProgress = (structure: any) => {
         if (!structure || !structure.topics) return { completed: 0, total: 0 };
@@ -201,10 +210,7 @@ export function CourseMenuScreen() {
     };
 
     return (
-        <ScreenWrapper
-            enableScroll
-            contentContainerStyle={styles.scrollContent}
-        >
+        <ScreenWrapper>
             <View style={styles.container}>
                 <Text style={styles.screenHeader}>Khóa Học</Text>
                 <Text style={styles.screenSubtitle}>Chọn khoá học để bắt đầu</Text>
@@ -220,43 +226,56 @@ export function CourseMenuScreen() {
                     />
                 </View>
 
-                {isLoading ? (
-                    <View style={styles.centerLoader}>
-                        <ActivityIndicator size="large" color={colors.primary} />
-                    </View>
-                ) : (
-                    <View style={styles.listContainer}>
-                        {show10 && (
-                            <CourseCard
-                                grade={10}
-                                completed={prog10.completed}
-                                total={prog10.total}
-                                onPress={() => handleCoursePress(10)}
-                            />
-                        )}
-                        {show11 && (
-                            <CourseCard
-                                grade={11}
-                                completed={prog11.completed}
-                                total={prog11.total}
-                                onPress={() => handleCoursePress(11)}
-                            />
-                        )}
-                        {show12 && (
-                            <CourseCard
-                                grade={12}
-                                completed={prog12.completed}
-                                total={prog12.total}
-                                onPress={() => handleCoursePress(12)}
-                            />
-                        )}
-                        {!show10 && !show11 && !show12 && (
-                            <Text style={styles.noResultsText}>
-                                Không tìm thấy khóa học nào phù hợp.
-                            </Text>
-                        )}
-                    </View>
-                )}
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isFetching && !isLoading}
+                            onRefresh={handleRefresh}
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
+                        />
+                    }
+                >
+                    {isLoading ? (
+                        <View style={styles.centerLoader}>
+                            <ActivityIndicator size="large" color={colors.primary} />
+                        </View>
+                    ) : (
+                        <View style={styles.listContainer}>
+                            {show10 && (
+                                <CourseCard
+                                    grade={10}
+                                    completed={prog10.completed}
+                                    total={prog10.total}
+                                    onPress={() => handleCoursePress(10)}
+                                />
+                            )}
+                            {show11 && (
+                                <CourseCard
+                                    grade={11}
+                                    completed={prog11.completed}
+                                    total={prog11.total}
+                                    onPress={() => handleCoursePress(11)}
+                                />
+                            )}
+                            {show12 && (
+                                <CourseCard
+                                    grade={12}
+                                    completed={prog12.completed}
+                                    total={prog12.total}
+                                    onPress={() => handleCoursePress(12)}
+                                />
+                            )}
+                            {!show10 && !show11 && !show12 && (
+                                <Text style={styles.noResultsText}>
+                                    Không tìm thấy khóa học nào phù hợp.
+                                </Text>
+                            )}
+                        </View>
+                    )}
+                </ScrollView>
             </View>
         </ScreenWrapper>
     );
