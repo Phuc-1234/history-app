@@ -106,6 +106,12 @@ export default function TabsLayout() {
             }}
         >
             <Tabs.Screen
+                name="home"
+                options={{
+                    href: null,
+                }}
+            />
+            <Tabs.Screen
                 name="2_1_lessons"
                 options={{
                     tabBarIcon: ({ focused, color }) => (
