@@ -1,66 +1,69 @@
 {
-    "expo": {
-        "name": "history-app",
-        "slug": "history-app",
-        "version": "1.0.0",
-        "orientation": "portrait",
-        "icon": "./assets/images/icon.png",
-        "scheme": "historyapp",
-        "userInterfaceStyle": "automatic",
-        "ios": {
-            "icon": "./assets/expo.icon"
-        },
-        "android": {
-            "adaptiveIcon": {
-                "backgroundColor": "#E6F4FE",
-                "foregroundImage": "./assets/images/android-icon-foreground.png",
-                "backgroundImage": "./assets/images/android-icon-background.png",
-                "monochromeImage": "./assets/images/android-icon-monochrome.png"
-            },
-            "predictiveBackGestureEnabled": false,
-            "package": "com.hoalagi1234.historyapp"
-        },
-        "web": {
-            "output": "static",
-            "favicon": "./assets/images/favicon.png"
-        },
-        "plugins": [
-            "expo-router",
-            "react-native-video",
-            [
-                "expo-splash-screen",
-                {
-                    "backgroundColor": "#208AEF",
-                    "android": {
-                        "image": "./assets/images/splash-icon.png",
-                        "imageWidth": 76
-                    }
-                }
-            ],
-            "expo-font",
-            "expo-image",
-            "expo-status-bar",
-            "expo-web-browser",
-            [
-                "expo-speech-recognition",
-                {
-                    "microphonePermission": "Allow this app to access the microphone to listen to your speech answers during automated testing workflows.",
-                    "speechRecognitionPermission": "Allow this app to use speech recognition to process your voice commands during tests."
-                }
-            ],
-            "@react-native-google-signin/google-signin",
-            [
-                "react-native-fbsdk-next",
-                {
-                    "appID": "2080338002838929",
-                    "clientToken": "eedf7b3618b89a6ee7111695505acb63",
-                    "displayName": "History App"
-                }
-            ]
-        ],
-        "experiments": {
-            "typedRoutes": true,
-            "reactCompiler": true
+  "expo": {
+    "name": "history-app",
+    "slug": "history-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "historyapp",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/expo.icon"
+    },
+    "android": {
+      "package": "com.historyapp",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "react-native-video",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#208AEF",
+          "android": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 76
+          }
         }
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow this app to access the microphone to listen to your speech answers during automated testing workflows.",
+          "speechRecognitionPermission": "Allow this app to use speech recognition to process your voice commands during tests."
+        }
+      ],
+      "@react-native-google-signin/google-signin",
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "2080338002838929",
+          "clientToken": "eedf7b3618b89a6ee7111695505acb63",
+          "displayName": "History App"
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
     }
+  }
 }
