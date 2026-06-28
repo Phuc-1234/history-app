@@ -24,6 +24,10 @@ export default function ProfileMainScreen() {
 
     const profile = useAppSelector((state) => state.auth.profile);
 
+    const handleGoToHome = () => {
+        router.push("/(tabs)/home");
+    };
+
     const handleEditProfile = () => {
         router.push("/(10_proflie)/10_2_profile_edit");
     };
@@ -77,6 +81,15 @@ export default function ProfileMainScreen() {
                     </View>
                 )}
             </View>
+
+            <TouchableOpacity
+                style={styles.homeButton}
+                onPress={handleGoToHome}
+                activeOpacity={0.8}
+            >
+                <Ionicons name="home-outline" size={18} color={colors.textLight} />
+                <Text style={styles.homeButtonText}>Đi tới Trang chủ</Text>
+            </TouchableOpacity>
 
             <View style={styles.menuSection}>
                 <View style={styles.menuContainer}>
@@ -141,7 +154,7 @@ const styles = StyleSheet.create({
     },
     userName: {
         fontSize: 20,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textPrimary,
         marginTop: 16,
     },
@@ -166,19 +179,35 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingVertical: 8,
     },
+    homeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginHorizontal: 20,
+        marginTop: 16,
+        paddingVertical: 14,
+        backgroundColor: colors.primary,
+        borderRadius: 30,
+        gap: 8,
+    },
+    homeButtonText: {
+        fontSize: 15,
+        fontWeight: "500",
+        color: colors.textLight,
+    },
     logoutButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         marginHorizontal: 20,
-        marginTop: 24,
-        paddingVertical: 16,
+        marginTop: 12,
+        paddingVertical: 14,
         backgroundColor: colors.error,
-        borderRadius: 25,
+        borderRadius: 30,
     },
     logoutText: {
-        fontSize: 16,
-        fontWeight: "600",
+        fontSize: 15,
+        fontWeight: "500",
         color: colors.textLight,
         marginLeft: 8,
     },
