@@ -28,6 +28,8 @@ out/
 apps/express-server/.env.example
 *.pem
 *.key
+service-account.json
+google-services.json
 
 # ==========================================
 # Operating System Garbage

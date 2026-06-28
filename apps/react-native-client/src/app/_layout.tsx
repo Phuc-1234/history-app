@@ -9,11 +9,21 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { store, persistor } from "../store/store";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GlobalSessionModal } from "../components/GlobalSessionModal";
+import messaging from "@react-native-firebase/messaging";
+import { useNotification } from "../features/notification";
+
+// Register background handler for Firebase Cloud Messaging (Android)
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+    console.log("Message handled in the background!", remoteMessage);
+});
 
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+    // Initialize push notifications configuration and listeners
+    useNotification();
+
     useEffect(() => {
         // Hide the native launch screen once everything mounts up fully
         SplashScreen.hideAsync();
