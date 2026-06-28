@@ -1,17 +1,18 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
   StatusBar,
   Image,
   ActivityIndicator,
   TextInput,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
+import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
 import { useGetNationalTestsQuery } from "@/features/test_v2/services/testApi";
 
@@ -39,7 +40,7 @@ const CARD_IMAGES = [
 
 export const NationalTestsView: React.FC = () => {
   const router = useRouter();
-  const { data: tests, isLoading, error } = useGetNationalTestsQuery();
+  const { data: tests, isLoading, error, refetch, isFetching } = useGetNationalTestsQuery();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleTestPress = (id: string) => {
@@ -55,7 +56,7 @@ export const NationalTestsView: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
       <View style={styles.header}>
@@ -76,6 +77,14 @@ export const NationalTestsView: React.FC = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={refetch}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         {isLoading ? (
           <View style={styles.centerContainer}>
@@ -120,7 +129,7 @@ export const NationalTestsView: React.FC = () => {
           })
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
