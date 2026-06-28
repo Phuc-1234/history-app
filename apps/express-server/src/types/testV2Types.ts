@@ -157,6 +157,9 @@ export interface TestInfoV2Response {
     goldReward: number;
     xpReward: number;
     attemptNumber: number;  // what attempt # this will be if user starts now
+    passThreshold: number;
+    attemptCount: number;
+    passCount: number;
 }
 
 export interface NationalTestDto {

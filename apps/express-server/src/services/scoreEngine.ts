@@ -77,6 +77,81 @@ function scoreChoose(
     return { scoreAwarded: getPartialScore(totalOptions, correctHits), maxScore };
 }
 
+function getLevenshteinDistance(a: string, b: string): number {
+    const matrix: number[][] = [];
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+function normalizeText(str: string): string {
+    return str
+        .toLowerCase()
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'’‘“”\[\]{}]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function extractNumbers(str: string): number[] {
+    const matches = str.match(/\d+/g);
+    if (!matches) return [];
+    return matches.map(Number);
+}
+
+function isFillAnswerCorrect(acceptedAnswers: string[], typedAnswer: string): boolean {
+    if (!typedAnswer.trim()) return false;
+
+    const userNormalized = normalizeText(typedAnswer);
+    const userNums = extractNumbers(typedAnswer);
+
+    for (const accepted of acceptedAnswers) {
+        const acceptedNormalized = normalizeText(accepted);
+        const acceptedNums = extractNumbers(accepted);
+
+        const numbersMatch =
+            userNums.length === acceptedNums.length &&
+            userNums.every((num, idx) => num === acceptedNums[idx]);
+
+        if (!numbersMatch) continue;
+
+        const wordCount = acceptedNormalized.split(/\s+/).filter(Boolean).length;
+        let allowedTypos = 0;
+        if (wordCount === 1) {
+            allowedTypos = 0;
+        } else if (wordCount === 2) {
+            allowedTypos = 1;
+        } else if (wordCount >= 3 && wordCount <= 5) {
+            allowedTypos = 2;
+        } else if (wordCount >= 6) {
+            allowedTypos = 3;
+        }
+
+        const distance = getLevenshteinDistance(userNormalized, acceptedNormalized);
+        if (distance <= allowedTypos) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function scoreFill(
     answerData: FillAnswerData,
     userAnswer: UserFillAnswer | null,
@@ -85,10 +160,7 @@ function scoreFill(
     if (!userAnswer || !userAnswer.typedAnswer?.trim()) {
         return { scoreAwarded: 0, maxScore };
     }
-    const userText = userAnswer.typedAnswer.trim().toLowerCase();
-    const isCorrect = answerData.acceptedAnswers.some(
-        (accepted) => accepted.trim().toLowerCase() === userText,
-    );
+    const isCorrect = isFillAnswerCorrect(answerData.acceptedAnswers, userAnswer.typedAnswer);
     return { scoreAwarded: isCorrect ? maxScore : 0, maxScore };
 }
 

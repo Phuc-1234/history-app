@@ -7,7 +7,7 @@ import {
     ScrollView,
     ActivityIndicator
 } from "react-native";
-import { FileText, Clock, Zap, Coins } from "lucide-react-native";
+import { FileText, Clock, Zap, Coins, Trophy } from "lucide-react-native";
 import Mascot from "../../../components/Mascot";
 import { colors } from "../../../theme/colors";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
@@ -24,6 +24,9 @@ interface Props {
     xpReward?: number;
     goldReward?: number;
     attemptNumber?: number;
+    passThreshold?: number;
+    attemptCount?: number;
+    passCount?: number;
 }
 
 export default function TestIntro({
@@ -38,6 +41,9 @@ export default function TestIntro({
     xpReward,
     goldReward,
     attemptNumber,
+    passThreshold = 80,
+    attemptCount = 0,
+    passCount = 0,
 }: Props) {
     const branchConfig = {
         hierarchy: "",
@@ -50,7 +56,7 @@ export default function TestIntro({
             <ScreenWrapper showTopBar={false} branchConfig={branchConfig} >
                 <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
                     <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={{ marginTop: 16, color: colors.textMuted, fontWeight: "700", fontSize: 14 }}>
+                    <Text style={{ marginTop: 16, color: colors.textMuted, fontWeight: "500", fontSize: 14 }}>
                         Đang tải thông tin bài kiểm tra...
                     </Text>
                 </View>
@@ -87,47 +93,55 @@ export default function TestIntro({
                     </Text>
                 </View>
 
-                {/* Sub-containers: number of ques, time, xp, gold */}
-                <View style={styles.gridContainer}>
-                    {/* Questions count */}
-                    <View style={[styles.gridItem, styles.gridItemQuestions]}>
-                        <FileText size={20} color={colors.primary} />
-                        <Text style={styles.gridTextQuestions}>{resolvedQuestionCount} câu hỏi</Text>
-                    </View>
-
+                {/* Row 1: 3 Squares */}
+                <View style={styles.squaresRow}>
                     {/* Time limit */}
-                    <View style={[styles.gridItem, styles.gridItemTime]}>
-                        <Clock size={20} color={colors.secondary} />
-                        <Text style={styles.gridTextTime}>
-                            {resolvedTimeLimit !== null ? `${resolvedTimeLimit} phút` : "Không giới hạn"}
+                    <View style={[styles.infoSquare, { borderColor: colors.error }]}>
+                        <Text style={styles.infoSquareLabel}>Thời gian</Text>
+                        <Clock size={20} color={colors.error} />
+                        <Text style={[styles.infoSquareValue, { color: colors.error }]}>
+                            {resolvedTimeLimit !== null ? `${resolvedTimeLimit} phút` : "Tự do"}
                         </Text>
                     </View>
 
+                    {/* Questions count */}
+                    <View style={[styles.infoSquare, { borderColor: colors.primary }]}>
+                        <Text style={styles.infoSquareLabel}>Số câu hỏi</Text>
+                        <FileText size={20} color={colors.primary} />
+                        <Text style={[styles.infoSquareValue, { color: colors.primary }]}>{resolvedQuestionCount} câu</Text>
+                    </View>
+
+                    {/* Pass threshold */}
+                    <View style={[styles.infoSquare, { borderColor: colors.success }]}>
+                        <Text style={styles.infoSquareLabel}>Điểm đạt</Text>
+                        <Trophy size={20} color={colors.success} />
+                        <Text style={[styles.infoSquareValue, { color: colors.success }]}>{passThreshold}%</Text>
+                    </View>
+                </View>
+
+                {/* Row 2: Small, faint line */}
+                <Text style={styles.attemptFaintText}>
+                    Lần thử thứ {(attemptCount ?? 0) + 1}. {passCount && passCount > 0 ? `Bạn đã đạt đề này ${passCount} lần` : "Bạn chưa đạt đề này lần nào"}
+                </Text>
+
+                {/* Row 3: 2 rectangles of rewards */}
+                <View style={styles.rewardsRow}>
                     {/* XP reward */}
                     {xpReward != null && xpReward > 0 && (
-                        <View style={[styles.gridItem, styles.gridItemXp]}>
+                        <View style={[styles.rewardRectangle, { backgroundColor: "#2563EB" }]}>
                             <Zap size={20} color="#FFFFFF" />
-                            <Text style={styles.gridTextReward}>+{xpReward} XP</Text>
+                            <Text style={styles.rewardRectangleText}>+{xpReward} XP</Text>
                         </View>
                     )}
 
                     {/* Gold reward */}
                     {goldReward != null && goldReward > 0 && (
-                        <View style={[styles.gridItem, styles.gridItemGold]}>
+                        <View style={[styles.rewardRectangle, { backgroundColor: colors.gold }]}>
                             <Coins size={20} color="#FFFFFF" />
-                            <Text style={styles.gridTextReward}>+{goldReward} vàng</Text>
+                            <Text style={styles.rewardRectangleText}>+{goldReward} vàng</Text>
                         </View>
                     )}
                 </View>
-
-                {/* Attempt preview chip */}
-                {attemptNumber != null && (
-                    <View style={styles.rewardRow}>
-                        <View style={styles.attemptChip}>
-                            <Text style={styles.attemptChipText}>Lần {attemptNumber}</Text>
-                        </View>
-                    </View>
-                )}
             </ScrollView>
 
             {/* Action Buttons Footer */}
@@ -174,63 +188,72 @@ const styles = StyleSheet.create({
     },
     titleLabel: {
         fontSize: 24,
-        fontWeight: "800",
+        fontWeight: "600",
         color: colors.textPrimary,
         textAlign: "center",
     },
     scopeText: {
         fontSize: 16,
-        fontWeight: "600",
+        fontWeight: "500",
         color: colors.textSecondary,
         textAlign: "center",
         marginTop: 6,
     },
-    gridContainer: {
+    squaresRow: {
         flexDirection: "row",
-        flexWrap: "wrap",
         justifyContent: "space-between",
-        rowGap: 12,
         marginTop: 8,
+        gap: 8,
     },
-    gridItem: {
-        width: "48%",
+    infoSquare: {
+        flex: 1,
+        aspectRatio: 1,
         borderRadius: 12,
-        paddingVertical: 18,
-        paddingHorizontal: 12,
+        borderWidth: 2,
+        borderColor: colors.accent,
+        backgroundColor: "transparent",
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
+        padding: 6,
+        gap: 4,
     },
-    gridItemQuestions: {
-        borderWidth: 2,
-        borderColor: colors.primary,
-        backgroundColor: "transparent",
-    },
-    gridItemTime: {
-        borderWidth: 2,
-        borderColor: colors.secondary,
-        backgroundColor: "transparent",
-    },
-    gridItemXp: {
-        backgroundColor: "#2563EB",
-    },
-    gridItemGold: {
-        backgroundColor: "#FFD700",
-    },
-    gridTextQuestions: {
+    infoSquareValue: {
         fontSize: 13,
         fontWeight: "500",
-        color: colors.primary,
+        color: colors.accent,
         textAlign: "center",
     },
-    gridTextTime: {
-        fontSize: 13,
-        fontWeight: "500",
-        color: colors.secondary,
+    infoSquareLabel: {
+        fontSize: 10,
+        fontWeight: "400",
+        color: colors.textMuted,
         textAlign: "center",
     },
-    gridTextReward: {
+    attemptFaintText: {
         fontSize: 13,
+        fontWeight: "400",
+        color: colors.textMuted,
+        textAlign: "center",
+        marginVertical: 16,
+    },
+    rewardsRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: 12,
+        marginTop: 8,
+    },
+    rewardRectangle: {
+        flex: 1,
+        borderRadius: 12,
+        backgroundColor: colors.accent,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 14,
+        gap: 8,
+    },
+    rewardRectangleText: {
+        fontSize: 14,
         fontWeight: "500",
         color: "#FFFFFF",
         textAlign: "center",
@@ -256,12 +279,12 @@ const styles = StyleSheet.create({
     startButtonText: {
         color: colors.textLight,
         fontSize: 15,
-        fontWeight: "700",
+        fontWeight: "500",
     },
     arrowIcon: {
         fontSize: 14,
         color: colors.textLight,
-        fontWeight: "700",
+        fontWeight: "500",
     },
     voiceButton: {
         flexDirection: "row",
@@ -280,7 +303,7 @@ const styles = StyleSheet.create({
     },
     voiceButtonText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.primary,
     },
     laterButton: {
@@ -291,7 +314,7 @@ const styles = StyleSheet.create({
     },
     laterButtonText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textMuted,
     },
     rewardRow: {
@@ -311,7 +334,7 @@ const styles = StyleSheet.create({
     },
     attemptChipText: {
         fontSize: 12,
-        fontWeight: "600",
+        fontWeight: "400",
         color: colors.textMuted,
     },
 });

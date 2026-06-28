@@ -739,12 +739,13 @@ export class TestServiceV2 {
         userId: string,
         req: StartTestV2Request,
     ): Promise<TestInfoV2Response> {
-        let preset: any = null;
+                let preset: any = null;
         let scopeType = req.scopeType ?? null;
         let scopeId = req.scopeId ?? null;
         let purposeType = req.purposeType ?? "PRACTICE";
         let testId: string | null = req.testId ?? null;
         let questionCount = 0;
+        let passThreshold = 80;
 
         // ── Manual test path ──
         if (testId) {
@@ -768,6 +769,7 @@ export class TestServiceV2 {
             scopeId = test.scopeId ?? scopeId;
             if (preset) purposeType = preset.purposeType ?? purposeType;
             questionCount = test.testQuestions.length;
+            passThreshold = test.passThreshold ?? preset?.passThreshold ?? 80;
         } else {
             // ── Auto-pick path ──
             if (req.presetId) {
@@ -812,6 +814,7 @@ export class TestServiceV2 {
                 preset.difficultyRatioJson,
             );
             questionCount = sequence.length;
+            passThreshold = preset?.passThreshold ?? 80;
         }
 
         const mockLog = {
@@ -832,6 +835,32 @@ export class TestServiceV2 {
             userId,
         );
 
+        // Compute attempt count and pass count
+        const attemptCount = testId
+            ? await prisma.userTestLog.count({ where: { testId, userId } })
+            : await prisma.userTestLog.count({
+                  where: {
+                      userId,
+                      generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
+                      scopeType: scopeType as any,
+                      scopeId,
+                      testId: null,
+                  },
+              });
+
+        const passCount = testId
+            ? await prisma.userTestLog.count({ where: { testId, userId, isPassed: true } })
+            : await prisma.userTestLog.count({
+                  where: {
+                      userId,
+                      generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
+                      scopeType: scopeType as any,
+                      scopeId,
+                      testId: null,
+                      isPassed: true,
+                  },
+              });
+
         return {
             title,
             questionCount,
@@ -842,6 +871,9 @@ export class TestServiceV2 {
             goldReward: rewardPreview.gold,
             xpReward: rewardPreview.xp,
             attemptNumber: rewardPreview.attemptNumber,
+            passThreshold,
+            attemptCount,
+            passCount,
         };
     }
 

@@ -347,6 +347,32 @@ Dùng để test nhanh các endpoint auth, content, test và gamification.
 - `shop`, `inventory`, `national-tests` hiện đang dùng dữ liệu mock phía client, chưa phải luồng API đầy đủ.
 - Một số comment/text trong source đang bị mojibake; README này không sửa source code ngoài tài liệu.
 
+## Quy tắc Đánh giá Câu hỏi Điền từ (Fill Question Evaluation Policy)
+
+Cơ chế đánh giá câu hỏi điền từ (FILL question) được đồng bộ hóa nhất quán giữa FE và BE theo các bước sau:
+
+1. **Chuẩn hóa chuỗi (Normalization)**:
+   * Chuyển về chữ thường (lowercase).
+   * Loại bỏ toàn bộ các dấu câu chuẩn và các ký tự đặc biệt (`.,\/#!$%\^&\*;:{}=\-_`~()?"'’‘“”\[\]{}`).
+   * Rút gọn các khoảng trắng thừa ở giữa và hai đầu chuỗi thành một khoảng trắng duy nhất.
+   * Giữ nguyên các ký tự có dấu tiếng Việt (đ, â, ă, ê, ô, ơ, ư, và các dấu thanh).
+
+2. **Kiểm tra chữ số trước (Numeric Check)**:
+   * Trích xuất toàn bộ các chuỗi chữ số liên tiếp từ câu trả lời của người dùng và đáp án đúng.
+   * Chuyển đổi các chuỗi chữ số này thành các mảng số nguyên tương ứng (loại bỏ số 0 ở đầu, ví dụ `"04"` thành `4`).
+   * Nếu danh sách số nguyên trích xuất được không khớp nhau hoàn toàn về thứ tự và giá trị, câu trả lời bị đánh giá là **Sai ngay lập tức** mà không cần so khớp chữ.
+
+3. **Tính toán khoảng cách lỗi (Typo Allowance)**:
+   * Tính toán khoảng cách Levenshtein giữa chuỗi của người dùng và đáp án đúng (sau khi đã chuẩn hóa).
+   * Ngưỡng lỗi chính tả được chấp nhận dựa trên số lượng từ (syllables) của đáp án đúng:
+     * **1 từ**: Yêu cầu khớp tuyệt đối (không cho phép lỗi chính tả, khoảng cách Levenshtein = 0).
+     * **2 từ**: Cho phép tối đa 1 lỗi chính tả (khoảng cách Levenshtein $\le$ 1).
+     * **Từ 3 đến 5 từ**: Cho phép tối đa 2 lỗi chính tả (khoảng cách Levenshtein $\le$ 2).
+     * **Từ 6 từ trở lên**: Cho phép tối đa 3 lỗi chính tả (khoảng cách Levenshtein $\le$ 3).
+
+4. **Đánh giá chi tiết**:
+   * Câu trả lời được so sánh lần lượt với từng đáp án được chấp nhận (accepted answers). Nếu khớp với bất kỳ đáp án nào thỏa mãn các điều kiện trên, câu trả lời sẽ được coi là **Đúng**.
+
 ## Giấy phép
 
 Dự án riêng tư. Tất cả quyền được bảo lưu.
