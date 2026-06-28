@@ -7,12 +7,14 @@ interface RankingListProps {
     rankingList: DisplayUser[];
     isSmallDevice: boolean;
     showStreak?: boolean;
+    myUserId?: string | number;
 }
 
 export const RankingList: React.FC<RankingListProps> = ({
     rankingList,
     isSmallDevice,
     showStreak = false,
+    myUserId,
 }) => {
     const styles = createStyles(isSmallDevice);
 
@@ -20,31 +22,39 @@ export const RankingList: React.FC<RankingListProps> = ({
         <View style={styles.listContainer}>
             {rankingList.map((item, index) => {
                 const hasAvatar = item.avatar && item.avatar.trim() !== "";
+                const isMe = String(item.id) === String(myUserId);
+                if (String(item.id) === String(myUserId)) {
+                    console.log("Dữ liệu của tôi trong rankingList:", item);
+                }
 
                 return (
-                    <View key={item.id} style={styles.rankRow}>
-                        <Text style={styles.rowPosition}>{index + 4}</Text>
+                    <View key={item.id} style={[styles.rankRow, isMe && styles.meRow]}>
+                        {/* Hạng */}
+                        <Text style={[styles.rowPosition, isMe && styles.meText]}>
+                            {index + 4}
+                        </Text>
 
+                        {/* Avatar */}
                         {hasAvatar ? (
                             <Image
                                 source={{ uri: item.avatar }}
                                 style={styles.rowAvatar}
                             />
                         ) : (
-                            <View style={styles.rowDefaultAvatar}>
-                                <Text style={styles.rowDefaultAvatarText}>
-                                    {item.name
-                                        ? item.name.charAt(0).toUpperCase()
-                                        : "?"}
+                            <View style={[styles.rowDefaultAvatar, isMe && styles.meDefaultAvatar]}>
+                                <Text style={[styles.rowDefaultAvatarText, isMe && styles.meText]}>
+                                    {item.name ? item.name.charAt(0).toUpperCase() : "?"}
                                 </Text>
                             </View>
                         )}
 
-                        <Text style={styles.rowName} numberOfLines={1}>
+                        {/* Tên */}
+                        <Text style={[styles.rowName, isMe && styles.meText]} numberOfLines={1}>
                             {item.name}
                         </Text>
 
-                        <Text style={styles.rowXp}>
+                        {/* XP hoặc Chuỗi */}
+                        <Text style={[styles.rowXp, isMe && styles.meText]}>
                             {showStreak
                                 ? `🔥 ${item.streak} ngày`
                                 : `${item.xp.toLocaleString()} XP`}
@@ -67,6 +77,11 @@ const createStyles = (isSmallDevice: boolean) =>
             paddingHorizontal: 16,
             paddingVertical: 14,
             marginBottom: 14,
+        },
+        meRow: { 
+            backgroundColor: '#EBE9FE', 
+            borderWidth: 2, 
+            borderColor: '#5641E8' 
         },
         rowPosition: {
             width: 22,
@@ -91,6 +106,7 @@ const createStyles = (isSmallDevice: boolean) =>
             justifyContent: "center",
             alignItems: "center",
         },
+        meDefaultAvatar: { backgroundColor: '#D8D4FF' }, // Màu nền avatar nhạt hơn khi là hàng của mình
         rowDefaultAvatarText: {
             color: colors.primary,
             fontSize: 16,
@@ -107,5 +123,9 @@ const createStyles = (isSmallDevice: boolean) =>
             fontSize: isSmallDevice ? 14 : 15,
             color: colors.textLight,
             fontWeight: "700",
+        },
+        meText: {
+            color: '#5641E8', // Chữ màu tím đậm khi là hàng của mình
+            fontWeight: 'bold',
         },
     });
