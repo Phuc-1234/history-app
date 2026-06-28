@@ -234,7 +234,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                     onPress={onQuizPress}
                 >
                     <Ionicons name="document-text" size={18} color={colors.textLight} />
-                    <Text style={styles.practiceBtnText}>Luyện tập</Text>
+                    <Text style={styles.practiceBtnText}>Thử thách</Text>
                 </TouchableOpacity>
             </View>
 

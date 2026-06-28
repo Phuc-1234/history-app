@@ -189,7 +189,7 @@ export function ExpandableSection({
                         >
                             <Ionicons name="document-text" size={16} color={colors.primary} />
                             <Text style={styles.sectionTestBtnText}>
-                                Luyện tập mục {getSectionDisplaySuffix(section.name)}
+                                Thử thách mục {getSectionDisplaySuffix(section.name)}
                             </Text>
                         </TouchableOpacity>
                     )}

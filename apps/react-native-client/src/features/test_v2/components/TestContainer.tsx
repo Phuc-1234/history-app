@@ -11,7 +11,7 @@ import {
     Modal,
     Dimensions,
 } from "react-native";
-import { Grid, Zap, Coins, Flame, Trophy } from "lucide-react-native";
+import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Animated, {
     FadeIn,
@@ -476,10 +476,10 @@ export default function TestContainerV2({
                         style={styles.resultActions}
                     >
                         <TouchableOpacity
-                            style={styles.exitBtn}
-                            onPress={onExit || (() => router.back())}
+                            style={styles.restartBtn}
+                            onPress={actions.restart}
                         >
-                            <Text style={styles.exitBtnText}>Quay lại</Text>
+                            <Text style={styles.restartBtnText}>Làm lại</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -496,21 +496,12 @@ export default function TestContainerV2({
                             </Text>
                         </TouchableOpacity>
 
-                        {/* {purposeType === "PRACTICE" && hasWrongAnswers && (
-                            <TouchableOpacity
-                                style={styles.redoBtn}
-                                onPress={actions.redoWrong}
-                            >
-                                <Text style={styles.redoBtnText}>
-                                    Làm lại câu chưa đúng
-                                </Text>
-                            </TouchableOpacity>
-                        )} */}
                         <TouchableOpacity
-                            style={styles.restartBtn}
-                            onPress={actions.restart}
+                            style={styles.exitBtn}
+                            onPress={onExit || (() => router.back())}
                         >
-                            <Text style={styles.restartBtnText}>Làm lại</Text>
+                            <ArrowLeft size={16} color={colors.primary} />
+                            <Text style={styles.exitBtnText}>Về bài học</Text>
                         </TouchableOpacity>
                     </Animated.View>
                 </ScrollView>
@@ -1333,6 +1324,9 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         paddingVertical: 14,
         alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 6,
         borderWidth: 1.5,
         borderColor: colors.primary,
     },
