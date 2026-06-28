@@ -22,7 +22,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             <View style={styles.podiumColumn}>
                 <View style={styles.avatarWrapper}>
                     <Image
-                        source={{ uri: topUsers[0].avatar }}
+                        source={{ uri: topUsers[1].avatar }}
                         style={styles.podiumAvatar}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank2Badge]}>
@@ -30,12 +30,12 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     </View>
                 </View>
                 <Text style={styles.podiumName} numberOfLines={1}>
-                    {topUsers[0].name}
+                    {topUsers[1].name}
                 </Text>
                 <Text style={styles.rank2Xp}>
                     {showStreak
-                        ? `🔥 ${topUsers[0].streak} ngày`
-                        : `${topUsers[0].xp.toLocaleString()} XP`}
+                        ? `🔥 ${topUsers[1].streak} ngày`
+                        : `${topUsers[1].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank2Base]} />
             </View>
@@ -45,7 +45,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                 <Text style={styles.crownIcon}>👑</Text>
                 <View style={styles.avatarWrapper}>
                     <Image
-                        source={{ uri: topUsers[1].avatar }}
+                        source={{ uri: topUsers[0].avatar }}
                         style={[styles.podiumAvatar, styles.rank1Avatar]}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank1Badge]}>
@@ -56,12 +56,12 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     style={[styles.podiumName, styles.rank1Name]}
                     numberOfLines={1}
                 >
-                    {topUsers[1].name}
+                    {topUsers[0].name}
                 </Text>
                 <Text style={styles.rank1Xp}>
                     {showStreak
-                        ? `🔥 ${topUsers[1].streak} ngày`
-                        : `${topUsers[1].xp.toLocaleString()} XP`}
+                        ? `🔥 ${topUsers[0].streak} ngày`
+                        : `${topUsers[0].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank1Base]} />
             </View>
