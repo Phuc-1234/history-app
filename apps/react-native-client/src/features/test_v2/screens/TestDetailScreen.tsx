@@ -240,7 +240,7 @@ function ChooseReview({
                             ]}
                         >
                             <Text style={styles.reviewBadgeTextMissing}>
-                                Đáp án đúng bỏ lỡ
+                                Đáp án đúng
                             </Text>
                         </View>
                     );

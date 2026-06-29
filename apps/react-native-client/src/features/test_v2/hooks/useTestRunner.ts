@@ -61,7 +61,6 @@ export interface TestRunnerV2State {
         jumpTo: (index: number) => void;
         submit: () => Promise<void>;
         restart: () => Promise<void>;
-        reset: () => void;
         redoWrong: () => void;
         confirmAnswer: () => void;
     };
@@ -95,20 +94,6 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
 
     const purposeType = (params.purposeType ?? session?.purposeType ?? "PRACTICE") as "PRACTICE" | "EXAM";
     const currentQuestion = questions[currentIndex] ?? null;
-
-    // Reset state on param changes
-    useEffect(() => {
-        setSession(null);
-        setQuestions([]);
-        setCurrentIndex(0);
-        setDraftAnswers([]);
-        setEvaluations({});
-        setRedoQueue([]);
-        setResult(null);
-        setTimeLeft(0);
-        setError(null);
-        setStatus("idle");
-    }, [params.testId, params.scopeId, params.scopeType, params.purposeType]);
 
     // Keep refs in sync
     useEffect(() => { sessionRef.current = session; }, [session]);
@@ -306,19 +291,6 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         await handleStart();
     }, [handleStart]);
 
-    const handleReset = useCallback(() => {
-        setSession(null);
-        setQuestions([]);
-        setCurrentIndex(0);
-        setDraftAnswers([]);
-        setEvaluations({});
-        setRedoQueue([]);
-        setResult(null);
-        setTimeLeft(0);
-        setError(null);
-        setStatus("idle");
-    }, []);
-
     // ── Confirm Answer (practice mode) ───────────────────────────────
     const confirmAnswer = useCallback(() => {
         if (purposeType !== "PRACTICE" || !currentQuestion) return;
@@ -372,7 +344,6 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
     const jumpToRef = useRef(jumpTo);
     const handleSubmitRef = useRef(handleSubmit);
     const handleRestartRef = useRef(handleRestart);
-    const handleResetRef = useRef(handleReset);
     const redoWrongRef = useRef(redoWrong);
     const confirmAnswerRef = useRef(confirmAnswer);
 
@@ -385,7 +356,6 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
     useEffect(() => { jumpToRef.current = jumpTo; }, [jumpTo]);
     useEffect(() => { handleSubmitRef.current = handleSubmit; }, [handleSubmit]);
     useEffect(() => { handleRestartRef.current = handleRestart; }, [handleRestart]);
-    useEffect(() => { handleResetRef.current = handleReset; }, [handleReset]);
     useEffect(() => { redoWrongRef.current = redoWrong; }, [redoWrong]);
     useEffect(() => { confirmAnswerRef.current = confirmAnswer; }, [confirmAnswer]);
 
@@ -399,7 +369,6 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         jumpTo: (index: number) => jumpToRef.current(index),
         submit: () => handleSubmitRef.current(),
         restart: () => handleRestartRef.current(),
-        reset: () => handleResetRef.current(),
         redoWrong: () => redoWrongRef.current(),
         confirmAnswer: () => confirmAnswerRef.current(),
     }), []);

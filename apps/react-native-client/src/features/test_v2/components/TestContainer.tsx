@@ -13,7 +13,7 @@ import {
     useWindowDimensions,
 } from "react-native";
 import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft } from "lucide-react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter } from "expo-router";
 import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
 import Animated, {
     FadeIn,
@@ -145,18 +145,11 @@ export default function TestContainerV2({
     const { width } = useWindowDimensions();
     const runner = useTestRunnerV2(params);
     const router = useRouter();
-    const { data: testInfo, isLoading: isInfoLoading, refetch: refetchInfo } = useGetTestInfoQuery(
+    const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(
         params,
         {
             skip: runner.status !== "idle",
         },
-    );
-
-    useFocusEffect(
-        React.useCallback(() => {
-            runner.actions.reset();
-            refetchInfo();
-        }, [refetchInfo])
     );
 
     useEffect(() => {
