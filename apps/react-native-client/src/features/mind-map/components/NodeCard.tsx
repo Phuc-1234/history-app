@@ -205,7 +205,13 @@ export const NodeCard = React.memo(function NodeCard({
 
         return {
             opacity: enter.value * dimOpacity,
-            transform: `translate(${nodeCenterX + tx} ${nodeCenterY + ty}) scale(${scale}) translate(${-nodeCenterX} ${-nodeCenterY})`,
+            transform: [
+                { translateX: nodeCenterX + tx },
+                { translateY: nodeCenterY + ty },
+                { scale: scale },
+                { translateX: -nodeCenterX },
+                { translateY: -nodeCenterY },
+            ],
         };
     });
 

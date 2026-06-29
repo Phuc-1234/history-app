@@ -72,28 +72,31 @@ export class AIService {
     }
 
     async generateMindMap(text: string): Promise<{ sections: any[] }> {
-        const prompt = `Bạn là một trợ lý AI phân tích lịch sử. Hãy tóm tắt đoạn văn bản lịch sử sau đây thành một cấu trúc sơ đồ tư duy (mindmap) dưới dạng JSON.
+        const prompt = `Bạn là một trợ lý AI phân tích lịch sử. Hãy tóm tắt đoạn văn bản lịch sử sau đây thành một cấu trúc sơ đồ tư duy (mindmap) thuần túy dưới dạng các nhánh lồng nhau (không sử dụng nút kiến thức riêng lẻ).
 Định dạng JSON trả về phải tuân thủ CHÍNH XÁC cấu trúc sau:
 {
   "sections": [
     {
-      "name": "Tên nhánh (ví dụ: 1. Hoàn cảnh lịch sử)",
+      "name": "Tên nhánh hoặc nội dung tóm tắt ngắn (ví dụ: 1. Khái niệm lịch sử)",
       "position": 1,
-      "nodes": [
+      "nodes": [],
+      "children": [
         {
-          "header": "Tiêu đề nút (ví dụ: Nguyên nhân trực tiếp)",
-          "body": "Nội dung tóm tắt chi tiết của nút kiến thức này",
-          "position": 1
+          "name": "Nội dung chi tiết ngắn của nhánh con (ví dụ: Là những gì diễn ra trong quá khứ)",
+          "position": 1,
+          "nodes": [],
+          "children": []
         }
-      ],
-      "children": []
+      ]
     }
   ]
 }
-Lưu ý:
-- "children" là danh sách các nhánh con (cấu trúc đệ quy giống như "sections").
-- Hãy chia nhỏ thông tin hợp lý để sơ đồ tư duy có cấu trúc phân cấp rõ ràng.
-- Chỉ trả về duy nhất chuỗi JSON hợp lệ, không có thêm bất kỳ văn bản giải thích nào khác ngoài JSON, không bọc trong markdown codeblock \`\`\`json.
+Lưu ý quan trọng:
+- BẮT BUỘC để mảng "nodes" luôn là mảng rỗng [] ở mọi cấp độ. Tuyệt đối không được đưa bất kỳ phần tử nào vào trong mảng "nodes".
+- Tất cả thông tin chi tiết và định nghĩa phải được viết trực tiếp dưới dạng một nhánh con mới trong mảng "children" (cấu trúc đệ quy).
+- Đảm bảo "name" của các nhánh chứa thông tin tóm tắt súc tích, ngắn gọn (khoảng 10-15 từ).
+- Hãy chia nhỏ thông tin hợp lý để sơ đồ tư duy có cấu trúc phân cấp rõ ràng (nhánh cha -> các nhánh con -> các nhánh cháu).
+- Chỉ trả về duy nhất chuỗi JSON hợp lệ, không bọc trong markdown codeblock \`\`\`json.
 
 Đoạn văn bản cần tóm tắt:
 ${text}`;
