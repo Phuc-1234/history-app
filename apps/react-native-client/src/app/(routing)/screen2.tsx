@@ -25,7 +25,7 @@ export default function OnboardingScreen2() {
     console.log('Bỏ qua onboarding ở màn 2');
     await setOnboardingComplete(); 
     // Đưa về màn hình welcome tổng của luồng auth thay vì chỉ vào thẳng form login đơn lẻ
-    router.replace("/(tabs)/2_1_lessons");
+    router.replace("/(tabs)/home");
   }; 
 
   const handleNext = () => {

@@ -133,7 +133,7 @@ export function useRegisterOtp(
                 dispatch(setProfile(response.profile));
             }
 
-            router.replace("/(tabs)/2_1_lessons");
+            router.replace("/(tabs)/home");
         } catch (error: any) {
             const backendError =
                 error?.data?.error || "Mã xác thực không chính xác.";
