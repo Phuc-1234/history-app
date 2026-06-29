@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, View } from "react-native";
-import Video from "react-native-video";
+import React, { useState, useEffect, useRef } from "react";
+import { StyleSheet, View, TouchableOpacity } from "react-native";
+import Video, { VideoRef } from "react-native-video";
 import { useNavigation } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import VideoError from "./VideoError";
 import VideoLoading from "./VideoLoading";
@@ -22,6 +23,9 @@ export default function VideoPlayer({
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isFocused, setIsFocused] = useState(true);
+  const [isUserPlaying, setIsUserPlaying] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoRef = useRef<VideoRef>(null);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -37,6 +41,17 @@ export default function VideoPlayer({
     };
   }, [navigation]);
 
+  const handlePlayPress = () => {
+    setIsUserPlaying(true);
+    setIsFullscreen(true);
+    videoRef.current?.presentFullscreenPlayer();
+  };
+
+  const handleFullscreenDismiss = () => {
+    setIsFullscreen(false);
+    setIsUserPlaying(false);
+  };
+
   return (
     <View style={styles.container}>
       {hasError ? (
@@ -44,15 +59,19 @@ export default function VideoPlayer({
       ) : (
         <>
           <Video
+            ref={videoRef}
             key={videoId}
             source={{
               uri: videoUrl,
               type: "m3u8",
             }}
             style={styles.video}
-            controls
+            controls={isFullscreen}
             resizeMode="contain"
-            paused={!isFocused}
+            paused={!isFocused || !isUserPlaying}
+            fullscreen={isFullscreen}
+            fullscreenOrientation="landscape"
+            onFullscreenPlayerDidDismiss={handleFullscreenDismiss}
             onLoadStart={() => {
               setLoading(true);
               setHasError(false);
@@ -70,7 +89,18 @@ export default function VideoPlayer({
               setHasError(true);
             }}
           />
-          {loading && <VideoLoading />}
+          {!isUserPlaying && (
+            <TouchableOpacity
+              style={styles.playOverlay}
+              activeOpacity={0.8}
+              onPress={handlePlayPress}
+            >
+              <View style={styles.playButtonCircle}>
+                <Ionicons name="play" size={32} color="#FFFFFF" style={{ marginLeft: 4 }} />
+              </View>
+            </TouchableOpacity>
+          )}
+          {loading && isUserPlaying && <VideoLoading />}
         </>
       )}
     </View>
@@ -89,5 +119,26 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     backgroundColor: "#000000",
+  },
+  playOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 3,
+  },
+  playButtonCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
 });
