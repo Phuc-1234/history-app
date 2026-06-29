@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   View,
   StatusBar,
-  Image,
   ActivityIndicator,
   TextInput,
   ScrollView,
@@ -15,6 +14,16 @@ import {
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
 import { useGetNationalTestsQuery } from "@/features/test_v2/services/testApi";
+import {
+  BookOpen,
+  FileText,
+  GraduationCap,
+  Trophy,
+  Award,
+  Compass,
+  History,
+  School,
+} from "lucide-react-native";
 
 const VIBRANT_COLORS = [
   "#E11D48", // Rose
@@ -27,15 +36,15 @@ const VIBRANT_COLORS = [
   "#4F46E5", // Indigo
 ];
 
-const CARD_IMAGES = [
-  "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=150&auto=format&fit=crop&q=80",
+const CARD_ICONS = [
+  BookOpen,
+  FileText,
+  GraduationCap,
+  Trophy,
+  Award,
+  Compass,
+  History,
+  School,
 ];
 
 export const NationalTestsView: React.FC = () => {
@@ -103,6 +112,7 @@ export const NationalTestsView: React.FC = () => {
         ) : (
           filteredTests.map((item, index) => {
             const cardBgColor = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
+            const IconComponent = CARD_ICONS[index % CARD_ICONS.length];
             return (
               <TouchableOpacity
                 key={item.id}
@@ -110,10 +120,9 @@ export const NationalTestsView: React.FC = () => {
                 onPress={() => handleTestPress(item.id)}
                 style={[styles.testCard, { backgroundColor: cardBgColor }]}
               >
-                <Image
-                  source={{ uri: CARD_IMAGES[index % CARD_IMAGES.length] }}
-                  style={styles.cardImage}
-                />
+                <View style={styles.iconContainer}>
+                  <IconComponent size={28} color="#FFFFFF" />
+                </View>
                 <View style={styles.cardContent}>
                   <Text style={styles.cardTitle} numberOfLines={2}>
                     {item.title}
@@ -191,12 +200,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  cardImage: {
+  iconContainer: {
     width: 64,
     height: 64,
     borderRadius: 8,
     marginRight: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   cardContent: {
     flex: 1,
