@@ -142,7 +142,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                     </View>
 
                     <TouchableOpacity
-                        onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/2_1_lessons"))}
+                        onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/home"))}
                         style={styles.homeButton}
                         activeOpacity={0.7}
                     >
