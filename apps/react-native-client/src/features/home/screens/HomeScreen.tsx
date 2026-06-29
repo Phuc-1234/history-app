@@ -111,11 +111,20 @@ export default function HomeScreen() {
     const router = useRouter();
 
     // Đảm bảo profile luôn mới nhất
-    useGetProfileQuery();
+    const { refetch: refetchProfile, isFetching: isFetchingProfile, isLoading: isLoadingProfile } = useGetProfileQuery();
     const profile = useAppSelector((state) => state.auth.profile);
 
     // Gọi 1 API duy nhất cho toàn bộ trang chủ
-    const { data, isLoading } = useGetHomeDataQuery();
+    const { data, isLoading, error, refetch: refetchHome } = useGetHomeDataQuery(undefined, {
+        skip: isLoadingProfile,
+    });
+
+    const handleRefresh = React.useCallback(() => {
+        refetchProfile();
+        refetchHome();
+    }, [refetchProfile, refetchHome]);
+
+    const isRefreshing = isFetchingProfile || isLoading;
 
     // Map data top 3 cho PodiumSection
     const topUsersData = React.useMemo(() => {
@@ -144,6 +153,9 @@ export default function HomeScreen() {
         <ScreenWrapper
             showTopBar={false}
             enableScroll={true}
+            enableRefresh={true}
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
             showHistoricalBackground={false}
             contentContainerStyle={styles.scrollContent}
             backgroundColor={colors.primary}
@@ -190,6 +202,26 @@ export default function HomeScreen() {
                 {isLoading && (
                     <View style={styles.loadingBlock}>
                         <ActivityIndicator size="small" color={colors.primary} />
+                    </View>
+                )}
+
+                {/* Error state */}
+                {!isLoading && error && (
+                    <View style={styles.loadingBlock}>
+                        <Text style={{ color: colors.error, marginBottom: 12, textAlign: "center" }}>
+                            Lỗi tải dữ liệu: {("message" in error) ? (error as any).message : JSON.stringify(error)}
+                        </Text>
+                        <TouchableOpacity 
+                            style={{ 
+                                backgroundColor: colors.primary, 
+                                paddingHorizontal: 20, 
+                                paddingVertical: 10, 
+                                borderRadius: 20 
+                            }} 
+                            onPress={handleRefresh}
+                        >
+                            <Text style={{ color: "#fff", fontWeight: "600" }}>Thử lại</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
 

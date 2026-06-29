@@ -97,7 +97,7 @@ export function useAuthForm() {
                     ["refresh_token", response.session.refreshToken],
                 ]);
                 dispatch(setProfile(response.profile));
-                router.replace("/(tabs)/2_1_lessons");
+                router.replace("/(tabs)/home");
                 return;
             }
         } catch (error: any) {
@@ -181,7 +181,7 @@ export function useAuthForm() {
                     ["refresh_token", response.session.refreshToken],
                 ]);
                 dispatch(setProfile(response.profile));
-                router.replace("/(tabs)/2_1_lessons");
+                router.replace("/(tabs)/home");
             }
         } catch (error: any) {
             console.error("Login attempt failure:", error);
@@ -240,7 +240,7 @@ export function useAuthForm() {
                     ["refresh_token", response.session.refreshToken],
                 ]);
                 dispatch(setProfile(response.profile));
-                router.replace("/(tabs)/2_1_lessons");
+                router.replace("/(tabs)/home");
             }
         } catch (error: any) {
             console.error("Google Sign-in attempt failure:", error);
@@ -301,7 +301,7 @@ export function useAuthForm() {
                     ["refresh_token", response.session.refreshToken],
                 ]);
                 dispatch(setProfile(response.profile));
-                router.replace("/(tabs)/2_1_lessons");
+                router.replace("/(tabs)/home");
             }
         } catch (error: any) {
             console.error("Facebook Sign-in attempt failure:", error);
@@ -313,7 +313,7 @@ export function useAuthForm() {
     }, [facebookVerify, router, dispatch]);
 
     const enterAsGuest = useCallback(() => {
-        router.replace("/(tabs)/2_1_lessons");
+        router.replace("/(tabs)/home");
     }, [router]);
 
     return {

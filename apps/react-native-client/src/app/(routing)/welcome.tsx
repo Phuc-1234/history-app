@@ -33,7 +33,7 @@ export default function WelcomeScreen() {
 
   const handleStart = () => {
     console.log('Bấm Bắt đầu ngay');
-    router.replace("/(tabs)/2_1_lessons");
+    router.replace("/(tabs)/home");
   };
 
   const handleLogin = () => {

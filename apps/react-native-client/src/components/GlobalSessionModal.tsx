@@ -16,7 +16,7 @@ export function GlobalSessionModal() {
 
     const handleContinueAsGuest = async () => {
         await dispatch(appLogout());
-        router.replace("/(tabs)/2_1_lessons");
+        router.replace("/(tabs)/home");
     };
 
     return (
