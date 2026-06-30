@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, {
+    useState,
+    useCallback,
+    useMemo,
+    useEffect,
+    useRef,
+} from "react";
 import {
     View,
     StyleSheet,
@@ -30,10 +36,7 @@ import {
     GestureHandlerRootView,
 } from "react-native-gesture-handler";
 
-import {
-    getScaleLimits,
-    MOBILE_BREAKPOINT,
-} from "../constants";
+import { getScaleLimits, MOBILE_BREAKPOINT } from "../constants";
 import type { MindMapNode, LayoutNode } from "../types";
 import { useGetMindMapQuery, type MindMapQuery } from "../mindMapApi";
 import {
@@ -114,7 +117,9 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     } = useGetMindMapQuery(query as MindMapQuery, {
         skip: !query,
     });
-    const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
+    const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(
+        new Set(),
+    );
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     // Shared value: dim/highlight runs on the UI thread, so pressing a node no
     // longer re-renders the whole node+edge tree (the main jank cause).
@@ -122,7 +127,8 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
     const containerSizeRef = useRef(containerSize);
     containerSizeRef.current = containerSize;
-    const isMobile = containerSize.width > 0 && containerSize.width < MOBILE_BREAKPOINT;
+    const isMobile =
+        containerSize.width > 0 && containerSize.width < MOBILE_BREAKPOINT;
 
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -155,18 +161,25 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         [mindMap],
     );
 
-    const { nodes, bounds } = useMemo(
-        () => {
-            if (!mindMap || !maxWidths) {
-                return { nodes: [] as LayoutNode[], bounds: { width: 400, height: 300 } };
-            }
-            const { nodes: raw } = layoutTree(mindMap, 0, 0, null, collapsedNodes, maxWidths);
-            const positioned = applyHorizontalPositions(raw);
-            const normalized = normalizeCoordinates(positioned);
-            return { nodes: normalized, bounds: computeBounds(normalized) };
-        },
-        [mindMap, maxWidths, collapsedNodes],
-    );
+    const { nodes, bounds } = useMemo(() => {
+        if (!mindMap || !maxWidths) {
+            return {
+                nodes: [] as LayoutNode[],
+                bounds: { width: 400, height: 300 },
+            };
+        }
+        const { nodes: raw } = layoutTree(
+            mindMap,
+            0,
+            0,
+            null,
+            collapsedNodes,
+            maxWidths,
+        );
+        const positioned = applyHorizontalPositions(raw);
+        const normalized = normalizeCoordinates(positioned);
+        return { nodes: normalized, bounds: computeBounds(normalized) };
+    }, [mindMap, maxWidths, collapsedNodes]);
 
     const fitScale = useMemo(
         () => getFitScaleForBounds(bounds, containerSize),
@@ -179,7 +192,10 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     // change) does NOT re-render every NodeCard. Previously `center` was a plain
     // object recreated each layout, which broke React.memo(NodeCard) and re-rendered
     // the whole tree on every expand — a real perf regression on "Expand all".
-    const mapCenter = useSharedValue({ x: bounds.width / 2, y: bounds.height / 2 });
+    const mapCenter = useSharedValue({
+        x: bounds.width / 2,
+        y: bounds.height / 2,
+    });
     useEffect(() => {
         mapCenter.value = { x: bounds.width / 2, y: bounds.height / 2 };
     }, [bounds.width, bounds.height, mapCenter]);
@@ -218,7 +234,10 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
     const fitView = useCallback(() => {
         // Timing (not spring) so the camera settles without overshooting/bouncing.
-        const TIMING = { duration: 300, easing: Easing.out(Easing.cubic) } as const;
+        const TIMING = {
+            duration: 300,
+            easing: Easing.out(Easing.cubic),
+        } as const;
         translateX.value = withTiming(0, TIMING);
         translateY.value = withTiming(0, TIMING);
         userScale.value = withTiming(1, TIMING);
@@ -321,7 +340,10 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             // Timing (not spring) so the camera glides to the target without the
             // overshoot/bounce that read as the "khùng nổi / nhảy" jolt on expand.
-            const TIMING = { duration: 300, easing: Easing.out(Easing.cubic) } as const;
+            const TIMING = {
+                duration: 300,
+                easing: Easing.out(Easing.cubic),
+            } as const;
             translateX.value = withTiming(tx, TIMING);
             translateY.value = withTiming(ty, TIMING);
             userScale.value = withTiming(targetScale, TIMING);
@@ -458,12 +480,7 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         const rects = hitRectsRef.current;
         for (let i = rects.length - 1; i >= 0; i -= 1) {
             const r = rects[i];
-            if (
-                px >= r.x &&
-                px <= r.x + r.w &&
-                py >= r.y &&
-                py <= r.y + r.h
-            ) {
+            if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) {
                 return r;
             }
         }
@@ -520,7 +537,12 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
             />
-            <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+            <Svg
+                style={StyleSheet.absoluteFill}
+                width="100%"
+                height="100%"
+                pointerEvents="none"
+            >
                 <Path
                     d="M 0 140 C 120 80, 280 210, 420 130 C 540 70, 700 150, 900 110"
                     stroke="#DDD6FE"
@@ -541,7 +563,9 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             {!query && (
                 <View style={styles.stateBox}>
-                    <Text style={styles.stateTitle}>Thieu du lieu mind map</Text>
+                    <Text style={styles.stateTitle}>
+                        Thieu du lieu mind map
+                    </Text>
                     <Text style={styles.stateText}>
                         Vui long mo mind map tu chu de hoac bai hoc.
                     </Text>
@@ -557,7 +581,9 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             {query && error && !mindMap && (
                 <View style={styles.stateBox}>
-                    <Text style={styles.stateTitle}>Khong tai duoc mind map</Text>
+                    <Text style={styles.stateTitle}>
+                        Khong tai duoc mind map
+                    </Text>
                     <Text style={styles.stateText}>
                         Kiem tra ket noi API hoac du lieu bai hoc.
                     </Text>
@@ -599,7 +625,13 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                             viewBox={`0 0 ${bounds.width} ${bounds.height}`}
                         >
                             <Defs>
-                                <SvgLinearGradient id="rootGrad" x1="0" y1="0" x2="1" y2="1">
+                                <SvgLinearGradient
+                                    id="rootGrad"
+                                    x1="0"
+                                    y1="0"
+                                    x2="1"
+                                    y2="1"
+                                >
                                     <Stop offset="0" stopColor="#7C3AED" />
                                     <Stop offset="0.5" stopColor="#6D28D9" />
                                     <Stop offset="1" stopColor="#4F46E5" />

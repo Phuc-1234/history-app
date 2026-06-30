@@ -56,7 +56,11 @@ function areEdgePropsEqual(prev: EdgePathProps, next: EdgePathProps): boolean {
     );
 }
 
-export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId, animate = true }: EdgePathProps) {
+export const EdgePath = React.memo(function EdgePath({
+    connection,
+    activeNodeId,
+    animate = true,
+}: EdgePathProps) {
     const draw = useSharedValue(animate ? 0 : 1);
 
     useEffect(() => {
@@ -90,7 +94,10 @@ export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId,
             ? interpolate(
                   target,
                   [0, 1],
-                  [animationConfig.edgeDimOpacity, animationConfig.edgeActiveOpacity],
+                  [
+                      animationConfig.edgeDimOpacity,
+                      animationConfig.edgeActiveOpacity,
+                  ],
               )
             : idleOpacity;
 

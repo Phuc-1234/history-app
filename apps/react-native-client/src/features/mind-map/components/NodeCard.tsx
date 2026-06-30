@@ -132,7 +132,9 @@ export const NodeCard = React.memo(function NodeCard({
     const focus = useSharedValue(0);
     const didEnter = useRef(false);
 
-    const config = NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+    const config =
+        NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] ||
+        NODE_CONFIGS[2];
     const hasChildren = node.childIds.length > 0;
     const lines = useMemo(() => {
         const maxCharsPerLine = Math.floor(
@@ -195,7 +197,8 @@ export const NodeCard = React.memo(function NodeCard({
                 enter.value,
                 [0, 1],
                 [animationConfig.nodeStartScale, 1],
-            ) + focus.value * (animationConfig.nodeActiveScale - 1);
+            ) +
+            focus.value * (animationConfig.nodeActiveScale - 1);
         const tx = interpolate(enter.value, [0, 1], [startX, 0]);
         const ty = interpolate(enter.value, [0, 1], [startY, 0]);
         const dimOpacity =
