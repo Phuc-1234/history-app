@@ -1,0 +1,8 @@
+{
+  "plugins": [
+    "expo-router"
+  ],
+  "android": {
+    "package": "com.vodinhphuc1234.historyappmonorepo"
+  }
+}

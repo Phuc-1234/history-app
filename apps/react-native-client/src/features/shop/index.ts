@@ -1,0 +1,1 @@
+export { ShopView } from "./components/ShopView";

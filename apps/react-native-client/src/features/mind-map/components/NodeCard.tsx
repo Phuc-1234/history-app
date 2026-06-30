@@ -1,0 +1,442 @@
+import React, { useEffect, useMemo, useRef } from "react";
+import { G, Rect, Circle, Text as SvgText, Line } from "react-native-svg";
+import Animated, {
+    Easing,
+    interpolate,
+    useAnimatedProps,
+    useAnimatedReaction,
+    useSharedValue,
+    withDelay,
+    withSpring,
+    withTiming,
+    type SharedValue,
+} from "react-native-reanimated";
+import type { LayoutNode } from "../types";
+import { animationConfig, NODE_CONFIGS } from "../constants";
+import { wrapText } from "../utils/layout";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
+
+interface NodeCardProps {
+    node: LayoutNode;
+    // Shared value so dim/highlight runs on the UI thread without re-rendering JS.
+    activeNodeId: SharedValue<string | null>;
+    // SharedValue so updating the map center (on expand/collapse) doesn't
+    // re-render this component. Only used for the entry fly-in animation.
+    center: SharedValue<{ x: number; y: number }>;
+    animateEntry?: boolean;
+}
+
+function getStableDelay(id: string, depth: number) {
+    let hash = 0;
+    for (let i = 0; i < id.length; i += 1) {
+        hash = (hash * 31 + id.charCodeAt(i)) % 997;
+    }
+    return (
+        animationConfig.nodeBaseDelay +
+        depth * animationConfig.nodeDepthDelay +
+        (hash % 8) * animationConfig.nodeSiblingDelay
+    );
+}
+
+function CollapseIcon({
+    x,
+    y,
+    color,
+    collapsed,
+    size,
+}: {
+    x: number;
+    y: number;
+    color: string;
+    collapsed: boolean;
+    size: number;
+}) {
+    return (
+        <G>
+            <Circle cx={x} cy={y} r={size} fill={color} opacity={0.14} />
+            <Line
+                x1={x - size * 0.38}
+                y1={y}
+                x2={x + size * 0.38}
+                y2={y}
+                stroke={color}
+                strokeWidth={1.8}
+                strokeLinecap="round"
+            />
+            {collapsed && (
+                <Line
+                    x1={x}
+                    y1={y - size * 0.38}
+                    x2={x}
+                    y2={y + size * 0.38}
+                    stroke={color}
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                />
+            )}
+        </G>
+    );
+}
+
+// Custom memo comparator: layoutTree rebuilds every LayoutNode as a NEW object
+// on each expand/collapse, so the default React.memo (shallow ref compare) would
+// re-render the entire tree every time — the main remaining perf issue for
+// "Expand all". We deep-compare only the fields this card actually reads.
+function areNodePropsEqual(prev: NodeCardProps, next: NodeCardProps): boolean {
+    const a = prev.node;
+    const b = next.node;
+    if (a === b) return true;
+    // activeNodeId / center are SharedValues (stable refs), animateEntry is a bool.
+    if (
+        prev.activeNodeId !== next.activeNodeId ||
+        prev.center !== next.center ||
+        prev.animateEntry !== next.animateEntry
+    ) {
+        return false;
+    }
+    if (
+        a.id !== b.id ||
+        a.x !== b.x ||
+        a.y !== b.y ||
+        a.width !== b.width ||
+        a.height !== b.height ||
+        a.depth !== b.depth ||
+        a.parentId !== b.parentId ||
+        a.label !== b.label ||
+        a.color !== b.color ||
+        a.borderColor !== b.borderColor ||
+        a.accentColor !== b.accentColor ||
+        a.lightBg !== b.lightBg ||
+        a.collapsed !== b.collapsed
+    ) {
+        return false;
+    }
+    // childIds: compare by content (order-stable from layoutTree).
+    const ca = a.childIds;
+    const cb = b.childIds;
+    if (ca.length !== cb.length) return false;
+    for (let i = 0; i < ca.length; i += 1) {
+        if (ca[i] !== cb[i]) return false;
+    }
+    return true;
+}
+
+export const NodeCard = React.memo(function NodeCard({
+    node,
+    center,
+    activeNodeId,
+    animateEntry = true,
+}: NodeCardProps) {
+    const enter = useSharedValue(0);
+    const focus = useSharedValue(0);
+    const didEnter = useRef(false);
+
+    const config = NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+    const hasChildren = node.childIds.length > 0;
+    const lines = useMemo(() => {
+        const maxCharsPerLine = Math.floor(
+            (node.width - config.paddingH * 2 - (node.depth === 1 ? 28 : 0)) /
+                (config.fontSize * 0.55),
+        );
+        return wrapText(node.label, Math.max(12, maxCharsPerLine));
+    }, [config.fontSize, config.paddingH, node.depth, node.label, node.width]);
+    const lineHeight = config.fontSize + 4;
+
+    useEffect(() => {
+        // Run the entry animation only ONCE per node lifecycle (keyed by node.id in the
+        // parent list). Without this guard, toggling any node shifts array indices and
+        // re-triggers the spring on every other node → flicker.
+        if (didEnter.current) return;
+        didEnter.current = true;
+        if (!animateEntry) {
+            enter.value = 1;
+            return;
+        }
+        enter.value = 0;
+        enter.value = withDelay(
+            getStableDelay(node.id, node.depth),
+            withSpring(1, animationConfig.spring),
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [node.id]);
+
+    // Drive the focus scale spring on the UI thread from the shared activeNodeId.
+    useAnimatedReaction(
+        () => activeNodeId.value === node.id,
+        (isActive, wasActive) => {
+            if (isActive === wasActive) return;
+            focus.value = withTiming(isActive ? 1 : 0, {
+                duration: 160,
+                easing: Easing.out(Easing.cubic),
+            });
+        },
+        [focus],
+    );
+
+    const animatedProps = useAnimatedProps(() => {
+        // Dim/highlight on the UI thread from the shared activeNodeId — no JS
+        // re-render when a node is pressed/hovered (this was the jank cause).
+        const active = activeNodeId.value;
+        const isActive = active === node.id;
+        const isRelated =
+            isActive ||
+            node.parentId === active ||
+            (active !== null && node.childIds.includes(active));
+
+        const nodeCenterX = node.x + node.width / 2;
+        const nodeCenterY = node.y + node.height / 2;
+        const cx = center.value.x;
+        const cy = center.value.y;
+        const startX = (cx - nodeCenterX) * animationConfig.nodeStartOffset;
+        const startY = (cy - nodeCenterY) * animationConfig.nodeStartOffset;
+        const scale =
+            interpolate(
+                enter.value,
+                [0, 1],
+                [animationConfig.nodeStartScale, 1],
+            ) + focus.value * (animationConfig.nodeActiveScale - 1);
+        const tx = interpolate(enter.value, [0, 1], [startX, 0]);
+        const ty = interpolate(enter.value, [0, 1], [startY, 0]);
+        const dimOpacity =
+            active !== null && !isRelated
+                ? animationConfig.nodeDimOpacity
+                : animationConfig.nodeIdleOpacity;
+
+        return {
+            opacity: enter.value * dimOpacity,
+            transform: `translate(${nodeCenterX + tx} ${nodeCenterY + ty}) scale(${scale}) translate(${-nodeCenterX} ${-nodeCenterY})`,
+        };
+    });
+
+    // Glow/shadow/border use idle values. The active node is signalled by the
+    // focus scale-pulse + the dimming of unrelated nodes (both on the UI thread),
+    // so we don't need a per-node JS state change (which was the jank cause).
+
+    if (node.depth === 0) {
+        return (
+            <AnimatedG animatedProps={animatedProps}>
+                <Rect
+                    x={node.x - 7}
+                    y={node.y - 6}
+                    width={node.width + 14}
+                    height={node.height + 14}
+                    rx={config.rx + 8}
+                    ry={config.rx + 8}
+                    fill="#7C3AED"
+                    opacity={0.08}
+                />
+                <Rect
+                    x={node.x + 5}
+                    y={node.y + 8}
+                    width={node.width}
+                    height={node.height}
+                    rx={config.rx}
+                    ry={config.rx}
+                    fill="#312E81"
+                    opacity={0.07}
+                />
+                <Rect
+                    x={node.x}
+                    y={node.y}
+                    width={node.width}
+                    height={node.height}
+                    rx={config.rx}
+                    ry={config.rx}
+                    fill="url(#rootGrad)"
+                />
+                <Rect
+                    x={node.x + 1}
+                    y={node.y + 1}
+                    width={node.width - 2}
+                    height={node.height - 2}
+                    rx={config.rx - 1}
+                    ry={config.rx - 1}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.46)"
+                    strokeWidth={1}
+                />
+                {lines.map((line, li) => (
+                    <SvgText
+                        key={li}
+                        x={node.x + node.width / 2}
+                        y={
+                            node.y +
+                            node.height / 2 -
+                            ((lines.length - 1) * lineHeight) / 2 +
+                            li * lineHeight +
+                            config.fontSize / 3
+                        }
+                        textAnchor="middle"
+                        fill="#FFFFFF"
+                        fontSize={config.fontSize}
+                        fontWeight={config.fontWeight}
+                        fontFamily="System"
+                    >
+                        {line}
+                    </SvgText>
+                ))}
+            </AnimatedG>
+        );
+    }
+
+    if (node.depth === 1) {
+        return (
+            <AnimatedG animatedProps={animatedProps}>
+                <Rect
+                    x={node.x - 5}
+                    y={node.y - 5}
+                    width={node.width + 10}
+                    height={node.height + 10}
+                    rx={config.rx + 7}
+                    ry={config.rx + 7}
+                    fill={node.accentColor}
+                    opacity={0.08}
+                />
+                <Rect
+                    x={node.x + 4}
+                    y={node.y + 7}
+                    width={node.width}
+                    height={node.height}
+                    rx={config.rx}
+                    ry={config.rx}
+                    fill="#0F172A"
+                    opacity={0.07}
+                />
+                <Rect
+                    x={node.x}
+                    y={node.y + 4}
+                    width={5}
+                    height={node.height - 8}
+                    rx={2.5}
+                    ry={2.5}
+                    fill={node.accentColor}
+                />
+                <Rect
+                    x={node.x + 4}
+                    y={node.y}
+                    width={node.width - 4}
+                    height={node.height}
+                    rx={config.rx}
+                    ry={config.rx}
+                    fill={node.color}
+                    stroke={node.borderColor}
+                    strokeWidth={1}
+                />
+                <Rect
+                    x={node.x + 10}
+                    y={node.y + 2}
+                    width={node.width - 20}
+                    height={1.2}
+                    rx={0.6}
+                    ry={0.6}
+                    fill="#FFFFFF"
+                    opacity={0.72}
+                />
+                {lines.map((line, li) => (
+                    <SvgText
+                        key={li}
+                        x={node.x + 20}
+                        y={
+                            node.y +
+                            node.height / 2 -
+                            ((lines.length - 1) * lineHeight) / 2 +
+                            li * lineHeight +
+                            config.fontSize / 3
+                        }
+                        textAnchor="start"
+                        fill="#172033"
+                        fontSize={config.fontSize}
+                        fontWeight={config.fontWeight}
+                        fontFamily="System"
+                    >
+                        {line}
+                    </SvgText>
+                ))}
+                {hasChildren && (
+                    <CollapseIcon
+                        x={node.x + node.width - 16}
+                        y={node.y + node.height / 2}
+                        color={node.accentColor}
+                        collapsed={node.collapsed}
+                        size={9}
+                    />
+                )}
+            </AnimatedG>
+        );
+    }
+
+    const lightBg = node.lightBg || "#FAFAFA";
+    return (
+        <AnimatedG animatedProps={animatedProps}>
+            <Rect
+                x={node.x - 4}
+                y={node.y - 4}
+                width={node.width + 8}
+                height={node.height + 8}
+                rx={config.rx + 6}
+                ry={config.rx + 6}
+                fill={node.accentColor}
+                opacity={0.08}
+            />
+            <Rect
+                x={node.x + 3}
+                y={node.y + 5}
+                width={node.width}
+                height={node.height}
+                rx={config.rx}
+                ry={config.rx}
+                fill="#0F172A"
+                opacity={0.07}
+            />
+            <Rect
+                x={node.x}
+                y={node.y}
+                width={node.width}
+                height={node.height}
+                rx={config.rx}
+                ry={config.rx}
+                fill={lightBg}
+                stroke={node.borderColor}
+                strokeWidth={0.9}
+                opacity={0.99}
+            />
+            <Circle
+                cx={node.x + 12}
+                cy={node.y + node.height / 2}
+                r={3.5}
+                fill={node.accentColor}
+                opacity={0.52}
+            />
+            {lines.map((line, li) => (
+                <SvgText
+                    key={li}
+                    x={node.x + 22}
+                    y={
+                        node.y +
+                        node.height / 2 -
+                        ((lines.length - 1) * lineHeight) / 2 +
+                        li * lineHeight +
+                        config.fontSize / 3
+                    }
+                    textAnchor="start"
+                    fill="#334155"
+                    fontSize={config.fontSize}
+                    fontWeight={config.fontWeight}
+                    fontFamily="System"
+                >
+                    {line}
+                </SvgText>
+            ))}
+            {hasChildren && (
+                <CollapseIcon
+                    x={node.x + node.width - 14}
+                    y={node.y + node.height / 2}
+                    color={node.accentColor}
+                    collapsed={node.collapsed}
+                    size={8}
+                />
+            )}
+        </AnimatedG>
+    );
+}, areNodePropsEqual);
