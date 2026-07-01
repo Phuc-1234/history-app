@@ -106,6 +106,19 @@ export default function TabsLayout() {
             }}
         >
             <Tabs.Screen
+                name="home"
+                options={{
+                    tabBarIcon: ({ focused, color }) => (
+                        <TabBarIcon
+                            focused={focused}
+                            color={color}
+                            name="home-outline"
+                            focusedName="home"
+                        />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="2_1_lessons"
                 options={{
                     tabBarIcon: ({ focused, color }) => (
@@ -132,7 +145,7 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="7_1_inventory"
+                name="7_1_item"
                 options={{
                     tabBarIcon: ({ focused, color }) => (
                         <TabBarIcon
@@ -140,19 +153,6 @@ export default function TabsLayout() {
                             color={color}
                             name="cube-outline"
                             focusedName="cube"
-                        />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="8_1_store"
-                options={{
-                    tabBarIcon: ({ focused, color }) => (
-                        <TabBarIcon
-                            focused={focused}
-                            color={color}
-                            name="storefront-outline"
-                            focusedName="storefront"
                         />
                     ),
                 }}

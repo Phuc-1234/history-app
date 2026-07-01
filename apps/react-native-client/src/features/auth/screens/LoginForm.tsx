@@ -82,7 +82,7 @@ export default function LoginForm() {
                                     setEmail(text.trim());
                                 }}
                                 icon={User}
-                                placeholder="Nhập số điện thoại hoặc email"
+                                placeholder="Nhập email"
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 editable={!isLoading}

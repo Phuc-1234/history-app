@@ -4,7 +4,6 @@ import {
     Text,
     TouchableOpacity,
     View,
-    ScrollView,
     ActivityIndicator
 } from "react-native";
 import { FileText, Clock, Zap, Coins, Trophy } from "lucide-react-native";
@@ -70,10 +69,7 @@ export default function TestIntro({
 
     return (
         <ScreenWrapper showTopBar={false} branchConfig={branchConfig}>
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
+            <View style={styles.mainContent}>
                 {/* Mascot Illustration */}
                 <View style={styles.mascotContainer}>
                     <Mascot
@@ -142,7 +138,7 @@ export default function TestIntro({
                         </View>
                     )}
                 </View>
-            </ScrollView>
+            </View>
 
             {/* Action Buttons Footer */}
             <View style={styles.footer}>
@@ -172,8 +168,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    scrollContent: {
-        paddingBottom: 40,
+    mainContent: {
+        flex: 1,
         paddingHorizontal: 20,
     },
     mascotContainer: {
@@ -259,6 +255,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     footer: {
+        
         paddingHorizontal: 20,
         paddingTop: 16,
         paddingBottom: 24,

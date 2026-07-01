@@ -12,7 +12,11 @@ export default function VideoLoading() {
 
 const styles = StyleSheet.create({
   overlay: {
-    ...((StyleSheet as any).absoluteFillObject),
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 2,
     backgroundColor: '#000000',
     alignItems: 'center',

@@ -24,6 +24,7 @@ export default function ProfileMainScreen() {
 
     const profile = useAppSelector((state) => state.auth.profile);
 
+
     const handleEditProfile = () => {
         router.push("/(10_proflie)/10_2_profile_edit");
     };
@@ -77,6 +78,7 @@ export default function ProfileMainScreen() {
                     </View>
                 )}
             </View>
+
 
             <View style={styles.menuSection}>
                 <View style={styles.menuContainer}>
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
     },
     userName: {
         fontSize: 20,
-        fontWeight: "700",
+        fontWeight: "500",
         color: colors.textPrimary,
         marginTop: 16,
     },
@@ -171,14 +173,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginHorizontal: 20,
-        marginTop: 24,
-        paddingVertical: 16,
+        marginTop: 12,
+        paddingVertical: 14,
         backgroundColor: colors.error,
-        borderRadius: 25,
+        borderRadius: 30,
     },
     logoutText: {
-        fontSize: 16,
-        fontWeight: "600",
+        fontSize: 15,
+        fontWeight: "500",
         color: colors.textLight,
         marginLeft: 8,
     },
