@@ -164,13 +164,6 @@ export default function HomeScreen() {
             <View style={styles.headerBlock}>
                 <View style={styles.headerRow}>
                     <Text style={styles.logoText}>📜 Sử Việt</Text>
-                    <TouchableOpacity
-                        style={styles.searchButton}
-                        activeOpacity={0.8}
-                        onPress={handleGoToLessons}
-                    >
-                        <Ionicons name="search" size={20} color={colors.primary} />
-                    </TouchableOpacity>
                 </View>
 
                 {/* Thẻ chào người dùng */}
@@ -227,26 +220,8 @@ export default function HomeScreen() {
 
                 {!isLoading && data && (
                     <>
-                        {/* ── Section: Top 3 BXH ── */}
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Bảng xếp hạng</Text>
-                            <TouchableOpacity onPress={handleGoToLeaderboard}>
-                                <Text style={styles.sectionLink}>Xem tất cả</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.leaderboardRow}>
-                            {topUsersData.length >= 3 && (
-                                <PodiumSection
-                                    topUsers={topUsersData}
-                                    isSmallDevice={false}
-                                    showStreak={false}
-                                />
-                            )}
-                        </View>
-
                         {/* ── Section: Bài học ── */}
-                        <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+                        <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>Bài học</Text>
                             <TouchableOpacity onPress={handleGoToLessons}>
                                 <Text style={styles.sectionLink}>Xem tất cả</Text>
@@ -295,6 +270,24 @@ export default function HomeScreen() {
                                 <Ionicons name="people-outline" size={22} color={colors.success} />
                                 <Text style={styles.quickLabel}>Bạn bè</Text>
                             </TouchableOpacity>
+                        </View>
+
+                        {/* ── Section: Top 3 BXH ── */}
+                        <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+                            <Text style={styles.sectionTitle}>Bảng xếp hạng</Text>
+                            <TouchableOpacity onPress={handleGoToLeaderboard}>
+                                <Text style={styles.sectionLink}>Xem tất cả</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.leaderboardRow}>
+                            {topUsersData.length >= 3 && (
+                                <PodiumSection
+                                    topUsers={topUsersData}
+                                    isSmallDevice={false}
+                                    showStreak={false}
+                                />
+                            )}
                         </View>
                     </>
                 )}
