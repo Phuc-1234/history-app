@@ -23,13 +23,23 @@ function PlusMinusIcon({
     return (
         <G>
             <Line
-                x1={cx - half} y1={cy} x2={cx + half} y2={cy}
-                stroke={color} strokeWidth={1.8} strokeLinecap="round"
+                x1={cx - half}
+                y1={cy}
+                x2={cx + half}
+                y2={cy}
+                stroke={color}
+                strokeWidth={1.8}
+                strokeLinecap="round"
             />
             {type === "plus" && (
                 <Line
-                    x1={cx} y1={cy - half} x2={cx} y2={cy + half}
-                    stroke={color} strokeWidth={1.8} strokeLinecap="round"
+                    x1={cx}
+                    y1={cy - half}
+                    x2={cx}
+                    y2={cy + half}
+                    stroke={color}
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
                 />
             )}
         </G>
@@ -48,10 +58,15 @@ interface MindMapSvgProps {
 
 export function MindMapSvg({ nodes, connections, bounds }: MindMapSvgProps) {
     const renderNode = (node: LayoutNode) => {
-        const config = NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+        const config =
+            NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] ||
+            NODE_CONFIGS[2];
         const isRoot = node.depth === 0;
         const hasChildren = node.childIds.length > 0;
-        const maxCharsPerLine = Math.floor((node.width - config.paddingH * 2 - (node.depth === 1 ? 28 : 0)) / (config.fontSize * 0.55));
+        const maxCharsPerLine = Math.floor(
+            (node.width - config.paddingH * 2 - (node.depth === 1 ? 28 : 0)) /
+                (config.fontSize * 0.55),
+        );
         const lines = wrapText(node.label, Math.max(12, maxCharsPerLine));
         const lineHeight = config.fontSize + 4;
 
@@ -60,31 +75,48 @@ export function MindMapSvg({ nodes, connections, bounds }: MindMapSvgProps) {
                 <G key={node.id}>
                     {/* Shadow */}
                     <Rect
-                        x={node.x + 2} y={node.y + 4}
-                        width={node.width} height={node.height}
-                        rx={config.rx} ry={config.rx}
+                        x={node.x + 2}
+                        y={node.y + 4}
+                        width={node.width}
+                        height={node.height}
+                        rx={config.rx}
+                        ry={config.rx}
                         fill="rgba(100, 60, 200, 0.18)"
                     />
                     {/* Gradient body */}
                     <Rect
-                        x={node.x} y={node.y}
-                        width={node.width} height={node.height}
-                        rx={config.rx} ry={config.rx}
+                        x={node.x}
+                        y={node.y}
+                        width={node.width}
+                        height={node.height}
+                        rx={config.rx}
+                        ry={config.rx}
                         fill="url(#rootGrad)"
                     />
                     {/* Subtle inner glow */}
                     <Rect
-                        x={node.x + 1} y={node.y + 1}
-                        width={node.width - 2} height={node.height - 2}
-                        rx={config.rx - 1} ry={config.rx - 1}
-                        fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={1}
+                        x={node.x + 1}
+                        y={node.y + 1}
+                        width={node.width - 2}
+                        height={node.height - 2}
+                        rx={config.rx - 1}
+                        ry={config.rx - 1}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.15)"
+                        strokeWidth={1}
                     />
                     {/* Text */}
                     {lines.map((line, li) => (
                         <SvgText
                             key={li}
                             x={node.x + node.width / 2}
-                            y={node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2 + li * lineHeight + config.fontSize / 3}
+                            y={
+                                node.y +
+                                node.height / 2 -
+                                ((lines.length - 1) * lineHeight) / 2 +
+                                li * lineHeight +
+                                config.fontSize / 3
+                            }
                             textAnchor="middle"
                             fill="#FFFFFF"
                             fontSize={config.fontSize}
@@ -104,23 +136,32 @@ export function MindMapSvg({ nodes, connections, bounds }: MindMapSvgProps) {
                 <G key={node.id}>
                     {/* Shadow */}
                     <Rect
-                        x={node.x + 1} y={node.y + 3}
-                        width={node.width} height={node.height}
-                        rx={config.rx} ry={config.rx}
+                        x={node.x + 1}
+                        y={node.y + 3}
+                        width={node.width}
+                        height={node.height}
+                        rx={config.rx}
+                        ry={config.rx}
                         fill="rgba(0,0,0,0.06)"
                     />
                     {/* Accent bar left */}
                     <Rect
-                        x={node.x} y={node.y + 4}
-                        width={5} height={node.height - 8}
-                        rx={2.5} ry={2.5}
+                        x={node.x}
+                        y={node.y + 4}
+                        width={5}
+                        height={node.height - 8}
+                        rx={2.5}
+                        ry={2.5}
                         fill={node.accentColor}
                     />
                     {/* Card body */}
                     <Rect
-                        x={node.x + 4} y={node.y}
-                        width={node.width - 4} height={node.height}
-                        rx={config.rx} ry={config.rx}
+                        x={node.x + 4}
+                        y={node.y}
+                        width={node.width - 4}
+                        height={node.height}
+                        rx={config.rx}
+                        ry={config.rx}
                         fill={node.color}
                         stroke={node.borderColor}
                         strokeWidth={1}
@@ -130,7 +171,13 @@ export function MindMapSvg({ nodes, connections, bounds }: MindMapSvgProps) {
                         <SvgText
                             key={li}
                             x={node.x + 20}
-                            y={node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2 + li * lineHeight + config.fontSize / 3}
+                            y={
+                                node.y +
+                                node.height / 2 -
+                                ((lines.length - 1) * lineHeight) / 2 +
+                                li * lineHeight +
+                                config.fontSize / 3
+                            }
                             textAnchor="start"
                             fill="#1E293B"
                             fontSize={config.fontSize}
@@ -169,16 +216,22 @@ export function MindMapSvg({ nodes, connections, bounds }: MindMapSvgProps) {
             <G key={node.id}>
                 {/* Shadow */}
                 <Rect
-                    x={node.x + 1} y={node.y + 2}
-                    width={node.width} height={node.height}
-                    rx={config.rx} ry={config.rx}
+                    x={node.x + 1}
+                    y={node.y + 2}
+                    width={node.width}
+                    height={node.height}
+                    rx={config.rx}
+                    ry={config.rx}
                     fill="rgba(0,0,0,0.04)"
                 />
                 {/* Card body */}
                 <Rect
-                    x={node.x} y={node.y}
-                    width={node.width} height={node.height}
-                    rx={config.rx} ry={config.rx}
+                    x={node.x}
+                    y={node.y}
+                    width={node.width}
+                    height={node.height}
+                    rx={config.rx}
+                    ry={config.rx}
                     fill={lightBg}
                     stroke={node.borderColor}
                     strokeWidth={0.8}
@@ -197,7 +250,13 @@ export function MindMapSvg({ nodes, connections, bounds }: MindMapSvgProps) {
                     <SvgText
                         key={li}
                         x={node.x + 22}
-                        y={node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2 + li * lineHeight + config.fontSize / 3}
+                        y={
+                            node.y +
+                            node.height / 2 -
+                            ((lines.length - 1) * lineHeight) / 2 +
+                            li * lineHeight +
+                            config.fontSize / 3
+                        }
                         textAnchor="start"
                         fill="#334155"
                         fontSize={config.fontSize}

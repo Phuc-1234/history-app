@@ -56,7 +56,11 @@ function areEdgePropsEqual(prev: EdgePathProps, next: EdgePathProps): boolean {
     );
 }
 
-export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId, animate = true }: EdgePathProps) {
+export const EdgePath = React.memo(function EdgePath({
+    connection,
+    activeNodeId,
+    animate = true,
+}: EdgePathProps) {
     const draw = useSharedValue(animate ? 0 : 1);
 
     useEffect(() => {
@@ -78,28 +82,12 @@ export const EdgePath = React.memo(function EdgePath({ connection, activeNodeId,
     }, [animate, connection.id, connection.depth, draw]);
 
     const animatedProps = useAnimatedProps(() => {
-        // Dim/highlight on the UI thread from the shared activeNodeId — no JS
-        // re-render when a node is pressed/hovered (this was the jank cause).
-        const active = activeNodeId.value;
-        const isRelated =
-            active === connection.parentId || active === connection.childId;
-        const target = !active ? 0.45 : isRelated ? 1 : 0;
-
-        const idleOpacity = animationConfig.edgeIdleOpacity;
-        const opacity = active
-            ? interpolate(
-                  target,
-                  [0, 1],
-                  [animationConfig.edgeDimOpacity, animationConfig.edgeActiveOpacity],
-              )
-            : idleOpacity;
+        const opacity = animationConfig.edgeIdleOpacity;
 
         return {
             strokeDashoffset: connection.length * (1 - draw.value),
             opacity: opacity * draw.value,
-            strokeWidth:
-                connection.strokeWidth +
-                (isRelated ? (connection.depth === 1 ? 1 : 0.6) : 0),
+            strokeWidth: connection.strokeWidth,
         };
     });
 

@@ -9,7 +9,6 @@ import type { MindMapNode } from "./types";
 export type MindMapQuery = { lessonId: number };
 
 function getQueryPath(query: MindMapQuery): string {
-    
     return `/api/content/mindmap?lessonId=${encodeURIComponent(query.lessonId)}`;
 }
 
@@ -28,8 +27,15 @@ function shortLabel(value: string | undefined | null, isHtml = false): string {
 
 function getNodeLabel(node: ApiMindMapNode): string {
     if (node.type === "grade") return node.name || `Lop ${node.id}`;
-    if (node.type === "node") return shortLabel(node.header || node.body || `Noi dung ${node.id}`, !node.header);
-    return shortLabel(node.name || node.header || node.body || `${node.type} ${node.id}`, !node.name && !node.header);
+    if (node.type === "node")
+        return shortLabel(
+            node.header || node.body || `Noi dung ${node.id}`,
+            !node.header,
+        );
+    return shortLabel(
+        node.name || node.header || node.body || `${node.type} ${node.id}`,
+        !node.name && !node.header,
+    );
 }
 
 function toVisualNode(
@@ -53,11 +59,7 @@ function toVisualNode(
         borderColor: colors.borderColor,
         accentColor: colors.accentColor,
         children: (node.children ?? []).map((child, index) =>
-            toVisualNode(
-                child,
-                depth + 1,
-                depth === 0 ? index : branchIndex,
-            ),
+            toVisualNode(child, depth + 1, depth === 0 ? index : branchIndex),
         ),
     };
 }
