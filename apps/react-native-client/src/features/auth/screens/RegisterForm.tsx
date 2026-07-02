@@ -2,6 +2,7 @@ import React from "react";
 import {
     View,
     Text,
+    Image,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
@@ -65,23 +66,23 @@ export default function RegisterForm() {
 
                 {/* Logo Section */}
                 <View style={styles.logoContainer}>
-                    <Text style={styles.logoText}>Sắc Sử</Text>
-                    <Text style={styles.logoSubtitle}>ứng dụng học và làm đề lịch sử</Text>
+                    <Image
+                        source={require("../../../../assets/images/logo-main.png")}
+                        style={styles.logoImage}
+                        resizeMode="contain"
+                    />
+                    <Text style={styles.logoSubtitle}>Ứng dụng học và làm đề lịch sử</Text>
                 </View>
 
                 {/* Welcome Heading */}
                 <View style={styles.headerContainer}>
                     <Text style={styles.welcomeText}>Tạo tài khoản</Text>
-                    <Text style={styles.subText}>
-                        Đăng ký tài khoản mới để bắt đầu học tập
-                    </Text>
                 </View>
 
                 {/* Form Inputs Container */}
                 <View style={styles.formContainer}>
                     {/* Name Input */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>Họ và tên</Text>
                         <Input
                             icon={User}
                             placeholder="Nhập họ và tên của bạn"
@@ -98,11 +99,10 @@ export default function RegisterForm() {
 
                     {/* Email Input */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>Địa chỉ Email</Text>
                         <View style={styles.emailContainer}>
                             <Input
                                 icon={Mail}
-                                placeholder="Nhập địa chỉ email của bạn"
+                                placeholder="Nhập địa chỉ email"
                                 value={email}
                                 onChangeText={(text) => setEmail(text.trim())}
                                 keyboardType="email-address"
@@ -123,7 +123,6 @@ export default function RegisterForm() {
 
                     {/* Password Input */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>Mật khẩu</Text>
                         <Input
                             icon={Lock}
                             placeholder="Nhập mật khẩu"
@@ -141,7 +140,6 @@ export default function RegisterForm() {
 
                     {/* Confirm Password Input */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>Xác nhận mật khẩu</Text>
                         <Input
                             icon={Lock}
                             placeholder="Nhập lại mật khẩu"
@@ -240,14 +238,9 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 16,
     },
-    logoText: {
-        fontSize: 38,
-        fontWeight: "800",
-        color: colors.primary,
-        letterSpacing: 2,
-        textShadowColor: "rgba(0, 0, 0, 0.15)",
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 3,
+    logoImage: {
+        width: 120,
+        height: 120,
     },
     logoSubtitle: {
         fontSize: 14,
@@ -257,7 +250,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     headerContainer: {
-        marginBottom: 16,
+        marginBottom: 0,
     },
     welcomeText: {
         color: colors.textDark,
@@ -274,12 +267,7 @@ const styles = StyleSheet.create({
     inputGroup: {
         marginBottom: 12,
     },
-    fieldLabel: {
-        color: colors.textDark,
-        fontSize: 15,
-        fontWeight: "700",
-        marginBottom: 8,
-    },
+
     customInput: {
         backgroundColor: colors.inputBackground,
         color: colors.textDark,

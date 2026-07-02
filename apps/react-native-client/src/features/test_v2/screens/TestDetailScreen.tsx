@@ -171,6 +171,8 @@ export default function TestDetailScreen() {
                                         correctAnswer={
                                             log.correctAnswerData as MatchAnswerData
                                         }
+                                        isQuestionCorrect={isCorrect}
+                                        maxScore={log.maxScore}
                                     />
                                 )}
 
@@ -213,6 +215,13 @@ function ChooseReview({
     const correct = correctAnswer.correctOption ?? [];
     const single = correct.length <= 1;
 
+    const totalOptions = correctAnswer.options.length;
+    const maxScore = single ? 0.25 : (totalOptions === 0 ? 0 : Math.max(0.25, Math.floor(totalOptions / 2) * 0.25));
+    const correctCount = correct.length;
+    const incorrectCount = totalOptions - correctCount;
+    const correctScorePerItem = correctCount > 0 ? maxScore / correctCount : 0;
+    const incorrectPenaltyPerItem = incorrectCount > 0 ? maxScore / incorrectCount : 0;
+
     return (
         <View style={styles.optionsList}>
             {correctAnswer.options.map((opt, idx) => {
@@ -223,25 +232,69 @@ function ChooseReview({
                 let textStyle: any[] = [styles.optText];
                 let badge = null;
 
+                let pointsText = "";
+                let pointsBadgeStyle = styles.pointsBadgeZero;
+                let pointsTextStyle = styles.pointsBadgeTextZero;
+
+                if (isSelected) {
+                    if (isCorrect) {
+                        pointsText = `+${formatScore(correctScorePerItem)}đ`;
+                        pointsBadgeStyle = styles.pointsBadgeCorrect;
+                        pointsTextStyle = styles.pointsBadgeTextCorrect;
+                    } else {
+                        const penalty = single ? 0 : incorrectPenaltyPerItem;
+                        if (penalty > 0) {
+                            pointsText = `-${formatScore(penalty)}đ`;
+                            pointsBadgeStyle = styles.pointsBadgeWrong;
+                            pointsTextStyle = styles.pointsBadgeTextWrong;
+                        } else {
+                            pointsText = "+0đ";
+                        }
+                    }
+                } else {
+                    pointsText = "+0đ";
+                }
+
                 if (isSelected && isCorrect) {
                     itemStyle.push(styles.optCorrect);
                     textStyle.push(styles.optTextCorrect);
+                    badge = (
+                        <View style={[styles.pointsBadge, pointsBadgeStyle]}>
+                            <Text style={pointsTextStyle}>{pointsText}</Text>
+                        </View>
+                    );
                 } else if (isSelected && !isCorrect) {
                     itemStyle.push(styles.optWrong);
                     textStyle.push(styles.optTextWrong);
+                    badge = (
+                        <View style={[styles.pointsBadge, pointsBadgeStyle]}>
+                            <Text style={pointsTextStyle}>{pointsText}</Text>
+                        </View>
+                    );
                 } else if (!isSelected && isCorrect) {
                     itemStyle.push(styles.optMissing);
                     textStyle.push(styles.optTextMissing);
                     badge = (
-                        <View
-                            style={[
-                                styles.reviewBadge,
-                                styles.reviewBadgeMissing,
-                            ]}
-                        >
-                            <Text style={styles.reviewBadgeTextMissing}>
-                                Đáp án đúng
-                            </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                            <View style={[styles.pointsBadge, pointsBadgeStyle]}>
+                                <Text style={pointsTextStyle}>{pointsText}</Text>
+                            </View>
+                            <View
+                                style={[
+                                    styles.reviewBadge,
+                                    styles.reviewBadgeMissing,
+                                ]}
+                            >
+                                <Text style={styles.reviewBadgeTextMissing}>
+                                    Đáp án đúng
+                                </Text>
+                            </View>
+                        </View>
+                    );
+                } else {
+                    badge = (
+                        <View style={[styles.pointsBadge, pointsBadgeStyle]}>
+                            <Text style={pointsTextStyle}>{pointsText}</Text>
                         </View>
                     );
                 }
@@ -337,7 +390,17 @@ function FillReview({
     return (
         <View style={styles.fillContainer}>
             <View style={styles.fillRow}>
-                <Text style={styles.fillLabel}>Bạn nhập:</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={styles.fillLabel}>Bạn nhập:</Text>
+                    <View style={[
+                        styles.pointsBadge,
+                        isCorrect ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
+                    ]}>
+                        <Text style={isCorrect ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
+                            {isCorrect ? "+0.5đ" : "+0đ"}
+                        </Text>
+                    </View>
+                </View>
                 <Text
                     style={[
                         styles.fillValue,
@@ -347,14 +410,12 @@ function FillReview({
                     {userAnswer?.typedAnswer || "(Bỏ trống)"}
                 </Text>
             </View>
-            {!isCorrect && (
-                <View style={styles.fillRow}>
-                    <Text style={styles.fillLabel}>Đáp án chấp nhận:</Text>
-                    <Text style={[styles.fillValue, styles.textGreen]}>
-                        {correctAnswer.acceptedAnswers.join(" / ")}
-                    </Text>
-                </View>
-            )}
+            <View style={styles.fillRow}>
+                <Text style={styles.fillLabel}>Đáp án chấp nhận:</Text>
+                <Text style={[styles.fillValue, styles.textGreen]}>
+                    {correctAnswer.acceptedAnswers.join(" / ")}
+                </Text>
+            </View>
         </View>
     );
 }
@@ -362,9 +423,13 @@ function FillReview({
 function MatchReview({
     userAnswer,
     correctAnswer,
+    isQuestionCorrect,
+    maxScore,
 }: {
     userAnswer: UserMatchAnswer | null;
     correctAnswer: MatchAnswerData;
+    isQuestionCorrect: boolean;
+    maxScore: number;
 }) {
     const userPairs = userAnswer?.pairs ?? [];
     const rawCorrectPairs = correctAnswer.pairs ?? [];
@@ -444,6 +509,14 @@ function MatchReview({
                                         : userPair
                                           ? "Chưa đúng"
                                           : "Chưa ghép"}
+                                </Text>
+                            </View>
+                            <View style={[
+                                styles.pointsBadge,
+                                (isPairCorrect && isQuestionCorrect) ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
+                            ]}>
+                                <Text style={(isPairCorrect && isQuestionCorrect) ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
+                                    {(isPairCorrect && isQuestionCorrect) ? `+${formatScore(maxScore)}đ` : "+0đ"}
                                 </Text>
                             </View>
                         </View>
@@ -836,6 +909,36 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: "700",
         color: colors.textLight,
+    },
+    pointsBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 30,
+        marginLeft: 8,
+    },
+    pointsBadgeCorrect: {
+        backgroundColor: colors.successContainer,
+    },
+    pointsBadgeWrong: {
+        backgroundColor: colors.errorContainer,
+    },
+    pointsBadgeZero: {
+        backgroundColor: colors.surfaceVariant,
+    },
+    pointsBadgeTextCorrect: {
+        fontSize: 11,
+        fontWeight: "500",
+        color: colors.textSuccess,
+    },
+    pointsBadgeTextWrong: {
+        fontSize: 11,
+        fontWeight: "500",
+        color: colors.textError,
+    },
+    pointsBadgeTextZero: {
+        fontSize: 11,
+        fontWeight: "500",
+        color: colors.textMuted,
     },
     matchReviewContainer: { gap: 8, marginTop: 4 },
     matchReviewRow: { borderRadius: 5, padding: 12, borderWidth: 1, gap: 6 },

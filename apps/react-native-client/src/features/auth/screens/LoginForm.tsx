@@ -2,6 +2,7 @@ import React from "react";
 import {
     View,
     Text,
+    Image,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
@@ -58,23 +59,24 @@ export default function LoginForm() {
 
                 {/* Logo Section */}
                 <View style={styles.logoContainer}>
-                    <Text style={styles.logoText}>Sắc Sử</Text>
+                    <Image
+                        source={require("../../../../assets/images/logo-main.png")}
+                        style={styles.logoImage}
+                        resizeMode="contain"
+                    />
                     <Text style={styles.logoSubtitle}>Ứng dụng học và làm đề lịch sử</Text>
                 </View>
 
                 {/* Welcome Heading */}
                 <View style={styles.headerContainer}>
                     <Text style={styles.welcomeText}>Đăng Nhập</Text>
-                    <Text style={styles.subText}>
-                        Xin chào, chào mừng bạn trở lại!
-                    </Text>
+                    
                 </View>
 
                 {/* Form Inputs Container */}
                 <View style={styles.formContainer}>
                     {/* Email Input Field */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>Số điện thoại / Email</Text>
                         <View style={styles.emailContainer}>
                             <Input
                                 value={email}
@@ -102,12 +104,11 @@ export default function LoginForm() {
 
                     {/* Password Input Field */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>Mật khẩu</Text>
                         <Input
                             value={password}
                             onChangeText={setPassword}
                             icon={Lock}
-                            placeholder="Nhập mật khẩu của bạn"
+                            placeholder="Nhập mật khẩu"
                             isPassword
                             autoCapitalize="none"
                             editable={!isLoading}
@@ -224,14 +225,9 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 16,
     },
-    logoText: {
-        fontSize: 38,
-        fontWeight: "900",
-        color: colors.primary,
-        letterSpacing: 2,
-        textShadowColor: "rgba(0, 0, 0, 0.15)",
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 3,
+    logoImage: {
+        width: 120,
+        height: 120,
     },
     logoSubtitle: {
         fontSize: 14,
@@ -241,7 +237,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     headerContainer: {
-        marginBottom: 16,
+        marginBottom: 0,
     },
     welcomeText: {
         color: colors.textDark,
@@ -260,12 +256,7 @@ const styles = StyleSheet.create({
     inputGroup: {
         marginBottom: 12,
     },
-    fieldLabel: {
-        color: colors.textDark,
-        fontSize: 15,
-        fontWeight: "700",
-        marginBottom: 8,
-    },
+
     customInput: {
         backgroundColor: colors.inputBackground,
         color: colors.textDark,

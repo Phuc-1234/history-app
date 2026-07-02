@@ -52,7 +52,7 @@ export default function TestIntro({
 
     if (loading) {
         return (
-            <ScreenWrapper showTopBar={false} branchConfig={branchConfig} >
+            <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
                 <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
                     <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={{ marginTop: 16, color: colors.textMuted, fontWeight: "500", fontSize: 14 }}>
@@ -68,7 +68,7 @@ export default function TestIntro({
     const resolvedTimeLimit = timeLimit !== undefined ? timeLimit : 15;
 
     return (
-        <ScreenWrapper showTopBar={false} branchConfig={branchConfig}>
+        <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
             <View style={styles.mainContent}>
                 {/* Mascot Illustration */}
                 <View style={styles.mascotContainer}>

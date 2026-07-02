@@ -21,7 +21,7 @@ router.get("/resumable", requireStudent, checkResumable);
 router.get("/national", requireStudent, getNationalTests);
 
 // POST /api/tests-v2/info
-router.post("/info", requireStudent, getTestInfo);
+router.post("/info", getTestInfo);
 
 // POST /api/tests-v2/start
 router.post("/start", requireStudent, startTest);

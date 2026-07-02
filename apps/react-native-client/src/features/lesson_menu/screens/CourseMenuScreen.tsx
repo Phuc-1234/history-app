@@ -57,7 +57,7 @@ function CourseCard({
             {/* Right Details Section */}
             <View style={styles.detailsContainer}>
                 <Text style={styles.courseTitle} numberOfLines={2}>
-                    Sách giáo khoa lớp {grade}
+                    Lịch sử lớp {grade}
                 </Text>
                 
                 <Text style={styles.courseSubtitle}>
@@ -213,7 +213,7 @@ export function CourseMenuScreen() {
         <ScreenWrapper>
             <View style={styles.container}>
                 <Text style={styles.screenHeader}>Khóa Học</Text>
-                <Text style={styles.screenSubtitle}>Chọn khoá học để bắt đầu</Text>
+                <Text style={styles.screenSubtitle}>Chọn học phần để bắt đầu</Text>
 
                 <View style={styles.searchContainer}>
                     <TextInput
