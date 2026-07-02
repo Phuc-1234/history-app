@@ -18,10 +18,10 @@ const router = Router();
 router.get("/resumable", requireStudent, checkResumable);
 
 // GET /api/tests-v2/national
-router.get("/national", requireStudent, getNationalTests);
+router.get("/national", getNationalTests);
 
 // POST /api/tests-v2/info
-router.post("/info", getTestInfo);
+router.post("/info", requireStudent, getTestInfo);
 
 // POST /api/tests-v2/start
 router.post("/start", requireStudent, startTest);
