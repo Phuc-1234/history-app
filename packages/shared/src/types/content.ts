@@ -27,6 +27,7 @@ export interface NodeDto {
     header: string | null;
     body: string;
     imgUrl?: string | null;
+    videoId?: string | null;
     sectionId: number | null;
     isComplete?: boolean | null;
 }
@@ -94,12 +95,12 @@ export interface TopicWithContentsDto {
     position: number;
     gradeId: number;
     lessons: LessonDto[];
-    firstTest: CompactTestDto | null;
+    testPassed?: boolean | null;
 }
 
 export interface GradeStructureDto {
     topics: TopicWithContentsDto[];
-    gradeFirstTest: CompactTestDto | null;
+    testPassed?: boolean | null;
 }
 
 export type GetGradeStructureParams = { gradeId: string };

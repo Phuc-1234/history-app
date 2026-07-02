@@ -163,7 +163,13 @@ export default function HomeScreen() {
             {/* ── Header Block ── */}
             <View style={styles.headerBlock}>
                 <View style={styles.headerRow}>
-                    <Text style={styles.logoText}>📜 Sử Việt</Text>
+                    <View style={styles.logoContainer}>
+                        <Image
+                            source={require("../../../../assets/images/logo-main.png")}
+                            style={styles.logoImage}
+                        />
+                        <Text style={styles.logoText}>Sắc sử</Text>
+                    </View>
                 </View>
 
                 {/* Thẻ chào người dùng */}
@@ -204,13 +210,13 @@ export default function HomeScreen() {
                         <Text style={{ color: colors.error, marginBottom: 12, textAlign: "center" }}>
                             Lỗi tải dữ liệu: {("message" in error) ? (error as any).message : JSON.stringify(error)}
                         </Text>
-                        <TouchableOpacity 
-                            style={{ 
-                                backgroundColor: colors.primary, 
-                                paddingHorizontal: 20, 
-                                paddingVertical: 10, 
-                                borderRadius: 20 
-                            }} 
+                        <TouchableOpacity
+                            style={{
+                                backgroundColor: colors.primary,
+                                paddingHorizontal: 20,
+                                paddingVertical: 10,
+                                borderRadius: 20
+                            }}
                             onPress={handleRefresh}
                         >
                             <Text style={{ color: "#fff", fontWeight: "600" }}>Thử lại</Text>
@@ -311,6 +317,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 20,
+    },
+    logoContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    logoImage: {
+        width: 28,
+        height: 28,
+        resizeMode: "contain",
     },
     logoText: {
         fontSize: 22,

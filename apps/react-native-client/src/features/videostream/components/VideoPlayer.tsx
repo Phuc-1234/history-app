@@ -12,6 +12,7 @@ interface VideoPlayerProps {
   videoUrl: string;
   onEnd: () => void;
   onNextWhenError: () => void;
+  onProgress?: (currentTime: number, duration: number) => void;
 }
 
 export default function VideoPlayer({
@@ -19,12 +20,14 @@ export default function VideoPlayer({
   videoUrl,
   onEnd,
   onNextWhenError,
+  onProgress,
 }: VideoPlayerProps) {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isFocused, setIsFocused] = useState(true);
   const [isUserPlaying, setIsUserPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [duration, setDuration] = useState<number | null>(null);
   const videoRef = useRef<VideoRef>(null);
   const navigation = useNavigation();
 
@@ -76,11 +79,19 @@ export default function VideoPlayer({
               setLoading(true);
               setHasError(false);
             }}
-            onLoad={() => {
+            onLoad={(data) => {
               setLoading(false);
+              if (data && typeof data.duration === "number") {
+                setDuration(data.duration);
+              }
             }}
             onBuffer={({ isBuffering }) => {
               setLoading(isBuffering);
+            }}
+            onProgress={(data) => {
+              if (onProgress && duration !== null && typeof data.currentTime === "number") {
+                onProgress(data.currentTime, duration);
+              }
             }}
             onEnd={onEnd}
             onError={(error) => {

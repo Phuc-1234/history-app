@@ -122,6 +122,7 @@ export class ContentService {
             header: n.header,
             body: n.body,
             imgUrl: n.imgUrl ?? null,
+            videoId: n.videoId ?? null,
             sectionId: n.sectionId ?? null,
         }));
     }
@@ -177,6 +178,7 @@ export class ContentService {
                 header: true,
                 body: true,
                 imgUrl: true,
+                videoId: true,
                 sectionId: true,
             },
         });
@@ -219,6 +221,7 @@ export class ContentService {
                 header: n.header,
                 body: n.body,
                 imgUrl: n.imgUrl ?? null,
+                videoId: n.videoId ?? null,
                 sectionId: n.sectionId ?? null,
                 isComplete: completedNodeIds.has(n.id),
             };
@@ -503,11 +506,6 @@ export class ContentService {
         gradeId: number,
         userId?: string | null,
     ): Promise<GradeStructureDto & { progress?: ProgressCounts | null }> {
-        const gradeTest = await prisma.test.findFirst({
-            where: { gradeId },
-            orderBy: { id: "asc" },
-        });
-
         const topics = await prisma.topic.findMany({
             where: { gradeId },
             orderBy: { position: "asc" },
@@ -519,10 +517,6 @@ export class ContentService {
                             select: { id: true },
                         },
                     },
-                },
-                tests: {
-                    where: { topicId: { not: null } },
-                    orderBy: { id: "asc" },
                 },
             },
         });
@@ -588,8 +582,6 @@ export class ContentService {
         let gradeCompleted = 0;
 
         const formattedTopics: (TopicWithContentsDto & { progress?: ProgressCounts | null })[] = topics.map((topic) => {
-            const firstTopicTest = topic.tests[0] || null;
-
             let topicTotal = 0;
             let topicCompleted = 0;
 
@@ -607,8 +599,6 @@ export class ContentService {
 
                 // Lesson test as progress unit
                 const lessonTestPassed = passedScopeKeys.has(`LESSON:${lesson.id}`);
-                lessonTotal += 1; // lesson test counts as 1 unit
-                if (lessonTestPassed) lessonCompleted += 1;
 
                 topicTotal += lessonTotal;
                 topicCompleted += lessonCompleted;
@@ -625,11 +615,7 @@ export class ContentService {
             });
 
             // Topic test as progress unit
-            const topicTestPassed = firstTopicTest
-                ? passedTestIds.has(firstTopicTest.id)
-                : passedScopeKeys.has(`TOPIC:${topic.id}`);
-            topicTotal += 1;
-            if (topicTestPassed) topicCompleted += 1;
+            const topicTestPassed = passedScopeKeys.has(`TOPIC:${topic.id}`);
 
             gradeTotal += topicTotal;
             gradeCompleted += topicCompleted;
@@ -640,37 +626,17 @@ export class ContentService {
                 position: topic.position,
                 gradeId: topic.gradeId,
                 lessons: lessonsWithProgress,
-                firstTest: firstTopicTest
-                    ? {
-                          id: firstTopicTest.id,
-                          title: firstTopicTest.title,
-                          questionNumber: firstTopicTest.questionNumber,
-                          timeLimit: firstTopicTest.timeLimit,
-                          isPassed: topicTestPassed,
-                      }
-                    : null,
+                testPassed: userId ? topicTestPassed : null,
                 progress: { totalNodes: topicTotal, completedNodes: userId ? topicCompleted : 0 },
             };
         });
 
         // Grade test as progress unit
-        const gradeTestPassed = gradeTest
-            ? passedTestIds.has(gradeTest.id)
-            : passedScopeKeys.has(`GRADE:${gradeId}`);
-        gradeTotal += 1;
-        if (gradeTestPassed) gradeCompleted += 1;
+        const gradeTestPassed = passedScopeKeys.has(`GRADE:${gradeId}`);
 
         return {
             topics: formattedTopics,
-            gradeFirstTest: gradeTest
-                ? {
-                      id: gradeTest.id,
-                      title: gradeTest.title,
-                      questionNumber: gradeTest.questionNumber,
-                      timeLimit: gradeTest.timeLimit,
-                      isPassed: gradeTestPassed,
-                  }
-                : null,
+            testPassed: userId ? gradeTestPassed : null,
             progress: { totalNodes: gradeTotal, completedNodes: userId ? gradeCompleted : 0 },
         };
     }

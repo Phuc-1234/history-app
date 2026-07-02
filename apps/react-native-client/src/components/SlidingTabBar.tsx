@@ -19,6 +19,9 @@ interface SlidingTabBarProps {
     activeTab: string;
     onChangeTab: (key: string) => void;
     containerStyle?: any;
+    activeColor?: string;
+    inactiveColor?: string;
+    indicatorColor?: string;
 }
 
 export const SlidingTabBar: React.FC<SlidingTabBarProps> = ({
@@ -26,6 +29,9 @@ export const SlidingTabBar: React.FC<SlidingTabBarProps> = ({
     activeTab,
     onChangeTab,
     containerStyle,
+    activeColor,
+    inactiveColor,
+    indicatorColor,
 }) => {
     const [containerWidth, setContainerWidth] = useState(0);
     const slideAnim = useRef(new Animated.Value(0)).current;
@@ -58,6 +64,7 @@ export const SlidingTabBar: React.FC<SlidingTabBarProps> = ({
                         {
                             width: tabWidth - 8,
                             transform: [{ translateX: slideAnim }],
+                            backgroundColor: indicatorColor ?? colors.accent,
                         },
                     ]}
                 />
@@ -74,7 +81,9 @@ export const SlidingTabBar: React.FC<SlidingTabBarProps> = ({
                         <Text
                             style={[
                                 styles.tabText,
-                                isActive ? styles.activeText : styles.inactiveText,
+                                isActive
+                                    ? [styles.activeText, activeColor ? { color: activeColor } : null]
+                                    : [styles.inactiveText, inactiveColor ? { color: inactiveColor } : null],
                             ]}
                         >
                             {tab.label}
