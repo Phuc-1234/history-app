@@ -158,9 +158,9 @@ export default function NodeDetailScreen() {
 
     return (
         <ScreenWrapper
+            showTopBar={false}
             branchConfig={{
-                hierarchy: lessonName || "BÀI HỌC",
-                title: parentSectionsString,
+                hierarchy: parentSectionsString,
                 onBackPress: () => router.back(),
             }}
         >

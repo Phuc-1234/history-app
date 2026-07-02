@@ -273,7 +273,7 @@ export function LessonMenu({
     }, [selectedGrade, searchQuery]);
 
     const branchConfig = {
-        hierarchy: "Khóa học",
+        hierarchy: "Học phần",
         title: `Lớp ${selectedGrade}`,
         onBackPress: () => router.back(),
     };

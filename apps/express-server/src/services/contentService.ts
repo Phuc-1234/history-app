@@ -122,6 +122,7 @@ export class ContentService {
             header: n.header,
             body: n.body,
             imgUrl: n.imgUrl ?? null,
+            videoId: n.videoId ?? null,
             sectionId: n.sectionId ?? null,
         }));
     }
@@ -177,6 +178,7 @@ export class ContentService {
                 header: true,
                 body: true,
                 imgUrl: true,
+                videoId: true,
                 sectionId: true,
             },
         });
@@ -219,6 +221,7 @@ export class ContentService {
                 header: n.header,
                 body: n.body,
                 imgUrl: n.imgUrl ?? null,
+                videoId: n.videoId ?? null,
                 sectionId: n.sectionId ?? null,
                 isComplete: completedNodeIds.has(n.id),
             };
@@ -596,8 +599,6 @@ export class ContentService {
 
                 // Lesson test as progress unit
                 const lessonTestPassed = passedScopeKeys.has(`LESSON:${lesson.id}`);
-                lessonTotal += 1; // lesson test counts as 1 unit
-                if (lessonTestPassed) lessonCompleted += 1;
 
                 topicTotal += lessonTotal;
                 topicCompleted += lessonCompleted;
@@ -615,8 +616,6 @@ export class ContentService {
 
             // Topic test as progress unit
             const topicTestPassed = passedScopeKeys.has(`TOPIC:${topic.id}`);
-            topicTotal += 1;
-            if (topicTestPassed) topicCompleted += 1;
 
             gradeTotal += topicTotal;
             gradeCompleted += topicCompleted;
@@ -634,8 +633,6 @@ export class ContentService {
 
         // Grade test as progress unit
         const gradeTestPassed = passedScopeKeys.has(`GRADE:${gradeId}`);
-        gradeTotal += 1;
-        if (gradeTestPassed) gradeCompleted += 1;
 
         return {
             topics: formattedTopics,

@@ -76,6 +76,7 @@ export interface CreateNodeBody {
     header?: string;
     body: string;
     imgUrl?: string;
+    videoId?: string | null;
     sectionId: number;
 }
 
@@ -84,6 +85,7 @@ export interface UpdateNodeBody {
     header?: string;
     body?: string;
     imgUrl?: string | null;
+    videoId?: string | null;
 }
 
 export type AdminNodeResponse = NodeDto | { error: string };
@@ -120,10 +122,10 @@ export interface AdminUserDto {
 
 export interface CreateVideoBody {
     title: string;
-    position: number;
+    position?: number;
     summary?: string;
     hlsUrl: string;
-    lessonId: number;
+    lessonId?: number | null;
 }
 
 export interface UpdateVideoBody {
@@ -131,7 +133,7 @@ export interface UpdateVideoBody {
     position?: number;
     summary?: string;
     hlsUrl?: string;
-    lessonId?: number;
+    lessonId?: number | null;
 }
 
 export interface AdminVideoDto {

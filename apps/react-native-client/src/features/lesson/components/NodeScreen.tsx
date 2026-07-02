@@ -74,6 +74,11 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
     const [studyDone, setStudyDone] = useState(false);
+    const progressTriggered = useRef(false);
+
+    useEffect(() => {
+        progressTriggered.current = false;
+    }, [nodeId]);
 
     const parentSectionsString = useAppSelector((state: any) => {
         const queries = state.api?.queries || {};
@@ -124,6 +129,32 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
         } catch {
             setToastMessage("Đã ghi nhận hoàn thành!");
             setToastVisible(true);
+        }
+    };
+
+    const handleVideoProgress = async (currentTime: number, duration: number) => {
+        if (!isLoggedIn || !node || progressTriggered.current || studyDone) return;
+
+        if (currentTime >= duration - 5) {
+            progressTriggered.current = true;
+            try {
+                const hasTest = !!node.hasRelevantQuestions;
+                if (!hasTest) {
+                    setStudyDone(true);
+                }
+
+                const result = await finishStudy(nodeId).unwrap();
+
+                if (!hasTest) {
+                    const msg =
+                        result.consequences?.find((c: any) => c.message)?.message ??
+                        "Đã ghi nhận hoàn thành!";
+                    setToastMessage(msg);
+                    setToastVisible(true);
+                }
+            } catch (err) {
+                console.error("Auto finish study error:", err);
+            }
         }
     };
 
@@ -182,6 +213,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                             videoUrl={node.video.hlsUrl}
                             onEnd={() => {}}
                             onNextWhenError={() => {}}
+                            onProgress={handleVideoProgress}
                         />
                     </View>
                 )}
@@ -190,7 +222,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
             {/* Action Buttons Container (Anchored at the bottom) */}
             <View style={styles.actionButtonsContainer}>
                 <View style={styles.topRowButtons}>
-                    {isLoggedIn && !node.hasRelevantQuestions && (
+                    {isLoggedIn && !node.hasRelevantQuestions && !node.video && (
                         <TouchableOpacity
                             style={[
                                 styles.completeBtn,

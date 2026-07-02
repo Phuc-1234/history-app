@@ -29,7 +29,7 @@ import { useAppSelector } from "@/store/storeHook";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { CustomModal } from "@/components/Modal";
 import Mascot from "@/components/Mascot";
-import TestIntro from "./TestIntro";
+import TestIntro, { getScopePlaceholder } from "./TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { colors } from "@/theme/colors";
 import { useGetTestInfoQuery } from "../services/testApi";
@@ -263,12 +263,13 @@ export default function TestContainerV2({
 
     const displayTitle =
         session?.testTitle ||
-        (params.purposeType === "EXAM" ? "Bài thi tự do" : "Luyện tập");
+        testInfo?.title ||
+        getScopePlaceholder(params.scopeType, params.purposeType);
     const branchConfig = {
         hierarchy:
             params.purposeType === "EXAM"
-                ? "KIỂM TRA > BÀI THI"
-                : "KIỂM TRA > LUYỆN TẬP",
+                ? "KIỂM TRA"
+                : "THỬ THÁCH",
         title: displayTitle,
         onBackPress: handleBack,
         onHomePress: handleBack,
@@ -277,7 +278,7 @@ export default function TestContainerV2({
     // ── Auth check ───────────────────────────────────────────────────
     if (!profile) {
         return (
-            <ScreenWrapper branchConfig={branchConfig} showHistoricalBackground={false}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <CustomModal
                     visible={true}
                     title="Yêu cầu đăng nhập"
@@ -296,7 +297,7 @@ export default function TestContainerV2({
     // ── Error state ──────────────────────────────────────────────────
     if (status === "idle" && error) {
         return (
-            <ScreenWrapper branchConfig={branchConfig} showHistoricalBackground={false}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <View style={styles.centerContainer}>
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity
@@ -327,6 +328,7 @@ export default function TestContainerV2({
                 passThreshold={testInfo?.passThreshold}
                 attemptCount={testInfo?.attemptCount}
                 passCount={testInfo?.passCount}
+                scopeType={params.scopeType}
             />
         );
     }
@@ -334,7 +336,7 @@ export default function TestContainerV2({
     // ── Loading state ────────────────────────────────────────────────
     if (status === "loading") {
         return (
-            <ScreenWrapper branchConfig={branchConfig} showHistoricalBackground={false}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={styles.loadingText}>
@@ -359,7 +361,7 @@ export default function TestContainerV2({
         );
 
         return (
-            <ScreenWrapper branchConfig={branchConfig} showHistoricalBackground={false}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <ScrollView
                     style={styles.container}
                     contentContainerStyle={styles.scrollContent}

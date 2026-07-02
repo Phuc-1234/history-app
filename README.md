@@ -394,6 +394,11 @@ Cơ chế chấm điểm cho câu hỏi Nối cột (MATCH) và Chọn nhiều �
      * Trừ điểm: Bị phạt `-maxScore / số đáp án sai` cho mỗi đáp án sai được chọn (để hạn chế việc chọn bừa).
      * Điểm tối thiểu cho mỗi câu hỏi là `0` (không lấy điểm âm).
 
+## Quy tắc xử lý bài thi đang làm dở (In-progress Test Policy)
+
+Để tránh chặn người dùng khi bắt đầu bài thi mới trong trường hợp frontend chưa hỗ trợ tính năng tiếp tục bài thi (resume):
+* Khi người dùng bắt đầu một bài thi mới (cả loại `PRACTICE` và `EXAM`), mọi bài thi cùng loại hoặc khác loại đang ở trạng thái `IN_PROGRESS` của người dùng đó sẽ tự động được chuyển sang trạng thái `ABANDONED` ở phía Backend, thay vì trả về lỗi chặn `ACTIVE_TEST_EXISTS`.
+
 ## Giấy phép
 
 Dự án riêng tư. Tất cả quyền được bảo lưu.

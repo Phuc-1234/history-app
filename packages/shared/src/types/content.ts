@@ -27,6 +27,7 @@ export interface NodeDto {
     header: string | null;
     body: string;
     imgUrl?: string | null;
+    videoId?: string | null;
     sectionId: number | null;
     isComplete?: boolean | null;
 }

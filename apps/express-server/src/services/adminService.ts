@@ -229,6 +229,7 @@ export class AdminService {
                 header: data.header ?? null,
                 body: data.body,
                 imgUrl: data.imgUrl ?? null,
+                videoId: data.videoId ?? null,
                 sectionId: data.sectionId,
             },
         });
@@ -238,6 +239,7 @@ export class AdminService {
             header: node.header ?? null,
             body: node.body,
             imgUrl: node.imgUrl ?? null,
+            videoId: node.videoId,
             sectionId: node.sectionId,
         };
     }
@@ -256,6 +258,7 @@ export class AdminService {
                 ...(data.header !== undefined && { header: data.header }),
                 ...(data.body !== undefined && { body: data.body }),
                 ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
+                ...(data.videoId !== undefined && { videoId: data.videoId }),
             },
         });
         return {
@@ -264,6 +267,7 @@ export class AdminService {
             header: node.header ?? null,
             body: node.body,
             imgUrl: node.imgUrl ?? null,
+            videoId: node.videoId,
             sectionId: node.sectionId,
         };
     }
@@ -379,10 +383,10 @@ export class AdminService {
         const video = await prisma.video.create({
             data: {
                 title: data.title,
-                position: data.position,
+                position: data.position ?? 0,
                 summary: data.summary ?? null,
                 hlsUrl: data.hlsUrl,
-                lessonId: data.lessonId,
+                lessonId: data.lessonId ?? null,
                 status: "READY",
             },
         });
