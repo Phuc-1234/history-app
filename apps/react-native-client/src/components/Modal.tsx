@@ -7,6 +7,7 @@ import {
     View,
     Pressable,
 } from "react-native";
+import Mascot, { MascotExpression } from "./Mascot";
 
 interface CustomModalProps {
     visible: boolean;
@@ -16,6 +17,8 @@ interface CustomModalProps {
     cancelText?: string;
     onConfirm: () => void;
     onCancel: () => void;
+    showMascot?: boolean;
+    mascotExpression?: MascotExpression;
 }
 
 export function CustomModal({
@@ -26,6 +29,8 @@ export function CustomModal({
     cancelText = "Hủy",
     onConfirm,
     onCancel,
+    showMascot = false,
+    mascotExpression = "focused",
 }: CustomModalProps) {
     return (
         <RNModal
@@ -36,6 +41,14 @@ export function CustomModal({
         >
             <Pressable style={styles.overlay} onPress={onCancel}>
                 <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
+                    {showMascot && (
+                        <Mascot
+                            expression={mascotExpression}
+                            width={100}
+                            height={100}
+                            style={styles.mascot}
+                        />
+                    )}
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.message}>{message}</Text>
                     <View style={styles.buttons}>
@@ -126,5 +139,8 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
         color: "#FFFFFF",
+    },
+    mascot: {
+        marginBottom: 16,
     },
 });

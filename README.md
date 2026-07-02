@@ -373,6 +373,27 @@ Cơ chế đánh giá câu hỏi điền từ (FILL question) được đồng b
 4. **Đánh giá chi tiết**:
    * Câu trả lời được so sánh lần lượt với từng đáp án được chấp nhận (accepted answers). Nếu khớp với bất kỳ đáp án nào thỏa mãn các điều kiện trên, câu trả lời sẽ được coi là **Đúng**.
 
+## Quy tắc Đánh giá Câu hỏi Nối cột và Nhiều lựa chọn (Match and Multiple Choice Scoring Policy)
+
+Cơ chế chấm điểm cho câu hỏi Nối cột (MATCH) và Chọn nhiều đáp án (CHOOSE với > 1 đáp án đúng) được đồng bộ hóa nhất quán giữa FE và BE như sau:
+
+1. **Câu hỏi Nối cột (MATCH)**:
+   * **Điểm tối đa (maxScore)**: Tính theo công thức `max(0.25, floor(N / 2) * 0.25)` với `N` là tổng số cặp (pairs) cần nối.
+     * 2-3 cặp: `0.25` điểm.
+     * 4-5 cặp: `0.5` điểm.
+     * 6-7 cặp: `0.75` điểm.
+     * 8-9 cặp: `1.0` điểm.
+   * **Cơ chế chấm điểm**: Áp dụng quy tắc "Tất cả hoặc không có gì" (All-or-nothing). Người làm bài phải nối chính xác toàn bộ các cặp mới được nhận điểm tối đa (`maxScore`). Nếu nối sai bất kỳ cặp nào, điểm nhận được sẽ là `0`.
+
+2. **Câu hỏi Chọn nhiều đáp án (CHOOSE với > 1 đáp án đúng)**:
+   * **Điểm tối đa (maxScore)**: Tính theo công thức tương tự MATCH: `max(0.25, floor(M / 2) * 0.25)` với `M` là tổng số tùy chọn (options) của câu hỏi.
+     * 2-3 tùy chọn: `0.25` điểm.
+     * 4-5 tùy chọn: `0.5` điểm.
+   * **Cơ chế chấm điểm**: 
+     * Cộng điểm: Nhận `+maxScore / số đáp án đúng` cho mỗi đáp án đúng được chọn.
+     * Trừ điểm: Bị phạt `-maxScore / số đáp án sai` cho mỗi đáp án sai được chọn (để hạn chế việc chọn bừa).
+     * Điểm tối thiểu cho mỗi câu hỏi là `0` (không lấy điểm âm).
+
 ## Giấy phép
 
 Dự án riêng tư. Tất cả quyền được bảo lưu.

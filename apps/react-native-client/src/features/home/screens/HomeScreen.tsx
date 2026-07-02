@@ -163,7 +163,13 @@ export default function HomeScreen() {
             {/* ── Header Block ── */}
             <View style={styles.headerBlock}>
                 <View style={styles.headerRow}>
-                    <Text style={styles.logoText}>📜 Sử Việt</Text>
+                    <View style={styles.logoContainer}>
+                        <Image
+                            source={require("../../../../assets/images/logo-main.png")}
+                            style={styles.logoImage}
+                        />
+                        <Text style={styles.logoText}>Sắc sử</Text>
+                    </View>
                 </View>
 
                 {/* Thẻ chào người dùng */}
@@ -311,6 +317,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 20,
+    },
+    logoContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    logoImage: {
+        width: 28,
+        height: 28,
+        resizeMode: "contain",
     },
     logoText: {
         fontSize: 22,

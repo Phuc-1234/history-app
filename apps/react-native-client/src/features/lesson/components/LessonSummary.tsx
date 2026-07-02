@@ -65,11 +65,7 @@ export function LessonSummary({
                     style={styles.bannerBg}
                     imageStyle={{ borderRadius: 5 }}
                 >
-                    <View style={styles.tag}>
-                        <Text style={styles.tagText}>
-                            Lịch sử lớp {data.position * 10}
-                        </Text>
-                    </View>
+                    
                 </ImageBackground>
             </View>
 
