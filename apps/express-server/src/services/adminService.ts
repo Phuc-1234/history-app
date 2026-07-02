@@ -132,6 +132,7 @@ export class AdminService {
                 ...(data.name !== undefined && { name: data.name }),
                 ...(data.summary !== undefined && { summary: data.summary }),
                 ...(data.position !== undefined && { position: data.position }),
+                ...(data.topicId !== undefined && { topicId: data.topicId }),
             },
         });
         return {

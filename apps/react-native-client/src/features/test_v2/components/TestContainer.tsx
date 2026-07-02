@@ -369,6 +369,7 @@ export default function TestContainerV2({
                         style={styles.resultCard}
                     >
                         <Mascot
+                            expression={!userTestLog.isPassed ? "sad" : undefined}
                             event={{
                                 type: "finish-test",
                                 score: parseFloat(scoreDisplay),

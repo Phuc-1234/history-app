@@ -154,12 +154,14 @@ function matchesGradeStructure(grade: number, structure: any, query: string): bo
                 }
             }
         }
-        if (topic.firstTest && matchesSearch(topic.firstTest.title, query, true)) {
+        const testTitle = `Kiểm tra Chủ đề ${topic.position}`;
+        if (matchesSearch(testTitle, query, true)) {
             return true;
         }
     }
     
-    if (structure.finalTest && matchesSearch(structure.finalTest.title, query, true)) {
+    const finalTestTitle = `Kiểm tra Lớp ${grade}`;
+    if (matchesSearch(finalTestTitle, query, true)) {
         return true;
     }
     

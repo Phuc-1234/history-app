@@ -45,6 +45,7 @@ export interface UpdateLessonBody {
     name?: string;
     summary?: string;
     position?: number;
+    topicId?: number;
 }
 
 export type AdminLessonResponse = LessonDto | { error: string };

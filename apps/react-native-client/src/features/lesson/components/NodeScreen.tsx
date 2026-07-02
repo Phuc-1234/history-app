@@ -190,7 +190,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
             {/* Action Buttons Container (Anchored at the bottom) */}
             <View style={styles.actionButtonsContainer}>
                 <View style={styles.topRowButtons}>
-                    {isLoggedIn && (
+                    {isLoggedIn && !node.hasRelevantQuestions && (
                         <TouchableOpacity
                             style={[
                                 styles.completeBtn,
@@ -210,8 +210,18 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                                     studyDone ? styles.completeBtnTextLight : styles.completeBtnTextSuccess,
                                 ]}
                             >
-                                {studyDone ? "Đã hoàn thành" : "Hoàn thành mục này"}
+                                {studyDone ? "Đã học" : "Đánh dấu đã học"}
                             </Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {isLoggedIn && node.hasRelevantQuestions && (
+                        <TouchableOpacity
+                            style={[styles.practiceBtn, { flex: 1 }]}
+                            onPress={onQuizPress}
+                        >
+                            <Ionicons name="document-text" size={18} color={colors.textLight} />
+                            <Text style={styles.practiceBtnText}>Thử thách</Text>
                         </TouchableOpacity>
                     )}
 
@@ -228,14 +238,6 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                         />
                     </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity
-                    style={styles.practiceBtn}
-                    onPress={onQuizPress}
-                >
-                    <Ionicons name="document-text" size={18} color={colors.textLight} />
-                    <Text style={styles.practiceBtnText}>Thử thách</Text>
-                </TouchableOpacity>
             </View>
 
             {/* Prev / Next navigation footer */}

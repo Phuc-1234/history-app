@@ -94,12 +94,12 @@ export interface TopicWithContentsDto {
     position: number;
     gradeId: number;
     lessons: LessonDto[];
-    firstTest: CompactTestDto | null;
+    testPassed?: boolean | null;
 }
 
 export interface GradeStructureDto {
     topics: TopicWithContentsDto[];
-    gradeFirstTest: CompactTestDto | null;
+    testPassed?: boolean | null;
 }
 
 export type GetGradeStructureParams = { gradeId: string };

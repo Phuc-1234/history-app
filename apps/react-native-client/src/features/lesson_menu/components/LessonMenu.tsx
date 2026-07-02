@@ -233,7 +233,7 @@ export function LessonMenu({
     const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
     const {
         topics,
-        finalTest,
+        finalTestPassed,
         loading,
         refetch,
         isFetching,
@@ -252,7 +252,8 @@ export function LessonMenu({
                     matchesTopicOrLesson(lesson.name, lesson.position, "bài", query)
                 );
 
-                const firstTestMatches = !!topic.firstTest && matchesSearch(topic.firstTest.title, query, true);
+                const testTitle = `Kiểm tra Chủ đề ${topic.position}`;
+                const firstTestMatches = matchesSearch(testTitle, query, true);
 
                 if (topicMatches || matchedLessons.length > 0 || firstTestMatches) {
                     return {
@@ -266,10 +267,10 @@ export function LessonMenu({
     }, [topics, searchQuery]);
 
     const shouldShowFinalTest = React.useMemo(() => {
-        if (!finalTest) return false;
         if (!searchQuery.trim()) return true;
-        return matchesSearch(finalTest.title, searchQuery, true);
-    }, [finalTest, searchQuery]);
+        const finalTestTitle = `Kiểm tra Lớp ${selectedGrade}`;
+        return matchesSearch(finalTestTitle, searchQuery, true);
+    }, [selectedGrade, searchQuery]);
 
     const branchConfig = {
         hierarchy: "Khóa học",
@@ -384,9 +385,8 @@ export function LessonMenu({
                                         })}
 
                                         {/* Topic-Level Milestone Test Node */}
-                                        {topic.firstTest && (() => {
-                                            const testAny = topic.firstTest as any;
-                                            const testPassed = !!testAny?.isPassed;
+                                        {(() => {
+                                            const testPassed = !!topic.testPassed;
                                             const testCompleted = testPassed ? 1 : 0;
                                             const testTotal = 1;
                                             const testPct = testPassed ? 1 : 0;
@@ -424,54 +424,52 @@ export function LessonMenu({
                                                         />
                                                     </LessonCircle>
                                                     <Text style={styles.testLabel}>
-                                                        {topic.firstTest.title}
+                                                        Kiểm tra Chủ đề {topic.position}
                                                     </Text>
                                                 </View>
                                             );
                                         })()}
                                     </View>
                                 </View>
-                            );
-                        })}
+                                );
+                            })}
 
-                        {/* --- Grade Level Finale Test Section --- */}
-                        {shouldShowFinalTest && finalTest && (() => {
-                            const finalTestAny = finalTest as any;
-                            const finalPassed = !!finalTestAny?.isPassed;
-                            const finalCompleted = finalPassed ? 1 : 0;
-                            const finalTotal = 1;
-                            const finalPct = finalPassed ? 1 : 0;
-                            const finalIsDone = finalPassed;
+                            {/* --- Grade Level Finale Test Section --- */}
+                            {shouldShowFinalTest && (() => {
+                                const finalCompleted = finalTestPassed ? 1 : 0;
+                                const finalTotal = 1;
+                                const finalPct = finalTestPassed ? 1 : 0;
+                                const finalIsDone = finalTestPassed;
 
-                            return (
-                                <View style={styles.finalExamSection}>
-                                    <View style={styles.finalExamBadgeContainer}>
-                                        <LessonCircle
-                                            isDone={finalIsDone}
-                                            pct={finalPct}
-                                            completed={finalCompleted}
-                                            total={finalTotal}
-                                            size={84}
-                                            showBadge={false}
-                                            onPress={() => onTestPress("GRADE", selectedGrade)}
-                                        >
-                                            <Ionicons
-                                                name="ribbon"
-                                                size={40}
-                                                color={finalIsDone ? colors.gold : colors.primary}
-                                            />
-                                        </LessonCircle>
+                                return (
+                                    <View style={styles.finalExamSection}>
+                                        <View style={styles.finalExamBadgeContainer}>
+                                            <LessonCircle
+                                                isDone={finalIsDone}
+                                                pct={finalPct}
+                                                completed={finalCompleted}
+                                                total={finalTotal}
+                                                size={84}
+                                                showBadge={false}
+                                                onPress={() => onTestPress("GRADE", selectedGrade)}
+                                            >
+                                                <Ionicons
+                                                    name="ribbon"
+                                                    size={40}
+                                                    color={finalIsDone ? colors.gold : colors.primary}
+                                                />
+                                            </LessonCircle>
+                                        </View>
+                                        <Text style={styles.finalExamTitle}>
+                                            Kiểm tra tổng hợp Lớp {selectedGrade}
+                                        </Text>
+                                        <Text style={styles.finalExamSubtitle}>
+                                            Đánh giá năng lực toàn diện
+                                        </Text>
                                     </View>
-                                    <Text style={styles.finalExamTitle}>
-                                        {finalTest.title}
-                                    </Text>
-                                    <Text style={styles.finalExamSubtitle}>
-                                        Kiểm tra kiến thức tổng hợp lớp {selectedGrade}
-                                    </Text>
-                                </View>
-                            );
-                        })()}
-                    </ScrollView>
+                                );
+                            })()}
+                        </ScrollView>
                     </>
                 )}
             </View>

@@ -14,8 +14,14 @@ export default function NodeDetailScreen() {
     const router = useRouter();
     const id = Number(nodeId);
 
-    const steps = useAppSelector((state: any) => {
-        const queries = state.api?.queries || {};
+    const queries = useAppSelector((state: any) => state.api?.queries);
+
+    const { steps, parentSectionsString } = React.useMemo(() => {
+        if (!queries) return { steps: [], parentSectionsString: "" };
+
+        let foundSteps: any[] = [];
+        let foundPathStr = "";
+
         for (const queryKey of Object.keys(queries)) {
             if (queryKey.startsWith("getLessonTree(")) {
                 const qData = queries[queryKey]?.data;
@@ -62,12 +68,32 @@ export default function NodeDetailScreen() {
                         lessonId: qData.id,
                         lessonName: qData.name,
                     });
-                    return navigationSteps;
+                    foundSteps = navigationSteps;
+
+                    const getParentPath = (sections: any[], targetNodeId: number): any[] | null => {
+                        for (const sec of sections) {
+                            if (sec.nodes && sec.nodes.some((n: any) => n.id === id)) {
+                                return [sec];
+                            }
+                            if (sec.children && sec.children.length > 0) {
+                                const path = getParentPath(sec.children, targetNodeId);
+                                if (path) {
+                                    return [sec, ...path];
+                                }
+                            }
+                        }
+                        return null;
+                    };
+                    const path = getParentPath(qData.sections, id);
+                    if (path) {
+                        foundPathStr = path.map((s: any) => s.name).join(" > ");
+                    }
+                    break;
                 }
             }
         }
-        return [];
-    });
+        return { steps: foundSteps, parentSectionsString: foundPathStr };
+    }, [queries, id]);
 
     const handleStepNavigation = (step: any) => {
         if (step.type === "NODE") {
@@ -129,36 +155,6 @@ export default function NodeDetailScreen() {
     const onNextPress = currentIdx !== -1 && currentIdx < steps.length - 1 
         ? () => handleStepNavigation(steps[currentIdx + 1]) 
         : (fallbackNextNodeId != null ? () => navigateToNode(fallbackNextNodeId) : undefined);
-
-    const parentSectionsString = useAppSelector((state: any) => {
-        const queries = state.api?.queries || {};
-        for (const queryKey of Object.keys(queries)) {
-            if (queryKey.startsWith("getLessonTree(")) {
-                const qData = queries[queryKey]?.data;
-                if (qData && qData.sections) {
-                    const getParentPath = (sections: any[], targetNodeId: number): any[] | null => {
-                        for (const sec of sections) {
-                            if (sec.nodes && sec.nodes.some((n: any) => n.id === targetNodeId)) {
-                                return [sec];
-                            }
-                            if (sec.children && sec.children.length > 0) {
-                                const path = getParentPath(sec.children, targetNodeId);
-                                if (path) {
-                                    return [sec, ...path];
-                                }
-                            }
-                        }
-                        return null;
-                    };
-                    const path = getParentPath(qData.sections, id);
-                    if (path) {
-                        return path.map((s: any) => s.name).join(" > ");
-                    }
-                }
-            }
-        }
-        return "";
-    });
 
     return (
         <ScreenWrapper
