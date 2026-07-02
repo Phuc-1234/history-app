@@ -91,10 +91,10 @@ export interface UserTestLogV2 {
 export interface UserAnswerLogV2 {
     questionId: number;
     type: QuestionType;
-    userAnswerData: UserAnswer | null;
+    userAnswerData?: UserAnswer | null;
     scoreAwarded: number;
     maxScore: number;
-    correctAnswerData: AnswerData;
+    correctAnswerData?: AnswerData | null;
 }
 
 // ─── API Request/Response ────────────────────────────────────────────────

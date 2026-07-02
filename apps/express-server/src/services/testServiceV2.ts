@@ -643,10 +643,8 @@ export class TestServiceV2 {
             const answerLogs: UserAnswerLogV2Dto[] = scoreResults.map((r) => ({
                 questionId: r.questionId,
                 type: r.type,
-                userAnswerData: r.userAnswerData,
                 scoreAwarded: r.scoreAwarded,
                 maxScore: r.maxScore,
-                correctAnswerData: r.correctAnswerData,
             }));
 
             return {

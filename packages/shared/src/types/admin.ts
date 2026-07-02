@@ -86,6 +86,7 @@ export interface UpdateNodeBody {
     body?: string;
     imgUrl?: string | null;
     videoId?: string | null;
+    sectionId?: number;
 }
 
 export type AdminNodeResponse = NodeDto | { error: string };

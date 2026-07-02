@@ -116,10 +116,10 @@ export interface UserTestLogV2Dto {
 export interface UserAnswerLogV2Dto {
     questionId: number;
     type: string;
-    userAnswerData: UserAnswer | null;
+    userAnswerData?: UserAnswer | null;
     scoreAwarded: number;
     maxScore: number;
-    correctAnswerData: AnswerData;
+    correctAnswerData?: AnswerData | null;
 }
 
 export interface StartTestV2Response {
