@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, {
+    useState,
+    useCallback,
+    useMemo,
+    useEffect,
+    useRef,
+} from "react";
 import {
     View,
     StyleSheet,
@@ -30,10 +36,7 @@ import {
     GestureHandlerRootView,
 } from "react-native-gesture-handler";
 
-import {
-    getScaleLimits,
-    MOBILE_BREAKPOINT,
-} from "../constants";
+import { getScaleLimits, MOBILE_BREAKPOINT } from "../constants";
 import type { MindMapNode, LayoutNode } from "../types";
 import { useGetMindMapQuery, type MindMapQuery } from "../mindMapApi";
 import {
@@ -102,6 +105,14 @@ function getFitScaleForBounds(
     } else {
         fs = Math.max(limits.min, Math.min(1.15, fs));
     }
+
+    // Limit maximum layout size to prevent "Canvas too large" crashes on Android
+    const maxDim = Math.max(bounds.width, bounds.height);
+    const SAFE_MAX_DP = 1000;
+    if (maxDim * fs > SAFE_MAX_DP) {
+        fs = SAFE_MAX_DP / maxDim;
+    }
+
     return fs;
 }
 
@@ -114,7 +125,16 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     } = useGetMindMapQuery(query as MindMapQuery, {
         skip: !query,
     });
-    const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
+    const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(
+        new Set(),
+    );
+    const [lastInitializedId, setLastInitializedId] = useState<string | null>(null);
+
+    if (mindMap && lastInitializedId !== mindMap.id) {
+        setCollapsedNodes(getInitialCollapsed(mindMap));
+        setLastInitializedId(mindMap.id);
+    }
+
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     // Shared value: dim/highlight runs on the UI thread, so pressing a node no
     // longer re-renders the whole node+edge tree (the main jank cause).
@@ -122,7 +142,8 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
     const containerSizeRef = useRef(containerSize);
     containerSizeRef.current = containerSize;
-    const isMobile = containerSize.width > 0 && containerSize.width < MOBILE_BREAKPOINT;
+    const isMobile =
+        containerSize.width > 0 && containerSize.width < MOBILE_BREAKPOINT;
 
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -141,12 +162,6 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         maxScale.value = limits.max;
     }, [isMobile, maxScale, minScale]);
 
-    useEffect(() => {
-        if (mindMap) {
-            setCollapsedNodes(getInitialCollapsed(mindMap));
-        }
-    }, [mindMap]);
-
     // Width-per-depth depends ONLY on the tree shape, not on what's collapsed, so
     // memoize it on `mindMap` alone — otherwise Expand/Collapse all re-walks the
     // entire tree every time for no reason.
@@ -155,18 +170,25 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         [mindMap],
     );
 
-    const { nodes, bounds } = useMemo(
-        () => {
-            if (!mindMap || !maxWidths) {
-                return { nodes: [] as LayoutNode[], bounds: { width: 400, height: 300 } };
-            }
-            const { nodes: raw } = layoutTree(mindMap, 0, 0, null, collapsedNodes, maxWidths);
-            const positioned = applyHorizontalPositions(raw);
-            const normalized = normalizeCoordinates(positioned);
-            return { nodes: normalized, bounds: computeBounds(normalized) };
-        },
-        [mindMap, maxWidths, collapsedNodes],
-    );
+    const { nodes, bounds } = useMemo(() => {
+        if (!mindMap || !maxWidths) {
+            return {
+                nodes: [] as LayoutNode[],
+                bounds: { width: 400, height: 300 },
+            };
+        }
+        const { nodes: raw } = layoutTree(
+            mindMap,
+            0,
+            0,
+            null,
+            collapsedNodes,
+            maxWidths,
+        );
+        const positioned = applyHorizontalPositions(raw);
+        const normalized = normalizeCoordinates(positioned);
+        return { nodes: normalized, bounds: computeBounds(normalized) };
+    }, [mindMap, maxWidths, collapsedNodes]);
 
     const fitScale = useMemo(
         () => getFitScaleForBounds(bounds, containerSize),
@@ -179,7 +201,10 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     // change) does NOT re-render every NodeCard. Previously `center` was a plain
     // object recreated each layout, which broke React.memo(NodeCard) and re-rendered
     // the whole tree on every expand — a real perf regression on "Expand all".
-    const mapCenter = useSharedValue({ x: bounds.width / 2, y: bounds.height / 2 });
+    const mapCenter = useSharedValue({
+        x: bounds.width / 2,
+        y: bounds.height / 2,
+    });
     useEffect(() => {
         mapCenter.value = { x: bounds.width / 2, y: bounds.height / 2 };
     }, [bounds.width, bounds.height, mapCenter]);
@@ -218,7 +243,10 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
     const fitView = useCallback(() => {
         // Timing (not spring) so the camera settles without overshooting/bouncing.
-        const TIMING = { duration: 300, easing: Easing.out(Easing.cubic) } as const;
+        const TIMING = {
+            duration: 300,
+            easing: Easing.out(Easing.cubic),
+        } as const;
         translateX.value = withTiming(0, TIMING);
         translateY.value = withTiming(0, TIMING);
         userScale.value = withTiming(1, TIMING);
@@ -321,7 +349,10 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             // Timing (not spring) so the camera glides to the target without the
             // overshoot/bounce that read as the "khùng nổi / nhảy" jolt on expand.
-            const TIMING = { duration: 300, easing: Easing.out(Easing.cubic) } as const;
+            const TIMING = {
+                duration: 300,
+                easing: Easing.out(Easing.cubic),
+            } as const;
             translateX.value = withTiming(tx, TIMING);
             translateY.value = withTiming(ty, TIMING);
             userScale.value = withTiming(targetScale, TIMING);
@@ -412,14 +443,23 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
     // without re-binding on every layout change.
     const hitRects = useMemo(() => {
         if (fitScale === 0) return [];
-        return nodes.map((node) => ({
-            id: node.id,
-            depth: node.depth,
-            x: node.x * fitScale,
-            y: node.y * fitScale,
-            w: node.width * fitScale,
-            h: node.height * fitScale,
-        }));
+        return nodes.map((node) => {
+            const hasChildren = node.childIds.length > 0;
+            const iconOffset = node.depth === 1 ? 16 : 14;
+            const iconX = (node.x + node.width - iconOffset) * fitScale;
+            const iconY = (node.y + node.height / 2) * fitScale;
+            return {
+                id: node.id,
+                depth: node.depth,
+                x: node.x * fitScale,
+                y: node.y * fitScale,
+                w: node.width * fitScale,
+                h: node.height * fitScale,
+                hasChildren,
+                iconX,
+                iconY,
+            };
+        });
     }, [nodes, fitScale]);
     const hitRectsRef = useRef(hitRects);
     hitRectsRef.current = hitRects;
@@ -458,12 +498,11 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         const rects = hitRectsRef.current;
         for (let i = rects.length - 1; i >= 0; i -= 1) {
             const r = rects[i];
-            if (
-                px >= r.x &&
-                px <= r.x + r.w &&
-                py >= r.y &&
-                py <= r.y + r.h
-            ) {
+            if (!r.hasChildren || r.depth === 0) continue;
+
+            // Check if the touch point is close to the collapse/expand icon (24 dp touch target radius)
+            const dist = Math.hypot(px - r.iconX, py - r.iconY);
+            if (dist <= 24) {
                 return r;
             }
         }
@@ -507,8 +546,10 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         const expandedId = lastExpandRef.current;
         if (!expandedId) return;
         lastExpandRef.current = null;
-        const children = nodes.filter((n) => n.parentId === expandedId);
-        const box = getNodesBounds(children);
+        const targetNodes = nodes.filter(
+            (n) => n.parentId === expandedId || n.id === expandedId,
+        );
+        const box = getNodesBounds(targetNodes);
         if (box) focusOnContentBox(box, bounds);
     }, [nodes, bounds, focusOnContentBox]);
 
@@ -520,7 +561,12 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
             />
-            <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+            <Svg
+                style={StyleSheet.absoluteFill}
+                width="100%"
+                height="100%"
+                pointerEvents="none"
+            >
                 <Path
                     d="M 0 140 C 120 80, 280 210, 420 130 C 540 70, 700 150, 900 110"
                     stroke="#DDD6FE"
@@ -541,7 +587,9 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             {!query && (
                 <View style={styles.stateBox}>
-                    <Text style={styles.stateTitle}>Thieu du lieu mind map</Text>
+                    <Text style={styles.stateTitle}>
+                        Thieu du lieu mind map
+                    </Text>
                     <Text style={styles.stateText}>
                         Vui long mo mind map tu chu de hoac bai hoc.
                     </Text>
@@ -557,7 +605,9 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             {query && error && !mindMap && (
                 <View style={styles.stateBox}>
-                    <Text style={styles.stateTitle}>Khong tai duoc mind map</Text>
+                    <Text style={styles.stateTitle}>
+                        Khong tai duoc mind map
+                    </Text>
                     <Text style={styles.stateText}>
                         Kiem tra ket noi API hoac du lieu bai hoc.
                     </Text>
@@ -566,13 +616,13 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             {mindMap && (
                 <View style={styles.toolbar}>
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                         activeOpacity={0.7}
                         style={styles.toolbarBtn}
                         onPress={handleExpandAll}
                     >
                         <ChevronsUpDown size={18} color="#7C3AED" />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                     <TouchableOpacity
                         activeOpacity={0.7}
                         style={styles.toolbarBtn}
@@ -592,58 +642,66 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             {mindMap && containerSize.width > 0 && containerSize.height > 0 && (
                 <GestureDetector gesture={composedGesture}>
-                    <Animated.View style={[styles.mapContainer, animatedStyle]}>
-                        <Svg
-                            width={svgDisplayWidth}
-                            height={svgDisplayHeight}
-                            viewBox={`0 0 ${bounds.width} ${bounds.height}`}
-                        >
-                            <Defs>
-                                <SvgLinearGradient id="rootGrad" x1="0" y1="0" x2="1" y2="1">
-                                    <Stop offset="0" stopColor="#7C3AED" />
-                                    <Stop offset="0.5" stopColor="#6D28D9" />
-                                    <Stop offset="1" stopColor="#4F46E5" />
-                                </SvgLinearGradient>
-                            </Defs>
+                    <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
+                        <Animated.View style={[styles.mapContainer, animatedStyle]}>
+                            <Svg
+                                width={svgDisplayWidth}
+                                height={svgDisplayHeight}
+                                viewBox={`0 0 ${bounds.width} ${bounds.height}`}
+                            >
+                                <Defs>
+                                    <SvgLinearGradient
+                                        id="rootGrad"
+                                        x1="0"
+                                        y1="0"
+                                        x2="1"
+                                        y2="1"
+                                    >
+                                        <Stop offset="0" stopColor="#7C3AED" />
+                                        <Stop offset="0.5" stopColor="#6D28D9" />
+                                        <Stop offset="1" stopColor="#4F46E5" />
+                                    </SvgLinearGradient>
+                                </Defs>
 
-                            {connections.map((conn) => (
-                                <EdgePath
-                                    key={conn.id}
-                                    connection={conn}
-                                    activeNodeId={activeNodeId}
-                                    animate={!isMobile}
-                                />
-                            ))}
+                                {connections.map((conn) => (
+                                    <EdgePath
+                                        key={conn.id}
+                                        connection={conn}
+                                        activeNodeId={activeNodeId}
+                                        animate={!isMobile}
+                                    />
+                                ))}
 
-                            {nodes.map((node) => (
-                                <NodeCard
-                                    key={node.id}
-                                    node={node}
-                                    center={mapCenter}
-                                    activeNodeId={activeNodeId}
-                                    animateEntry={!isMobile}
-                                />
-                            ))}
-                        </Svg>
+                                {nodes.map((node) => (
+                                    <NodeCard
+                                        key={node.id}
+                                        node={node}
+                                        center={mapCenter}
+                                        activeNodeId={activeNodeId}
+                                        animateEntry={!isMobile}
+                                    />
+                                ))}
+                            </Svg>
 
-                        {/* SINGLE transparent hit layer over the SVG. Previously this
-                            was one Pressable per node — N native views that caused heavy
-                            jank when "Expand all" mounted dozens of nodes at once. Now
-                            it's one overlay that hit-tests by tap coordinates. Dim still
-                            runs on the UI thread (shared value), so no re-render on tap. */}
-                        <Pressable
-                            style={{
-                                position: "absolute",
-                                left: 0,
-                                top: 0,
-                                width: svgDisplayWidth,
-                                height: svgDisplayHeight,
-                            }}
-                            onPressIn={handleOverlayPressIn}
-                            onPressOut={handleOverlayPressOut}
-                            onPress={handleOverlayPress}
-                        />
-                    </Animated.View>
+                            {/* SINGLE transparent hit layer over the SVG. Previously this
+                                was one Pressable per node — N native views that caused heavy
+                                jank when "Expand all" mounted dozens of nodes at once. Now
+                                it's one overlay that hit-tests by tap coordinates. Dim still
+                                runs on the UI thread (shared value), so no re-render on tap. */}
+                            <Pressable
+                                style={{
+                                    position: "absolute",
+                                    left: 0,
+                                    top: 0,
+                                    width: svgDisplayWidth,
+                                    height: svgDisplayHeight,
+                                }}
+                                onPressIn={handleOverlayPressIn}
+                                onPressOut={handleOverlayPressOut}
+                                onPress={handleOverlayPress}
+                            />
+                        </Animated.View>
+                    </View>
                 </GestureDetector>
             )}
         </GestureHandlerRootView>

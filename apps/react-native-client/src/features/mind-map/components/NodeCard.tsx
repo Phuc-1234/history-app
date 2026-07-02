@@ -129,10 +129,11 @@ export const NodeCard = React.memo(function NodeCard({
     animateEntry = true,
 }: NodeCardProps) {
     const enter = useSharedValue(0);
-    const focus = useSharedValue(0);
     const didEnter = useRef(false);
 
-    const config = NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+    const config =
+        NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] ||
+        NODE_CONFIGS[2];
     const hasChildren = node.childIds.length > 0;
     const lines = useMemo(() => {
         const maxCharsPerLine = Math.floor(
@@ -161,47 +162,21 @@ export const NodeCard = React.memo(function NodeCard({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [node.id]);
 
-    // Drive the focus scale spring on the UI thread from the shared activeNodeId.
-    useAnimatedReaction(
-        () => activeNodeId.value === node.id,
-        (isActive, wasActive) => {
-            if (isActive === wasActive) return;
-            focus.value = withTiming(isActive ? 1 : 0, {
-                duration: 160,
-                easing: Easing.out(Easing.cubic),
-            });
-        },
-        [focus],
-    );
-
     const animatedProps = useAnimatedProps(() => {
-        // Dim/highlight on the UI thread from the shared activeNodeId — no JS
-        // re-render when a node is pressed/hovered (this was the jank cause).
-        const active = activeNodeId.value;
-        const isActive = active === node.id;
-        const isRelated =
-            isActive ||
-            node.parentId === active ||
-            (active !== null && node.childIds.includes(active));
-
         const nodeCenterX = node.x + node.width / 2;
         const nodeCenterY = node.y + node.height / 2;
         const cx = center.value.x;
         const cy = center.value.y;
         const startX = (cx - nodeCenterX) * animationConfig.nodeStartOffset;
         const startY = (cy - nodeCenterY) * animationConfig.nodeStartOffset;
-        const scale =
-            interpolate(
-                enter.value,
-                [0, 1],
-                [animationConfig.nodeStartScale, 1],
-            ) + focus.value * (animationConfig.nodeActiveScale - 1);
+        const scale = interpolate(
+            enter.value,
+            [0, 1],
+            [animationConfig.nodeStartScale, 1],
+        );
         const tx = interpolate(enter.value, [0, 1], [startX, 0]);
         const ty = interpolate(enter.value, [0, 1], [startY, 0]);
-        const dimOpacity =
-            active !== null && !isRelated
-                ? animationConfig.nodeDimOpacity
-                : animationConfig.nodeIdleOpacity;
+        const dimOpacity = animationConfig.nodeIdleOpacity;
 
         return {
             opacity: enter.value * dimOpacity,
