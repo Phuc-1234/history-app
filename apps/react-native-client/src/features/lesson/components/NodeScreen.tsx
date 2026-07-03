@@ -207,7 +207,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 {/* Video player */}
                 {node.video && (
                     <View style={styles.videoContainer}>
-                        <Text style={styles.videoLabel}>Video bài giảng</Text>
+                        
                         <VideoPlayer
                             videoId={node.video.id}
                             videoUrl={node.video.hlsUrl}
