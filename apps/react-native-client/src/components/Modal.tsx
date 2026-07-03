@@ -16,7 +16,7 @@ interface CustomModalProps {
     confirmText?: string;
     cancelText?: string;
     onConfirm: () => void;
-    onCancel: () => void;
+    onCancel?: () => void;
     showMascot?: boolean;
     mascotExpression?: MascotExpression;
 }
@@ -32,14 +32,17 @@ export function CustomModal({
     showMascot = false,
     mascotExpression = "focused",
 }: CustomModalProps) {
+    const handleClose = onCancel || onConfirm;
+    const showCancel = !!onCancel;
+
     return (
         <RNModal
             visible={visible}
             transparent={true}
             animationType="fade"
-            onRequestClose={onCancel}
+            onRequestClose={handleClose}
         >
-            <Pressable style={styles.overlay} onPress={onCancel}>
+            <Pressable style={styles.overlay} onPress={handleClose}>
                 <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
                     {showMascot && (
                         <Mascot
@@ -52,13 +55,15 @@ export function CustomModal({
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.message}>{message}</Text>
                     <View style={styles.buttons}>
-                        <TouchableOpacity
-                            style={styles.cancelBtn}
-                            onPress={onCancel}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.cancelText}>{cancelText}</Text>
-                        </TouchableOpacity>
+                        {showCancel && (
+                            <TouchableOpacity
+                                style={styles.cancelBtn}
+                                onPress={onCancel}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.cancelText}>{cancelText}</Text>
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                             style={styles.confirmBtn}
                             onPress={onConfirm}
