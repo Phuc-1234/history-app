@@ -181,6 +181,7 @@ export class ContentService {
                 videoId: true,
                 sectionId: true,
             },
+            orderBy: { position: "asc" },
         });
 
         // 2b. Fetch user progress if logged in

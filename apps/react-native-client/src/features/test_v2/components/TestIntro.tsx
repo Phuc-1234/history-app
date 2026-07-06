@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     StyleSheet,
     Text,
@@ -7,7 +7,8 @@ import {
     ActivityIndicator,
     ScrollView
 } from "react-native";
-import { FileText, Clock, Zap, Coins, Trophy } from "lucide-react-native";
+import { FileText, Clock, Zap, Coins, Trophy, HelpCircle } from "lucide-react-native";
+import { CustomModal } from "../../../components/Modal";
 import Mascot from "../../../components/Mascot";
 import { colors } from "../../../theme/colors";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
@@ -70,6 +71,8 @@ export default function TestIntro({
     passCount = 0,
     scopeType,
 }: Props) {
+    const [showHelpModal, setShowHelpModal] = useState(false);
+
     const branchConfig = {
         hierarchy: "",
         title:
@@ -114,9 +117,18 @@ export default function TestIntro({
 
                     {/* Test's name below the mascot (no container) */}
                     <View style={styles.titleContainer}>
-                        <Text style={styles.titleLabel}>
-                            {purposeType === "EXAM" ? "Kiểm tra" : "Luyện tập"}
-                        </Text>
+                        <View style={styles.titleRow}>
+                            <Text style={styles.titleLabel}>
+                                {purposeType === "EXAM" ? "Kiểm tra" : "Thử thách"}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => setShowHelpModal(true)}
+                                style={styles.helpButton}
+                                activeOpacity={0.7}
+                            >
+                                <HelpCircle size={18} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
                         <Text style={styles.scopeText}>
                             {resolvedTitle}
                         </Text>
@@ -199,6 +211,20 @@ export default function TestIntro({
                     <Text style={styles.laterButtonText}>Để sau</Text>
                 </TouchableOpacity>
             </View>
+
+            <CustomModal
+                visible={showHelpModal}
+                title={purposeType === "EXAM" ? "Chế độ kiểm tra" : "Chế độ thử thách"}
+                message={
+                    purposeType === "EXAM"
+                        ? "Ở chế độ kiểm tra, bạn chỉ biết được kết quả sau khi nộp bài"
+                        : "Ở chế độ thử thách, bạn có thể biết đáp án và lời giải thích sau từng câu hỏi"
+                }
+                confirmText="Đã hiểu"
+                onConfirm={() => setShowHelpModal(false)}
+                showMascot={true}
+                mascotExpression="thinking"
+            />
         </ScreenWrapper>
     );
 }
@@ -221,6 +247,15 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginVertical: 6,
         paddingHorizontal: 16,
+    },
+    titleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+    },
+    helpButton: {
+        padding: 4,
     },
     titleLabel: {
         fontSize: 24,

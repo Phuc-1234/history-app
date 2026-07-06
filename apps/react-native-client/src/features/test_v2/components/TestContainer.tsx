@@ -1372,6 +1372,7 @@ const styles = StyleSheet.create({
     nextBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
     blockIndicatorsRow: {
         flexDirection: "row",
+        flexWrap: "wrap",
         justifyContent: "center",
         gap: 5,
         marginTop: 4,

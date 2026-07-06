@@ -259,6 +259,7 @@ export class AdminService {
                 ...(data.body !== undefined && { body: data.body }),
                 ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
                 ...(data.videoId !== undefined && { videoId: data.videoId }),
+                ...(data.sectionId !== undefined && { sectionId: data.sectionId }),
             },
         });
         return {

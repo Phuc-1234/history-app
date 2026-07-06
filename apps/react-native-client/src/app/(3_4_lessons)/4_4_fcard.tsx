@@ -21,10 +21,12 @@ export default function FlashcardRoute() {
 
     return (
         <ScreenWrapper
+            showTopBar={false}
             branchConfig={{
                 hierarchy: "LỚP SỬ 10 > CHƯƠNG I",
                 title: "Sử học và đời sống",
                 onBackPress: handleBack,
+                
             }}
         >
             <FlashcardFreePlayScreen
