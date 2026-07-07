@@ -214,7 +214,7 @@ export function CourseMenuScreen() {
     return (
         <ScreenWrapper>
             <View style={styles.container}>
-                <Text style={styles.screenHeader}>Khóa Học</Text>
+                <Text style={styles.screenHeader}>Học phần</Text>
                 <Text style={styles.screenSubtitle}>Chọn học phần để bắt đầu</Text>
 
                 <View style={styles.searchContainer}>
