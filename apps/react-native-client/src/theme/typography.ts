@@ -16,6 +16,56 @@ export const typography = {
         regular: "Nunito-Regular",
         semiBold: "Nunito-SemiBold",
         semiBoldItalic: "Nunito-SemiBoldItalic",
+    },
+    
+    // Composed styles: font family + size
+    h1: {
+        fontFamily: "Nunito-ExtraBold",
+        fontSize: 28,
+    },
+    h2: {
+        fontFamily: "Nunito-ExtraBold",
+        fontSize: 22,
+    },
+    h3: {
+        fontFamily: "Nunito-Bold",
+        fontSize: 18,
+    },
+    bodyLarge: {
+        fontFamily: "Nunito-Regular",
+        fontSize: 16,
+    },
+    bodyMedium: {
+        fontFamily: "Nunito-Regular",
+        fontSize: 14,
+    },
+    bodyMediumMedium: {
+        fontFamily: "Nunito-Medium",
+        fontSize: 14,
+    },
+    bodyMediumSemiBold: {
+        fontFamily: "Nunito-SemiBold",
+        fontSize: 14,
+    },
+    bodyMediumBold: {
+        fontFamily: "Nunito-Bold",
+        fontSize: 14,
+    },
+    bodySmall: {
+        fontFamily: "Nunito-Regular",
+        fontSize: 13,
+    },
+    bodySmallMedium: {
+        fontFamily: "Nunito-Medium",
+        fontSize: 13,
+    },
+    bodySmallSemiBold: {
+        fontFamily: "Nunito-SemiBold",
+        fontSize: 13,
+    },
+    caption: {
+        fontFamily: "Nunito-Regular",
+        fontSize: 12,
     }
 };
 

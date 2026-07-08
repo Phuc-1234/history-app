@@ -65,13 +65,12 @@ export default function LoginForm() {
                         style={styles.logoImage}
                         resizeMode="contain"
                     />
-                    <Text style={styles.logoSubtitle}>Ứng dụng học và làm đề lịch sử</Text>
+                    
                 </View>
 
                 {/* Welcome Heading */}
                 <View style={styles.headerContainer}>
-                    <Text style={styles.welcomeText}>Đăng Nhập</Text>
-                    
+                    <Text style={styles.welcomeText}>Đăng nhập vào Sắc Sử</Text>
                 </View>
 
                 {/* Form Inputs Container */}
@@ -139,17 +138,7 @@ export default function LoginForm() {
                         disabled={isLoading}
                     />
 
-                    {/* Guest Login */}
-                    <TouchableOpacity
-                        style={styles.guestButton}
-                        activeOpacity={0.7}
-                        onPress={enterAsGuest}
-                        disabled={isLoading}
-                    >
-                        <Text style={styles.guestText}>
-                             Tiếp tục với tư cách Khách
-                        </Text>
-                    </TouchableOpacity>
+                    
 
                     {/* Divider */}
                     <View style={styles.dividerContainer}>
@@ -219,6 +208,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
         paddingHorizontal: 28,
         position: "relative",
+        justifyContent: "center",
     },
     logoContainer: {
         alignItems: "center",
@@ -231,8 +221,7 @@ const styles = StyleSheet.create({
         height: 120,
     },
     logoSubtitle: {
-        fontFamily: typography.fonts.semiBold,
-        fontSize: 14,
+        ...typography.bodyMediumSemiBold,
         color: colors.textMuted,
         marginTop: 6,
         textAlign: "center",
@@ -241,15 +230,14 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     welcomeText: {
-        fontFamily: typography.fonts.extraBold,
-        color: colors.textDark,
-        fontSize: 28,
+        ...typography.h2,
+        color: colors.accent,
         marginBottom: 6,
+        textAlign: "center",
     },
     subText: {
-        fontFamily: typography.fonts.medium,
+        ...typography.bodyMediumMedium,
         color: colors.textMuted,
-        fontSize: 15,
     },
     formContainer: {
         marginTop: 10, 
@@ -275,15 +263,13 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     ghostEmailText: {
-        fontFamily: typography.fonts.regular,
-        fontSize: 15,
+        ...typography.bodyLarge,
         color: colors.textPlaceholder,
         opacity: 0.6,
     },
     fieldErrorText: {
-        fontFamily: typography.fonts.semiBold,
+        ...typography.bodySmallSemiBold,
         color: colors.textError,
-        fontSize: 13,
         marginTop: 6,
         paddingLeft: 4,
     },
@@ -293,18 +279,16 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     forgotPassText: {
-        fontFamily: typography.fonts.semiBold,
+        ...typography.bodyMediumSemiBold,
         color: colors.textMuted,
-        fontSize: 14,
     },
     guestButton: {
         alignSelf: "center",
         marginVertical: 8,
     },
     guestText: {
-        fontFamily: typography.fonts.semiBold,
+        ...typography.bodyMediumSemiBold,
         color: colors.primary,
-        fontSize: 14,
         textDecorationLine: "underline",
     },
     dividerContainer: {
@@ -318,8 +302,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.divider,
     },
     dividerText: {
-        fontFamily: typography.fonts.medium,
-        fontSize: 13,
+        ...typography.bodySmall,
         color: colors.textMuted,
         paddingHorizontal: 16,
     },
@@ -342,8 +325,7 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     socialBtnText: {
-        fontFamily: typography.fonts.bold,
-        fontSize: 14,
+        ...typography.bodyMediumBold,
         color: colors.textDark,
         letterSpacing: 0.5,
     },
@@ -355,13 +337,11 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     footerText: {
-        fontFamily: typography.fonts.regular,
-        fontSize: 14,
+        ...typography.bodyMedium,
         color: colors.textMuted,
     },
     registerText: {
-        fontFamily: typography.fonts.bold,
-        fontSize: 14,
+        ...typography.bodyMediumBold,
         color: colors.primary,
     },
 });
