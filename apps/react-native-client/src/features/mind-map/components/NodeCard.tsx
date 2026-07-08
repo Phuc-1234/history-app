@@ -14,6 +14,8 @@ import Animated, {
 import type { LayoutNode } from "../types";
 import { animationConfig, NODE_CONFIGS } from "../constants";
 import { wrapText } from "../utils/layout";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -198,7 +200,7 @@ export const NodeCard = React.memo(function NodeCard({
                     height={node.height + 14}
                     rx={config.rx + 8}
                     ry={config.rx + 8}
-                    fill="#7C3AED"
+                    fill={colors.primary}
                     opacity={0.08}
                 />
                 <Rect
@@ -246,7 +248,7 @@ export const NodeCard = React.memo(function NodeCard({
                         fill="#FFFFFF"
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
-                        fontFamily="System"
+                        fontFamily={typography.fonts.bold}
                     >
                         {line}
                     </SvgText>
@@ -320,10 +322,10 @@ export const NodeCard = React.memo(function NodeCard({
                             config.fontSize / 3
                         }
                         textAnchor="start"
-                        fill="#172033"
+                        fill={colors.textPrimary}
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
-                        fontFamily="System"
+                        fontFamily={typography.fonts.semiBold}
                     >
                         {line}
                     </SvgText>
@@ -341,7 +343,7 @@ export const NodeCard = React.memo(function NodeCard({
         );
     }
 
-    const lightBg = node.lightBg || "#FAFAFA";
+    const lightBg = node.lightBg || colors.surface;
     return (
         <AnimatedG animatedProps={animatedProps}>
             <Rect
@@ -395,10 +397,10 @@ export const NodeCard = React.memo(function NodeCard({
                         config.fontSize / 3
                     }
                     textAnchor="start"
-                    fill="#334155"
+                    fill={colors.textSecondary}
                     fontSize={config.fontSize}
                     fontWeight={config.fontWeight}
-                    fontFamily="System"
+                    fontFamily={typography.fonts.medium}
                 >
                     {line}
                 </SvgText>

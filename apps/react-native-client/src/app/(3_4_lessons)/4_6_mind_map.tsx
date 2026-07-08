@@ -18,6 +18,8 @@ export default function MindMapRoute() {
     const router = useRouter();
     const params = useLocalSearchParams<{
         lessonId?: string;
+        lessonName?: string;
+        lessonPosition?: string;
     }>();
     const query = toMindMapQuery(params);
 
@@ -31,10 +33,11 @@ export default function MindMapRoute() {
 
     return (
         <ScreenWrapper
+            showTopBar={false}
             branchConfig={{
-                hierarchy: "LỚP SỬ 10",
+                hierarchy: params.lessonPosition ? `Bài ${params.lessonPosition}` : "Sơ đồ tư duy",
                 title: "Sơ đồ tư duy",
-                subtitle: "Kháng chiến chống Pháp (1946-1954)",
+                subtitle: params.lessonName || "",
                 onBackPress: handleBack,
             }}
         >

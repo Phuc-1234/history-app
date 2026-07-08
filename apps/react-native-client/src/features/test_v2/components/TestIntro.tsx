@@ -260,13 +260,13 @@ const styles = StyleSheet.create({
     },
     titleLabel: {
         fontSize: 24,
-        fontFamily: typography.fonts.semiBold,
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
         textAlign: "center",
     },
     scopeText: {
         fontSize: 16,
-        fontFamily: typography.fonts.medium,
+        fontFamily: typography.fonts.bold,
         color: colors.textSecondary,
         textAlign: "center",
         marginTop: 6,

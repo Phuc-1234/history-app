@@ -39,6 +39,8 @@ import {
 import { getScaleLimits, MOBILE_BREAKPOINT } from "../constants";
 import type { MindMapNode, LayoutNode } from "../types";
 import { useGetMindMapQuery, type MindMapQuery } from "../mindMapApi";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 import {
     layoutTree,
     applyHorizontalPositions,
@@ -598,18 +600,18 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 
             {query && (isLoading || isFetching) && !mindMap && (
                 <View style={styles.stateBox}>
-                    <ActivityIndicator size="large" color="#7C3AED" />
-                    <Text style={styles.stateText}>Dang tai mind map...</Text>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={styles.stateText}>Đang tải sơ đồ tư duy...</Text>
                 </View>
             )}
 
             {query && error && !mindMap && (
                 <View style={styles.stateBox}>
                     <Text style={styles.stateTitle}>
-                        Khong tai duoc mind map
+                        Không tải được sơ đồ tư duy
                     </Text>
                     <Text style={styles.stateText}>
-                        Kiem tra ket noi API hoac du lieu bai hoc.
+                        Kiểm tra kết nối mạng hoặc dữ liệu bài học.
                     </Text>
                 </View>
             )}
@@ -621,21 +623,21 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                         style={styles.toolbarBtn}
                         onPress={handleExpandAll}
                     >
-                        <ChevronsUpDown size={18} color="#7C3AED" />
+                        <ChevronsUpDown size={18} color={colors.primary} />
                     </TouchableOpacity> */}
                     <TouchableOpacity
                         activeOpacity={0.7}
                         style={styles.toolbarBtn}
                         onPress={handleCollapseAll}
                     >
-                        <ChevronsDownUp size={18} color="#7C3AED" />
+                        <ChevronsDownUp size={18} color={colors.primary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         activeOpacity={0.7}
                         style={styles.toolbarBtn}
                         onPress={fitView}
                     >
-                        <Maximize2 size={18} color="#7C3AED" />
+                        <Maximize2 size={18} color={colors.primary} />
                     </TouchableOpacity>
                 </View>
             )}
@@ -657,9 +659,9 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                                         x2="1"
                                         y2="1"
                                     >
-                                        <Stop offset="0" stopColor="#7C3AED" />
-                                        <Stop offset="0.5" stopColor="#6D28D9" />
-                                        <Stop offset="1" stopColor="#4F46E5" />
+                                        <Stop offset="0" stopColor={colors.primary} />
+                                        <Stop offset="0.5" stopColor={colors.primaryHover} />
+                                        <Stop offset="1" stopColor={colors.secondary} />
                                     </SvgLinearGradient>
                                 </Defs>
 
@@ -711,7 +713,7 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
 const styles = StyleSheet.create({
     root: {
         flex: 1,
-        backgroundColor: "#F8FAFC",
+        backgroundColor: colors.background,
         overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
@@ -727,7 +729,7 @@ const styles = StyleSheet.create({
         width: 280,
         height: 280,
         borderRadius: 140,
-        backgroundColor: "#DDD6FE",
+        backgroundColor: colors.primaryContainer,
         opacity: 0.18,
         pointerEvents: "none",
     },
@@ -738,7 +740,7 @@ const styles = StyleSheet.create({
         width: 240,
         height: 240,
         borderRadius: 120,
-        backgroundColor: "#BAE6FD",
+        backgroundColor: colors.secondaryContainer,
         opacity: 0.15,
         pointerEvents: "none",
     },
@@ -750,72 +752,41 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 6,
         zIndex: 10,
-        backgroundColor: "rgba(255,255,255,0.94)",
-        borderRadius: 18,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 7,
         borderWidth: 1,
-        borderColor: "rgba(124,58,237,0.12)",
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-            },
-            android: { elevation: 4 },
-            web: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-            },
-        }),
+        borderColor: colors.borderLight,
     },
     toolbarBtn: {
         width: 40,
         height: 40,
-        borderRadius: 14,
-        backgroundColor: "#F4F0FF",
+        borderRadius: 12,
+        backgroundColor: colors.primaryContainer,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
-        borderColor: "#E9D5FF",
+        borderColor: colors.borderMedium,
     },
     stateBox: {
         maxWidth: 320,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 18,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "#E5E7EB",
+        borderColor: colors.borderMedium,
         padding: 22,
         paddingHorizontal: 24,
         alignItems: "center",
         gap: 10,
-        ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.08,
-                shadowRadius: 18,
-            },
-            android: { elevation: 3 },
-            web: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.08,
-                shadowRadius: 18,
-            },
-        }),
     },
     stateTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#1C1C1E",
+        ...typography.bodyLargeBold,
+        color: colors.textPrimary,
         textAlign: "center",
     },
     stateText: {
-        fontSize: 14,
-        color: "#6B7280",
+        ...typography.bodyMedium,
+        color: colors.textMuted,
         textAlign: "center",
         lineHeight: 20,
     },

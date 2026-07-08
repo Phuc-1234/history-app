@@ -8,6 +8,8 @@ import {
     Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 
 export type FlashcardMode = "memorize" | "free";
 
@@ -37,7 +39,7 @@ export function FlashcardModeModal({
                 <View style={styles.modalContainer}>
                     {/* --- Header Icon --- */}
                     <View style={styles.headerIcon}>
-                        <Ionicons name="layers-outline" size={36} color="#5856D6" />
+                        <Ionicons name="layers-outline" size={36} color={colors.primary} />
                     </View>
 
                     {/* --- Title --- */}
@@ -55,7 +57,7 @@ export function FlashcardModeModal({
                             onPress={() => onSelectMode("memorize")}
                         >
                             <View style={[styles.optionIconWrapper, styles.memorizeIconBg]}>
-                                <Ionicons name="school-outline" size={28} color="#059669" />
+                                <Ionicons name="school-outline" size={28} color={colors.success} />
                             </View>
                             <View style={styles.optionTextContainer}>
                                 <Text style={styles.optionTitle}>Học thuộc</Text>
@@ -63,7 +65,7 @@ export function FlashcardModeModal({
                                     Ghi nhớ 2 lần mỗi thẻ để hoàn thành
                                 </Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                            <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
                         </TouchableOpacity>
 
                         {/* Free Mode */}
@@ -73,7 +75,7 @@ export function FlashcardModeModal({
                             onPress={() => onSelectMode("free")}
                         >
                             <View style={[styles.optionIconWrapper, styles.freeIconBg]}>
-                                <Ionicons name="albums-outline" size={28} color="#5856D6" />
+                                <Ionicons name="albums-outline" size={28} color={colors.primary} />
                             </View>
                             <View style={styles.optionTextContainer}>
                                 <Text style={styles.optionTitle}>Tự do</Text>
@@ -81,7 +83,7 @@ export function FlashcardModeModal({
                                     Lướt qua lại thoải mái như slide
                                 </Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                            <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
                         </TouchableOpacity>
                     </View>
 
@@ -108,34 +110,28 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         width: MODAL_WIDTH,
-        backgroundColor: "#FFF",
-        borderRadius: 24,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 28,
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 16 },
-        shadowOpacity: 0.12,
-        shadowRadius: 32,
-        elevation: 12,
     },
     headerIcon: {
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: "#F0EFFF",
+        backgroundColor: colors.primaryContainer,
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 16,
     },
     title: {
-        fontSize: 20,
-        fontWeight: "800",
-        color: "#1C1C1E",
+        ...typography.h2,
+        color: colors.textPrimary,
         marginBottom: 6,
     },
     subtitle: {
-        fontSize: 14,
-        color: "#8E8E93",
+        ...typography.bodyMedium,
+        color: colors.textMuted,
         textAlign: "center",
         marginBottom: 24,
     },
@@ -147,38 +143,37 @@ const styles = StyleSheet.create({
     optionCard: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F9F9FB",
-        borderRadius: 16,
+        backgroundColor: colors.surfaceVariant,
+        borderRadius: 12,
         padding: 16,
         borderWidth: 1,
-        borderColor: "#E5E5EA",
+        borderColor: colors.borderMedium,
         gap: 14,
     },
     optionIconWrapper: {
         width: 52,
         height: 52,
-        borderRadius: 14,
+        borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
     },
     memorizeIconBg: {
-        backgroundColor: "#D1FAE5",
+        backgroundColor: colors.successContainer,
     },
     freeIconBg: {
-        backgroundColor: "#EDE9FE",
+        backgroundColor: colors.primaryContainer,
     },
     optionTextContainer: {
         flex: 1,
     },
     optionTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#1C1C1E",
+        ...typography.bodyLargeBold,
+        color: colors.textPrimary,
         marginBottom: 3,
     },
     optionDescription: {
-        fontSize: 12,
-        color: "#8E8E93",
+        ...typography.bodySmall,
+        color: colors.textMuted,
         lineHeight: 17,
     },
     cancelButton: {
@@ -186,8 +181,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32,
     },
     cancelButtonText: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: "#8E8E93",
+        ...typography.bodyMediumMedium,
+        color: colors.textMuted,
     },
 });

@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 
 interface FreeFlashcardControlsProps {
     onPrev: () => void;
@@ -44,7 +46,7 @@ export function FreeFlashcardControls({
                     <Ionicons
                         name="close"
                         size={24}
-                        color={isMemorized ? "#E53E3E" : "#C7C7CC"}
+                        color={isMemorized ? colors.error : colors.textPlaceholder}
                     />
                 </TouchableOpacity>
 
@@ -63,7 +65,7 @@ export function FreeFlashcardControls({
                     <Ionicons
                         name="checkmark"
                         size={24}
-                        color={isMemorized ? "#FFF" : "#0A7E56"}
+                        color={isMemorized ? "#FFF" : colors.success}
                     />
                 </TouchableOpacity>
             </View>
@@ -84,7 +86,7 @@ export function FreeFlashcardControls({
                     <Ionicons
                         name="chevron-back"
                         size={24}
-                        color={hasPrev ? "#5856D6" : "#C7C7CC"}
+                        color={hasPrev ? colors.primary : colors.textPlaceholder}
                     />
                 </TouchableOpacity>
 
@@ -113,7 +115,7 @@ export function FreeFlashcardControls({
                     <Ionicons
                         name="chevron-forward"
                         size={24}
-                        color={hasNext ? "#5856D6" : "#C7C7CC"}
+                        color={hasNext ? colors.primary : colors.textPlaceholder}
                     />
                 </TouchableOpacity>
             </View>
@@ -149,47 +151,46 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     navButton: {
-        backgroundColor: "#FFF",
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: "#E5E5EA",
+        borderColor: colors.borderMedium,
     },
     disabledButton: {
         opacity: 0.5,
     },
     notMemorizedButton: {
-        backgroundColor: "#FEE2E2",
+        backgroundColor: colors.errorContainer,
         borderWidth: 1,
-        borderColor: "#FCA5A5",
+        borderColor: colors.error,
     },
     notMemorizedButtonInactive: {
-        backgroundColor: "#F3F4F6",
+        backgroundColor: colors.surfaceVariant,
         borderWidth: 1,
-        borderColor: "#E5E5EA",
+        borderColor: colors.borderMedium,
         opacity: 0.5,
     },
     memorizedButton: {
-        backgroundColor: "#D1FAE5",
+        backgroundColor: colors.successContainer,
         borderWidth: 1,
-        borderColor: "#6EE7B7",
+        borderColor: colors.success,
     },
     memorizedButtonActive: {
-        backgroundColor: "#0A7E56",
+        backgroundColor: colors.success,
     },
     flipButton: {
         paddingHorizontal: 28,
         paddingVertical: 12,
-        borderRadius: 24,
+        borderRadius: 30,
         borderWidth: 1,
-        borderColor: "#AEAEB2",
-        backgroundColor: "#FFF",
+        borderColor: colors.borderMedium,
+        backgroundColor: colors.surface,
         justifyContent: "center",
         alignItems: "center",
         minWidth: 100,
     },
     flipButtonText: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: "#5856D6",
+        ...typography.bodyMediumBold,
+        color: colors.primary,
     },
 });
 
