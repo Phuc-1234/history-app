@@ -210,13 +210,13 @@ export default function HomeScreen() {
                         <Text style={{ color: colors.error, marginBottom: 12, textAlign: "center" }}>
                             Lỗi tải dữ liệu: {("message" in error) ? (error as any).message : JSON.stringify(error)}
                         </Text>
-                        <TouchableOpacity 
-                            style={{ 
-                                backgroundColor: colors.primary, 
-                                paddingHorizontal: 20, 
-                                paddingVertical: 10, 
-                                borderRadius: 20 
-                            }} 
+                        <TouchableOpacity
+                            style={{
+                                backgroundColor: colors.primary,
+                                paddingHorizontal: 20,
+                                paddingVertical: 10,
+                                borderRadius: 20
+                            }}
                             onPress={handleRefresh}
                         >
                             <Text style={{ color: "#fff", fontWeight: "600" }}>Thử lại</Text>
