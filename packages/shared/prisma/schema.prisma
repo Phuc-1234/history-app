@@ -485,6 +485,7 @@ enum TestStatus {
 enum PaymentProvider {
   MOMO
   ZALOPAY
+  SEPAY
 }
 
 enum PaymentStatus {
