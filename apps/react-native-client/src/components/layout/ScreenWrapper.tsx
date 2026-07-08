@@ -222,7 +222,7 @@ function ScreenWithoutTopBar({
     safeAreaEdges,
     backgroundColor,
     style,
-    showHistoricalBackground = true,
+    showHistoricalBackground = false,
     branchConfig,
     ...contentProps
 }: Omit<ScreenWrapperProps, "showTopBar">) {

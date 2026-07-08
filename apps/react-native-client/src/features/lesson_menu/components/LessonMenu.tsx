@@ -22,6 +22,7 @@ import { useAppSelector } from "../../../store/storeHook";
 import { useLessonMenu } from "../hooks/useLessonMenu";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -240,6 +241,7 @@ export function LessonMenu({
     } = useLessonMenu(selectedGrade);
 
     const [searchQuery, setSearchQuery] = useState("");
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     const filteredTopics = React.useMemo(() => {
         if (!searchQuery.trim()) return topics;
@@ -292,12 +294,17 @@ export function LessonMenu({
                     <>
                         <View style={styles.searchContainer}>
                             <TextInput
-                                style={styles.searchInput}
+                                style={[
+                                    styles.searchInput,
+                                    isSearchFocused && styles.searchInputFocused
+                                ]}
                                 placeholder="Tìm kiếm bài học..."
                                 placeholderTextColor={colors.textPlaceholder}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
                                 underlineColorAndroid="transparent"
+                                onFocus={() => setIsSearchFocused(true)}
+                                onBlur={() => setIsSearchFocused(false)}
                             />
                         </View>
                         <ScrollView
@@ -611,12 +618,17 @@ const styles = StyleSheet.create({
         paddingBottom: 4,
     },
     searchInput: {
+        fontFamily: typography.fonts.light,
         height: 48,
         backgroundColor: colors.inputBackground,
         borderRadius: 12,
         paddingHorizontal: 16,
         fontSize: 14,
-        fontWeight: "300",
         color: colors.textPrimary,
+        borderWidth: 1.5,
+        borderColor: "transparent",
+    },
+    searchInputFocused: {
+        borderColor: colors.accent,
     },
 });

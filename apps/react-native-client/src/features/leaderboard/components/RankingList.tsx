@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
+import { Card } from "../../../components/Card";
 
 interface RankingListProps {
     rankingList: DisplayUser[];
@@ -28,7 +30,7 @@ export const RankingList: React.FC<RankingListProps> = ({
                 }
 
                 return (
-                    <View key={item.id} style={[styles.rankRow, isMe && styles.meRow]}>
+                    <Card key={item.id} style={[styles.rankRow, isMe && styles.meRow]}>
                         {/* Hạng */}
                         <Text style={[styles.rowPosition, isMe && styles.meText]}>
                             {index + 4}
@@ -59,7 +61,7 @@ export const RankingList: React.FC<RankingListProps> = ({
                                 ? `🔥 ${item.streak} ngày`
                                 : `${item.xp.toLocaleString()} XP`}
                         </Text>
-                    </View>
+                    </Card>
                 );
             })}
         </View>
@@ -72,23 +74,24 @@ const createStyles = (isSmallDevice: boolean) =>
         rankRow: {
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.primary,
-            borderRadius: 20,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.borderMedium,
             paddingHorizontal: 16,
             paddingVertical: 14,
             marginBottom: 14,
         },
         meRow: { 
-            backgroundColor: '#EBE9FE', 
-            borderWidth: 2, 
-            borderColor: '#5641E8' 
+            backgroundColor: colors.primaryContainer, 
+            borderWidth: 1.5, 
+            borderColor: colors.accent,
         },
         rowPosition: {
+            fontFamily: typography.fonts.bold,
             width: 22,
             marginRight: 10,
             fontSize: 15,
-            fontWeight: "500",
-            color: colors.textLight,
+            color: colors.textPrimary,
         },
         rowAvatar: {
             width: 40,
@@ -106,26 +109,25 @@ const createStyles = (isSmallDevice: boolean) =>
             justifyContent: "center",
             alignItems: "center",
         },
-        meDefaultAvatar: { backgroundColor: '#D8D4FF' }, // Màu nền avatar nhạt hơn khi là hàng của mình
+        meDefaultAvatar: { backgroundColor: colors.borderMedium },
         rowDefaultAvatarText: {
+            fontFamily: typography.fonts.bold,
             color: colors.primary,
             fontSize: 16,
-            fontWeight: "700",
         },
         rowName: {
+            fontFamily: typography.fonts.medium,
             flex: 1,
             fontSize: isSmallDevice ? 14 : 15,
-            color: colors.textLight,
-            fontWeight: "500",
+            color: colors.textPrimary,
             marginRight: 8,
         },
         rowXp: {
+            fontFamily: typography.fonts.bold,
             fontSize: isSmallDevice ? 14 : 15,
-            color: colors.textLight,
-            fontWeight: "700",
+            color: colors.textSecondary,
         },
         meText: {
-            color: '#5641E8', // Chữ màu tím đậm khi là hàng của mình
-            fontWeight: 'bold',
+            color: colors.accent,
         },
     });

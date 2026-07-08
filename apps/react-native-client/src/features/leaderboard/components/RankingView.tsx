@@ -14,6 +14,7 @@ import { useLeaderboard } from "../hooks/useLeaderboard";
 import { PodiumSection } from "./PodiumSection";
 import { RankingList } from "./RankingList";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 import { SlidingTabBar } from "../../../components/SlidingTabBar";
 
 export const RankingView: React.FC = () => {
@@ -111,9 +112,16 @@ const styles = StyleSheet.create({
     tabContainer: { marginHorizontal: 22, marginTop: 10, marginBottom: 10 },
     scrollContent: { paddingHorizontal: 22, paddingTop: 10, paddingBottom: 120 },
     centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-    errorText: { color: colors.error, marginBottom: 16 },
+    errorText: { 
+        fontFamily: typography.fonts.regular,
+        color: colors.error, 
+        marginBottom: 16 
+    },
     retryButton: { backgroundColor: colors.primary, padding: 10, borderRadius: 5 },
-    retryButtonText: { color: 'white', fontWeight: '700' },
+    retryButtonText: { 
+        fontFamily: typography.fonts.bold,
+        color: 'white' 
+    },
     
     // Style cho thanh Sticky
     myRankStickyBar: {
@@ -122,7 +130,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 60,
-    backgroundColor: '#5641E8',
+    backgroundColor: colors.accent,
     borderRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',
@@ -136,14 +144,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
 },
 rankText: { 
+    fontFamily: typography.fonts.bold,
     color: '#FFD700', 
-    fontWeight: 'bold', 
     fontSize: 16 
 },
 xpText: { 
+    fontFamily: typography.fonts.bold,
     color: '#FFD700', 
-    fontWeight: 'bold', 
     fontSize: 16 
 },
-nameText: { color: 'white', fontWeight: 'bold', fontSize: 16, flex: 1, marginHorizontal: 10 },
+nameText: { 
+    fontFamily: typography.fonts.bold,
+    color: 'white', 
+    fontSize: 16, 
+    flex: 1, 
+    marginHorizontal: 10 
+},
 });
