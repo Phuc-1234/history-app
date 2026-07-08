@@ -75,7 +75,7 @@ export default function HistoricalBackground() {
                     },
                 ]}
             >
-                <TrongDongMotif size={260} color="#B91C1C" opacity={0.1} />
+                <TrongDongMotif size={260} color={colors.primary} opacity={0.1} />
             </Animated.View>
 
             {/* 2. Rotating Dong Son Drum in Bottom-Right (faint Gold) */}

@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "../../../components/Button";
 import Input from "../../../components/Input";
 import { useChangePassword } from "../hooks/useChangePassword";
-import SubPageHeader from "../components/SubPageHeader";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { colors } from "../../../theme/colors";
 
 const text = {
@@ -36,8 +36,14 @@ export default function PasswordChangeScreen() {
     const state = useChangePassword();
 
     return (
-        <View style={styles.container}>
-            <SubPageHeader title={text.title} onBackPress={() => router.back()} />
+        <ScreenWrapper
+            showTopBar={false}
+            branchConfig={{
+                hierarchy: "Cá nhân",
+                title: text.title,
+                onBackPress: () => router.back(),
+            }}
+        >
 
             <KeyboardAvoidingView
                 style={styles.flex}
@@ -123,7 +129,7 @@ export default function PasswordChangeScreen() {
                     ]}
                 />
             </KeyboardAvoidingView>
-        </View>
+        </ScreenWrapper>
     );
 }
 

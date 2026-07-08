@@ -4,26 +4,21 @@ import {
     Text,
     View,
     ScrollView,
-    TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
     TextInput,
+    TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Book } from "lucide-react-native";
 import Svg, { Circle } from "react-native-svg";
-import Animated, {
-    useSharedValue,
-    useAnimatedProps,
-    withTiming,
-    Easing,
-} from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { useAppSelector } from "../../../store/storeHook";
 import { useLessonMenu } from "../hooks/useLessonMenu";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import { Card } from "../../../components/Card";
 import { colors } from "../../../theme/colors";
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+import typography from "../../../theme/typography";
 
 interface LessonMenuProps {
     selectedGrade: number;
@@ -32,143 +27,39 @@ interface LessonMenuProps {
     onTestPress: (scopeType: string, scopeId: number) => void;
 }
 
-/** Lesson circle: arc ring showing % via a layered border approach */
-function LessonCircle({
-    isDone,
-    pct, // 0–1
-    completed,
-    total,
-    size = 64,
-    showBadge = true,
-    onPress,
-    children,
-}: {
-    isDone: boolean;
-    pct: number;
-    completed: number;
-    total: number;
-    size?: number;
-    showBadge?: boolean;
-    onPress?: () => void;
-    children: React.ReactNode;
-}) {
-    const filledColor = isDone ? colors.success : colors.primary;
-    const emptyColor = colors.borderMedium;
-
-    const gap = 8;
-    const strokeWidth = 5;
-
-    return (
-        <View style={styles.lessonCircleWrapper}>
-            <View style={{ width: size + gap * 2, height: size + gap * 2, alignItems: "center", justifyContent: "center", position: "relative" }}>
-                <ProgressRing 
-                    pct={pct} 
-                    size={size} 
-                    gap={gap} 
-                    strokeWidth={strokeWidth} 
-                    filled={filledColor} 
-                    empty={emptyColor} 
-                />
-                <TouchableOpacity
-                    style={[
-                        styles.nodeCircle,
-                        {
-                            width: size,
-                            height: size,
-                            borderRadius: size / 2,
-                        },
-                        isDone
-                            ? styles.lessonNodeCircleDone
-                            : styles.lessonNodeCircleTodo,
-                    ]}
-                    onPress={onPress}
-                    activeOpacity={0.7}
-                    disabled={!onPress}
-                >
-                    {children}
-                </TouchableOpacity>
-
-                {/* Golden Badge showing completed/total nodes */}
-                {showBadge && (
-                    <View style={styles.goldBadge}>
-                        <Text style={styles.goldBadgeText}>
-                            {completed}/{total}
-                        </Text>
-                    </View>
-                )}
-            </View>
-        </View>
-    );
-}
-
-/**
- * Progress ring using two rotated half-disc views.
- */
-function ProgressRing({
-    pct,
-    size = 64,
-    gap = 8,
-    strokeWidth = 5,
-    filled = colors.primary,
-    empty = colors.borderMedium,
-}: {
-    pct: number;
-    size?: number;
-    gap?: number;
-    strokeWidth?: number;
-    filled?: string;
-    empty?: string;
-}) {
-    const outerSize = size + gap * 2;
-    const radius = (outerSize - strokeWidth) / 2;
+/** Small progress ring at the end of the card */
+function SmallProgressRing({ pct, isAccent }: { pct: number; isAccent?: boolean }) {
+    const size = 24;
+    const strokeWidth = 3;
+    const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const clampedPct = Math.max(0, Math.min(1, pct));
+    const strokeDashoffset = circumference - clampedPct * circumference;
 
-    const progress = useSharedValue(0);
-
-    React.useEffect(() => {
-        progress.value = withTiming(clampedPct, {
-            duration: 1000,
-            easing: Easing.out(Easing.quad),
-        });
-    }, [clampedPct]);
-
-    const animatedProps = useAnimatedProps(() => {
-        const offset = circumference - progress.value * circumference;
-        return {
-            strokeDashoffset: offset,
-        };
-    });
+    const bgStroke = isAccent ? "rgba(255, 255, 255, 0.3)" : colors.borderMedium;
+    const fgStroke = isAccent ? "#FFFFFF" : colors.primary;
 
     return (
-        <Svg
-            width={outerSize}
-            height={outerSize}
-            style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-            }}
-        >
+        <Svg width={size} height={size}>
             <Circle
-                cx={outerSize / 2}
-                cy={outerSize / 2}
+                cx={size / 2}
+                cy={size / 2}
                 r={radius}
-                stroke={empty}
+                stroke={bgStroke}
                 strokeWidth={strokeWidth}
                 fill="none"
             />
-            <AnimatedCircle
-                cx={outerSize / 2}
-                cy={outerSize / 2}
+            <Circle
+                cx={size / 2}
+                cy={size / 2}
                 r={radius}
-                stroke={filled}
+                stroke={fgStroke}
                 strokeWidth={strokeWidth}
                 fill="none"
                 strokeDasharray={`${circumference} ${circumference}`}
-                animatedProps={animatedProps}
+                strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
-                transform={`rotate(-90 ${outerSize / 2} ${outerSize / 2})`}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
             />
         </Svg>
     );
@@ -240,6 +131,15 @@ export function LessonMenu({
     } = useLessonMenu(selectedGrade);
 
     const [searchQuery, setSearchQuery] = useState("");
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [collapsedTopics, setCollapsedTopics] = useState<Record<number, boolean>>({});
+
+    const toggleTopic = (topicId: number) => {
+        setCollapsedTopics((prev) => ({
+            ...prev,
+            [topicId]: !prev[topicId],
+        }));
+    };
 
     const filteredTopics = React.useMemo(() => {
         if (!searchQuery.trim()) return topics;
@@ -272,6 +172,30 @@ export function LessonMenu({
         return matchesSearch(finalTestTitle, searchQuery, true);
     }, [selectedGrade, searchQuery]);
 
+    const overallStats = React.useMemo(() => {
+        let total = 0;
+        let completed = 0;
+        topics.forEach((topic) => {
+            topic.lessons.forEach((lesson) => {
+                const lessonAny = lesson as any;
+                if (lessonAny.progress) {
+                    total += lessonAny.progress.totalNodes || 0;
+                    completed += lessonAny.progress.completedNodes || 0;
+                }
+            });
+        });
+        return { completed, total };
+    }, [topics]);
+
+    const overallProgress = overallStats.total > 0 ? overallStats.completed / overallStats.total : 0;
+    const progressPercentage = Math.round(overallProgress * 100);
+
+    const themeColor = React.useMemo(() => {
+        if (selectedGrade === 11) return colors.secondary;
+        if (selectedGrade === 12) return colors.success;
+        return colors.primary;
+    }, [selectedGrade]);
+
     const branchConfig = {
         hierarchy: "Học phần",
         title: `Lớp ${selectedGrade}`,
@@ -279,7 +203,7 @@ export function LessonMenu({
     };
 
     return (
-        <ScreenWrapper branchConfig={branchConfig}>
+        <ScreenWrapper branchConfig={branchConfig} showTopBar={false}>
             <View style={styles.container}>
                 {loading ? (
                     <View style={styles.centerLoader}>
@@ -290,16 +214,6 @@ export function LessonMenu({
                     </View>
                 ) : (
                     <>
-                        <View style={styles.searchContainer}>
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder="Tìm kiếm bài học..."
-                                placeholderTextColor={colors.textPlaceholder}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                underlineColorAndroid="transparent"
-                            />
-                        </View>
                         <ScrollView
                             contentContainerStyle={styles.scrollContent}
                             showsVerticalScrollIndicator={false}
@@ -312,161 +226,200 @@ export function LessonMenu({
                                 />
                             }
                         >
-                            {filteredTopics.map((topic) => {
-                                return (
-                                    <View key={topic.id} style={styles.topicWrapper}>
-                                    {/* Faint Divider Heading */}
-                                    <View style={styles.topicDivider}>
-                                        <View style={styles.dividerLine} />
-                                        <Text style={styles.topicDividerText}>
-                                            Chủ đề {topic.position}: {topic.name}
-                                        </Text>
-                                    </View>
-
-                                    {/* Map Content */}
-                                    <View style={styles.mapContainer}>
-                                        {/* Lesson Nodes (curving layout) */}
-                                        {topic.lessons.map((lesson, lessonIdx) => {
-                                            const lessonAny = lesson as any;
-                                            const lessonPct =
-                                                lessonAny.progress != null &&
-                                                lessonAny.progress.totalNodes > 0
-                                                    ? lessonAny.progress.completedNodes /
-                                                      lessonAny.progress.totalNodes
-                                                    : 0;
-                                            const isDone = lessonPct >= 1;
-
-                                            const numLessons = topic.lessons.length;
-                                            const curveDirection = (topic.position - 1) % 2 === 0 ? -1 : 1;
-                                            const angle = ((lessonIdx + 1) / (numLessons + 1)) * Math.PI;
-                                            const translateX = curveDirection * Math.sin(angle) * 65;
-
-                                            return (
-                                                <View
-                                                    key={lesson.id}
-                                                    style={[
-                                                        styles.nodeItem,
-                                                        { transform: [{ translateX }] }
-                                                    ]}
-                                                >
-                                                    <LessonCircle
-                                                        isDone={isDone}
-                                                        pct={lessonPct}
-                                                        completed={lessonAny.progress?.completedNodes ?? 0}
-                                                        total={lessonAny.progress?.totalNodes ?? 0}
-                                                        size={64}
-                                                        showBadge={isLoggedIn && lessonAny.progress != null}
-                                                        onPress={() =>
-                                                            onLessonPress(lesson.id)
-                                                        }
-                                                    >
-                                                        <Ionicons
-                                                            name={isDone ? "trophy" : "book"}
-                                                            size={26}
-                                                            color={
-                                                                isDone
-                                                                    ? colors.gold
-                                                                    : colors.primary
-                                                            }
-                                                        />
-                                                    </LessonCircle>
-                                                    <Text
-                                                        style={[
-                                                            styles.nodeLabel,
-                                                            !isDone &&
-                                                                styles.textDisabled,
-                                                        ]}
-                                                    >
-                                                        Bài {lesson.position}:{" "}
-                                                        {lesson.name}
+                            {/* Overall Grade Progress Card */}
+                            <Card variant="bordered" style={styles.headerProgressCard}>
+                                <View style={[styles.gradeAvatar, { backgroundColor: colors.surfaceVariant }]}>
+                                    <Ionicons name="book" size={32} color={themeColor} />
+                                </View>
+                                <View style={styles.gradeProgressRight}>
+                                    <Text style={styles.gradeTitleText}>
+                                        Lịch sử lớp {selectedGrade}
+                                    </Text>
+                                    <View style={styles.topProgressWrapper}>
+                                        <View style={styles.topProgressTrack}>
+                                            <View
+                                                style={[
+                                                    styles.topProgressFill,
+                                                    { width: `${progressPercentage}%`, backgroundColor: themeColor },
+                                                ]}
+                                            >
+                                                {progressPercentage >= 20 && (
+                                                    <Text style={styles.progressNumberTextInside}>
+                                                        {overallStats.completed}/{overallStats.total}
                                                     </Text>
-                                                </View>
-                                            );
-                                        })}
-
-                                        {/* Topic-Level Milestone Test Node */}
-                                        {(() => {
-                                            const testPassed = !!topic.testPassed;
-                                            const testCompleted = testPassed ? 1 : 0;
-                                            const testTotal = 1;
-                                            const testPct = testPassed ? 1 : 0;
-                                            const testIsDone = testPassed;
-
-                                            return (
+                                                )}
+                                            </View>
+                                            {progressPercentage < 20 && (
                                                 <View
                                                     style={[
-                                                        styles.nodeItem,
-                                                        styles.nodeCenter,
+                                                        styles.progressNumberTextOutsideContainer,
+                                                        { left: `${progressPercentage}%` },
                                                     ]}
                                                 >
-                                                    <LessonCircle
-                                                        isDone={testIsDone}
-                                                        pct={testPct}
-                                                        completed={testCompleted}
-                                                        total={testTotal}
-                                                        size={64}
-                                                        showBadge={false}
-                                                        onPress={() =>
-                                                            onTestPress(
-                                                                "TOPIC",
-                                                                topic.id
-                                                            )
-                                                        }
-                                                    >
-                                                        <Ionicons
-                                                            name="trophy"
-                                                            size={32}
-                                                            color={
-                                                                testIsDone
-                                                                    ? colors.gold
-                                                                    : colors.secondary
-                                                            }
-                                                        />
-                                                    </LessonCircle>
-                                                    <Text style={styles.testLabel}>
-                                                        Kiểm tra Chủ đề {topic.position}
+                                                    <Text style={styles.progressNumberTextOutside}>
+                                                        {overallStats.completed}/{overallStats.total}
                                                     </Text>
                                                 </View>
-                                            );
-                                        })()}
+                                            )}
+                                        </View>
+                                        <View
+                                            style={[
+                                                styles.topProgressIconFloating,
+                                                { left: `${progressPercentage}%` },
+                                            ]}
+                                        >
+                                            <Book
+                                                size={28}
+                                                color={colors.borderMedium}
+                                                fill="#FFFFFF"
+                                                strokeWidth={1.5}
+                                                style={styles.floatingBookShadow}
+                                            />
+                                        </View>
                                     </View>
                                 </View>
+                            </Card>
+
+                            {/* Search Container moved beneath the layout inside ScrollView */}
+                            <View style={styles.searchContainer}>
+                                <TextInput
+                                    style={[
+                                        styles.searchInput,
+                                        isSearchFocused && styles.searchInputFocused
+                                    ]}
+                                    placeholder="Tìm kiếm bài học..."
+                                    placeholderTextColor={colors.textPlaceholder}
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                    underlineColorAndroid="transparent"
+                                    onFocus={() => setIsSearchFocused(true)}
+                                    onBlur={() => setIsSearchFocused(false)}
+                                />
+                            </View>
+
+                            {filteredTopics.map((topic) => {
+                                const isCollapsed = !!collapsedTopics[topic.id];
+
+                                return (
+                                    <View key={topic.id} style={styles.topicWrapper}>
+                                        {/* Interactive collapsible topic header */}
+                                        <TouchableOpacity
+                                            style={styles.topicDivider}
+                                            onPress={() => toggleTopic(topic.id)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={styles.topicDividerText} numberOfLines={2}>
+                                                Chủ đề {topic.position}: {topic.name}
+                                            </Text>
+                                            <Ionicons
+                                                name={isCollapsed ? "chevron-down" : "chevron-up"}
+                                                size={18}
+                                                color={colors.textMuted}
+                                            />
+                                        </TouchableOpacity>
+
+                                        {/* Collapsible content */}
+                                        {!isCollapsed && (
+                                            <View style={styles.lessonList}>
+                                                {topic.lessons.map((lesson) => {
+                                                    const lessonAny = lesson as any;
+                                                    const lessonPct =
+                                                        lessonAny.progress != null &&
+                                                        lessonAny.progress.totalNodes > 0
+                                                            ? lessonAny.progress.completedNodes /
+                                                              lessonAny.progress.totalNodes
+                                                            : 0;
+                                                    const isDone = lessonPct >= 1;
+
+                                                    return (
+                                                        <Card
+                                                            key={lesson.id}
+                                                            variant="grayBorder"
+                                                            style={styles.lessonCard}
+                                                            onPress={() => onLessonPress(lesson.id)}
+                                                        >
+                                                            <View style={styles.cardTextContainer}>
+                                                                <Text style={styles.lessonCardTitle}>
+                                                                    Bài {lesson.position}:{" "}
+                                                                    <Text style={styles.lessonNameText}>{lesson.name}</Text>
+                                                                </Text>
+                                                            </View>
+                                                            <View style={styles.cardRightContainer}>
+                                                                {isDone ? (
+                                                                    <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                                                                ) : (
+                                                                    <SmallProgressRing pct={lessonPct} />
+                                                                )}
+                                                                {isLoggedIn && lessonAny.progress != null && (
+                                                                    <Text style={styles.lessonProgressTextBelow}>
+                                                                        {lessonAny.progress.completedNodes}/{lessonAny.progress.totalNodes}
+                                                                    </Text>
+                                                                )}
+                                                            </View>
+                                                        </Card>
+                                                    );
+                                                })}
+
+                                                {/* Topic test card */}
+                                                {(() => {
+                                                    const testPassed = !!topic.testPassed;
+                                                    const testIsDone = testPassed;
+
+                                                    return (
+                                                        <Card
+                                                            variant="accent"
+                                                            style={styles.testCard}
+                                                            onPress={() => onTestPress("TOPIC", topic.id)}
+                                                        >
+                                                            <Ionicons name="trophy" size={20} color="#FFFFFF" style={styles.cardLeftIcon} />
+                                                            <View style={styles.cardTextContainer}>
+                                                                <Text style={styles.testCardTitle}>
+                                                                    Kiểm tra Chủ đề {topic.position}
+                                                                </Text>
+                                                            </View>
+                                                            <View style={styles.cardRightContainer}>
+                                                                {testIsDone ? (
+                                                                    <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                                                                ) : (
+                                                                    <SmallProgressRing pct={0} isAccent={true} />
+                                                                )}
+                                                            </View>
+                                                        </Card>
+                                                    );
+                                                })()}
+                                            </View>
+                                        )}
+                                    </View>
                                 );
                             })}
 
                             {/* --- Grade Level Finale Test Section --- */}
                             {shouldShowFinalTest && (() => {
-                                const finalCompleted = finalTestPassed ? 1 : 0;
-                                const finalTotal = 1;
-                                const finalPct = finalTestPassed ? 1 : 0;
                                 const finalIsDone = finalTestPassed;
 
                                 return (
-                                    <View style={styles.finalExamSection}>
-                                        <View style={styles.finalExamBadgeContainer}>
-                                            <LessonCircle
-                                                isDone={finalIsDone}
-                                                pct={finalPct}
-                                                completed={finalCompleted}
-                                                total={finalTotal}
-                                                size={84}
-                                                showBadge={false}
-                                                onPress={() => onTestPress("GRADE", selectedGrade)}
-                                            >
-                                                <Ionicons
-                                                    name="ribbon"
-                                                    size={40}
-                                                    color={finalIsDone ? colors.gold : colors.primary}
-                                                />
-                                            </LessonCircle>
+                                    <Card
+                                        variant="accent"
+                                        style={styles.finalExamCard}
+                                        onPress={() => onTestPress("GRADE", selectedGrade)}
+                                    >
+                                        <Ionicons name="ribbon" size={24} color="#FFFFFF" style={styles.cardLeftIcon} />
+                                        <View style={styles.cardTextContainer}>
+                                            <Text style={styles.finalExamCardTitle}>
+                                                Kiểm tra tổng hợp Lớp {selectedGrade}
+                                            </Text>
+                                            <Text style={styles.finalExamCardSubtitle}>
+                                                Đánh giá năng lực toàn diện
+                                            </Text>
                                         </View>
-                                        <Text style={styles.finalExamTitle}>
-                                            Kiểm tra tổng hợp Lớp {selectedGrade}
-                                        </Text>
-                                        <Text style={styles.finalExamSubtitle}>
-                                            Đánh giá năng lực toàn diện
-                                        </Text>
-                                    </View>
+                                        <View style={styles.cardRightContainer}>
+                                            {finalIsDone ? (
+                                                <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                                            ) : (
+                                                <SmallProgressRing pct={0} isAccent={true} />
+                                            )}
+                                        </View>
+                                    </Card>
                                 );
                             })()}
                         </ScrollView>
@@ -483,140 +436,188 @@ const styles = StyleSheet.create({
     scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
     topicWrapper: { marginBottom: 24 },
     
-    /* Topic Divider Divider */
+    /* Topic Divider */
     topicDivider: {
+        flexDirection: "row",
         alignItems: "center",
-        marginVertical: 16,
-        paddingHorizontal: 8,
+        justifyContent: "space-between",
+        marginVertical: 12,
+        paddingHorizontal: 4,
         width: "100%",
-    },
-    dividerLine: {
-        width: "100%",
-        height: 1,
-        backgroundColor: colors.borderLight,
-        marginBottom: 12,
     },
     topicDividerText: {
-        fontSize: 13,
-        fontWeight: "500",
-        color: colors.textMuted,
-        textAlign: "center",
-        letterSpacing: 0.5,
-    },
-
-    /* Map View Tree Styling */
-    mapContainer: {
-        paddingVertical: 16,
-        position: "relative",
-        width: "100%",
-    },
-    nodeItem: {
-        alignItems: "center",
-        marginBottom: 32,
-        width: "100%",
-        zIndex: 1,
-    },
-    nodeCenter: {
-        alignSelf: "center",
-        marginBottom: 10,
-    },
-    lessonCircleWrapper: {
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    nodeCircle: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    lessonNodeCircleDone: {
-        backgroundColor: colors.success,
-        borderWidth: 0,
-    },
-    lessonNodeCircleTodo: {
-        backgroundColor: colors.surfaceVariant,
-        borderWidth: 0,
-    },
-    nodeLabel: {
-        fontSize: 14,
-        fontWeight: "500",
-        color: colors.textPrimary,
-        textAlign: "center",
-        marginTop: 8,
-        paddingHorizontal: 10,
-        maxWidth: 200,
-    },
-    textDisabled: {
-        color: colors.textMuted,
-        fontWeight: "500",
-    },
-    testLabel: {
-        fontSize: 13,
-        fontWeight: "500",
-        color: colors.secondary,
-        textAlign: "center",
-        marginTop: 8,
-        letterSpacing: 0.5,
-    },
-
-    /* Final Exam Layout Card */
-    finalExamSection: {
-        alignItems: "center",
-        marginTop: 32,
-        paddingTop: 24,
-        borderTopWidth: 1,
-        borderTopColor: colors.borderMedium,
-    },
-    finalExamBadgeContainer: { marginBottom: 12 },
-    finalExamTitle: {
-        fontSize: 22,
-        fontWeight: "700",
-        color: colors.textPrimary,
-        letterSpacing: 0.5,
-    },
-    finalExamSubtitle: {
+        fontFamily: typography.fonts.bold,
         fontSize: 14,
         color: colors.textMuted,
-        marginTop: 4,
-        marginBottom: 20,
+        letterSpacing: 0.5,
+        flex: 1,
+        marginRight: 8,
     },
-    goldBadge: {
-        position: "absolute",
-        bottom: -2,
-        right: -2,
-        backgroundColor: colors.gold,
-        borderRadius: 3,
-        
-        paddingHorizontal: 5,
-        paddingVertical: 1,
-        minWidth: 26,
-        justifyContent: "center",
+
+    lessonList: {
+        width: "100%",
+    },
+
+    lessonCard: {
+        flexDirection: "row",
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1,
-        elevation: 2,
-    },
-    goldBadgeText: {
-        color: "#4A3B00",
-        fontSize: 10,
-        fontWeight: "600",
-    },
-    searchContainer: {
         paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 4,
+        paddingVertical: 14,
+        marginBottom: 12,
+    },
+    testCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        marginBottom: 12,
+    },
+    finalExamCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        marginTop: 16,
+        marginBottom: 24,
+    },
+
+    cardTextContainer: {
+        flex: 1,
+        justifyContent: "center",
+    },
+    cardRightContainer: {
+        marginLeft: 16,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    cardLeftIcon: {
+        marginRight: 12,
+    },
+
+    lessonCardTitle: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 15,
+        color: colors.textPrimary,
+    },
+    lessonNameText: {
+        color: colors.primary,
+    },
+    lessonProgressTextBelow: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 10,
+        color: colors.textSecondary,
+        marginTop: 4,
+        textAlign: "center",
+    },
+    testCardTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 15,
+        color: "#FFFFFF",
+    },
+    finalExamCardTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 16,
+        color: "#FFFFFF",
+    },
+    finalExamCardSubtitle: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 12,
+        color: "rgba(255, 255, 255, 0.8)",
+        marginTop: 2,
+    },
+
+    searchContainer: {
+        marginHorizontal: 4,
+        marginTop: 4,
+        marginBottom: 16,
     },
     searchInput: {
+        fontFamily: typography.fonts.light,
         height: 48,
         backgroundColor: colors.inputBackground,
         borderRadius: 12,
         paddingHorizontal: 16,
         fontSize: 14,
-        fontWeight: "300",
         color: colors.textPrimary,
+        borderWidth: 1.5,
+        borderColor: "transparent",
     },
-});
+    searchInputFocused: {
+        borderColor: colors.accent,
+    },
+
+    /* Overall Grade Progress Card */
+    headerProgressCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        marginBottom: 20,
+        marginHorizontal: 4,
+    },
+    gradeAvatar: {
+        width: 60,
+        height: 60,
+        borderRadius: 12,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 16,
+    },
+    gradeProgressRight: {
+        flex: 1,
+        justifyContent: "center",
+    },
+    gradeTitleText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 16,
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    topProgressWrapper: {
+        position: "relative",
+        height: 28,
+        justifyContent: "center",
+    },
+    topProgressTrack: {
+        height: 20,
+        backgroundColor: colors.borderMedium,
+        borderRadius: 10,
+        overflow: "hidden",
+        width: "100%",
+        position: "relative",
+    },
+    topProgressFill: {
+        height: "100%",
+        borderRadius: 10,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    progressNumberTextInside: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 11,
+        color: "#FFFFFF",
+    },
+    progressNumberTextOutsideContainer: {
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        justifyContent: "center",
+        paddingLeft: 8,
+    },
+    progressNumberTextOutside: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 11,
+        color: colors.textSecondary,
+    },
+    topProgressIconFloating: {
+        position: "absolute",
+        top: 0,
+        marginLeft: -14,
+    },
+    floatingBookShadow: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 2.5,
+        elevation: 3,
+    },
+});

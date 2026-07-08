@@ -3,7 +3,6 @@ import {
     StyleSheet,
     Text,
     View,
-    TouchableOpacity,
     ActivityIndicator,
     TextInput,
     ScrollView,
@@ -13,6 +12,8 @@ import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { useGetGradeStructureQuery } from "../contentApiSlice";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
+import { Card } from "../../../components/Card";
 import { Ionicons } from "@expo/vector-icons";
 
 function CourseCard({
@@ -29,23 +30,27 @@ function CourseCard({
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     let themeColor = colors.primary;
-    let bgColor = "#EBE8FF";
     if (grade === 11) {
         themeColor = colors.secondary;
-        bgColor = "#FEF1D3";
     } else if (grade === 12) {
         themeColor = colors.success;
-        bgColor = "#ECFDF5";
     }
 
     return (
-        <TouchableOpacity
-            style={[styles.card, { backgroundColor: bgColor }]}
+        <Card
+            style={[
+                styles.card,
+                {
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.borderMedium,
+                },
+            ]}
             onPress={onPress}
             activeOpacity={0.85}
         >
             {/* Left Image Section */}
-            <View style={[styles.imageContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.imageContainer, { backgroundColor: colors.surfaceVariant }]}>
                 <Ionicons name="book" size={40} color={themeColor} />
                 
                 {/* Overlapping Pill Badge */}
@@ -81,7 +86,7 @@ function CourseCard({
             <View style={styles.chevronContainer}>
                 <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </View>
-        </TouchableOpacity>
+        </Card>
     );
 }
 
@@ -178,6 +183,7 @@ export function CourseMenuScreen() {
     const isLoading = loading10 || loading11 || loading12;
     const isFetching = isFetching10 || isFetching11 || isFetching12;
     const [searchQuery, setSearchQuery] = useState("");
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     const handleRefresh = () => {
         refetch10();
@@ -214,17 +220,22 @@ export function CourseMenuScreen() {
     return (
         <ScreenWrapper>
             <View style={styles.container}>
-                <Text style={styles.screenHeader}>Khóa Học</Text>
+                <Text style={styles.screenHeader}>Học phần</Text>
                 <Text style={styles.screenSubtitle}>Chọn học phần để bắt đầu</Text>
 
                 <View style={styles.searchContainer}>
                     <TextInput
-                        style={styles.searchInput}
+                        style={[
+                            styles.searchInput,
+                            isSearchFocused && styles.searchInputFocused
+                        ]}
                         placeholder="Tìm kiếm bài học, chủ đề..."
                         placeholderTextColor={colors.textPlaceholder}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         underlineColorAndroid="transparent"
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setIsSearchFocused(false)}
                     />
                 </View>
 
@@ -293,13 +304,14 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     screenHeader: {
+        fontFamily: typography.fonts.bold,
         fontSize: 26,
-        fontWeight: "700",
         color: colors.textPrimary,
         marginBottom: 4,
         textAlign: "center",
     },
     screenSubtitle: {
+        fontFamily: typography.fonts.regular,
         fontSize: 15,
         color: colors.textSecondary,
         marginBottom: 24,
@@ -315,7 +327,6 @@ const styles = StyleSheet.create({
     },
     card: {
         flexDirection: "row",
-        borderRadius: 8,
         marginBottom: 18,
         overflow: "hidden",
         height: 110,
@@ -340,9 +351,9 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
     },
     badgeText: {
+        fontFamily: typography.fonts.light,
         color: colors.textLight,
         fontSize: 11,
-        fontWeight: "300",
     },
     detailsContainer: {
         flex: 1,
@@ -351,14 +362,15 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     courseTitle: {
+        fontFamily: typography.fonts.bold,
         fontSize: 17,
-        fontWeight: "700",
-        color: colors.textPrimary,
+        color: colors.accent,
         marginBottom: 4,
     },
     courseSubtitle: {
+        fontFamily: typography.fonts.regular,
         fontSize: 13,
-        color: colors.textSecondary,
+        color: "#000000",
         marginBottom: 10,
     },
     progressContainer: {
@@ -383,15 +395,21 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     searchInput: {
+        fontFamily: typography.fonts.light,
         height: 48,
         backgroundColor: colors.inputBackground,
         borderRadius: 12,
         paddingHorizontal: 16,
         fontSize: 14,
-        fontWeight: "300",
         color: colors.textPrimary,
+        borderWidth: 1.5,
+        borderColor: "transparent",
+    },
+    searchInputFocused: {
+        borderColor: colors.accent,
     },
     noResultsText: {
+        fontFamily: typography.fonts.regular,
         textAlign: "center",
         color: colors.textSecondary,
         fontSize: 14,

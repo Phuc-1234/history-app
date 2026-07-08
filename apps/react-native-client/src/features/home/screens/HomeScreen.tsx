@@ -14,6 +14,8 @@ import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useGetHomeDataQuery } from "../services/homeApi";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
+import { Card } from "../../../components/Card";
 import type { HomeLessonItem } from "../services/homeApi";
 import { PodiumSection } from "../../leaderboard/components/PodiumSection";
 
@@ -25,7 +27,7 @@ function LessonCard({ lesson, onPress }: { lesson: HomeLessonItem; onPress: () =
     const percent = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
 
     return (
-        <TouchableOpacity style={lessonStyles.card} activeOpacity={0.8} onPress={onPress}>
+        <Card variant="soft" style={lessonStyles.card} activeOpacity={0.8} onPress={onPress}>
             <View style={lessonStyles.iconBox}>
                 <Ionicons name="book-outline" size={22} color={colors.primary} />
             </View>
@@ -46,7 +48,7 @@ function LessonCard({ lesson, onPress }: { lesson: HomeLessonItem; onPress: () =
                 )}
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </TouchableOpacity>
+        </Card>
     );
 }
 
@@ -55,7 +57,6 @@ const lessonStyles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: colors.surfaceVariant,
-        borderRadius: 12,
         paddingHorizontal: 14,
         paddingVertical: 12,
         gap: 12,
@@ -70,14 +71,14 @@ const lessonStyles = StyleSheet.create({
     },
     textBlock: { flex: 1 },
     topicName: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
-        fontWeight: "400",
         color: colors.textMuted,
         marginBottom: 2,
     },
     lessonName: {
+        fontFamily: typography.fonts.medium,
         fontSize: 14,
-        fontWeight: "500",
         color: colors.textPrimary,
         marginBottom: 6,
     },
@@ -99,8 +100,8 @@ const lessonStyles = StyleSheet.create({
         borderRadius: 2,
     },
     progressText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
-        fontWeight: "400",
         color: colors.textMuted,
         minWidth: 28,
     },
@@ -173,7 +174,7 @@ export default function HomeScreen() {
                 </View>
 
                 {/* Thẻ chào người dùng */}
-                <View style={styles.userCard}>
+                <Card variant="soft" style={styles.userCard}>
                     <Text style={styles.greetingText}>
                         Chào, {profile?.name || "bạn"} 👋
                     </Text>
@@ -191,7 +192,7 @@ export default function HomeScreen() {
                             </Text>
                         </View>
                     </View>
-                </View>
+                </Card>
             </View>
 
             {/* ── Nội dung chính ── */}
@@ -207,7 +208,7 @@ export default function HomeScreen() {
                 {/* Error state */}
                 {!isLoading && error && (
                     <View style={styles.loadingBlock}>
-                        <Text style={{ color: colors.error, marginBottom: 12, textAlign: "center" }}>
+                        <Text style={{ fontFamily: typography.fonts.regular, color: colors.error, marginBottom: 12, textAlign: "center" }}>
                             Lỗi tải dữ liệu: {("message" in error) ? (error as any).message : JSON.stringify(error)}
                         </Text>
                         <TouchableOpacity
@@ -219,7 +220,7 @@ export default function HomeScreen() {
                             }}
                             onPress={handleRefresh}
                         >
-                            <Text style={{ color: "#fff", fontWeight: "600" }}>Thử lại</Text>
+                            <Text style={{ fontFamily: typography.fonts.semiBold, color: "#fff" }}>Thử lại</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -250,32 +251,32 @@ export default function HomeScreen() {
                         </View>
 
                         <View style={styles.quickGrid}>
-                            <TouchableOpacity
+                            <Card
                                 style={styles.quickCard}
                                 activeOpacity={0.8}
                                 onPress={handleGoToTests}
                             >
                                 <Ionicons name="clipboard-outline" size={22} color={colors.primary} />
-                                <Text style={styles.quickLabel}>Làm bài</Text>
-                            </TouchableOpacity>
+                                <Text style={styles.quickLabel}>Luyện đề</Text>
+                            </Card>
 
-                            <TouchableOpacity
+                            <Card
                                 style={styles.quickCard}
                                 activeOpacity={0.8}
                                 onPress={handleGoToLeaderboard}
                             >
                                 <Ionicons name="trophy-outline" size={22} color={colors.secondary} />
                                 <Text style={styles.quickLabel}>BXH</Text>
-                            </TouchableOpacity>
+                            </Card>
 
-                            <TouchableOpacity
+                            <Card
                                 style={styles.quickCard}
                                 activeOpacity={0.8}
                                 onPress={handleGoToFriends}
                             >
                                 <Ionicons name="people-outline" size={22} color={colors.success} />
                                 <Text style={styles.quickLabel}>Bạn bè</Text>
-                            </TouchableOpacity>
+                            </Card>
                         </View>
 
                         {/* ── Section: Top 3 BXH ── */}
@@ -329,8 +330,8 @@ const styles = StyleSheet.create({
         resizeMode: "contain",
     },
     logoText: {
+        fontFamily: typography.fonts.medium,
         fontSize: 22,
-        fontWeight: "500",
         color: colors.textLight,
         letterSpacing: 0.5,
     },
@@ -343,14 +344,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     userCard: {
-        backgroundColor: colors.primaryContainer,
-        borderRadius: 12,
         paddingHorizontal: 18,
         paddingVertical: 16,
     },
     greetingText: {
+        fontFamily: typography.fonts.medium,
         fontSize: 17,
-        fontWeight: "500",
         color: colors.textPrimary,
         marginBottom: 12,
     },
@@ -365,8 +364,8 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     badgeText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 13,
-        fontWeight: "400",
         color: colors.textPrimary,
     },
 
@@ -394,13 +393,13 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     sectionTitle: {
+        fontFamily: typography.fonts.medium,
         fontSize: 15,
-        fontWeight: "500",
         color: colors.textPrimary,
     },
     sectionLink: {
+        fontFamily: typography.fonts.regular,
         fontSize: 13,
-        fontWeight: "400",
         color: colors.primary,
     },
 
@@ -422,13 +421,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.surfaceVariant,
-        borderRadius: 12,
         paddingVertical: 16,
         gap: 6,
     },
     quickLabel: {
+        fontFamily: typography.fonts.regular,
         fontSize: 12,
-        fontWeight: "400",
         color: colors.textPrimary,
     },
 });

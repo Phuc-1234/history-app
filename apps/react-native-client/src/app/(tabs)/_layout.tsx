@@ -10,6 +10,7 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
+import { typography } from "../../theme/typography";
 
 interface TabIconProps {
     focused: boolean;
@@ -25,9 +26,7 @@ const TabBarIcon: React.FC<TabIconProps> = ({
     focusedName,
 }) => {
     return (
-        <View
-            style={[styles.iconWrapper, focused && styles.activePillBackground]}
-        >
+        <View style={styles.iconWrapper}>
             <Ionicons
                 name={focused ? focusedName : name}
                 size={22}
@@ -49,36 +48,43 @@ export default function TabsLayout() {
     const finalBottomPadding = isWeb
         ? 12
         : hasInitialInsets
-          ? insets.bottom + 4 // Adjusted slightly for balance
-          : 16; 
+          ? insets.bottom + 6 // Adjusted slightly for balance
+          : 12; 
 
     // 2. Resolve an explicit height instead of using "auto"
     const finalTabHeight = isWeb 
-        ? 70 
+        ? 76 
         : hasInitialInsets 
-          ? 50 + insets.bottom  // Standard 60px tab height + dynamic notch space
-          : 68;                 // Safe fallback for physical hardware buttons
+          ? 60 + insets.bottom  // Standard tab height + dynamic notch space
+          : 72;                 // Safe fallback for physical hardware buttons
 
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarShowLabel: false,
-                tabBarActiveTintColor: colors.textLight,
-                tabBarInactiveTintColor: colors.textSecondary,
+                tabBarShowLabel: true,
+                tabBarActiveTintColor: colors.accent,
+                tabBarInactiveTintColor: colors.textMuted,
+                tabBarLabelStyle: {
+                    ...typography.caption,
+                    fontFamily: typography.fonts.semiBold,
+                    marginTop: 2,
+                },
 
                 tabBarStyle: {
-                    backgroundColor: colors.surfaceVariant,
-                    borderTopWidth: 1.5,
-                    borderTopColor: colors.borderDark,
-                    elevation: 0,
-                    shadowOpacity: 0,
+                    backgroundColor: colors.surface,
+                    borderTopWidth: 0,
+                    elevation: 8,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: -3 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 8,
 
                     // Auto-height for mobile layouts
                     height: finalTabHeight,
 
                     // Balanced vertical spacing
-                    paddingTop: 8,
+                    paddingTop: 2,
                     paddingBottom: finalBottomPadding,
 
                     // FIX: Add horizontal padding to prevent edge icons from clipping
@@ -108,6 +114,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="home"
                 options={{
+                    title: "Trang chủ",
                     tabBarIcon: ({ focused, color }) => (
                         <TabBarIcon
                             focused={focused}
@@ -121,6 +128,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="2_1_lessons"
                 options={{
+                    title: "Bài học",
                     tabBarIcon: ({ focused, color }) => (
                         <TabBarIcon
                             focused={focused}
@@ -134,6 +142,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="5_1_national_tests"
                 options={{
+                    title: "Luyện đề",
                     tabBarIcon: ({ focused, color }) => (
                         <TabBarIcon
                             focused={focused}
@@ -160,6 +169,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="9_1_leaderboard"
                 options={{
+                    title: "Xếp hạng",
                     tabBarIcon: ({ focused, color }) => (
                         <TabBarIcon
                             focused={focused}
@@ -173,6 +183,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="10_1_profile"
                 options={{
+                    title: "Hồ sơ",
                     tabBarIcon: ({ focused, color }) => (
                         <TabBarIcon
                             focused={focused}
@@ -191,12 +202,9 @@ const styles = StyleSheet.create({
     iconWrapper: {
         alignItems: "center",
         justifyContent: "center",
-        height: 40,
+        height: 32,
         width: Platform.OS === "web" ? 72 : 64,
-        borderRadius: 20,
+        borderRadius: 16,
         // Removed any system margins that were offsetting icons inside layout views
-    },
-    activePillBackground: {
-        backgroundColor: colors.primary,
     },
 });

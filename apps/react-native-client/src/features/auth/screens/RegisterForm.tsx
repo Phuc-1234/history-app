@@ -18,6 +18,7 @@ import Button from "../../../components/Button";
 import useRegisterForm from "../hooks/useRegisterForm";
 import useAuthForm from "../hooks/useAuthForm";
 import colors from "../../../theme/colors";
+import typography from "../../../theme/typography";
 import HistoricalBackground from "../../../components/layout/HistoricalBackground";
 
 export default function RegisterForm() {
@@ -71,12 +72,12 @@ export default function RegisterForm() {
                         style={styles.logoImage}
                         resizeMode="contain"
                     />
-                    <Text style={styles.logoSubtitle}>Ứng dụng học và làm đề lịch sử</Text>
+                   
                 </View>
 
                 {/* Welcome Heading */}
                 <View style={styles.headerContainer}>
-                    <Text style={styles.welcomeText}>Tạo tài khoản</Text>
+                    <Text style={styles.welcomeText}>Đăng ký tài khoản Sắc Sử</Text>
                 </View>
 
                 {/* Form Inputs Container */}
@@ -243,8 +244,7 @@ const styles = StyleSheet.create({
         height: 120,
     },
     logoSubtitle: {
-        fontSize: 14,
-        fontWeight: "600",
+        ...typography.bodyMediumSemiBold,
         color: colors.textMuted,
         marginTop: 6,
         textAlign: "center",
@@ -253,15 +253,14 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     welcomeText: {
-        color: colors.textDark,
-        fontSize: 28,
-        fontWeight: "800",
+        ...typography.h2,
+        color: colors.accent,
         marginBottom: 6,
+        textAlign: "center",
     },
     subText: {
+        ...typography.bodyMediumMedium,
         color: colors.textMuted,
-        fontSize: 15,
-        fontWeight: "500",
     },
     formContainer: {},
     inputGroup: {
@@ -285,14 +284,13 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     ghostEmailText: {
-        fontSize: 15,
+        ...typography.bodyLarge,
         color: colors.textPlaceholder,
         opacity: 0.6,
     },
     fieldErrorText: {
+        ...typography.bodySmallSemiBold,
         color: colors.textError,
-        fontSize: 13,
-        fontWeight: "600",
         marginTop: 6,
         paddingLeft: 4,
     },
@@ -307,8 +305,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.divider,
     },
     dividerText: {
-        fontSize: 13,
-        fontWeight: "500",
+        ...typography.bodySmall,
         color: colors.textMuted,
         paddingHorizontal: 16,
     },
@@ -331,8 +328,7 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     socialBtnText: {
-        fontSize: 14,
-        fontWeight: "700",
+        ...typography.bodyMediumBold,
         color: colors.textDark,
         letterSpacing: 0.5,
     },
@@ -344,12 +340,11 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     footerText: {
-        fontSize: 14,
+        ...typography.bodyMedium,
         color: colors.textMuted,
     },
     loginText: {
-        fontSize: 14,
-        fontWeight: "700",
+        ...typography.bodyMediumBold,
         color: colors.primary,
     },
 });
