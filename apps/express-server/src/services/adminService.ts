@@ -374,7 +374,7 @@ export class AdminService {
         }));
     }
 
-    async createVideo(data: CreateVideoBody): Promise<AdminVideoDto> {
+    async createVideo(data: CreateVideoBody & { status?: any }): Promise<AdminVideoDto> {
         const video = await prisma.video.create({
             data: {
                 title: data.title,
@@ -382,7 +382,7 @@ export class AdminService {
                 summary: data.summary ?? null,
                 hlsUrl: data.hlsUrl,
                 lessonId: data.lessonId,
-                status: "READY",
+                status: data.status ?? "READY",
             },
         });
         return {

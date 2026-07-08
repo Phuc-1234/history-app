@@ -1,5 +1,8 @@
 // routes/adminRoutes.ts
 import { Router } from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { requireAdmin } from "../middlewares/authMiddleware";
 import {
     createGrade,
@@ -22,6 +25,7 @@ import {
     deleteUser,
     listVideos,
     createVideo,
+    uploadVideo,
     updateVideo,
     deleteVideo,
     listQuestions,
@@ -48,6 +52,18 @@ import {
     setScopeTestPresetDefault,
     deleteScopeTestPresetDefault,
 } from "../controllers/adminController";
+
+// Cấu hình lưu trữ file tạm của multer
+const uploadDir = path.resolve(__dirname, "../../temp/uploads");
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+const upload = multer({
+    dest: uploadDir,
+    limits: {
+        fileSize: 100 * 1024 * 1024, // 100MB max limit
+    },
+});
 
 const router = Router();
 
@@ -120,6 +136,9 @@ router.get("/videos", listVideos);
 
 // POST   /api/admin/videos
 router.post("/videos", createVideo);
+
+// POST   /api/admin/videos/upload
+router.post("/videos/upload", upload.single("video"), uploadVideo);
 
 // PATCH  /api/admin/videos/:videoId
 router.patch("/videos/:videoId", updateVideo);
