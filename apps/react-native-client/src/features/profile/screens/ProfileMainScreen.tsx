@@ -31,6 +31,7 @@ export default function ProfileMainScreen() {
         return (
             <ScreenWrapper
                 enableScroll={true}
+                showTopBar={false}
                 style={styles.container}
                 contentContainerStyle={styles.guestContentContainer}
             >

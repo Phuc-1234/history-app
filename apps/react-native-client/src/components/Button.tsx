@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     button: {
         width: "100%",
         paddingVertical: 15,
-        borderRadius: 28,
+        borderRadius: 30,
         alignItems: "center",
         justifyContent: "center",
         marginVertical: 10,
@@ -65,19 +65,9 @@ const styles = StyleSheet.create({
     },
     btnPrimary: {
         backgroundColor: colors.primary,
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 4,
     },
     btnSecondary: {
         backgroundColor: colors.secondary,
-        shadowColor: colors.secondary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 4,
     },
     btnOutline: {
         backgroundColor: "transparent",

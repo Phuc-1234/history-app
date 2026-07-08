@@ -8,7 +8,9 @@ import {
     ScrollView
 } from "react-native";
 import { FileText, Clock, Zap, Coins, Trophy, HelpCircle } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { CustomModal } from "../../../components/Modal";
+import Card from "../../../components/Card";
 import Mascot from "../../../components/Mascot";
 import { colors } from "../../../theme/colors";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
@@ -140,27 +142,27 @@ export default function TestIntro({
                     {/* Row 1: 3 Squares */}
                     <View style={styles.squaresRow}>
                         {/* Time limit */}
-                        <View style={[styles.infoSquare, { borderColor: colors.error }]}>
+                        <Card variant="grayBorder" style={styles.infoSquare}>
                             <Text style={styles.infoSquareLabel}>Thời gian</Text>
-                            <Clock size={20} color={colors.error} />
-                            <Text style={[styles.infoSquareValue, { color: colors.error }]}>
+                            <Clock size={20} color={colors.primary} />
+                            <Text style={styles.infoSquareValue}>
                                 {resolvedTimeLimit !== null ? `${resolvedTimeLimit} phút` : "Tự do"}
                             </Text>
-                        </View>
+                        </Card>
 
                         {/* Questions count */}
-                        <View style={[styles.infoSquare, { borderColor: colors.primary }]}>
+                        <Card variant="grayBorder" style={styles.infoSquare}>
                             <Text style={styles.infoSquareLabel}>Số câu hỏi</Text>
                             <FileText size={20} color={colors.primary} />
-                            <Text style={[styles.infoSquareValue, { color: colors.primary }]}>{resolvedQuestionCount} câu</Text>
-                        </View>
+                            <Text style={styles.infoSquareValue}>{resolvedQuestionCount} câu</Text>
+                        </Card>
 
                         {/* Pass threshold */}
-                        <View style={[styles.infoSquare, { borderColor: colors.success }]}>
+                        <Card variant="grayBorder" style={styles.infoSquare}>
                             <Text style={styles.infoSquareLabel}>Điểm đạt</Text>
-                            <Trophy size={20} color={colors.success} />
-                            <Text style={[styles.infoSquareValue, { color: colors.success }]}>{passThreshold}%</Text>
-                        </View>
+                            <Trophy size={20} color={colors.primary} />
+                            <Text style={styles.infoSquareValue}>{passThreshold}%</Text>
+                        </Card>
                     </View>
 
                     {/* Row 2: Small, faint line */}
@@ -168,24 +170,34 @@ export default function TestIntro({
                         Lần thử thứ {(attemptCount ?? 0) + 1}. {passCount && passCount > 0 ? `Bạn đã đạt đề này ${passCount} lần` : "Bạn chưa đạt đề này lần nào"}
                     </Text>
 
-                    <View style={{ flex: 1, minHeight: 10 }} />
-
                     {/* Row 3: 2 rectangles of rewards */}
                     <View style={styles.rewardsRow}>
                         {/* XP reward */}
                         {xpReward != null && xpReward > 0 && (
-                            <View style={[styles.rewardRectangle, { backgroundColor: "#2563EB" }]}>
-                                <Zap size={20} color="#FFFFFF" />
-                                <Text style={styles.rewardRectangleText}>+{xpReward} XP</Text>
-                            </View>
+                            <Card variant="accent" style={styles.rewardRectangle}>
+                                <LinearGradient
+                                    colors={[colors.primary, colors.secondary]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={StyleSheet.absoluteFill}
+                                />
+                                <Zap size={20} color="#FFFFFF" style={{ zIndex: 1 }} />
+                                <Text style={[styles.rewardRectangleText, { zIndex: 1 }]}>+{xpReward} XP</Text>
+                            </Card>
                         )}
 
                         {/* Gold reward */}
                         {goldReward != null && goldReward > 0 && (
-                            <View style={[styles.rewardRectangle, { backgroundColor: colors.gold }]}>
-                                <Coins size={20} color="#FFFFFF" />
-                                <Text style={styles.rewardRectangleText}>+{goldReward} vàng</Text>
-                            </View>
+                            <Card variant="accent" style={styles.rewardRectangle}>
+                                <LinearGradient
+                                    colors={[colors.primary, colors.secondary]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={StyleSheet.absoluteFill}
+                                />
+                                <Coins size={20} color="#FFFFFF" style={{ zIndex: 1 }} />
+                                <Text style={[styles.rewardRectangleText, { zIndex: 1 }]}>+{goldReward} vàng</Text>
+                            </Card>
                         )}
                     </View>
 
@@ -280,10 +292,6 @@ const styles = StyleSheet.create({
     infoSquare: {
         flex: 1,
         aspectRatio: 1,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: colors.accent,
-        backgroundColor: "transparent",
         alignItems: "center",
         justifyContent: "center",
         padding: 6,
@@ -292,7 +300,7 @@ const styles = StyleSheet.create({
     infoSquareValue: {
         fontSize: 13,
         fontFamily: typography.fonts.medium,
-        color: colors.accent,
+        color: colors.primary,
         textAlign: "center",
     },
     infoSquareLabel: {
@@ -306,7 +314,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.regular,
         color: colors.textMuted,
         textAlign: "center",
-        marginVertical: 4,
+        marginVertical: 16,
     },
     rewardsRow: {
         flexDirection: "row",
@@ -316,8 +324,6 @@ const styles = StyleSheet.create({
     },
     rewardRectangle: {
         flex: 1,
-        borderRadius: 12,
-        backgroundColor: colors.accent,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
