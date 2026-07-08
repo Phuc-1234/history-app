@@ -1,4 +1,4 @@
-import { ChallengeHubScreen } from "@/features/social";
+import { ChallengeHubScreen } from "@/features/challenge";
 
 export default function ChallengesRoute() {
     return <ChallengeHubScreen />;

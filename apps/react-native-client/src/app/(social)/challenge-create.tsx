@@ -1,4 +1,4 @@
-import { CreateChallengeScreen } from "@/features/social";
+import { CreateChallengeScreen } from "@/features/challenge";
 
 export default function CreateChallengeRoute() {
     return <CreateChallengeScreen />;
