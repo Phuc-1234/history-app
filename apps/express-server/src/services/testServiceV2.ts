@@ -361,21 +361,15 @@ export class TestServiceV2 {
         userId: string,
         req: StartTestV2Request,
     ): Promise<StartTestV2Response> {
-        // Block if user has an active test
-        const active = await prisma.userTestLog.findFirst({
+        // Abandon any existing active exams
+        await prisma.userTestLog.updateMany({
             where: {
                 userId,
                 status: "IN_PROGRESS",
                 purposeType: "EXAM",
-                expiresAt: { gt: new Date() },
             },
+            data: { status: "ABANDONED" },
         });
-        if (active) {
-            throw serviceError(
-                "You have an unfinished exam. Resume or abandon it first.",
-                "ACTIVE_TEST_EXISTS",
-            );
-        }
 
         let sequence: number[] = [];
         let preset: any = null;
@@ -649,10 +643,8 @@ export class TestServiceV2 {
             const answerLogs: UserAnswerLogV2Dto[] = scoreResults.map((r) => ({
                 questionId: r.questionId,
                 type: r.type,
-                userAnswerData: r.userAnswerData,
                 scoreAwarded: r.scoreAwarded,
                 maxScore: r.maxScore,
-                correctAnswerData: r.correctAnswerData,
             }));
 
             return {

@@ -196,7 +196,7 @@ function searchActions(user: SocialUser): {
     const follow: CardAction =
         user.relation === "following" || user.relation === "friend"
             ? { label: "Đang theo dõi", icon: "checkmark", variant: "outline" }
-            : { label: "Theo dõi", icon: "person-add-outline", variant: "outline" };
+            : { label: "Theo dõi", icon: "eye-outline", variant: "outline" };
 
     // Button 2: Friend status — filled style
     const friend: CardAction =
@@ -418,58 +418,62 @@ function UserCard({
     secondaryVariant?: "primary" | "outline" | "soft" | "danger";
     style?: ViewStyle;
 }) {
-    const actions =
-        primaryLabel && secondaryLabel ? (
-            <View style={styles.cardActionRow}>
-                <PrimaryButton
-                    label={primaryLabel}
-                    icon={primaryIcon}
-                    variant={primaryVariant}
-                    style={styles.cardActionButton}
-                    onPress={primaryOnPress}
-                />
+    const isChevron = primaryLabel && primaryIcon === "chevron-forward";
+    const hasButtons = primaryLabel && primaryIcon !== "chevron-forward";
+
+    const inlineActions = isChevron ? (
+        <Ionicons name="chevron-forward" size={24} color={colors.primary} />
+    ) : null;
+
+    const bottomActions = hasButtons ? (
+        <View style={styles.cardActionRowBottom}>
+            <PrimaryButton
+                label={primaryLabel}
+                icon={primaryIcon}
+                variant={primaryVariant}
+                style={styles.cardActionButtonBottom}
+                onPress={primaryOnPress}
+            />
+            {secondaryLabel ? (
                 <PrimaryButton
                     label={secondaryLabel}
                     icon={secondaryIcon}
                     variant={secondaryVariant}
-                    style={styles.cardActionButton}
+                    style={styles.cardActionButtonBottom}
                     onPress={secondaryOnPress}
                 />
-            </View>
-        ) : primaryLabel ? (
-            primaryIcon === "chevron-forward" ? (
-                <Ionicons name="chevron-forward" size={24} color={colors.primary} />
-            ) : (
-                <PrimaryButton
-                    label={primaryLabel}
-                    icon={primaryIcon}
-                    variant={primaryVariant}
-                    style={styles.cardActionButton}
-                    onPress={primaryOnPress}
-                />
-            )
-        ) : null;
+            ) : null}
+        </View>
+    ) : null;
 
     return (
-        <TouchableOpacity style={[styles.userCard, style]} onPress={onPress} activeOpacity={0.85}>
-            <Avatar user={user} />
-            <View style={styles.userInfo}>
-                <View style={styles.rowCenter}>
-                    <Text style={styles.userName} numberOfLines={1}>
-                        {user.name}
-                    </Text>
-                    <View style={styles.levelPill}>
-                        <Text style={styles.levelText}>Lv. {user.level}</Text>
+        <TouchableOpacity
+            style={[styles.userCard, style]}
+            onPress={onPress}
+            activeOpacity={0.85}
+            disabled={!onPress}
+        >
+            <View style={styles.userCardHeaderRow}>
+                <Avatar user={user} />
+                <View style={styles.userInfo}>
+                    <View style={styles.rowCenter}>
+                        <Text style={styles.userName} numberOfLines={1}>
+                            {user.name}
+                        </Text>
+                        <View style={styles.levelPill}>
+                            <Text style={styles.levelText}>Lv. {user.level}</Text>
+                        </View>
                     </View>
+                    <Text style={styles.userTitle} numberOfLines={1}>
+                        {user.title}
+                    </Text>
+                    <Text style={styles.userMeta}>
+                        {user.xp.toLocaleString()} XP - {user.mutualFriends} bạn chung
+                    </Text>
                 </View>
-                <Text style={styles.userTitle} numberOfLines={1}>
-                    {user.title}
-                </Text>
-                <Text style={styles.userMeta}>
-                    {user.xp.toLocaleString()} XP - {user.mutualFriends} bạn chung
-                </Text>
+                {inlineActions}
             </View>
-            {actions}
+            {bottomActions}
         </TouchableOpacity>
     );
 }
@@ -1301,12 +1305,25 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     userCard: {
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "stretch",
         gap: 12,
         backgroundColor: colors.primaryContainer,
         borderRadius: 12,
         padding: 14,
+    },
+    userCardHeaderRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    cardActionRowBottom: {
+        flexDirection: "row",
+        gap: 8,
+        marginTop: 4,
+    },
+    cardActionButtonBottom: {
+        flex: 1,
     },
     userInfo: {
         flex: 1,

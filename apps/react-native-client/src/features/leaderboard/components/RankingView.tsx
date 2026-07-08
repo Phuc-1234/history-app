@@ -14,7 +14,7 @@ import { useLeaderboard } from "../hooks/useLeaderboard";
 import { PodiumSection } from "./PodiumSection";
 import { RankingList } from "./RankingList";
 import { colors } from "../../../theme/colors";
-import { TopNavBar } from "../../../components/TopNavBar";
+import { SlidingTabBar } from "../../../components/SlidingTabBar";
 
 export const RankingView: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth.profile);
@@ -44,7 +44,7 @@ export const RankingView: React.FC = () => {
     };
     return (
         <View style={styles.container}>
-            <TopNavBar
+            <SlidingTabBar
                 tabs={[
                     { key: "xp", label: "XP" },
                     { key: "streak", label: "Chuỗi" },
@@ -52,6 +52,8 @@ export const RankingView: React.FC = () => {
                 activeTab={activeTab}
                 onChangeTab={(key) => setActiveTab(key as "xp" | "streak")}
                 containerStyle={styles.tabContainer}
+                indicatorColor={colors.primary}
+                inactiveColor={colors.primary}
             />
 
             {isLoading ? (
@@ -105,8 +107,8 @@ export const RankingView: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FAFAF8' },
-    tabContainer: { marginHorizontal: 0, marginTop: 0 },
+    container: { flex: 1, backgroundColor: 'transparent' },
+    tabContainer: { marginHorizontal: 22, marginTop: 10, marginBottom: 10 },
     scrollContent: { paddingHorizontal: 22, paddingTop: 10, paddingBottom: 120 },
     centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
     errorText: { color: colors.error, marginBottom: 16 },

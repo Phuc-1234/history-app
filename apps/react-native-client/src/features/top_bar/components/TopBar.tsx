@@ -126,19 +126,21 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                     </TouchableOpacity>
 
                     <View style={styles.branchTextContainer}>
-                        <Text style={styles.hierarchyText}>
-                            {branchConfig.uppercaseHierarchy ? branchConfig.hierarchy.toUpperCase() : branchConfig.hierarchy}
-                        </Text>
+                        {branchConfig.hierarchy ? (
+                            <Text style={styles.hierarchyText}>
+                                {branchConfig.uppercaseHierarchy ? branchConfig.hierarchy.toUpperCase() : branchConfig.hierarchy}
+                            </Text>
+                        ) : null}
                         {branchConfig.title ? (
                             <Text style={styles.titleText}>
                                 {branchConfig.title}
                             </Text>
                         ) : null}
-                        {branchConfig.subtitle && (
+                        {branchConfig.subtitle ? (
                             <Text style={styles.subtitleText}>
                                 {branchConfig.subtitle}
                             </Text>
-                        )}
+                        ) : null}
                     </View>
 
                     <TouchableOpacity

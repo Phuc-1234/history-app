@@ -1,15 +1,40 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
-    ActivityIndicator
+    ActivityIndicator,
+    ScrollView
 } from "react-native";
-import { FileText, Clock, Zap, Coins, Trophy } from "lucide-react-native";
+import { FileText, Clock, Zap, Coins, Trophy, HelpCircle } from "lucide-react-native";
+import { CustomModal } from "../../../components/Modal";
 import Mascot from "../../../components/Mascot";
 import { colors } from "../../../theme/colors";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+
+export function getScopePlaceholder(scopeType?: string, purposeType?: string): string {
+    const isExam = purposeType === "EXAM";
+    const typeLabel = isExam ? "Bài kiểm tra" : "Bài thử thách";
+    if (!scopeType) return typeLabel;
+
+    switch (scopeType.toUpperCase()) {
+        case "GRADE":
+            return `${typeLabel} theo khối lớp`;
+        case "TOPIC":
+            return `${typeLabel} theo chủ đề`;
+        case "LESSON":
+            return `${typeLabel} theo bài học`;
+        case "SECTION":
+            return `${typeLabel} theo phần`;
+        case "NODE":
+            return `${typeLabel} theo mục`;
+        case "NATIONAL":
+            return "Đề thi Quốc gia";
+        default:
+            return typeLabel;
+    }
+}
 
 interface Props {
     title?: string;
@@ -26,6 +51,7 @@ interface Props {
     passThreshold?: number;
     attemptCount?: number;
     passCount?: number;
+    scopeType?: string;
 }
 
 export default function TestIntro({
@@ -43,16 +69,23 @@ export default function TestIntro({
     passThreshold = 80,
     attemptCount = 0,
     passCount = 0,
+    scopeType,
 }: Props) {
+    const [showHelpModal, setShowHelpModal] = useState(false);
+
     const branchConfig = {
         hierarchy: "",
-        title: purposeType === "EXAM" ? "Kiểm tra" : "Luyện tập",
+        title:
+            purposeType === "EXAM"
+                ? "Thông tin bài kiểm tra"
+                : "Thông tin bài thử thách",
         onBackPress: onBack,
     };
 
+
     if (loading) {
         return (
-            <ScreenWrapper showTopBar={false} branchConfig={branchConfig} >
+            <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
                 <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
                     <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={{ marginTop: 16, color: colors.textMuted, fontWeight: "500", fontSize: 14 }}>
@@ -63,82 +96,101 @@ export default function TestIntro({
         );
     }
 
-    const resolvedTitle = title ?? "Sử học và đời sống";
+    const resolvedTitle = title || getScopePlaceholder(scopeType, purposeType);
     const resolvedQuestionCount = questionCount ?? 20;
     const resolvedTimeLimit = timeLimit !== undefined ? timeLimit : 15;
 
     return (
-        <ScreenWrapper showTopBar={false} branchConfig={branchConfig}>
-            <View style={styles.mainContent}>
-                {/* Mascot Illustration */}
-                <View style={styles.mascotContainer}>
-                    <Mascot
-                        expression="focused"
-                        width={150}
-                        height={150}
-                    />
-                </View>
+        <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.mainContent}>
+                    {/* Mascot Illustration */}
+                    <View style={styles.mascotContainer}>
+                        <Mascot
+                            expression="focused"
+                            width={120}
+                            height={120}
+                        />
+                    </View>
 
-                {/* Test's name below the mascot (no container) */}
-                <View style={styles.titleContainer}>
-                    <Text style={styles.titleLabel}>
-                        {purposeType === "EXAM" ? "Kiểm tra" : "Luyện tập"}
-                    </Text>
-                    <Text style={styles.scopeText}>
-                        {resolvedTitle}
-                    </Text>
-                </View>
+                    <View style={{ flex: 1, minHeight: 10 }} />
 
-                {/* Row 1: 3 Squares */}
-                <View style={styles.squaresRow}>
-                    {/* Time limit */}
-                    <View style={[styles.infoSquare, { borderColor: colors.error }]}>
-                        <Text style={styles.infoSquareLabel}>Thời gian</Text>
-                        <Clock size={20} color={colors.error} />
-                        <Text style={[styles.infoSquareValue, { color: colors.error }]}>
-                            {resolvedTimeLimit !== null ? `${resolvedTimeLimit} phút` : "Tự do"}
+                    {/* Test's name below the mascot (no container) */}
+                    <View style={styles.titleContainer}>
+                        <View style={styles.titleRow}>
+                            <Text style={styles.titleLabel}>
+                                {purposeType === "EXAM" ? "Kiểm tra" : "Thử thách"}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => setShowHelpModal(true)}
+                                style={styles.helpButton}
+                                activeOpacity={0.7}
+                            >
+                                <HelpCircle size={18} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.scopeText}>
+                            {resolvedTitle}
                         </Text>
                     </View>
 
-                    {/* Questions count */}
-                    <View style={[styles.infoSquare, { borderColor: colors.primary }]}>
-                        <Text style={styles.infoSquareLabel}>Số câu hỏi</Text>
-                        <FileText size={20} color={colors.primary} />
-                        <Text style={[styles.infoSquareValue, { color: colors.primary }]}>{resolvedQuestionCount} câu</Text>
+                    <View style={{ flex: 1, minHeight: 10 }} />
+
+                    {/* Row 1: 3 Squares */}
+                    <View style={styles.squaresRow}>
+                        {/* Time limit */}
+                        <View style={[styles.infoSquare, { borderColor: colors.error }]}>
+                            <Text style={styles.infoSquareLabel}>Thời gian</Text>
+                            <Clock size={20} color={colors.error} />
+                            <Text style={[styles.infoSquareValue, { color: colors.error }]}>
+                                {resolvedTimeLimit !== null ? `${resolvedTimeLimit} phút` : "Tự do"}
+                            </Text>
+                        </View>
+
+                        {/* Questions count */}
+                        <View style={[styles.infoSquare, { borderColor: colors.primary }]}>
+                            <Text style={styles.infoSquareLabel}>Số câu hỏi</Text>
+                            <FileText size={20} color={colors.primary} />
+                            <Text style={[styles.infoSquareValue, { color: colors.primary }]}>{resolvedQuestionCount} câu</Text>
+                        </View>
+
+                        {/* Pass threshold */}
+                        <View style={[styles.infoSquare, { borderColor: colors.success }]}>
+                            <Text style={styles.infoSquareLabel}>Điểm đạt</Text>
+                            <Trophy size={20} color={colors.success} />
+                            <Text style={[styles.infoSquareValue, { color: colors.success }]}>{passThreshold}%</Text>
+                        </View>
                     </View>
 
-                    {/* Pass threshold */}
-                    <View style={[styles.infoSquare, { borderColor: colors.success }]}>
-                        <Text style={styles.infoSquareLabel}>Điểm đạt</Text>
-                        <Trophy size={20} color={colors.success} />
-                        <Text style={[styles.infoSquareValue, { color: colors.success }]}>{passThreshold}%</Text>
+                    {/* Row 2: Small, faint line */}
+                    <Text style={styles.attemptFaintText}>
+                        Lần thử thứ {(attemptCount ?? 0) + 1}. {passCount && passCount > 0 ? `Bạn đã đạt đề này ${passCount} lần` : "Bạn chưa đạt đề này lần nào"}
+                    </Text>
+
+                    <View style={{ flex: 1, minHeight: 10 }} />
+
+                    {/* Row 3: 2 rectangles of rewards */}
+                    <View style={styles.rewardsRow}>
+                        {/* XP reward */}
+                        {xpReward != null && xpReward > 0 && (
+                            <View style={[styles.rewardRectangle, { backgroundColor: "#2563EB" }]}>
+                                <Zap size={20} color="#FFFFFF" />
+                                <Text style={styles.rewardRectangleText}>+{xpReward} XP</Text>
+                            </View>
+                        )}
+
+                        {/* Gold reward */}
+                        {goldReward != null && goldReward > 0 && (
+                            <View style={[styles.rewardRectangle, { backgroundColor: colors.gold }]}>
+                                <Coins size={20} color="#FFFFFF" />
+                                <Text style={styles.rewardRectangleText}>+{goldReward} vàng</Text>
+                            </View>
+                        )}
                     </View>
+
+                    <View style={{ flex: 1, minHeight: 15 }} />
                 </View>
-
-                {/* Row 2: Small, faint line */}
-                <Text style={styles.attemptFaintText}>
-                    Lần thử thứ {(attemptCount ?? 0) + 1}. {passCount && passCount > 0 ? `Bạn đã đạt đề này ${passCount} lần` : "Bạn chưa đạt đề này lần nào"}
-                </Text>
-
-                {/* Row 3: 2 rectangles of rewards */}
-                <View style={styles.rewardsRow}>
-                    {/* XP reward */}
-                    {xpReward != null && xpReward > 0 && (
-                        <View style={[styles.rewardRectangle, { backgroundColor: "#2563EB" }]}>
-                            <Zap size={20} color="#FFFFFF" />
-                            <Text style={styles.rewardRectangleText}>+{xpReward} XP</Text>
-                        </View>
-                    )}
-
-                    {/* Gold reward */}
-                    {goldReward != null && goldReward > 0 && (
-                        <View style={[styles.rewardRectangle, { backgroundColor: colors.gold }]}>
-                            <Coins size={20} color="#FFFFFF" />
-                            <Text style={styles.rewardRectangleText}>+{goldReward} vàng</Text>
-                        </View>
-                    )}
-                </View>
-            </View>
+            </ScrollView>
 
             {/* Action Buttons Footer */}
             <View style={styles.footer}>
@@ -159,6 +211,20 @@ export default function TestIntro({
                     <Text style={styles.laterButtonText}>Để sau</Text>
                 </TouchableOpacity>
             </View>
+
+            <CustomModal
+                visible={showHelpModal}
+                title={purposeType === "EXAM" ? "Chế độ kiểm tra" : "Chế độ thử thách"}
+                message={
+                    purposeType === "EXAM"
+                        ? "Ở chế độ kiểm tra, bạn chỉ biết được kết quả sau khi nộp bài"
+                        : "Ở chế độ thử thách, bạn có thể biết đáp án và lời giải thích sau từng câu hỏi"
+                }
+                confirmText="Đã hiểu"
+                onConfirm={() => setShowHelpModal(false)}
+                showMascot={true}
+                mascotExpression="thinking"
+            />
         </ScreenWrapper>
     );
 }
@@ -174,13 +240,22 @@ const styles = StyleSheet.create({
     },
     mascotContainer: {
         alignItems: "center",
-        marginTop: 40,
-        marginBottom: 10,
+        marginTop: 8,
+        marginBottom: 0,
     },
     titleContainer: {
         alignItems: "center",
-        marginVertical: 20,
+        marginVertical: 6,
         paddingHorizontal: 16,
+    },
+    titleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+    },
+    helpButton: {
+        padding: 4,
     },
     titleLabel: {
         fontSize: 24,
@@ -198,7 +273,7 @@ const styles = StyleSheet.create({
     squaresRow: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginTop: 8,
+        marginTop: 6,
         gap: 8,
     },
     infoSquare: {
@@ -230,13 +305,13 @@ const styles = StyleSheet.create({
         fontWeight: "400",
         color: colors.textMuted,
         textAlign: "center",
-        marginVertical: 16,
+        marginVertical: 4,
     },
     rewardsRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         gap: 12,
-        marginTop: 8,
+        marginTop: 6,
     },
     rewardRectangle: {
         flex: 1,

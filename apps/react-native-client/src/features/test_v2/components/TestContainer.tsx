@@ -12,7 +12,7 @@ import {
     Dimensions,
     useWindowDimensions,
 } from "react-native";
-import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft } from "lucide-react-native";
+import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
 import Animated, {
@@ -25,10 +25,11 @@ import Animated, {
     Easing,
     withRepeat,
 } from "react-native-reanimated";
+import { useAppSelector } from "@/store/storeHook";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { CustomModal } from "@/components/Modal";
 import Mascot from "@/components/Mascot";
-import TestIntro from "./TestIntro";
+import TestIntro, { getScopePlaceholder } from "./TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { colors } from "@/theme/colors";
 import { useGetTestInfoQuery } from "../services/testApi";
@@ -145,6 +146,7 @@ export default function TestContainerV2({
     const { width } = useWindowDimensions();
     const runner = useTestRunnerV2(params);
     const router = useRouter();
+    const profile = useAppSelector((state) => state.auth.profile);
     const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(
         params,
         {
@@ -237,6 +239,11 @@ export default function TestContainerV2({
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [showPracticeConfirm, setShowPracticeConfirm] = useState(false);
     const [isListModalVisible, setIsListModalVisible] = useState(false);
+    const [showExplanationTooltip, setShowExplanationTooltip] = useState(false);
+
+    useEffect(() => {
+        setShowExplanationTooltip(false);
+    }, [currentIndex]);
 
     const handleBack = () => {
         if (status === "running") {
@@ -256,21 +263,41 @@ export default function TestContainerV2({
 
     const displayTitle =
         session?.testTitle ||
-        (params.purposeType === "EXAM" ? "Bài thi tự do" : "Luyện tập");
+        testInfo?.title ||
+        getScopePlaceholder(params.scopeType, params.purposeType);
     const branchConfig = {
         hierarchy:
             params.purposeType === "EXAM"
-                ? "KIỂM TRA > BÀI THI"
-                : "KIỂM TRA > LUYỆN TẬP",
+                ? "KIỂM TRA"
+                : "THỬ THÁCH",
         title: displayTitle,
         onBackPress: handleBack,
         onHomePress: handleBack,
     };
 
+    // ── Auth check ───────────────────────────────────────────────────
+    if (!profile) {
+        return (
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
+                <CustomModal
+                    visible={true}
+                    title="Yêu cầu đăng nhập"
+                    message="Bạn cần đăng nhập để làm bài kiểm tra. Đăng nhập ngay?"
+                    confirmText="Đăng nhập"
+                    cancelText="Hủy"
+                    onConfirm={() => router.push("/(1_auth)/1_1_login")}
+                    onCancel={handleBack}
+                    showMascot={true}
+                    mascotExpression="thinking"
+                />
+            </ScreenWrapper>
+        );
+    }
+
     // ── Error state ──────────────────────────────────────────────────
     if (status === "idle" && error) {
         return (
-            <ScreenWrapper branchConfig={branchConfig}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <View style={styles.centerContainer}>
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity
@@ -301,6 +328,7 @@ export default function TestContainerV2({
                 passThreshold={testInfo?.passThreshold}
                 attemptCount={testInfo?.attemptCount}
                 passCount={testInfo?.passCount}
+                scopeType={params.scopeType}
             />
         );
     }
@@ -308,7 +336,7 @@ export default function TestContainerV2({
     // ── Loading state ────────────────────────────────────────────────
     if (status === "loading") {
         return (
-            <ScreenWrapper branchConfig={branchConfig}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={styles.loadingText}>
@@ -333,7 +361,7 @@ export default function TestContainerV2({
         );
 
         return (
-            <ScreenWrapper branchConfig={branchConfig}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <ScrollView
                     style={styles.container}
                     contentContainerStyle={styles.scrollContent}
@@ -343,6 +371,7 @@ export default function TestContainerV2({
                         style={styles.resultCard}
                     >
                         <Mascot
+                            expression={!userTestLog.isPassed ? "sad" : undefined}
                             event={{
                                 type: "finish-test",
                                 score: parseFloat(scoreDisplay),
@@ -530,7 +559,7 @@ export default function TestContainerV2({
     const showFeedback = purposeType === "PRACTICE" && !!evalResult;
 
     return (
-        <ScreenWrapper branchConfig={branchConfig} showTopBar={false}>
+        <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
@@ -593,21 +622,57 @@ export default function TestContainerV2({
                                         renderers={renderers}
                                     />
                                 </View>
-                                <View style={styles.pointPill}>
+                                <View style={[styles.pointPill, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
                                     <Text style={styles.pointPillText}>
                                         {(() => {
                                             const range =
                                                 getQuestionPointsRange(
                                                     currentQuestion,
                                                 );
+                                            const isChooseMulti =
+                                                currentQuestion.type === "CHOOSE" &&
+                                                !isSingleChoice(currentQuestion);
+                                            if (isChooseMulti) {
+                                                return `Tối đa ${formatScore(range.max)}đ`;
+                                            }
                                             if (range.isRange) {
                                                 return `${formatScore(range.min)} - ${formatScore(range.max)}đ`;
                                             }
                                             return `${formatScore(range.max)}đ`;
                                         })()}
                                     </Text>
+                                    {currentQuestion.type === "CHOOSE" &&
+                                        !isSingleChoice(currentQuestion) && (
+                                            <TouchableOpacity
+                                                onPress={() => setShowExplanationTooltip(!showExplanationTooltip)}
+                                                style={styles.helpIconContainer}
+                                                activeOpacity={0.7}
+                                            >
+                                                <HelpCircle size={13} color={colors.textSuccess} />
+                                            </TouchableOpacity>
+                                        )}
                                 </View>
                             </View>
+
+                            {showExplanationTooltip && (
+                                <View style={styles.tooltipBubble}>
+                                    <View style={styles.tooltipHeader}>
+                                        <Text style={styles.tooltipTitle}>Cách tính điểm chọn nhiều đáp án:</Text>
+                                        <TouchableOpacity
+                                            onPress={() => setShowExplanationTooltip(false)}
+                                            style={styles.tooltipCloseBtn}
+                                            activeOpacity={0.7}
+                                        >
+                                            <X size={14} color={colors.textSecondary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <Text style={styles.tooltipText}>
+                                        • Chọn đúng mỗi đáp án: cộng điểm (+Điểm tối đa / số đáp án đúng).{"\n"}
+                                        • Chọn sai mỗi đáp án: trừ điểm (-Điểm tối đa / số đáp án sai) để hạn chế đoán mò.{"\n"}
+                                        • Điểm tối thiểu cho câu hỏi là 0 điểm.
+                                    </Text>
+                                </View>
+                            )}
 
                             {/* Document (collapsible) */}
                             {currentQuestion.document && (
@@ -863,25 +928,10 @@ export default function TestContainerV2({
                 {/* Submitting Status Modal Overlay */}
                 {status === "submitting" && (
                     <View style={styles.modalOverlay}>
-                        <View
-                            style={[
-                                styles.modalCard,
-                                { paddingVertical: 30, width: 250 },
-                            ]}
-                        >
-                            <ActivityIndicator
-                                size="large"
-                                color={colors.primary}
-                            />
-                            <Text
-                                style={[
-                                    styles.modalTitle,
-                                    { marginTop: 16, marginBottom: 0 },
-                                ]}
-                            >
-                                Đang nộp bài...
-                            </Text>
-                        </View>
+                        <ActivityIndicator
+                            size="large"
+                            color={colors.primary}
+                        />
                     </View>
                 )}
 
@@ -1322,6 +1372,7 @@ const styles = StyleSheet.create({
     nextBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
     blockIndicatorsRow: {
         flexDirection: "row",
+        flexWrap: "wrap",
         justifyContent: "center",
         gap: 5,
         marginTop: 4,
@@ -1773,6 +1824,37 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: "700",
         color: colors.textSuccess,
+    },
+    helpIconContainer: {
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    tooltipBubble: {
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 8,
+        marginBottom: 12,
+    },
+    tooltipHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    tooltipTitle: {
+        fontSize: 13,
+        fontWeight: "500",
+        color: colors.primary,
+    },
+    tooltipText: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        lineHeight: 18,
+        fontWeight: "300",
+    },
+    tooltipCloseBtn: {
+        padding: 2,
     },
     feedbackDrawer: {
         position: "absolute",

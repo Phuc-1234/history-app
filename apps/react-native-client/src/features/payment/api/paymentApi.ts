@@ -3,7 +3,7 @@ import { apiSlice } from "@/services/apiSlice";
 
 // ─── Local Types (mirrors express-server/src/types/payment.ts) ────────────────
 
-export type PaymentProvider = "MOMO" | "ZALOPAY";
+export type PaymentProvider = "MOMO" | "ZALOPAY" | "SEPAY";
 export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
 
 export interface InitiatePaymentRequestBody {
@@ -17,6 +17,11 @@ export interface InitiatePaymentResponse {
     zpTransToken?: string;
     amountVnd: number;
     goldAmount: number;
+    vietQrUrl?: string;
+    bankId?: string;
+    accountNo?: string;
+    accountName?: string;
+    providerOrderId?: string;
 }
 
 export interface GetPaymentStatusResponse {

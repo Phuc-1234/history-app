@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { TopNavBar } from "../../components/TopNavBar";
+import { SlidingTabBar } from "../../components/SlidingTabBar";
+import { colors } from "../../theme/colors";
 
 interface User {
   id: number;
@@ -94,7 +95,7 @@ const RankingScreen: React.FC = () => {
         </View>
       </View>
 
-      <TopNavBar
+      <SlidingTabBar
         tabs={[
           { key: "xp", label: "Hạng" },
           { key: "streak", label: "Chuỗi" },
@@ -102,6 +103,8 @@ const RankingScreen: React.FC = () => {
         activeTab={activeTab}
         onChangeTab={setActiveTab}
         containerStyle={styles.tabContainer}
+        indicatorColor={colors.primary}
+        inactiveColor={colors.primary}
       />
 
       <ScrollView
@@ -211,7 +214,7 @@ const createStyles = (isSmallDevice: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: "#F3EFEA",
+      backgroundColor: "transparent",
     },
     headerCard: {
       backgroundColor: "#5641E8",
@@ -255,8 +258,9 @@ const createStyles = (isSmallDevice: boolean) =>
       paddingBottom: 120,
     },
     tabContainer: {
-      marginTop: 0,
-      marginHorizontal: 0,
+      marginTop: 10,
+      marginHorizontal: 22,
+      marginBottom: 10,
     },
     podiumSection: {
       marginTop: 18,

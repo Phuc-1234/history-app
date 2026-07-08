@@ -7,6 +7,7 @@ import {
     View,
     Pressable,
 } from "react-native";
+import Mascot, { MascotExpression } from "./Mascot";
 
 interface CustomModalProps {
     visible: boolean;
@@ -15,7 +16,9 @@ interface CustomModalProps {
     confirmText?: string;
     cancelText?: string;
     onConfirm: () => void;
-    onCancel: () => void;
+    onCancel?: () => void;
+    showMascot?: boolean;
+    mascotExpression?: MascotExpression;
 }
 
 export function CustomModal({
@@ -26,26 +29,41 @@ export function CustomModal({
     cancelText = "Hủy",
     onConfirm,
     onCancel,
+    showMascot = false,
+    mascotExpression = "focused",
 }: CustomModalProps) {
+    const handleClose = onCancel || onConfirm;
+    const showCancel = !!onCancel;
+
     return (
         <RNModal
             visible={visible}
             transparent={true}
             animationType="fade"
-            onRequestClose={onCancel}
+            onRequestClose={handleClose}
         >
-            <Pressable style={styles.overlay} onPress={onCancel}>
+            <Pressable style={styles.overlay} onPress={handleClose}>
                 <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
+                    {showMascot && (
+                        <Mascot
+                            expression={mascotExpression}
+                            width={100}
+                            height={100}
+                            style={styles.mascot}
+                        />
+                    )}
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.message}>{message}</Text>
                     <View style={styles.buttons}>
-                        <TouchableOpacity
-                            style={styles.cancelBtn}
-                            onPress={onCancel}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.cancelText}>{cancelText}</Text>
-                        </TouchableOpacity>
+                        {showCancel && (
+                            <TouchableOpacity
+                                style={styles.cancelBtn}
+                                onPress={onCancel}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.cancelText}>{cancelText}</Text>
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                             style={styles.confirmBtn}
                             onPress={onConfirm}
@@ -126,5 +144,8 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
         color: "#FFFFFF",
+    },
+    mascot: {
+        marginBottom: 16,
     },
 });

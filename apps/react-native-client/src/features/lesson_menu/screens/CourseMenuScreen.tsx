@@ -57,7 +57,7 @@ function CourseCard({
             {/* Right Details Section */}
             <View style={styles.detailsContainer}>
                 <Text style={styles.courseTitle} numberOfLines={2}>
-                    Sách giáo khoa lớp {grade}
+                    Lịch sử lớp {grade}
                 </Text>
                 
                 <Text style={styles.courseSubtitle}>
@@ -154,12 +154,14 @@ function matchesGradeStructure(grade: number, structure: any, query: string): bo
                 }
             }
         }
-        if (topic.firstTest && matchesSearch(topic.firstTest.title, query, true)) {
+        const testTitle = `Kiểm tra Chủ đề ${topic.position}`;
+        if (matchesSearch(testTitle, query, true)) {
             return true;
         }
     }
     
-    if (structure.finalTest && matchesSearch(structure.finalTest.title, query, true)) {
+    const finalTestTitle = `Kiểm tra Lớp ${grade}`;
+    if (matchesSearch(finalTestTitle, query, true)) {
         return true;
     }
     
@@ -213,7 +215,7 @@ export function CourseMenuScreen() {
         <ScreenWrapper>
             <View style={styles.container}>
                 <Text style={styles.screenHeader}>Khóa Học</Text>
-                <Text style={styles.screenSubtitle}>Chọn khoá học để bắt đầu</Text>
+                <Text style={styles.screenSubtitle}>Chọn học phần để bắt đầu</Text>
 
                 <View style={styles.searchContainer}>
                     <TextInput

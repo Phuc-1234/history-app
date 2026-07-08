@@ -1,5 +1,5 @@
 import { useGetGradeStructureQuery } from "../contentApiSlice";
-import { TopicWithContentsDto, CompactTestDto } from "@history-app/shared";
+import { TopicWithContentsDto } from "@history-app/shared";
 
 export function useLessonMenu(selectedGrade: number) {
     // Fetch live data via RTK Query based on selected grade
@@ -7,11 +7,11 @@ export function useLessonMenu(selectedGrade: number) {
 
     // UI Mappings extracted cleanly from the API DTO structural contract
     const topics: TopicWithContentsDto[] = gradeStructure?.topics ?? [];
-    const finalTest: CompactTestDto | null = gradeStructure?.gradeFirstTest ?? null;
+    const finalTestPassed = !!gradeStructure?.testPassed;
 
     return {
         topics,
-        finalTest,
+        finalTestPassed,
         loading: !gradeStructure,
         error,
         refetch,

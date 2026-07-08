@@ -41,40 +41,27 @@ function scoreChoose(
 
     // Multi choice
     const totalOptions = answerData.options.length;
-    const partialTable4 = [0, 0.1, 0.2, 0.5, 1.0];
-    // For N>4: extend with 0.1, 0.2, 0.75, 1.0, 1.25, ...
-    function getMaxScore(n: number): number {
-        if (n <= 4) return partialTable4[n] ?? 1.0;
-        // For N>4 the max is the Nth entry
-        return 1.0 + (n - 4) * 0.25;
-    }
-
-    function getPartialScore(n: number, hits: number): number {
-        if (hits <= 0) return 0;
-        if (n <= 4) return partialTable4[Math.min(hits, n)] ?? 0;
-        // Extended table
-        const table = [0, 0.1, 0.2, 0.75, 1.0];
-        if (hits <= 4) return table[hits] ?? 0;
-        return 1.0 + (hits - 4) * 0.25;
-    }
-
-    const maxScore = getMaxScore(totalOptions);
+    const maxScore = totalOptions === 0 ? 0 : Math.max(0.25, Math.floor(totalOptions / 2) * 0.25);
 
     if (!userAnswer || !userAnswer.selectedOptions?.length) {
         return { scoreAwarded: 0, maxScore };
     }
 
-    // Each option is a true/false decision
-    let correctHits = 0;
-    for (let idx = 0; idx < totalOptions; idx++) {
-        const isCorrectOption = answerData.correctOption.includes(idx);
-        const isSelectedByUser = userAnswer.selectedOptions.includes(idx);
-        if (isCorrectOption === isSelectedByUser) {
-            correctHits++;
+    const incorrectCount = totalOptions - correctCount;
+    let score = 0;
+    const correctScorePerItem = correctCount > 0 ? maxScore / correctCount : 0;
+    const incorrectPenaltyPerItem = incorrectCount > 0 ? maxScore / incorrectCount : 0;
+
+    for (const optionIdx of userAnswer.selectedOptions) {
+        if (answerData.correctOption.includes(optionIdx)) {
+            score += correctScorePerItem;
+        } else {
+            score -= incorrectPenaltyPerItem;
         }
     }
 
-    return { scoreAwarded: getPartialScore(totalOptions, correctHits), maxScore };
+    const scoreAwarded = Math.max(0, Math.round(score * 10000) / 10000);
+    return { scoreAwarded, maxScore };
 }
 
 function getLevenshteinDistance(a: string, b: string): number {
@@ -168,16 +155,15 @@ function scoreMatch(
     answerData: MatchAnswerData,
     userAnswer: UserMatchAnswer | null,
 ): { scoreAwarded: number; maxScore: number } {
-    const maxScore = 1.0;
     const totalPairs = answerData.pairs.length;
-    if (totalPairs === 0) return { scoreAwarded: 0, maxScore };
+    if (totalPairs === 0) return { scoreAwarded: 0, maxScore: 0 };
+    const maxScore = Math.max(0.25, Math.floor(totalPairs / 2) * 0.25);
 
     if (!userAnswer || !userAnswer.pairs?.length) {
         return { scoreAwarded: 0, maxScore };
     }
 
-    const perPair = maxScore / totalPairs;
-    let score = 0;
+    let correctCount = 0;
 
     for (const rawPair of answerData.pairs) {
         let correctLeft = "";
@@ -203,11 +189,12 @@ function scoreMatch(
             userPair.right?.trim().toLowerCase() ===
                 correctRight.trim().toLowerCase()
         ) {
-            score += perPair;
+            correctCount++;
         }
     }
 
-    return { scoreAwarded: Math.round(score * 10000) / 10000, maxScore };
+    const scoreAwarded = correctCount === totalPairs ? maxScore : 0;
+    return { scoreAwarded, maxScore };
 }
 
 /**
