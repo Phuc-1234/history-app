@@ -35,6 +35,10 @@ export const typography = {
         fontFamily: "Nunito-Regular",
         fontSize: 16,
     },
+    bodyLargeBold: {
+        fontFamily: "Nunito-Bold",
+        fontSize: 16,
+    },
     bodyMedium: {
         fontFamily: "Nunito-Regular",
         fontSize: 14,
