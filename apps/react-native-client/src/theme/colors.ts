@@ -36,7 +36,7 @@ export const colors = {
     // -------------------------------------------------------------
     // System & Feedback Colors (Quizzes, Notifications, Statuses)
     // -------------------------------------------------------------
-    success: "#1E6B4B", // Forest green for historical correct state
+    success: "#16A34A", // Brighter green for correctness & success state
     successContainer: "#EBF5F0",
     textSuccess: "#134B33",
 

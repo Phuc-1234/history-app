@@ -27,7 +27,7 @@ function LessonCard({ lesson, onPress }: { lesson: HomeLessonItem; onPress: () =
     const percent = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
 
     return (
-        <Card style={lessonStyles.card} activeOpacity={0.8} onPress={onPress}>
+        <Card variant="soft" style={lessonStyles.card} activeOpacity={0.8} onPress={onPress}>
             <View style={lessonStyles.iconBox}>
                 <Ionicons name="book-outline" size={22} color={colors.primary} />
             </View>
@@ -257,7 +257,7 @@ export default function HomeScreen() {
                                 onPress={handleGoToTests}
                             >
                                 <Ionicons name="clipboard-outline" size={22} color={colors.primary} />
-                                <Text style={styles.quickLabel}>Làm bài</Text>
+                                <Text style={styles.quickLabel}>Luyện đề</Text>
                             </Card>
 
                             <Card

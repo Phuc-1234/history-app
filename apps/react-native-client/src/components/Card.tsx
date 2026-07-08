@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { colors } from "../theme/colors";
 
-export type CardVariant = "accent" | "soft" | "bordered";
+export type CardVariant = "accent" | "soft" | "bordered" | "grayBorder";
 
 export interface CardProps {
     variant?: CardVariant;
@@ -63,9 +63,14 @@ const styles = StyleSheet.create({
         borderWidth: 0,
     },
     bordered: {
-        backgroundColor: "transparent",
+        backgroundColor: colors.surface,
         borderWidth: 1.5,
         borderColor: colors.accent,
+    },
+    grayBorder: {
+        backgroundColor: colors.surface,
+        borderWidth: 1.5,
+        borderColor: colors.borderMedium,
     },
 });
 

@@ -31,6 +31,7 @@ export default function LessonSummaryScreen() {
                 hierarchy: `Bài ${summaryData.position}`,
                 onBackPress: () => router.back(),
             }}
+            showTopBar={false}
             enableScroll={true}
             enableRefresh={true}
             refreshing={isFetching}
