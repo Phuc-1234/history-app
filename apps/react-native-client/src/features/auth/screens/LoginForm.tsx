@@ -18,6 +18,7 @@ import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import useAuthForm from "../hooks/useAuthForm";
 import colors from "../../../theme/colors";
+import typography from "../../../theme/typography";
 import HistoricalBackground from "../../../components/layout/HistoricalBackground";
 
 export default function LoginForm() {
@@ -230,8 +231,8 @@ const styles = StyleSheet.create({
         height: 120,
     },
     logoSubtitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 14,
-        fontWeight: "600",
         color: colors.textMuted,
         marginTop: 6,
         textAlign: "center",
@@ -240,15 +241,15 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     welcomeText: {
+        fontFamily: typography.fonts.extraBold,
         color: colors.textDark,
         fontSize: 28,
-        fontWeight: "800",
         marginBottom: 6,
     },
     subText: {
+        fontFamily: typography.fonts.medium,
         color: colors.textMuted,
         fontSize: 15,
-        fontWeight: "500",
     },
     formContainer: {
         marginTop: 10, 
@@ -274,14 +275,15 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     ghostEmailText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 15,
         color: colors.textPlaceholder,
         opacity: 0.6,
     },
     fieldErrorText: {
+        fontFamily: typography.fonts.semiBold,
         color: colors.textError,
         fontSize: 13,
-        fontWeight: "600",
         marginTop: 6,
         paddingLeft: 4,
     },
@@ -291,18 +293,18 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     forgotPassText: {
+        fontFamily: typography.fonts.semiBold,
         color: colors.textMuted,
         fontSize: 14,
-        fontWeight: "600",
     },
     guestButton: {
         alignSelf: "center",
         marginVertical: 8,
     },
     guestText: {
+        fontFamily: typography.fonts.semiBold,
         color: colors.primary,
         fontSize: 14,
-        fontWeight: "600",
         textDecorationLine: "underline",
     },
     dividerContainer: {
@@ -316,8 +318,8 @@ const styles = StyleSheet.create({
         backgroundColor: colors.divider,
     },
     dividerText: {
+        fontFamily: typography.fonts.medium,
         fontSize: 13,
-        fontWeight: "500",
         color: colors.textMuted,
         paddingHorizontal: 16,
     },
@@ -340,8 +342,8 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     socialBtnText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 14,
-        fontWeight: "700",
         color: colors.textDark,
         letterSpacing: 0.5,
     },
@@ -353,12 +355,13 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     footerText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 14,
         color: colors.textMuted,
     },
     registerText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 14,
-        fontWeight: "700",
         color: colors.primary,
     },
 });

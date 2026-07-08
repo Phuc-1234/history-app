@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 import colors from "../theme/colors";
+import typography from "../theme/typography";
 
 interface InputProps extends TextInputProps {
     icon?: React.ElementType;
@@ -71,6 +72,7 @@ const styles = StyleSheet.create({
         marginVertical: 8,
     },
     input: {
+        fontFamily: typography.fonts.regular,
         backgroundColor: colors.inputBackground,
         borderRadius: 30,
         paddingLeft: 24,
