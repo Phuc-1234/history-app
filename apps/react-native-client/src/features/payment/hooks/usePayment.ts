@@ -19,12 +19,22 @@ try {
 type PaymentState =
     | { phase: "idle" }
     | { phase: "loading" }
-    | { phase: "waiting" }   // browser opened, polling
+    | {
+          phase: "waiting";
+          orderId: string;
+          vietQrUrl?: string;
+          bankId?: string;
+          accountNo?: string;
+          accountName?: string;
+          providerOrderId?: string;
+          amountVnd: number;
+          provider: PaymentProvider;
+      }
     | { phase: "success"; result: GetPaymentStatusResponse }
     | { phase: "failed"; error: string };
 
 const POLL_INTERVAL_MS = 2000;
-const POLL_MAX_ATTEMPTS = 30; // 60 seconds max
+const POLL_MAX_ATTEMPTS = 150; // 300 seconds (5 phút) max
 
 export function usePayment() {
     const [state, setState] = useState<PaymentState>({ phase: "idle" });
@@ -58,6 +68,11 @@ export function usePayment() {
 
                 if (result.status === "SUCCESS") {
                     stopPolling();
+                    try {
+                        WebBrowser.dismissBrowser();
+                    } catch (e) {
+                        console.warn("[WebBrowser] dismiss failed:", e);
+                    }
                     // Refetch profile to update gold amount instantly
                     dispatch(apiSlice.util.invalidateTags(["User"]));
                     setState({ phase: "success", result });
@@ -66,6 +81,11 @@ export function usePayment() {
 
                 if (result.status === "FAILED") {
                     stopPolling();
+                    try {
+                        WebBrowser.dismissBrowser();
+                    } catch (e) {
+                        console.warn("[WebBrowser] dismiss failed:", e);
+                    }
                     setState({ phase: "failed", error: "Giao dịch thất bại hoặc bị hủy." });
                     return;
                 }
@@ -87,12 +107,34 @@ export function usePayment() {
             attemptsRef.current = 0;
 
             try {
-                const { orderId, payUrl, zpTransToken } = await initiatePayment({ provider, goldAmount }).unwrap();
+                const initRes = await initiatePayment({ provider, goldAmount }).unwrap();
+                const { orderId, payUrl, zpTransToken, vietQrUrl, bankId, accountNo, accountName, providerOrderId, amountVnd } = initRes;
+
+                if (provider === "SEPAY" && vietQrUrl) {
+                    setState({
+                        phase: "waiting",
+                        orderId,
+                        vietQrUrl,
+                        bankId,
+                        accountNo,
+                        accountName,
+                        providerOrderId,
+                        amountVnd,
+                        provider,
+                    });
+                    pollStatus(orderId);
+                    return;
+                }
 
                 if (provider === "ZALOPAY" && zpTransToken && ReactNativeZalopay) {
                     try {
                         console.log("[ZaloPay] Initiating native payment flow with token:", zpTransToken);
-                        setState({ phase: "waiting" });
+                        setState({
+                            phase: "waiting",
+                            orderId,
+                            amountVnd,
+                            provider,
+                        });
                         
                         // Start polling immediately in parallel so we don't get stuck if deep link fails
                         pollStatus(orderId);
@@ -112,15 +154,33 @@ export function usePayment() {
                         }
                     } catch (sdkError: any) {
                         console.warn("[ZaloPay] Native module error, falling back to web flow:", sdkError);
-                        setState({ phase: "waiting" });
+                        setState({
+                            phase: "waiting",
+                            orderId,
+                            amountVnd,
+                            provider,
+                        });
                         pollStatus(orderId);
                         await WebBrowser.openBrowserAsync(payUrl);
                     }
                 } else {
-                    // Open the payment URL in the in-app browser (MoMo or ZaloPay web fallback)
-                    setState({ phase: "waiting" });
+                    // Open the payment URL in the in-app browser (SePay VietQR or ZaloPay web fallback)
+                    setState({
+                        phase: "waiting",
+                        orderId,
+                        amountVnd,
+                        provider,
+                    });
                     pollStatus(orderId);
                     await WebBrowser.openBrowserAsync(payUrl);
+                    // User closed the browser — if still pending, stop polling and go back to idle
+                    stopPolling();
+                    setState((prev) => {
+                        if (prev.phase === "waiting") {
+                            return { phase: "idle" };
+                        }
+                        return prev;
+                    });
                 }
             } catch (error: any) {
                 const message =

@@ -2,7 +2,7 @@
 // Payment types are intentionally kept inside express-server (not shared)
 // so the backend can be extracted independently later.
 
-export type PaymentProvider = "MOMO" | "ZALOPAY";
+export type PaymentProvider = "MOMO" | "ZALOPAY" | "SEPAY";
 export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
 
 // ─── Request Bodies ───────────────────────────────────────────────────────────
@@ -72,4 +72,20 @@ export interface ZaloPayCallbackData {
     merchant_user_id: string;
     user_fee_amount: number;
     discount_amount: number;
+}
+
+/** Raw webhook payload from SePay */
+export interface SePayWebhookPayload {
+    id: number;
+    gateway: string;
+    transactionDate: string;
+    accountNumber: string;
+    subAccount?: string;
+    code?: string;
+    content: string;
+    transferType: "in" | "out";
+    description?: string;
+    transferAmount: number;
+    accumulated?: number;
+    referenceCode?: string;
 }
