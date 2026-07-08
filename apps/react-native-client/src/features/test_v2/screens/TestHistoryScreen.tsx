@@ -5,6 +5,7 @@ import { useGetTestHistoryQuery } from "../services/testApi";
 import { formatScore } from "../services/scoreEngine";
 import type { UserTestLogV2 } from "../types";
 import { colors } from "../../../theme/colors";
+import typography from "@/theme/typography";
 
 interface Props {
     scopeType?: string;
@@ -90,7 +91,7 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
 
 const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 40 },
-    emptyText: { fontSize: 15, color: colors.textMuted, fontWeight: "600" },
+    emptyText: { fontSize: 15, color: colors.textMuted, fontFamily: typography.fonts.semiBold },
     list: { padding: 16, gap: 12 },
     card: {
         backgroundColor: colors.primaryContainer,
@@ -101,13 +102,13 @@ const styles = StyleSheet.create({
     statusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 5 },
     badgePassed: { backgroundColor: colors.success },
     badgeFailed: { backgroundColor: colors.error },
-    statusText: { fontSize: 11, fontWeight: "500", color: colors.textLight },
+    statusText: { fontSize: 11, fontFamily: typography.fonts.medium, color: colors.textLight },
 
 
-    attemptText: { fontSize: 12, fontWeight: "600", color: colors.textPlaceholder },
+    attemptText: { fontSize: 12, fontFamily: typography.fonts.semiBold, color: colors.textPlaceholder },
     scoreRow: { flexDirection: "row", alignItems: "baseline", marginBottom: 8 },
-    scoreValue: { fontSize: 28, fontWeight: "900", color: colors.primary },
-    scoreMax: { fontSize: 14, fontWeight: "700", color: colors.textMuted, marginLeft: 2 },
+    scoreValue: { fontSize: 28, fontFamily: typography.fonts.black, color: colors.primary },
+    scoreMax: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textMuted, marginLeft: 2 },
     metaRow: { flexDirection: "row", justifyContent: "space-between" },
-    metaText: { fontSize: 12, color: colors.textPlaceholder, fontWeight: "500" },
+    metaText: { fontSize: 12, color: colors.textPlaceholder, fontFamily: typography.fonts.medium },
 });

@@ -12,6 +12,7 @@ import { CustomModal } from "../../../components/Modal";
 import Mascot from "../../../components/Mascot";
 import { colors } from "../../../theme/colors";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import typography from "@/theme/typography";
 
 export function getScopePlaceholder(scopeType?: string, purposeType?: string): string {
     const isExam = purposeType === "EXAM";
@@ -88,7 +89,7 @@ export default function TestIntro({
             <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
                 <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
                     <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={{ marginTop: 16, color: colors.textMuted, fontWeight: "500", fontSize: 14 }}>
+                    <Text style={{ marginTop: 16, color: colors.textMuted, fontFamily: typography.fonts.medium, fontSize: 14 }}>
                         Đang tải thông tin bài kiểm tra...
                     </Text>
                 </View>
@@ -107,7 +108,7 @@ export default function TestIntro({
                     {/* Mascot Illustration */}
                     <View style={styles.mascotContainer}>
                         <Mascot
-                            expression="focused"
+                             expression="focused"
                             width={120}
                             height={120}
                         />
@@ -259,13 +260,13 @@ const styles = StyleSheet.create({
     },
     titleLabel: {
         fontSize: 24,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textPrimary,
         textAlign: "center",
     },
     scopeText: {
         fontSize: 16,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textSecondary,
         textAlign: "center",
         marginTop: 6,
@@ -290,19 +291,19 @@ const styles = StyleSheet.create({
     },
     infoSquareValue: {
         fontSize: 13,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.accent,
         textAlign: "center",
     },
     infoSquareLabel: {
         fontSize: 10,
-        fontWeight: "400",
+        fontFamily: typography.fonts.regular,
         color: colors.textMuted,
         textAlign: "center",
     },
     attemptFaintText: {
         fontSize: 13,
-        fontWeight: "400",
+        fontFamily: typography.fonts.regular,
         color: colors.textMuted,
         textAlign: "center",
         marginVertical: 4,
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
     },
     rewardRectangleText: {
         fontSize: 14,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: "#FFFFFF",
         textAlign: "center",
     },
@@ -351,12 +352,12 @@ const styles = StyleSheet.create({
     startButtonText: {
         color: colors.textLight,
         fontSize: 15,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
     },
     arrowIcon: {
         fontSize: 14,
         color: colors.textLight,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
     },
     voiceButton: {
         flexDirection: "row",
@@ -375,7 +376,7 @@ const styles = StyleSheet.create({
     },
     voiceButtonText: {
         fontSize: 14,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.primary,
     },
     laterButton: {
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
     },
     laterButtonText: {
         fontSize: 14,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textMuted,
     },
     rewardRow: {
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
     },
     attemptChipText: {
         fontSize: 12,
-        fontWeight: "400",
+        fontFamily: typography.fonts.regular,
         color: colors.textMuted,
     },
 });

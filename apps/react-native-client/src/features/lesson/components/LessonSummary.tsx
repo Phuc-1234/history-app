@@ -13,6 +13,7 @@ import { LessonSummaryData, LessonSection } from "../hooks/useLessonSummary";
 import { ExpandableSection } from "./ExpandableSection";
 import VideoPlayer from "../../videostream/components/VideoPlayer";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 interface LessonSummaryProps {
     data: LessonSummaryData;
@@ -197,7 +198,11 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 15,
     },
-    tagText: { color: colors.textLight, fontSize: 12, fontWeight: "700" },
+    tagText: {
+        ...typography.caption,
+        fontFamily: typography.fonts.bold,
+        color: colors.textLight,
+    },
     heroContent: { marginBottom: 20 },
     progressContainer: {
         flexDirection: "row",
@@ -219,17 +224,19 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     progressText: {
-        fontSize: 13,
-        fontWeight: "600",
+        ...typography.bodySmallSemiBold,
         color: colors.textSecondary,
     },
     lessonHeading: {
-        fontSize: 22,
-        fontWeight: "normal",
+        ...typography.h2,
         color: colors.primary,
         marginBottom: 8,
     },
-    lessonDescription: { fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
+    lessonDescription: {
+        ...typography.bodyMedium,
+        color: colors.textSecondary,
+        lineHeight: 22,
+    },
 
     /* Feature Navigation Grid Matrix */
     gridContainer: {
@@ -263,7 +270,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    gridButtonText: { fontSize: 12, fontWeight: "700", color: colors.textPrimary },
+    gridButtonText: {
+        ...typography.caption,
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
+    },
     whiteText: { color: colors.textLight },
 
     /* Tree List Wrapper */
@@ -280,8 +291,8 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     videoTitle: {
-        fontSize: 18,
-        fontWeight: "800",
+        ...typography.h3,
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
         marginBottom: 12,
     },
@@ -302,7 +313,7 @@ const styles = StyleSheet.create({
     },
     pillTestButtonText: {
         color: colors.textLight,
+        fontFamily: typography.fonts.bold,
         fontSize: 17,
-        fontWeight: "700",
     },
 });

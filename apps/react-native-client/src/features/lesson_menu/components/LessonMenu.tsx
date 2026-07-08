@@ -7,6 +7,7 @@ import {
     ActivityIndicator,
     RefreshControl,
     TextInput,
+    TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Book } from "lucide-react-native";
@@ -131,6 +132,14 @@ export function LessonMenu({
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [collapsedTopics, setCollapsedTopics] = useState<Record<number, boolean>>({});
+
+    const toggleTopic = (topicId: number) => {
+        setCollapsedTopics((prev) => ({
+            ...prev,
+            [topicId]: !prev[topicId],
+        }));
+    };
 
     const filteredTopics = React.useMemo(() => {
         if (!searchQuery.trim()) return topics;
@@ -289,84 +298,97 @@ export function LessonMenu({
                             </View>
 
                             {filteredTopics.map((topic) => {
+                                const isCollapsed = !!collapsedTopics[topic.id];
+
                                 return (
                                     <View key={topic.id} style={styles.topicWrapper}>
-                                        {/* Dimly gray topic header, NO divider */}
-                                        <View style={styles.topicDivider}>
-                                            <Text style={styles.topicDividerText}>
+                                        {/* Interactive collapsible topic header */}
+                                        <TouchableOpacity
+                                            style={styles.topicDivider}
+                                            onPress={() => toggleTopic(topic.id)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={styles.topicDividerText} numberOfLines={2}>
                                                 Chủ đề {topic.position}: {topic.name}
                                             </Text>
-                                        </View>
+                                            <Ionicons
+                                                name={isCollapsed ? "chevron-down" : "chevron-up"}
+                                                size={18}
+                                                color={colors.textMuted}
+                                            />
+                                        </TouchableOpacity>
 
-                                        {/* List of lesson cards stacked vertically */}
-                                        <View style={styles.lessonList}>
-                                            {topic.lessons.map((lesson) => {
-                                                const lessonAny = lesson as any;
-                                                const lessonPct =
-                                                    lessonAny.progress != null &&
-                                                    lessonAny.progress.totalNodes > 0
-                                                        ? lessonAny.progress.completedNodes /
-                                                          lessonAny.progress.totalNodes
-                                                        : 0;
-                                                const isDone = lessonPct >= 1;
+                                        {/* Collapsible content */}
+                                        {!isCollapsed && (
+                                            <View style={styles.lessonList}>
+                                                {topic.lessons.map((lesson) => {
+                                                    const lessonAny = lesson as any;
+                                                    const lessonPct =
+                                                        lessonAny.progress != null &&
+                                                        lessonAny.progress.totalNodes > 0
+                                                            ? lessonAny.progress.completedNodes /
+                                                              lessonAny.progress.totalNodes
+                                                            : 0;
+                                                    const isDone = lessonPct >= 1;
 
-                                                return (
-                                                    <Card
-                                                        key={lesson.id}
-                                                        variant="grayBorder"
-                                                        style={styles.lessonCard}
-                                                        onPress={() => onLessonPress(lesson.id)}
-                                                    >
-                                                        <View style={styles.cardTextContainer}>
-                                                            <Text style={styles.lessonCardTitle}>
-                                                                Bài {lesson.position}:{" "}
-                                                                <Text style={styles.lessonNameText}>{lesson.name}</Text>
-                                                            </Text>
-                                                        </View>
-                                                        <View style={styles.cardRightContainer}>
-                                                            {isDone ? (
-                                                                <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-                                                            ) : (
-                                                                <SmallProgressRing pct={lessonPct} />
-                                                            )}
-                                                            {isLoggedIn && lessonAny.progress != null && (
-                                                                <Text style={styles.lessonProgressTextBelow}>
-                                                                    {lessonAny.progress.completedNodes}/{lessonAny.progress.totalNodes}
+                                                    return (
+                                                        <Card
+                                                            key={lesson.id}
+                                                            variant="grayBorder"
+                                                            style={styles.lessonCard}
+                                                            onPress={() => onLessonPress(lesson.id)}
+                                                        >
+                                                            <View style={styles.cardTextContainer}>
+                                                                <Text style={styles.lessonCardTitle}>
+                                                                    Bài {lesson.position}:{" "}
+                                                                    <Text style={styles.lessonNameText}>{lesson.name}</Text>
                                                                 </Text>
-                                                            )}
-                                                        </View>
-                                                    </Card>
-                                                );
-                                            })}
+                                                            </View>
+                                                            <View style={styles.cardRightContainer}>
+                                                                {isDone ? (
+                                                                    <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                                                                ) : (
+                                                                    <SmallProgressRing pct={lessonPct} />
+                                                                )}
+                                                                {isLoggedIn && lessonAny.progress != null && (
+                                                                    <Text style={styles.lessonProgressTextBelow}>
+                                                                        {lessonAny.progress.completedNodes}/{lessonAny.progress.totalNodes}
+                                                                    </Text>
+                                                                )}
+                                                            </View>
+                                                        </Card>
+                                                    );
+                                                })}
 
-                                            {/* Topic test card */}
-                                            {(() => {
-                                                const testPassed = !!topic.testPassed;
-                                                const testIsDone = testPassed;
+                                                {/* Topic test card */}
+                                                {(() => {
+                                                    const testPassed = !!topic.testPassed;
+                                                    const testIsDone = testPassed;
 
-                                                return (
-                                                    <Card
-                                                        variant="accent"
-                                                        style={styles.testCard}
-                                                        onPress={() => onTestPress("TOPIC", topic.id)}
-                                                    >
-                                                        <Ionicons name="trophy" size={20} color="#FFFFFF" style={styles.cardLeftIcon} />
-                                                        <View style={styles.cardTextContainer}>
-                                                            <Text style={styles.testCardTitle}>
-                                                                Kiểm tra Chủ đề {topic.position}
-                                                            </Text>
-                                                        </View>
-                                                        <View style={styles.cardRightContainer}>
-                                                            {testIsDone ? (
-                                                                <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-                                                            ) : (
-                                                                <SmallProgressRing pct={0} isAccent={true} />
-                                                            )}
-                                                        </View>
-                                                    </Card>
-                                                );
-                                            })()}
-                                        </View>
+                                                    return (
+                                                        <Card
+                                                            variant="accent"
+                                                            style={styles.testCard}
+                                                            onPress={() => onTestPress("TOPIC", topic.id)}
+                                                        >
+                                                            <Ionicons name="trophy" size={20} color="#FFFFFF" style={styles.cardLeftIcon} />
+                                                            <View style={styles.cardTextContainer}>
+                                                                <Text style={styles.testCardTitle}>
+                                                                    Kiểm tra Chủ đề {topic.position}
+                                                                </Text>
+                                                            </View>
+                                                            <View style={styles.cardRightContainer}>
+                                                                {testIsDone ? (
+                                                                    <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                                                                ) : (
+                                                                    <SmallProgressRing pct={0} isAccent={true} />
+                                                                )}
+                                                            </View>
+                                                        </Card>
+                                                    );
+                                                })()}
+                                            </View>
+                                        )}
                                     </View>
                                 );
                             })}
@@ -416,7 +438,9 @@ const styles = StyleSheet.create({
     
     /* Topic Divider */
     topicDivider: {
-        alignItems: "flex-start",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         marginVertical: 12,
         paddingHorizontal: 4,
         width: "100%",
@@ -426,6 +450,8 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.textMuted,
         letterSpacing: 0.5,
+        flex: 1,
+        marginRight: 8,
     },
 
     lessonList: {

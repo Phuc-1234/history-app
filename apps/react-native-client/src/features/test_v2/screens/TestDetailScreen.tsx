@@ -23,6 +23,7 @@ import type {
 import { colors } from "../../../theme/colors";
 import Mascot from "@/components/Mascot";
 import { Check, X } from "lucide-react-native";
+import typography from "@/theme/typography";
 
 export default function TestDetailScreen() {
     const { width } = useWindowDimensions();
@@ -575,22 +576,22 @@ const commonTagsStyles = {
         textDecorationLine: "underline" as const,
     },
     strong: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
     b: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
     i: {
-        fontStyle: "italic" as const,
+        fontFamily: typography.fonts.italic,
     },
     em: {
-        fontStyle: "italic" as const,
+        fontFamily: typography.fonts.italic,
     },
     u: {
         textDecorationLine: "underline" as const,
     },
     th: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
 };
 
@@ -598,7 +599,7 @@ const promptTagsStyles = {
     body: {
         color: colors.textSecondary,
         fontSize: 15,
-        fontWeight: "700" as const,
+        fontFamily: typography.fonts.bold,
         lineHeight: 22,
     },
     p: {
@@ -608,6 +609,7 @@ const promptTagsStyles = {
     li: {
         color: colors.textSecondary,
         fontSize: 14,
+        fontFamily: typography.fonts.regular,
         lineHeight: 20,
     },
     ...commonTagsStyles,
@@ -617,6 +619,7 @@ const explTagsStyles = {
     body: {
         color: colors.textSuccess,
         fontSize: 13,
+        fontFamily: typography.fonts.regular,
         lineHeight: 20,
     },
     p: {
@@ -626,6 +629,7 @@ const explTagsStyles = {
     li: {
         color: colors.textSuccess,
         fontSize: 12,
+        fontFamily: typography.fonts.regular,
         lineHeight: 18,
     },
     ...commonTagsStyles,
@@ -635,6 +639,7 @@ const docTagsStyles = {
     body: {
         color: colors.textSecondary,
         fontSize: 14,
+        fontFamily: typography.fonts.regular,
         lineHeight: 22,
     },
     p: {
@@ -644,6 +649,7 @@ const docTagsStyles = {
     li: {
         color: colors.textSecondary,
         fontSize: 13,
+        fontFamily: typography.fonts.regular,
         lineHeight: 20,
     },
     ...commonTagsStyles,
@@ -653,18 +659,22 @@ const classesStyles = {
     "text-tiny": {
         fontSize: 10,
         lineHeight: 14,
+        fontFamily: typography.fonts.regular,
     },
     "text-small": {
         fontSize: 13,
         lineHeight: 18,
+        fontFamily: typography.fonts.regular,
     },
     "text-big": {
         fontSize: 20,
         lineHeight: 28,
+        fontFamily: typography.fonts.regular,
     },
     "text-huge": {
         fontSize: 24,
         lineHeight: 34,
+        fontFamily: typography.fonts.regular,
     },
 };
 
@@ -744,7 +754,7 @@ const styles = StyleSheet.create({
     },
     docToggleText: {
         fontSize: 13,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.primary,
     },
     docContent: {
@@ -785,7 +795,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         padding: 40,
     },
-    errorText: { fontSize: 15, color: colors.textError, fontWeight: "600" },
+    errorText: { fontSize: 15, color: colors.textError, fontFamily: typography.fonts.semiBold },
     bannerCard: {
         backgroundColor: colors.surface,
         borderRadius: 5,
@@ -797,23 +807,23 @@ const styles = StyleSheet.create({
     },
     bannerEmoji: { fontSize: 40, marginBottom: 8 },
     scoreRow: { flexDirection: "row", alignItems: "baseline" },
-    bannerScore: { fontSize: 40, fontWeight: "900", color: colors.primary },
+    bannerScore: { fontSize: 40, fontFamily: typography.fonts.black, color: colors.primary },
     bannerScoreMax: {
         fontSize: 18,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textMuted,
         marginLeft: 2,
     },
     bannerSubtext: {
         fontSize: 13,
         color: colors.textMuted,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         marginTop: 4,
     },
-    bannerDate: { fontSize: 12, color: colors.textPlaceholder, marginTop: 4 },
+    bannerDate: { fontSize: 12, color: colors.textPlaceholder, fontFamily: typography.fonts.regular, marginTop: 4 },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
         marginBottom: 14,
     },
@@ -831,16 +841,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 10,
     },
-    qIndex: { fontSize: 12, fontWeight: "800", color: colors.textPlaceholder },
+    qIndex: { fontSize: 12, fontFamily: typography.fonts.extraBold, color: colors.textPlaceholder },
     qBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 5 },
     qBadgeCorrect: { backgroundColor: colors.success },
     qBadgeWrong: { backgroundColor: colors.error },
-    qBadgeText: { fontSize: 11, fontWeight: "800" },
+    qBadgeText: { fontSize: 11, fontFamily: typography.fonts.extraBold },
     qBadgeTextCorrect: { color: colors.textLight },
     qBadgeTextWrong: { color: colors.textLight },
     qPrompt: {
         fontSize: 15,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSecondary,
         lineHeight: 22,
         marginBottom: 12,
@@ -866,7 +876,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.warningContainer,
         borderStyle: "dashed",
     },
-    optText: { fontSize: 14, fontWeight: "600", color: colors.textSecondary },
+    optText: { fontSize: 14, fontFamily: typography.fonts.semiBold, color: colors.textSecondary },
     optTextCorrect: { color: colors.textLight },
     optTextWrong: { color: colors.textLight },
     optTextMissing: { color: colors.textWarning },
@@ -881,8 +891,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
     },
-    fillLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-    fillValue: { fontSize: 14, fontWeight: "700" },
+    fillLabel: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
+    fillValue: { fontSize: 14, fontFamily: typography.fonts.bold },
     textGreen: { color: colors.success },
     textRed: { color: colors.error },
     textLight: { color: colors.textLight },
@@ -897,17 +907,17 @@ const styles = StyleSheet.create({
     reviewBadgeMissing: { backgroundColor: colors.warning },
     reviewBadgeTextCorrect: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textLight,
     },
     reviewBadgeTextWrong: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textLight,
     },
     reviewBadgeTextMissing: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textLight,
     },
     pointsBadge: {
@@ -927,17 +937,17 @@ const styles = StyleSheet.create({
     },
     pointsBadgeTextCorrect: {
         fontSize: 11,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textSuccess,
     },
     pointsBadgeTextWrong: {
         fontSize: 11,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textError,
     },
     pointsBadgeTextZero: {
         fontSize: 11,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textMuted,
     },
     matchReviewContainer: { gap: 8, marginTop: 4 },
@@ -958,11 +968,11 @@ const styles = StyleSheet.create({
     },
     matchReviewLeftText: {
         fontSize: 13,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
     },
-    matchReviewArrow: { fontSize: 14, color: colors.textMuted },
-    matchReviewRightText: { fontSize: 13, fontWeight: "700" },
+    matchReviewArrow: { fontSize: 14, fontFamily: typography.fonts.regular, color: colors.textMuted },
+    matchReviewRightText: { fontSize: 13, fontFamily: typography.fonts.bold },
     matchReviewCorrectHintRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -973,13 +983,13 @@ const styles = StyleSheet.create({
     },
     matchReviewHintLabel: {
         fontSize: 11,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textLight,
         opacity: 0.8,
     },
     matchReviewHintValue: {
         fontSize: 12,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textLight,
     },
     explBox: {
@@ -991,11 +1001,11 @@ const styles = StyleSheet.create({
     },
     explLabel: {
         fontSize: 12,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textSuccess,
         marginBottom: 4,
     },
-    explText: { fontSize: 13, color: colors.textSuccess, lineHeight: 20 },
+    explText: { fontSize: 13, fontFamily: typography.fonts.regular, color: colors.textSuccess, lineHeight: 20 },
     radio: {
         width: 20,
         height: 20,
