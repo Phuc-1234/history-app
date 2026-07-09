@@ -1,61 +1,23 @@
 import React, { useEffect, useRef } from "react";
-import { StyleSheet, View, Animated, Easing, Dimensions } from "react-native";
-import Svg, { Path, Circle, G } from "react-native-svg";
+import { StyleSheet, View, Animated, Easing, Image } from "react-native";
 import { colors } from "../../theme/colors";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const TRONG_DONG_IMG = require("../../../assets/images/trong_dong.png");
 
-
-// ─── SUB-COMPONENTS ─────────────────────────────────────────────────────────
-interface MotifProps {
-    size?: number;
-    color?: string;
-    opacity?: number;
-}
-
-export function TrongDongMotif({ size = 260, color = "#B91C1C", opacity = 0.05 }: MotifProps) {
-    return (
-        <Svg width={size} height={size} viewBox="0 0 200 200">
-            {/* Outer Ring */}
-            <Circle cx="100" cy="100" r="95" stroke={color} strokeWidth="1.5" fill="none" opacity={opacity * 1.5} />
-            {/* Pattern Ring 1 */}
-            <Circle cx="100" cy="100" r="85" stroke={color} strokeWidth="1" strokeDasharray="3, 3" fill="none" opacity={opacity} />
-            {/* Pattern Ring 2 */}
-            <Circle cx="100" cy="100" r="70" stroke={color} strokeWidth="2" fill="none" opacity={opacity * 0.8} />
-            {/* Birds ring */}
-            <Circle cx="100" cy="100" r="55" stroke={color} strokeWidth="1.5" strokeDasharray="6, 4" fill="none" opacity={opacity * 1.2} />
-            {/* Inner Circle */}
-            <Circle cx="100" cy="100" r="35" stroke={color} strokeWidth="1.5" fill="none" opacity={opacity * 1.5} />
-            {/* Central Star (12 points) */}
-            <Path
-                d="M100,75 L103,90 L115,85 L108,96 L122,100 L108,104 L115,115 L103,110 L100,125 L97,110 L85,115 L92,104 L78,100 L92,96 L85,85 L97,90 Z"
-                fill={color}
-                opacity={opacity * 2}
-            />
-        </Svg>
-    );
-}
-
-
-
-// ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function HistoricalBackground() {
     // Animation drivers
     const rotateAnim = useRef(new Animated.Value(0)).current;
-    
 
     useEffect(() => {
-        // 1. Slow, infinite rotation for the Dong Son Drum
+        // Slow, infinite rotation for the Dong Son Drum
         Animated.loop(
             Animated.timing(rotateAnim, {
                 toValue: 1,
-                duration: 40000, //  seconds per full turn
+                duration: 40000, // seconds per full turn
                 easing: Easing.linear,
                 useNativeDriver: true,
             })
         ).start();
-
-        
     }, [rotateAnim]);
 
     // Interpolate rotation
@@ -75,7 +37,11 @@ export default function HistoricalBackground() {
                     },
                 ]}
             >
-                <TrongDongMotif size={260} color={colors.primary} opacity={0.1} />
+                <Image
+                    source={TRONG_DONG_IMG}
+                    style={{ width: 260, height: 260, tintColor: colors.primary, opacity: 0.18 }}
+                    resizeMode="contain"
+                />
             </Animated.View>
 
             {/* 2. Rotating Dong Son Drum in Bottom-Right (faint Gold) */}
@@ -87,11 +53,12 @@ export default function HistoricalBackground() {
                     },
                 ]}
             >
-                <TrongDongMotif size={380} color={colors.secondary} opacity={0.08} />
+                <Image
+                    source={TRONG_DONG_IMG}
+                    style={{ width: 380, height: 380, tintColor: colors.secondary, opacity: 0.15 }}
+                    resizeMode="contain"
+                />
             </Animated.View>
-
-            
-            
         </View>
     );
 }
