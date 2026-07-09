@@ -148,6 +148,7 @@ export default function TestContainerV2({
     const runner = useTestRunnerV2(params);
     const router = useRouter();
     const profile = useAppSelector((state) => state.auth.profile);
+    const [wasInitiallyLoggedIn] = useState(!!profile);
     const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(
         params,
         {
@@ -278,6 +279,9 @@ export default function TestContainerV2({
 
     // ── Auth check ───────────────────────────────────────────────────
     if (!profile) {
+        if (wasInitiallyLoggedIn) {
+            return null;
+        }
         return (
             <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <CustomModal
