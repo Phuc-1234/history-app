@@ -5,7 +5,7 @@ import { colors } from "@/theme/colors";
 import { ScreenWrapper, type BranchConfig } from "@/components/layout/ScreenWrapper";
 
 /**
- * Vỏ màn hình dùng chung cho các màn social/challenge: bọc `ScreenWrapper`
+ * Vỏ màn hình dùng chung cho các màn social: bọc `ScreenWrapper`
  * với thanh điều hướng "back/home" (branchConfig) dựa trên tiêu đề màn hình.
  */
 export function ScreenShell({
