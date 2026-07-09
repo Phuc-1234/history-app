@@ -8,7 +8,6 @@ import { colors } from "@/theme/colors";
  * `bottomBar*`, `rankPill`/`rankText`, `searchCardHead`, `searchNameRow`,
  * `searchMetaRow*`, `searchBtnOutline/Disabled/Secondary/Ghost/Text`,
  * `segmentItemActive`, `requestCard`, `cardActionRow`, `cardActionButton`.
- * Các style cho màn thi đấu đã chuyển sang `features/challenge/styles/`.
  */
 export const styles = StyleSheet.create({
     // ─── Content containers ──────────────────────────────────────────────

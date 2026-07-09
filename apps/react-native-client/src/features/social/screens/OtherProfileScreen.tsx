@@ -147,18 +147,6 @@ export function OtherProfileScreen() {
                             onPress={handleFriend}
                         />
                     </View>
-                    <View style={styles.actionRow}>
-                        <PrimaryButton
-                            label="Thách đấu"
-                            icon="flash"
-                            onPress={() =>
-                                pushRoute(
-                                    router,
-                                    `/(social)/challenge-create?userId=${profile.id}`,
-                                )
-                            }
-                        />
-                    </View>
                 </View>
 
                 <View style={{ gap: 12 }}>

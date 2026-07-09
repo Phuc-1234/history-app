@@ -79,10 +79,6 @@ export default function ProfileMainScreen() {
         router.push("/(social)/friends" as never);
     };
 
-    const handleOpenChallenges = () => {
-        router.push("/(social)/challenges" as never);
-    };
-
     const handleLogout = async () => {
         await dispatch(appLogout());
         router.replace("/(1_auth)/1_1_login");
@@ -144,11 +140,6 @@ export default function ProfileMainScreen() {
                         icon="people-outline"
                         label="Bạn bè & theo dõi"
                         onPress={handleOpenFriends}
-                    />
-                    <ProfileMenuItem
-                        icon="flash-outline"
-                        label="Thi đấu với bạn bè"
-                        onPress={handleOpenChallenges}
                     />
                 </Card>
             </View>

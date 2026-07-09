@@ -2,8 +2,8 @@ import type Ionicons from "@expo/vector-icons/build/Ionicons";
 
 /**
  * Dữ liệu tối thiểu để hiển thị một người dùng trong các thẻ UI
- * (avatar, UserCard, SearchUserCard…). Được dùng chung bởi feature
- * `social` và `challenge` nên đặt ở tầng `components/ui`.
+ * (avatar, UserCard, SearchUserCard…). Đặt ở tầng `components/ui` để
+ * tái dùng giữa các feature.
  *
  * Các feature có thể mở rộng thêm trường riêng (ví dụ `social` thêm
  * `friendStatus` + `isFollowing`) bằng cách `extends CardUser`.
