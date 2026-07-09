@@ -1,10 +1,12 @@
 import React from "react";
 import {
     View,
+    Text,
     StyleSheet,
     Platform,
     Pressable,
     ColorValue,
+    useWindowDimensions,
 } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +19,7 @@ interface TabIconProps {
     color: ColorValue;
     name: React.ComponentProps<typeof Ionicons>["name"];
     focusedName: React.ComponentProps<typeof Ionicons>["name"];
+    isNarrow: boolean;
 }
 
 const TabBarIcon: React.FC<TabIconProps> = ({
@@ -24,9 +27,10 @@ const TabBarIcon: React.FC<TabIconProps> = ({
     color,
     name,
     focusedName,
+    isNarrow,
 }) => {
     return (
-        <View style={styles.iconWrapper}>
+        <View style={[styles.iconWrapper, isNarrow && styles.iconWrapperNarrow]}>
             <Ionicons
                 name={focused ? focusedName : name}
                 size={22}
@@ -38,6 +42,8 @@ const TabBarIcon: React.FC<TabIconProps> = ({
 
 export default function TabsLayout() {
     const insets = useSafeAreaInsets();
+    const { width } = useWindowDimensions();
+    const isNarrow = width < 375;
     
     const isWeb = Platform.OS === "web";
 
@@ -65,11 +71,22 @@ export default function TabsLayout() {
                 tabBarShowLabel: true,
                 tabBarActiveTintColor: colors.accent,
                 tabBarInactiveTintColor: colors.textMuted,
-                tabBarLabelStyle: {
-                    ...typography.caption,
-                    fontFamily: typography.fonts.semiBold,
-                    marginTop: 2,
-                },
+                tabBarLabel: ({ children, color }) => (
+                    <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                        style={{
+                            ...typography.caption,
+                            fontFamily: typography.fonts.semiBold,
+                            fontSize: isNarrow ? 9.5 : 12,
+                            color,
+                            textAlign: "center",
+                        }}
+                    >
+                        {children}
+                    </Text>
+                ),
 
                 tabBarStyle: {
                     backgroundColor: colors.surface,
@@ -87,8 +104,8 @@ export default function TabsLayout() {
                     paddingTop: 2,
                     paddingBottom: finalBottomPadding,
 
-                    // FIX: Add horizontal padding to prevent edge icons from clipping
-                    paddingHorizontal: 16,
+                    // FIX: Add horizontal padding to prevent edge icons from clipping, reduced if narrow
+                    paddingHorizontal: isNarrow ? 4 : 16,
                 },
 
                 tabBarButton: ({
@@ -121,6 +138,7 @@ export default function TabsLayout() {
                             color={color}
                             name="home-outline"
                             focusedName="home"
+                            isNarrow={isNarrow}
                         />
                     ),
                 }}
@@ -135,6 +153,7 @@ export default function TabsLayout() {
                             color={color}
                             name="book-outline"
                             focusedName="book"
+                            isNarrow={isNarrow}
                         />
                     ),
                 }}
@@ -149,6 +168,7 @@ export default function TabsLayout() {
                             color={color}
                             name="clipboard-outline"
                             focusedName="clipboard"
+                            isNarrow={isNarrow}
                         />
                     ),
                 }}
@@ -176,6 +196,7 @@ export default function TabsLayout() {
                             color={color}
                             name="stats-chart-outline"
                             focusedName="stats-chart"
+                            isNarrow={isNarrow}
                         />
                     ),
                 }}
@@ -190,6 +211,7 @@ export default function TabsLayout() {
                             color={color}
                             name="person-outline"
                             focusedName="person"
+                            isNarrow={isNarrow}
                         />
                     ),
                 }}
@@ -206,5 +228,8 @@ const styles = StyleSheet.create({
         width: Platform.OS === "web" ? 72 : 64,
         borderRadius: 16,
         // Removed any system margins that were offsetting icons inside layout views
+    },
+    iconWrapperNarrow: {
+        width: Platform.OS === "web" ? 72 : 48,
     },
 });
