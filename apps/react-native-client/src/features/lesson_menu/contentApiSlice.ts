@@ -7,7 +7,34 @@ export const contentApiSlice = apiSlice.injectEndpoints({
       query: (gradeId) => `/api/content/grade-struct/${gradeId}`, 
       providesTags: ["User"],
     }),
+    getGrades: builder.query<{ grades: any[] }, void>({
+      query: () => `/api/content/grades`,
+      providesTags: ["User"],
+    }),
+    getTopicsByGrade: builder.query<{ topics: any[] }, number>({
+      query: (gradeId) => `/api/content/grades/${gradeId}/topics`,
+      providesTags: ["User"],
+    }),
+    getLessonsByTopic: builder.query<{ lessons: any[] }, number>({
+      query: (topicId) => `/api/content/topics/${topicId}/lessons`,
+      providesTags: ["User"],
+    }),
+    getSectionsByLesson: builder.query<{ sections: any[] }, number>({
+      query: (lessonId) => `/api/content/lessons/${lessonId}/sections`,
+      providesTags: ["User"],
+    }),
+    getNodesBySection: builder.query<{ nodes: any[] }, number>({
+      query: (sectionId) => `/api/content/sections/${sectionId}/nodes`,
+      providesTags: ["User"],
+    }),
   }),
 });
 
-export const { useGetGradeStructureQuery } = contentApiSlice;
+export const {
+  useGetGradeStructureQuery,
+  useGetGradesQuery,
+  useGetTopicsByGradeQuery,
+  useGetLessonsByTopicQuery,
+  useGetSectionsByLessonQuery,
+  useGetNodesBySectionQuery,
+} = contentApiSlice;

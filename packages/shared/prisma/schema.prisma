@@ -189,6 +189,7 @@ model Question {
   topic          Topic?           @relation(fields: [topicId], references: [id])
   testQuestions  TestQuestion[]
   userAnswerLogs UserAnswerLog[]
+  questionMasteries UserQuestionMastery[]
 
   @@map("questions")
 }
@@ -247,6 +248,7 @@ model User {
   testLogs               UserTestLog[]
   tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
   feedbacks              Feedback[]
+  questionMasteries      UserQuestionMastery[]
 
   @@map("users")
 }
@@ -330,6 +332,7 @@ model UserTestLog {
   scoreAwarded          Float?          @map("score_awarded")
   status                TestStatus?     @map("status")
   timeLimit             Int?            @map("time_limit")
+  autoPickStrategy      AutoPickStrategy? @map("auto_pick_strategy")
   answerLogs            UserAnswerLog[]
   rewardLogs            UserRewardLog[]
   generatedFromPreset   TestPreset?     @relation(fields: [generatedFromPresetId], references: [id])
@@ -536,5 +539,22 @@ model Feedback {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("feedbacks")
+}
+
+model UserQuestionMastery {
+  userId             String               @map("user_id")
+  questionId         Int                  @map("question_id")
+  level              Int                  @default(0)
+  consecutiveCorrect Int                  @default(0) @map("consecutive_correct")
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question           Question             @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+  @@map("user_question_mastery")
+}
+
+enum AutoPickStrategy {
+  BALANCED
+  LOW_MASTERY
 }
 

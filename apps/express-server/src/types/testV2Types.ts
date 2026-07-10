@@ -65,6 +65,7 @@ export interface StartTestV2Request {
     scopeId?: number;
     testId?: string;      // for manual/curated test
     presetId?: string;    // optional preset override
+    autoPickStrategy?: string; // BALANCED or LOW_MASTERY
 }
 
 export interface UpdateDraftRequest {
@@ -108,6 +109,7 @@ export interface UserTestLogV2Dto {
     questionSequenceJson: number[];
     draftAnswerJson: DraftAnswerEntry[];
     testTitle?: string | null;
+    autoPickStrategy?: string | null;
     // backward compat
     goldEarned?: number;
     xpEarned?: number;
