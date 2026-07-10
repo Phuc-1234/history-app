@@ -2,89 +2,96 @@ export const colors = {
     // -------------------------------------------------------------
     // Core Brand Colors (Vietnamese History Theme)
     // -------------------------------------------------------------
-    primary: "#6949FF", // Purple primary color
-    primaryHover: "#5132E6",
-    primaryContainer: "#F0EEFF", // Soft purple/indigo for light-themed containers/alerts
+    primary: "#c37938", // Warm copper/terracotta brand accent
+    primaryHover: "#a66228",
+    primaryContainer: "#FAF0E6", // Soft warm cream for containers
 
-    secondary: "#DF9B00", // Warm imperial gold/bronze (star yellow/imperial crown gold)
-    secondaryHover: "#C98B00",
-    secondaryContainer: "#FEF8EB", // Very soft gold for highlighting/achievements
+    secondary: "#E5A93B", // Warm imperial gold
+    secondaryHover: "#C68F2C",
+    secondaryContainer: "#FFF9EE", // Very soft gold highlight
 
-    accent: "#DF9B00", // Alias for gold accent
+    accent: "#c37938", // Alias for brand accent
 
     // -------------------------------------------------------------
     // Layout Backgrounds & Surfaces
     // -------------------------------------------------------------
-    background: "#FFFFFF", // Clean white main page background
-    surface: "#FFFFFF", // Card and container background
-    surfaceVariant: "#F5F6F8", // Off-white / light grey for page sections
-    cardBackground: "#FFFFFF", // Alias for card backgrounds
-    inputBackground: "#F5F6F8", // Light grey fill for input fields
+    background: "#FFFDFB", // Warm off-white / light paper background
+    surface: "#FFFFFF",
+    surfaceVariant: "#F5F6F8", // Neutral light grey
+    cardBackground: "#FFFFFF",
+    inputBackground: "#F2F3F5", // Neutral grey input fill
 
     // -------------------------------------------------------------
     // Typography Hierarchy
     // -------------------------------------------------------------
-    textPrimary: "#1A202C", // High contrast dark color for body & headings
-    textSecondary: "#4A5568", // Medium contrast slate for subtitles/details
-    textMuted: "#718096", // Muted grey for captions, timestamps, and secondary info
-    textPlaceholder: "#A0AEC0", // Faded text for inputs
+    textPrimary: "#2B1D12", // Warm dark brown for high contrast text
+    textSecondary: "#5C4A3C", // Medium brown for secondary text
+    textMuted: "#8C7766", // Muted brownish grey
+    textPlaceholder: "#BDAB9C", // Faded text for inputs
 
     // Legacy mapping (to keep existing / Auth screens fully functional)
-    textLight: "#FFFFFF", // Contrast text on primary/dark backgrounds
-    textDark: "#1A202C", // Contrast text on light/white backgrounds
+    textLight: "#FFFFFF",
+    textDark: "#2B1D12",
 
     // -------------------------------------------------------------
     // System & Feedback Colors (Quizzes, Notifications, Statuses)
     // -------------------------------------------------------------
-    success: "#10B981", // Emerald green for correct answers & success states
-    successContainer: "#ECFDF5", // Light green background
-    textSuccess: "#065F46", // Deep green text for high readability
+    success: "#16A34A", // Brighter green for correctness & success state
+    successContainer: "#EBF5F0",
+    textSuccess: "#134B33",
 
-    error: "#E53E3E", // Red for wrong answers & errors
-    errorContainer: "#FEF2F2", // Light red background
-    textError: "#991B1B", // Deep red text for high readability
+    error: "#C84B31", // Terracotta red for errors/incorrect
+    errorContainer: "#FDF2F0",
+    textError: "#8B2F1D",
 
-    warning: "#F59E0B", // Amber yellow for warnings, missing answers, actions
-    warningContainer: "#FFFBEB", // Light yellow background
-    textWarning: "#B45309", // Deep amber text for high readability
+    warning: "#D49B00", // Gold/Amber warning
+    warningContainer: "#FFFDF0",
+    textWarning: "#8D6600",
 
-    info: "#3182CE", // Blue for info messages & tips
-    infoContainer: "#EBF8FF", // Light blue background
-    textInfo: "#2B6CB0", // Deep blue text
+    info: "#3E7B99", // Historical indigo/blue
+    infoContainer: "#EDF6FA",
+    textInfo: "#245269",
 
     // -------------------------------------------------------------
     // Gamification & Features (Streaks, Rank, Rewards)
     // -------------------------------------------------------------
-    gold: "#FFD700", // Achievement gold
-    silver: "#C0C0C0", // Achievement silver
-    bronze: "#CD7F32", // Achievement bronze
-    streak: "#FF6B00", // Vibrant orange for hot streaks
+    gold: "#FFD700",
+    silver: "#C0C0C0",
+    bronze: "#CD7F32",
+    streak: "#c37938",
 
     // -------------------------------------------------------------
     // Borders, Dividers & Lines
     // -------------------------------------------------------------
-    borderLight: "rgba(0, 0, 0, 0.08)", // Soft border for cards and input boxes on light backgrounds
-    borderMedium: "#E2E8F0", // Standard border color
-    borderDark: "#a89292ff", // High contrast border color
-    divider: "#E2E8F0", // Line separators
+    borderLight: "rgba(195, 121, 56, 0.1)",
+    borderMedium: "#EADFD5",
+    borderDark: "#c37938",
+    divider: "#EADFD5",
 
     // -------------------------------------------------------------
     // Social Authentication Integrations
     // -------------------------------------------------------------
-    googleBorder: "#E2E8F0",
+    googleBorder: "#EADFD5",
     facebookBackground: "#1877F2",
     facebookText: "#FFFFFF",
+
+    // -------------------------------------------------------------
+    // Social Feature Accents (friends / followers / following)
+    // -------------------------------------------------------------
+    socialFriends: "#3182CE", // Blue — friends stat/tab
+    socialFollowers: "#FF6B00", // Orange — followers stat/tab
+    socialFollowing: "#10B981", // Green — following stat/tab
 
     // -------------------------------------------------------------
     // Match Questions Matching Cells
     // -------------------------------------------------------------
     matchColors: [
-        { bg: "#EFF6FF", border: "#3B82F6", text: "#1E40AF" }, // Blue
-        { bg: "#ECFDF5", border: "#10B981", text: "#065F46" }, // Green
-        { bg: "#FFFBEB", border: "#F59E0B", text: "#78350F" }, // Yellow/Amber
-        { bg: "#FAF5FF", border: "#A855F7", text: "#5B21B6" }, // Purple
-        { bg: "#FEF2F2", border: "#EF4444", text: "#991B1B" }, // Red
-        { bg: "#FFF7ED", border: "#F97316", text: "#7C2D12" }, // Orange
+        { bg: "#FFF9EE", border: "#E5A93B", text: "#8D6600" }, // Gold
+        { bg: "#FDF2F0", border: "#c37938", text: "#8B2F1D" }, // Terracotta
+        { bg: "#EBF5F0", border: "#1E6B4B", text: "#134B33" }, // Green
+        { bg: "#EDF6FA", border: "#3E7B99", text: "#245269" }, // Blue
+        { bg: "#FAF0E6", border: "#8D5A32", text: "#5C3516" }, // Copper
+        { bg: "#F4F0FA", border: "#8C6BAF", text: "#4C326B" }, // Purple
     ],
 };
 

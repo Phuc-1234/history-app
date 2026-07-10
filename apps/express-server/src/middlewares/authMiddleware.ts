@@ -125,7 +125,7 @@ export const requireStudent = async (
 
     // For a 403 Forbidden, you might want a generic fallback type,
     // or to update Response to handle authorization errors too.
-    if (req.user.role !== "STUDENT") {
+    if (req.user.role !== "STUDENT" && req.user.role !== "ADMIN" && req.user.role !== "SUPER_ADMIN" as any) {
         return res.status(403).json({
             error: "Access forbidden. Student status required.",
             code: "TOKEN_INVALID",

@@ -1,19 +1,31 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
   StatusBar,
-  Image,
   ActivityIndicator,
   TextInput,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
+import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
+import typography from "@/theme/typography";
+import { Card } from "@/components/Card";
 import { useGetNationalTestsQuery } from "@/features/test_v2/services/testApi";
+import {
+  BookOpen,
+  FileText,
+  GraduationCap,
+  Trophy,
+  Award,
+  Compass,
+  History,
+  School,
+} from "lucide-react-native";
 
 const VIBRANT_COLORS = [
   "#E11D48", // Rose
@@ -26,21 +38,22 @@ const VIBRANT_COLORS = [
   "#4F46E5", // Indigo
 ];
 
-const CARD_IMAGES = [
-  "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=150&auto=format&fit=crop&q=80",
+const CARD_ICONS = [
+  BookOpen,
+  FileText,
+  GraduationCap,
+  Trophy,
+  Award,
+  Compass,
+  History,
+  School,
 ];
 
 export const NationalTestsView: React.FC = () => {
   const router = useRouter();
-  const { data: tests, isLoading, error } = useGetNationalTestsQuery();
+  const { data: tests, isLoading, error, refetch, isFetching } = useGetNationalTestsQuery();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const handleTestPress = (id: string) => {
     router.push({
@@ -55,7 +68,7 @@ export const NationalTestsView: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
       <View style={styles.header}>
@@ -64,18 +77,31 @@ export const NationalTestsView: React.FC = () => {
 
       <View style={styles.searchContainer}>
         <TextInput
-          style={styles.searchInput}
+          style={[
+            styles.searchInput,
+            isSearchFocused && styles.searchInputFocused
+          ]}
           placeholder="Tìm kiếm đề thi..."
           placeholderTextColor={colors.textPlaceholder}
           value={searchQuery}
           onChangeText={setSearchQuery}
           underlineColorAndroid="transparent"
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => setIsSearchFocused(false)}
         />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={refetch}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         {isLoading ? (
           <View style={styles.centerContainer}>
@@ -94,17 +120,24 @@ export const NationalTestsView: React.FC = () => {
         ) : (
           filteredTests.map((item, index) => {
             const cardBgColor = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
+            const IconComponent = CARD_ICONS[index % CARD_ICONS.length];
             return (
-              <TouchableOpacity
+              <Card
                 key={item.id}
                 activeOpacity={0.8}
                 onPress={() => handleTestPress(item.id)}
-                style={[styles.testCard, { backgroundColor: cardBgColor }]}
+                style={[
+                  styles.testCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.borderMedium,
+                  },
+                ]}
               >
-                <Image
-                  source={{ uri: CARD_IMAGES[index % CARD_IMAGES.length] }}
-                  style={styles.cardImage}
-                />
+                <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant }]}>
+                  <IconComponent size={28} color={cardBgColor} />
+                </View>
                 <View style={styles.cardContent}>
                   <Text style={styles.cardTitle} numberOfLines={2}>
                     {item.title}
@@ -115,12 +148,12 @@ export const NationalTestsView: React.FC = () => {
                     </Text>
                   ) : null}
                 </View>
-              </TouchableOpacity>
+              </Card>
             );
           })
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
@@ -136,8 +169,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
+    fontFamily: typography.fonts.bold,
     fontSize: 24,
-    fontWeight: "600",
     color: colors.textPrimary,
     textAlign: "center",
   },
@@ -146,13 +179,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   searchInput: {
+    fontFamily: typography.fonts.light,
     height: 48,
     backgroundColor: colors.inputBackground,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 14,
-    fontWeight: "300",
     color: colors.textPrimary,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  searchInputFocused: {
+    borderColor: colors.accent,
   },
   scrollContent: {
     paddingHorizontal: 24,
@@ -166,41 +204,41 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   errorText: {
+    fontFamily: typography.fonts.light,
     color: colors.error,
     fontSize: 14,
-    fontWeight: "300",
   },
   emptyText: {
+    fontFamily: typography.fonts.light,
     color: colors.textSecondary,
     fontSize: 14,
-    fontWeight: "300",
   },
   testCard: {
-    borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     flexDirection: "row",
     alignItems: "center",
   },
-  cardImage: {
+  iconContainer: {
     width: 64,
     height: 64,
     borderRadius: 8,
     marginRight: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   cardContent: {
     flex: 1,
   },
   cardTitle: {
+    fontFamily: typography.fonts.bold,
     fontSize: 16,
-    fontWeight: "500",
-    color: "#FFFFFF",
+    color: colors.accent,
     marginBottom: 4,
   },
   cardSummary: {
+    fontFamily: typography.fonts.regular,
     fontSize: 12,
-    fontWeight: "300",
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "#000000",
   },
 });

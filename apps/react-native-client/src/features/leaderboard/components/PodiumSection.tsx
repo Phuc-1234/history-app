@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 interface PodiumSectionProps {
     topUsers: DisplayUser[];
@@ -23,7 +24,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             <View style={styles.podiumColumn}>
                 <View style={styles.avatarWrapper}>
                     <Image
-                        source={{ uri: topUsers[0].avatar }}
+                        source={{ uri: topUsers[1].avatar }}
                         style={styles.podiumAvatar}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank2Badge]}>
@@ -31,12 +32,12 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     </View>
                 </View>
                 <Text style={styles.podiumName} numberOfLines={1}>
-                    {topUsers[0].name}
+                    {topUsers[1].name}
                 </Text>
                 <Text style={styles.rank2Xp}>
                     {showStreak
-                        ? `🔥 ${topUsers[0].streak} ngày`
-                        : `${topUsers[0].xp.toLocaleString()} XP`}
+                        ? `🔥 ${topUsers[1].streak} ngày`
+                        : `${topUsers[1].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank2Base]} />
             </View>
@@ -46,7 +47,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                 <Text style={styles.crownIcon}>👑</Text>
                 <View style={styles.avatarWrapper}>
                     <Image
-                        source={{ uri: topUsers[1].avatar }}
+                        source={{ uri: topUsers[0].avatar }}
                         style={[styles.podiumAvatar, styles.rank1Avatar]}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank1Badge]}>
@@ -57,12 +58,12 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     style={[styles.podiumName, styles.rank1Name]}
                     numberOfLines={1}
                 >
-                    {topUsers[1].name}
+                    {topUsers[0].name}
                 </Text>
                 <Text style={styles.rank1Xp}>
                     {showStreak
-                        ? `🔥 ${topUsers[1].streak} ngày`
-                        : `${topUsers[1].xp.toLocaleString()} XP`}
+                        ? `🔥 ${topUsers[0].streak} ngày`
+                        : `${topUsers[0].xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank1Base]} />
             </View>
@@ -146,38 +147,42 @@ const createStyles = (isSmallDevice: boolean) =>
         rank1Badge: { backgroundColor: colors.secondary },
         rank2Badge: { backgroundColor: colors.success },
         rank3Badge: { backgroundColor: colors.primary },
-        rankNumberText: { color: colors.textLight, fontSize: 11, fontWeight: "700" },
+        rankNumberText: { 
+            fontFamily: typography.fonts.bold,
+            color: colors.textLight, 
+            fontSize: 11 
+        },
         podiumName: {
+            fontFamily: typography.fonts.medium,
             marginTop: 10,
             color: colors.textPrimary,
             fontSize: isSmallDevice ? 11 : 12,
-            fontWeight: "500",
             textAlign: "center",
         },
         rank1Name: {
+            fontFamily: typography.fonts.medium,
             fontSize: isSmallDevice ? 15 : 16,
-            fontWeight: "500",
             marginTop: 12,
         },
         rank1Xp: {
+            fontFamily: typography.fonts.bold,
             fontSize: isSmallDevice ? 13 : 14,
-            fontWeight: "700",
             color: colors.secondary,
             marginTop: 3,
             marginBottom: 8,
             textAlign: "center",
         },
         rank2Xp: {
+            fontFamily: typography.fonts.semiBold,
             fontSize: isSmallDevice ? 11 : 12,
-            fontWeight: "600",
             color: colors.success,
             marginTop: 4,
             marginBottom: 8,
             textAlign: "center",
         },
         rank3Xp: {
+            fontFamily: typography.fonts.semiBold,
             fontSize: isSmallDevice ? 11 : 12,
-            fontWeight: "600",
             color: colors.primary,
             marginTop: 4,
             marginBottom: 8,

@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 interface ProfileMenuItemProps {
     icon: keyof typeof Ionicons.glyphMap;
@@ -38,9 +39,9 @@ const styles = StyleSheet.create({
         marginRight: 14,
     },
     label: {
+        fontFamily: typography.fonts.regular,
         flex: 1,
         fontSize: 15,
-        fontWeight: "600",
         color: colors.textPrimary,
     },
 });

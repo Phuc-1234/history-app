@@ -2,6 +2,8 @@
 // Android-style toast notification — reusable across the app
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, Platform } from "react-native";
+import colors from "../theme/colors";
+import typography from "../theme/typography";
 
 interface ToastProps {
     message: string;
@@ -47,23 +49,17 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 80,
         alignSelf: "center",
-        backgroundColor: "rgba(30,30,30,0.88)",
+        backgroundColor: "rgba(43, 29, 18, 0.9)", // Semi-transparent textPrimary
         paddingHorizontal: 20,
         paddingVertical: 10,
-        borderRadius: 24,
+        borderRadius: 30,
         maxWidth: "80%",
         zIndex: 9999,
-        // Android style shadow
-        elevation: 8,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
     },
     text: {
-        color: "#FFF",
+        fontFamily: typography.fonts.medium,
+        color: colors.textLight,
         fontSize: 14,
-        fontWeight: "500",
         textAlign: "center",
         lineHeight: 20,
     },

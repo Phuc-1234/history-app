@@ -9,15 +9,52 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { store, persistor } from "../store/store";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GlobalSessionModal } from "../components/GlobalSessionModal";
+import messaging from "@react-native-firebase/messaging";
+import { useNotification } from "../features/notification";
+
+import { useFonts } from "expo-font";
+
+// Register background handler for Firebase Cloud Messaging (Android)
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+    console.log("Message handled in the background!", remoteMessage);
+});
 
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+    // Initialize push notifications configuration and listeners
+    useNotification();
+
+    const [fontsLoaded, fontError] = useFonts({
+        "Nunito-Black": require("../../assets/fonts/Nunito-Black.ttf"),
+        "Nunito-BlackItalic": require("../../assets/fonts/Nunito-BlackItalic.ttf"),
+        "Nunito-Bold": require("../../assets/fonts/Nunito-Bold.ttf"),
+        "Nunito-BoldItalic": require("../../assets/fonts/Nunito-BoldItalic.ttf"),
+        "Nunito-ExtraBold": require("../../assets/fonts/Nunito-ExtraBold.ttf"),
+        "Nunito-ExtraBoldItalic": require("../../assets/fonts/Nunito-ExtraBoldItalic.ttf"),
+        "Nunito-ExtraLight": require("../../assets/fonts/Nunito-ExtraLight.ttf"),
+        "Nunito-ExtraLightItalic": require("../../assets/fonts/Nunito-ExtraLightItalic.ttf"),
+        "Nunito-Italic": require("../../assets/fonts/Nunito-Italic.ttf"),
+        "Nunito-Light": require("../../assets/fonts/Nunito-Light.ttf"),
+        "Nunito-LightItalic": require("../../assets/fonts/Nunito-LightItalic.ttf"),
+        "Nunito-Medium": require("../../assets/fonts/Nunito-Medium.ttf"),
+        "Nunito-MediumItalic": require("../../assets/fonts/Nunito-MediumItalic.ttf"),
+        "Nunito-Regular": require("../../assets/fonts/Nunito-Regular.ttf"),
+        "Nunito-SemiBold": require("../../assets/fonts/Nunito-SemiBold.ttf"),
+        "Nunito-SemiBoldItalic": require("../../assets/fonts/Nunito-SemiBoldItalic.ttf"),
+    });
+
     useEffect(() => {
-        // Hide the native launch screen once everything mounts up fully
-        SplashScreen.hideAsync();
-    }, []);
+        if (fontsLoaded || fontError) {
+            // Hide the native launch screen once everything mounts up fully and fonts are loaded
+            SplashScreen.hideAsync();
+        }
+    }, [fontsLoaded, fontError]);
+
+    if (!fontsLoaded && !fontError) {
+        return <LoadingFallback />;
+    }
 
     return (
         // 2. Wrap your entire application context tree

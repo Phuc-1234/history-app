@@ -1,5 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 
 interface FlashcardProgressProps {
     total: number;
@@ -51,18 +53,16 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     progressLabel: {
-        fontSize: 14,
-        fontWeight: "500",
-        color: "#8E8E93",
+        ...typography.bodyMediumMedium,
+        color: colors.textMuted,
     },
     progressCount: {
-        fontSize: 16,
-        fontWeight: "800",
-        color: "#1C1C1E",
+        ...typography.bodyLargeBold,
+        color: colors.textPrimary,
     },
     totalCount: {
-        color: "#8E8E93",
-        fontWeight: "500",
+        ...typography.bodyMedium,
+        color: colors.textMuted,
     },
     segmentsContainer: {
         flexDirection: "row",
@@ -77,9 +77,9 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     segmentCompleted: {
-        backgroundColor: "#5856D6", // Matches brand color (blue/purple)
+        backgroundColor: colors.primary,
     },
     segmentPending: {
-        backgroundColor: "#E5E5EA", // Light grey
+        backgroundColor: colors.borderMedium,
     },
 });

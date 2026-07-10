@@ -14,15 +14,16 @@ import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 import colors from "../../../theme/colors";
+import typography from "../../../theme/typography";
 import Mascot from "../../../components/Mascot";
 import HistoricalBackground from "../../../components/layout/HistoricalBackground";
 
 const text = {
     headline: "Xác thực OTP",
     sent: "Mã xác thực đã được gửi tới",
-    enter: "Nhập mã OTP",
+    
     subtitle: (length: number) =>
-        `Vui lòng nhập mã OTP gồm ${length} số để đặt lại mật khẩu của bạn.`,
+        `Vui lòng nhập mã OTP gồm ${length} số \n để đặt lại mật khẩu của bạn.`,
     confirm: "Xác thực",
     confirming: "Đang xác thực...",
     noCode: "Chưa nhận được mã?",
@@ -103,7 +104,7 @@ export default function ForgotPasswordOtpScreen({
 
                     {/* Form Container */}
                     <View style={styles.formContainer}>
-                        <Text style={styles.cardTitle}>{text.enter}</Text>
+                       
                         <Text style={styles.cardSubtitle}>
                             {text.subtitle(length)}
                         </Text>
@@ -199,34 +200,32 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     headlineText: {
-        color: colors.textDark,
-        fontSize: 28,
-        fontWeight: "800",
+        ...typography.h2,
+        color: colors.accent,
         textAlign: "center",
         marginBottom: 8,
     },
     subText: {
+        ...typography.bodyMediumMedium,
         color: colors.textMuted,
-        fontSize: 15,
         lineHeight: 22,
         textAlign: "center",
     },
     emailText: {
+        ...typography.bodyMediumBold,
         color: colors.primary,
-        fontWeight: "700",
     },
     formContainer: {
     },
     cardTitle: {
+        ...typography.h3,
         color: colors.textDark,
-        fontSize: 20,
-        fontWeight: "700",
         textAlign: "center",
         marginBottom: 6,
     },
     cardSubtitle: {
+        ...typography.bodyMedium,
         color: colors.textMuted,
-        fontSize: 14,
         textAlign: "center",
         marginBottom: 16,
     },
@@ -253,9 +252,8 @@ const styles = StyleSheet.create({
         color: colors.textDark,
     },
     errorText: {
+        ...typography.bodySmallSemiBold,
         color: colors.textError,
-        fontSize: 13,
-        fontWeight: "600",
         textAlign: "center",
         marginBottom: 16,
     },
@@ -273,9 +271,8 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     primaryText: {
+        ...typography.bodyLargeBold,
         color: colors.textLight,
-        fontSize: 16,
-        fontWeight: "800",
     },
     disabled: {
         opacity: 0.6,
@@ -288,12 +285,11 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     resendText: {
+        ...typography.bodyMedium,
         color: colors.textMuted,
-        fontSize: 15,
     },
     resendLink: {
+        ...typography.bodyMediumBold,
         color: colors.primary,
-        fontSize: 15,
-        fontWeight: "700",
     },
 });

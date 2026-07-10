@@ -41,40 +41,102 @@ function scoreChoose(
 
     // Multi choice
     const totalOptions = answerData.options.length;
-    const partialTable4 = [0, 0.1, 0.2, 0.5, 1.0];
-    // For N>4: extend with 0.1, 0.2, 0.75, 1.0, 1.25, ...
-    function getMaxScore(n: number): number {
-        if (n <= 4) return partialTable4[n] ?? 1.0;
-        // For N>4 the max is the Nth entry
-        return 1.0 + (n - 4) * 0.25;
-    }
-
-    function getPartialScore(n: number, hits: number): number {
-        if (hits <= 0) return 0;
-        if (n <= 4) return partialTable4[Math.min(hits, n)] ?? 0;
-        // Extended table
-        const table = [0, 0.1, 0.2, 0.75, 1.0];
-        if (hits <= 4) return table[hits] ?? 0;
-        return 1.0 + (hits - 4) * 0.25;
-    }
-
-    const maxScore = getMaxScore(totalOptions);
+    const maxScore = totalOptions === 0 ? 0 : Math.max(0.25, Math.floor(totalOptions / 2) * 0.25);
 
     if (!userAnswer || !userAnswer.selectedOptions?.length) {
         return { scoreAwarded: 0, maxScore };
     }
 
-    // Each option is a true/false decision
-    let correctHits = 0;
-    for (let idx = 0; idx < totalOptions; idx++) {
-        const isCorrectOption = answerData.correctOption.includes(idx);
-        const isSelectedByUser = userAnswer.selectedOptions.includes(idx);
-        if (isCorrectOption === isSelectedByUser) {
-            correctHits++;
+    const incorrectCount = totalOptions - correctCount;
+    let score = 0;
+    const correctScorePerItem = correctCount > 0 ? maxScore / correctCount : 0;
+    const incorrectPenaltyPerItem = incorrectCount > 0 ? maxScore / incorrectCount : 0;
+
+    for (const optionIdx of userAnswer.selectedOptions) {
+        if (answerData.correctOption.includes(optionIdx)) {
+            score += correctScorePerItem;
+        } else {
+            score -= incorrectPenaltyPerItem;
         }
     }
 
-    return { scoreAwarded: getPartialScore(totalOptions, correctHits), maxScore };
+    const scoreAwarded = Math.max(0, Math.round(score * 10000) / 10000);
+    return { scoreAwarded, maxScore };
+}
+
+function getLevenshteinDistance(a: string, b: string): number {
+    const matrix: number[][] = [];
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+function normalizeText(str: string): string {
+    return str
+        .toLowerCase()
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'’‘“”\[\]{}]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function extractNumbers(str: string): number[] {
+    const matches = str.match(/\d+/g);
+    if (!matches) return [];
+    return matches.map(Number);
+}
+
+function isFillAnswerCorrect(acceptedAnswers: string[], typedAnswer: string): boolean {
+    if (!typedAnswer.trim()) return false;
+
+    const userNormalized = normalizeText(typedAnswer);
+    const userNums = extractNumbers(typedAnswer);
+
+    for (const accepted of acceptedAnswers) {
+        const acceptedNormalized = normalizeText(accepted);
+        const acceptedNums = extractNumbers(accepted);
+
+        const numbersMatch =
+            userNums.length === acceptedNums.length &&
+            userNums.every((num, idx) => num === acceptedNums[idx]);
+
+        if (!numbersMatch) continue;
+
+        const wordCount = acceptedNormalized.split(/\s+/).filter(Boolean).length;
+        let allowedTypos = 0;
+        if (wordCount === 1) {
+            allowedTypos = 0;
+        } else if (wordCount === 2) {
+            allowedTypos = 1;
+        } else if (wordCount >= 3 && wordCount <= 5) {
+            allowedTypos = 2;
+        } else if (wordCount >= 6) {
+            allowedTypos = 3;
+        }
+
+        const distance = getLevenshteinDistance(userNormalized, acceptedNormalized);
+        if (distance <= allowedTypos) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function scoreFill(
@@ -85,10 +147,7 @@ function scoreFill(
     if (!userAnswer || !userAnswer.typedAnswer?.trim()) {
         return { scoreAwarded: 0, maxScore };
     }
-    const userText = userAnswer.typedAnswer.trim().toLowerCase();
-    const isCorrect = answerData.acceptedAnswers.some(
-        (accepted) => accepted.trim().toLowerCase() === userText,
-    );
+    const isCorrect = isFillAnswerCorrect(answerData.acceptedAnswers, userAnswer.typedAnswer);
     return { scoreAwarded: isCorrect ? maxScore : 0, maxScore };
 }
 
@@ -96,16 +155,15 @@ function scoreMatch(
     answerData: MatchAnswerData,
     userAnswer: UserMatchAnswer | null,
 ): { scoreAwarded: number; maxScore: number } {
-    const maxScore = 1.0;
     const totalPairs = answerData.pairs.length;
-    if (totalPairs === 0) return { scoreAwarded: 0, maxScore };
+    if (totalPairs === 0) return { scoreAwarded: 0, maxScore: 0 };
+    const maxScore = Math.max(0.25, Math.floor(totalPairs / 2) * 0.25);
 
     if (!userAnswer || !userAnswer.pairs?.length) {
         return { scoreAwarded: 0, maxScore };
     }
 
-    const perPair = maxScore / totalPairs;
-    let score = 0;
+    let correctCount = 0;
 
     for (const rawPair of answerData.pairs) {
         let correctLeft = "";
@@ -131,11 +189,12 @@ function scoreMatch(
             userPair.right?.trim().toLowerCase() ===
                 correctRight.trim().toLowerCase()
         ) {
-            score += perPair;
+            correctCount++;
         }
     }
 
-    return { scoreAwarded: Math.round(score * 10000) / 10000, maxScore };
+    const scoreAwarded = correctCount === totalPairs ? maxScore : 0;
+    return { scoreAwarded, maxScore };
 }
 
 /**

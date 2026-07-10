@@ -1,31 +1,132 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
+import { Card } from "../../../components/Card";
 
-export const RankingList = ({ rankingList, currentUserId, showStreak }: any) => {
+interface RankingListProps {
+    rankingList: DisplayUser[];
+    isSmallDevice: boolean;
+    showStreak?: boolean;
+    myUserId?: string | number;
+}
+
+export const RankingList: React.FC<RankingListProps> = ({
+    rankingList,
+    isSmallDevice,
+    showStreak = false,
+    myUserId,
+}) => {
+    const styles = createStyles(isSmallDevice);
+
     return (
         <View style={styles.listContainer}>
-            {rankingList?.map((item: any, index: number) => {
-                const isMe = item.id === currentUserId;
+            {rankingList.map((item, index) => {
+                const hasAvatar = item.avatar && item.avatar.trim() !== "";
+                const isMe = String(item.id) === String(myUserId);
+                if (String(item.id) === String(myUserId)) {
+                    console.log("Dữ liệu của tôi trong rankingList:", item);
+                }
+
                 return (
-                    <View key={item.id} style={[styles.rankRow, isMe && styles.meRow]}>
-                        <Text style={styles.rowPosition}>{index + 4}</Text>
-                        <View style={styles.rowAvatar} />
-                        <Text style={styles.rowName}>{item.name}</Text>
-                        <Text style={styles.rowXp}>{showStreak ? `🔥 ${item.streak}` : `${item.xp} XP`}</Text>
-                    </View>
+                    <Card key={item.id} style={[styles.rankRow, isMe && styles.meRow]}>
+                        {/* Hạng */}
+                        <Text style={[styles.rowPosition, isMe && styles.meText]}>
+                            {index + 4}
+                        </Text>
+
+                        {/* Avatar */}
+                        {hasAvatar ? (
+                            <Image
+                                source={{ uri: item.avatar }}
+                                style={styles.rowAvatar}
+                            />
+                        ) : (
+                            <View style={[styles.rowDefaultAvatar, isMe && styles.meDefaultAvatar]}>
+                                <Text style={[styles.rowDefaultAvatarText, isMe && styles.meText]}>
+                                    {item.name ? item.name.charAt(0).toUpperCase() : "?"}
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Tên */}
+                        <Text style={[styles.rowName, isMe && styles.meText]} numberOfLines={1}>
+                            {item.name}
+                        </Text>
+
+                        {/* XP hoặc Chuỗi */}
+                        <Text style={[styles.rowXp, isMe && styles.meText]}>
+                            {showStreak
+                                ? `🔥 ${item.streak} ngày`
+                                : `${item.xp.toLocaleString()} XP`}
+                        </Text>
+                    </Card>
                 );
             })}
         </View>
     );
 };
 
-const styles = StyleSheet.create({
-    listContainer: { marginTop: 20 },
-    rankRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.primary, borderRadius: 20, padding: 16, marginBottom: 14 },
-    meRow: { borderWidth: 2, borderColor: '#FFD700' }, 
-    rowPosition: { fontSize: 15, color: colors.textLight, width: 22 },
-    rowAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceVariant, marginHorizontal: 14 },
-    rowName: { flex: 1, color: colors.textLight },
-    rowXp: { color: colors.textLight, fontWeight: "700" }
-});
+const createStyles = (isSmallDevice: boolean) =>
+    StyleSheet.create({
+        listContainer: { marginTop: 34 },
+        rankRow: {
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.borderMedium,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            marginBottom: 14,
+        },
+        meRow: { 
+            backgroundColor: colors.primaryContainer, 
+            borderWidth: 1.5, 
+            borderColor: colors.accent,
+        },
+        rowPosition: {
+            fontFamily: typography.fonts.bold,
+            width: 22,
+            marginRight: 10,
+            fontSize: 15,
+            color: colors.textPrimary,
+        },
+        rowAvatar: {
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            marginRight: 14,
+            backgroundColor: colors.surfaceVariant,
+        },
+        rowDefaultAvatar: {
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            marginRight: 14,
+            backgroundColor: colors.primaryContainer,
+            justifyContent: "center",
+            alignItems: "center",
+        },
+        meDefaultAvatar: { backgroundColor: colors.borderMedium },
+        rowDefaultAvatarText: {
+            fontFamily: typography.fonts.bold,
+            color: colors.primary,
+            fontSize: 16,
+        },
+        rowName: {
+            fontFamily: typography.fonts.medium,
+            flex: 1,
+            fontSize: isSmallDevice ? 14 : 15,
+            color: colors.textPrimary,
+            marginRight: 8,
+        },
+        rowXp: {
+            fontFamily: typography.fonts.bold,
+            fontSize: isSmallDevice ? 14 : 15,
+            color: colors.textSecondary,
+        },
+        meText: {
+            color: colors.accent,
+        },
+    });

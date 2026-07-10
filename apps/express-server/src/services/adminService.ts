@@ -132,6 +132,7 @@ export class AdminService {
                 ...(data.name !== undefined && { name: data.name }),
                 ...(data.summary !== undefined && { summary: data.summary }),
                 ...(data.position !== undefined && { position: data.position }),
+                ...(data.topicId !== undefined && { topicId: data.topicId }),
             },
         });
         return {
@@ -228,6 +229,7 @@ export class AdminService {
                 header: data.header ?? null,
                 body: data.body,
                 imgUrl: data.imgUrl ?? null,
+                videoId: data.videoId ?? null,
                 sectionId: data.sectionId,
             },
         });
@@ -237,6 +239,7 @@ export class AdminService {
             header: node.header ?? null,
             body: node.body,
             imgUrl: node.imgUrl ?? null,
+            videoId: node.videoId,
             sectionId: node.sectionId,
         };
     }
@@ -255,6 +258,8 @@ export class AdminService {
                 ...(data.header !== undefined && { header: data.header }),
                 ...(data.body !== undefined && { body: data.body }),
                 ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
+                ...(data.videoId !== undefined && { videoId: data.videoId }),
+                ...(data.sectionId !== undefined && { sectionId: data.sectionId }),
             },
         });
         return {
@@ -263,6 +268,7 @@ export class AdminService {
             header: node.header ?? null,
             body: node.body,
             imgUrl: node.imgUrl ?? null,
+            videoId: node.videoId,
             sectionId: node.sectionId,
         };
     }
@@ -374,15 +380,15 @@ export class AdminService {
         }));
     }
 
-    async createVideo(data: CreateVideoBody): Promise<AdminVideoDto> {
+    async createVideo(data: CreateVideoBody & { status?: any }): Promise<AdminVideoDto> {
         const video = await prisma.video.create({
             data: {
                 title: data.title,
-                position: data.position,
+                position: data.position ?? 0,
                 summary: data.summary ?? null,
                 hlsUrl: data.hlsUrl,
                 lessonId: data.lessonId,
-                status: "READY",
+                status: data.status ?? "READY",
             },
         });
         return {

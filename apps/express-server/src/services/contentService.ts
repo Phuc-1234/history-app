@@ -1,5 +1,7 @@
 // services/contentService.ts
 import { prisma } from "@history-app/shared";
+import { Prisma } from "@prisma/client";
+import { expandScopeToQuestionWhere } from "./testServiceV2";
 import {
     SectionDto,
     NodeDto,
@@ -25,27 +27,67 @@ type SectionWithProgress = SectionDto & {
 };
 
 export class ContentService {
-    async getAllGrades(): Promise<GradeDto[]> {
+    async getMasteryPercentage(
+        userId: string | null | undefined,
+        scopeType: string,
+        scopeId: number,
+    ): Promise<number | null> {
+        if (!userId) return null;
+
+        const where = await expandScopeToQuestionWhere(scopeType, scopeId);
+        const questions = await prisma.question.findMany({
+            where: { ...where, isActive: true, answerDataJson: { not: Prisma.DbNull } },
+            select: { id: true },
+        });
+
+        if (questions.length === 0) return null;
+
+        const questionIds = questions.map((q) => q.id);
+
+        const masteries = await prisma.userQuestionMastery.findMany({
+            where: {
+                userId,
+                questionId: { in: questionIds },
+            },
+            select: { level: true },
+        });
+
+        const totalLevel = masteries.reduce((sum, m) => sum + m.level, 0);
+        const maxPossibleLevel = questionIds.length * 5;
+
+        return Math.round((totalLevel / maxPossibleLevel) * 100);
+    }
+
+    async getAllGrades(userId?: string | null): Promise<GradeDto[]> {
         const grades = await prisma.grade.findMany({
             select: { id: true, state: true },
         });
-        return grades.map((g) => ({ id: g.id, state: g.state }));
+        return Promise.all(
+            grades.map(async (g) => ({
+                id: g.id,
+                state: g.state,
+                masteryPercentage: userId ? await this.getMasteryPercentage(userId, "GRADE", g.id) : null,
+            }))
+        );
     }
 
-    async getTopicsByGrade(gradeId: number): Promise<TopicDto[]> {
+    async getTopicsByGrade(gradeId: number, userId?: string | null): Promise<TopicDto[]> {
         const topics = await prisma.topic.findMany({
             where: { gradeId },
             select: { id: true, name: true, position: true, gradeId: true },
         });
-        return topics.map((t) => ({
-            id: t.id,
-            name: t.name,
-            position: t.position,
-            gradeId: t.gradeId,
-        }));
+        return Promise.all(
+            topics.map(async (t) => ({
+                id: t.id,
+                name: t.name,
+                position: t.position,
+                gradeId: t.gradeId,
+                masteryPercentage: userId ? await this.getMasteryPercentage(userId, "TOPIC", t.id) : null,
+            }))
+        );
     }
 
-    async getLessonsByTopic(topicId: number): Promise<LessonDto[]> {
+    async getLessonsByTopic(topicId: number, userId?: string | null): Promise<LessonDto[]> {
         const lessons = await prisma.lesson.findMany({
             where: { topicId },
             select: {
@@ -56,16 +98,19 @@ export class ContentService {
                 topicId: true,
             },
         });
-        return lessons.map((l) => ({
-            id: l.id,
-            name: l.name,
-            summary: l.summary ?? null,
-            position: l.position,
-            topicId: l.topicId,
-        }));
+        return Promise.all(
+            lessons.map(async (l) => ({
+                id: l.id,
+                name: l.name,
+                summary: l.summary ?? null,
+                position: l.position,
+                topicId: l.topicId,
+                masteryPercentage: userId ? await this.getMasteryPercentage(userId, "LESSON", l.id) : null,
+            }))
+        );
     }
 
-    async getSectionsByLesson(lessonId: number): Promise<SectionDto[]> {
+    async getSectionsByLesson(lessonId: number, userId?: string | null): Promise<SectionDto[]> {
         const sections = await prisma.section.findMany({
             where: { lessonId },
             select: {
@@ -108,22 +153,35 @@ export class ContentService {
             }
         }
 
+        // Recursively apply mastery percentages
+        const applyMastery = async (s: SectionDto) => {
+            s.masteryPercentage = userId ? await this.getMasteryPercentage(userId, "SECTION", s.id) : null;
+            if (s.children) {
+                await Promise.all(s.children.map(applyMastery));
+            }
+        };
+
+        await Promise.all(roots.map(applyMastery));
         return roots;
     }
 
-    async getNodesBySection(sectionId: number): Promise<NodeDto[]> {
+    async getNodesBySection(sectionId: number, userId?: string | null): Promise<NodeDto[]> {
         const nodes = await prisma.node.findMany({
             where: { sectionId },
             orderBy: { position: "asc" },
         });
-        return nodes.map((n) => ({
-            id: n.id,
-            position: n.position,
-            header: n.header,
-            body: n.body,
-            imgUrl: n.imgUrl ?? null,
-            sectionId: n.sectionId ?? null,
-        }));
+        return Promise.all(
+            nodes.map(async (n) => ({
+                id: n.id,
+                position: n.position,
+                header: n.header,
+                body: n.body,
+                imgUrl: n.imgUrl ?? null,
+                videoId: n.videoId ?? null,
+                sectionId: n.sectionId ?? null,
+                masteryPercentage: userId ? await this.getMasteryPercentage(userId, "NODE", n.id) : null,
+            }))
+        );
     }
 
     async getLessonTree(
@@ -177,8 +235,10 @@ export class ContentService {
                 header: true,
                 body: true,
                 imgUrl: true,
+                videoId: true,
                 sectionId: true,
             },
+            orderBy: { position: "asc" },
         });
 
         // 2b. Fetch user progress if logged in
@@ -219,6 +279,7 @@ export class ContentService {
                 header: n.header,
                 body: n.body,
                 imgUrl: n.imgUrl ?? null,
+                videoId: n.videoId ?? null,
                 sectionId: n.sectionId ?? null,
                 isComplete: completedNodeIds.has(n.id),
             };
@@ -503,11 +564,6 @@ export class ContentService {
         gradeId: number,
         userId?: string | null,
     ): Promise<GradeStructureDto & { progress?: ProgressCounts | null }> {
-        const gradeTest = await prisma.test.findFirst({
-            where: { gradeId },
-            orderBy: { id: "asc" },
-        });
-
         const topics = await prisma.topic.findMany({
             where: { gradeId },
             orderBy: { position: "asc" },
@@ -519,10 +575,6 @@ export class ContentService {
                             select: { id: true },
                         },
                     },
-                },
-                tests: {
-                    where: { topicId: { not: null } },
-                    orderBy: { id: "asc" },
                 },
             },
         });
@@ -588,8 +640,6 @@ export class ContentService {
         let gradeCompleted = 0;
 
         const formattedTopics: (TopicWithContentsDto & { progress?: ProgressCounts | null })[] = topics.map((topic) => {
-            const firstTopicTest = topic.tests[0] || null;
-
             let topicTotal = 0;
             let topicCompleted = 0;
 
@@ -607,8 +657,6 @@ export class ContentService {
 
                 // Lesson test as progress unit
                 const lessonTestPassed = passedScopeKeys.has(`LESSON:${lesson.id}`);
-                lessonTotal += 1; // lesson test counts as 1 unit
-                if (lessonTestPassed) lessonCompleted += 1;
 
                 topicTotal += lessonTotal;
                 topicCompleted += lessonCompleted;
@@ -625,11 +673,7 @@ export class ContentService {
             });
 
             // Topic test as progress unit
-            const topicTestPassed = firstTopicTest
-                ? passedTestIds.has(firstTopicTest.id)
-                : passedScopeKeys.has(`TOPIC:${topic.id}`);
-            topicTotal += 1;
-            if (topicTestPassed) topicCompleted += 1;
+            const topicTestPassed = passedScopeKeys.has(`TOPIC:${topic.id}`);
 
             gradeTotal += topicTotal;
             gradeCompleted += topicCompleted;
@@ -640,37 +684,17 @@ export class ContentService {
                 position: topic.position,
                 gradeId: topic.gradeId,
                 lessons: lessonsWithProgress,
-                firstTest: firstTopicTest
-                    ? {
-                          id: firstTopicTest.id,
-                          title: firstTopicTest.title,
-                          questionNumber: firstTopicTest.questionNumber,
-                          timeLimit: firstTopicTest.timeLimit,
-                          isPassed: topicTestPassed,
-                      }
-                    : null,
+                testPassed: userId ? topicTestPassed : null,
                 progress: { totalNodes: topicTotal, completedNodes: userId ? topicCompleted : 0 },
             };
         });
 
         // Grade test as progress unit
-        const gradeTestPassed = gradeTest
-            ? passedTestIds.has(gradeTest.id)
-            : passedScopeKeys.has(`GRADE:${gradeId}`);
-        gradeTotal += 1;
-        if (gradeTestPassed) gradeCompleted += 1;
+        const gradeTestPassed = passedScopeKeys.has(`GRADE:${gradeId}`);
 
         return {
             topics: formattedTopics,
-            gradeFirstTest: gradeTest
-                ? {
-                      id: gradeTest.id,
-                      title: gradeTest.title,
-                      questionNumber: gradeTest.questionNumber,
-                      timeLimit: gradeTest.timeLimit,
-                      isPassed: gradeTestPassed,
-                  }
-                : null,
+            testPassed: userId ? gradeTestPassed : null,
             progress: { totalNodes: gradeTotal, completedNodes: userId ? gradeCompleted : 0 },
         };
     }

@@ -9,6 +9,7 @@ export default function TestDetailRoute() {
 
     return (
         <ScreenWrapper
+            showTopBar={false}
             branchConfig={{
                 hierarchy: "LỊCH SỬ > CHI TIẾT",
                 title: "Chi tiết bài làm",

@@ -17,19 +17,19 @@ import { optionalAuth, requireStudent } from "../middlewares/authMiddleware";
 const router = Router();
 
 // GET /api/content/grades
-router.get("/grades", getAllGrades);
+router.get("/grades", optionalAuth, getAllGrades);
 
 // GET /api/content/grades/:gradeId/topics
-router.get("/grades/:gradeId/topics", getTopicsByGrade);
+router.get("/grades/:gradeId/topics", optionalAuth, getTopicsByGrade);
 
 // GET /api/content/topics/:topicId/lessons
-router.get("/topics/:topicId/lessons", getLessonsByTopic);
+router.get("/topics/:topicId/lessons", optionalAuth, getLessonsByTopic);
 
 // GET /api/content/lessons/:lessonId/sections
-router.get("/lessons/:lessonId/sections", getSectionsByLesson);
+router.get("/lessons/:lessonId/sections", optionalAuth, getSectionsByLesson);
 
 // GET /api/content/sections/:sectionId/nodes
-router.get("/sections/:sectionId/nodes", getNodesBySection);
+router.get("/sections/:sectionId/nodes", optionalAuth, getNodesBySection);
 
 // GET /api/content/lessons/:lessonId/tree — optionalAuth for progress %
 router.get("/lessons/:lessonId/tree", optionalAuth, getLessonTree);

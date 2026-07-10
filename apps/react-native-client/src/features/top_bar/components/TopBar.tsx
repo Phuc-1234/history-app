@@ -9,8 +9,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProcessedTopBarData } from "../hooks/useTopBarData";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 interface TopBarProps {
     data?: ProcessedTopBarData;
@@ -28,9 +31,13 @@ interface TopBarProps {
 
 export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }: TopBarProps) {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     return (
-        <View style={styles.container}>
+        <LinearGradient
+            colors={[colors.accent, "#d89b65ff"]}
+            style={[styles.container, { paddingTop: insets.top }]}
+        >
             {/* --- Main Stats Bar --- */}
             {showStatsBar && data && (
                 <View style={[styles.purpleBar, branchConfig && styles.purpleBarWithBranch]}>
@@ -41,7 +48,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                 <Ionicons
                                     name="person-circle-outline"
                                     size={32}
-                                    color={colors.primary}
+                                    color="#FFFFFF"
                                 />
                                 <Text style={styles.promptText} numberOfLines={2}>
                                     Đăng nhập để lưu tiến trình học tập của bạn!
@@ -58,12 +65,13 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                     ) : (
                         /* Authenticated State UI View */
                         <>
-                            <View style={styles.userSection}>
+                            <TouchableOpacity
+                                style={styles.userSection}
+                                activeOpacity={0.7}
+                                onPress={() => router.push("/(tabs)/10_1_profile")}
+                            >
                                 <Image source={{ uri: data.avatarUri }} style={styles.avatar} />
-                                <Text style={styles.nameText} numberOfLines={1}>
-                                    {data.name}
-                                </Text>
-                            </View>
+                            </TouchableOpacity>
 
                             <View style={styles.statsContainer}>
                                 {/* XP Chip */}
@@ -74,9 +82,9 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                             style={styles.badgeIcon}
                                         />
                                     ) : (
-                                        <Ionicons name="ribbon" size={20} color={colors.secondary} />
+                                        <Ionicons name="ribbon" size={20} color="#FFFFFF" />
                                     )}
-                                    <Text style={[styles.chipText, { color: colors.secondary }]}>
+                                    <Text style={styles.chipText}>
                                         {data.totalXp}XP
                                     </Text>
                                 </View>
@@ -90,9 +98,9 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                     <Ionicons
                                         name="logo-usd"
                                         size={18}
-                                        color={colors.secondary}
+                                        color="#FFFFFF"
                                     />
-                                    <Text style={[styles.chipText, { color: colors.secondary }]}>
+                                    <Text style={styles.chipText}>
                                         {data.totalGold}
                                     </Text>
                                 </TouchableOpacity>
@@ -103,8 +111,8 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                     activeOpacity={0.7}
                                     onPress={onOpenStreak}
                                 >
-                                    <Ionicons name="flame" size={20} color={colors.streak} />
-                                    <Text style={[styles.chipText, { color: colors.streak }]}>
+                                    <Ionicons name="flame" size={20} color="#FFFFFF" />
+                                    <Text style={styles.chipText}>
                                         {data.currentStreak}
                                     </Text>
                                 </TouchableOpacity>
@@ -122,47 +130,46 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                         style={styles.backButton}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
+                        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
 
                     <View style={styles.branchTextContainer}>
-                        <Text style={styles.hierarchyText}>
-                            {branchConfig.uppercaseHierarchy ? branchConfig.hierarchy.toUpperCase() : branchConfig.hierarchy}
-                        </Text>
+                        {branchConfig.hierarchy ? (
+                            <Text style={styles.hierarchyText}>
+                                {branchConfig.uppercaseHierarchy ? branchConfig.hierarchy.toUpperCase() : branchConfig.hierarchy}
+                            </Text>
+                        ) : null}
                         {branchConfig.title ? (
                             <Text style={styles.titleText}>
                                 {branchConfig.title}
                             </Text>
                         ) : null}
-                        {branchConfig.subtitle && (
+                        {branchConfig.subtitle ? (
                             <Text style={styles.subtitleText}>
                                 {branchConfig.subtitle}
                             </Text>
-                        )}
+                        ) : null}
                     </View>
 
                     <TouchableOpacity
-                        onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/2_1_lessons"))}
+                        onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/home"))}
                         style={styles.homeButton}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="home-outline" size={24} color={colors.textSecondary} />
+                        <Ionicons name="home-outline" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
                 </View>
             )}
-        </View>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: colors.background,
         zIndex: 5,
-        borderBottomWidth: 1.5,
-        borderBottomColor: colors.borderDark,
     },
     purpleBar: {
-        backgroundColor: colors.background,
+        backgroundColor: "transparent",
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
@@ -170,8 +177,6 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
     purpleBarWithBranch: {
-        borderBottomWidth: 1,
-        borderBottomColor: colors.borderMedium,
     },
     userSection: {
         flexDirection: "row",
@@ -180,9 +185,8 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     nameText: {
-        color: colors.textPrimary,
-        fontSize: 14,
-        fontWeight: "700",
+        ...typography.bodyMediumBold,
+        color: "#FFFFFF",
         marginLeft: 8,
         flexShrink: 1,
     },
@@ -191,18 +195,19 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 18,
         borderWidth: 2,
-        borderColor: colors.borderMedium,
+        borderColor: "rgba(255, 255, 255, 0.4)",
     },
     statsContainer: {
         flexDirection: "row",
         marginLeft: "auto",
-        gap: 12,
+        gap: 8,
     },
     chip: {
-        backgroundColor: "transparent",
+        backgroundColor: "rgba(255, 255, 255, 0.18)",
+        borderRadius: 16,
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 4,
+        paddingHorizontal: 8,
         paddingVertical: 4,
         gap: 4,
     },
@@ -212,8 +217,8 @@ const styles = StyleSheet.create({
         resizeMode: "contain",
     },
     chipText: {
-        fontSize: 15,
-        fontWeight: "700",
+        ...typography.bodyMediumBold,
+        color: "#FFFFFF",
     },
     notLoggedInContainer: {
         flexDirection: "row",
@@ -229,33 +234,26 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     promptText: {
-        color: colors.textPrimary,
-        fontSize: 14,
-        fontWeight: "600",
+        ...typography.bodyMediumSemiBold,
+        color: "#FFFFFF",
         flexShrink: 1,
     },
     loginButton: {
-        backgroundColor: colors.primary,
+        backgroundColor: "#FFFFFF",
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
     },
     loginButtonText: {
-        color: colors.textLight,
-        fontSize: 14,
-        fontWeight: "700",
+        ...typography.bodyMediumBold,
+        color: colors.accent,
     },
     branchBar: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
         paddingVertical: 14,
-        backgroundColor: colors.background,
+        backgroundColor: "transparent",
     },
     backButton: {
         marginRight: 12,
@@ -267,20 +265,18 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     hierarchyText: {
-        fontSize: 13,
-        fontWeight: "600",
-        color: colors.textMuted,
+        ...typography.bodySmallSemiBold,
+        color: "rgba(255, 255, 255, 0.75)",
         letterSpacing: 0.5,
         marginBottom: 2,
     },
     titleText: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: colors.textPrimary,
+        ...typography.h3,
+        color: "#FFFFFF",
     },
     subtitleText: {
-        fontSize: 15,
-        color: colors.textMuted,
+        ...typography.bodyMedium,
+        color: "rgba(255, 255, 255, 0.85)",
         marginTop: 2,
     },
 });

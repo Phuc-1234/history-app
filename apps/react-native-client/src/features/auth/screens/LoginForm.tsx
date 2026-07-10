@@ -2,6 +2,7 @@ import React from "react";
 import {
     View,
     Text,
+    Image,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
@@ -17,6 +18,7 @@ import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import useAuthForm from "../hooks/useAuthForm";
 import colors from "../../../theme/colors";
+import typography from "../../../theme/typography";
 import HistoricalBackground from "../../../components/layout/HistoricalBackground";
 
 export default function LoginForm() {
@@ -58,23 +60,23 @@ export default function LoginForm() {
 
                 {/* Logo Section */}
                 <View style={styles.logoContainer}>
-                    <Text style={styles.logoText}>Sắc Sử</Text>
-                    <Text style={styles.logoSubtitle}>Ứng dụng học và làm đề lịch sử</Text>
+                    <Image
+                        source={require("../../../../assets/images/logo-main.png")}
+                        style={styles.logoImage}
+                        resizeMode="contain"
+                    />
+                    
                 </View>
 
                 {/* Welcome Heading */}
                 <View style={styles.headerContainer}>
-                    <Text style={styles.welcomeText}>Đăng Nhập</Text>
-                    <Text style={styles.subText}>
-                        Xin chào, chào mừng bạn trở lại!
-                    </Text>
+                    <Text style={styles.welcomeText}>Đăng nhập vào Sắc Sử</Text>
                 </View>
 
                 {/* Form Inputs Container */}
                 <View style={styles.formContainer}>
                     {/* Email Input Field */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>Số điện thoại / Email</Text>
                         <View style={styles.emailContainer}>
                             <Input
                                 value={email}
@@ -82,7 +84,7 @@ export default function LoginForm() {
                                     setEmail(text.trim());
                                 }}
                                 icon={User}
-                                placeholder="Nhập số điện thoại hoặc email"
+                                placeholder="Nhập email"
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 editable={!isLoading}
@@ -102,12 +104,11 @@ export default function LoginForm() {
 
                     {/* Password Input Field */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>Mật khẩu</Text>
                         <Input
                             value={password}
                             onChangeText={setPassword}
                             icon={Lock}
-                            placeholder="Nhập mật khẩu của bạn"
+                            placeholder="Nhập mật khẩu"
                             isPassword
                             autoCapitalize="none"
                             editable={!isLoading}
@@ -137,17 +138,7 @@ export default function LoginForm() {
                         disabled={isLoading}
                     />
 
-                    {/* Guest Login */}
-                    <TouchableOpacity
-                        style={styles.guestButton}
-                        activeOpacity={0.7}
-                        onPress={enterAsGuest}
-                        disabled={isLoading}
-                    >
-                        <Text style={styles.guestText}>
-                             Tiếp tục với tư cách Khách
-                        </Text>
-                    </TouchableOpacity>
+                    
 
                     {/* Divider */}
                     <View style={styles.dividerContainer}>
@@ -217,6 +208,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
         paddingHorizontal: 28,
         position: "relative",
+        justifyContent: "center",
     },
     logoContainer: {
         alignItems: "center",
@@ -224,35 +216,28 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 16,
     },
-    logoText: {
-        fontSize: 38,
-        fontWeight: "900",
-        color: colors.primary,
-        letterSpacing: 2,
-        textShadowColor: "rgba(0, 0, 0, 0.15)",
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 3,
+    logoImage: {
+        width: 120,
+        height: 120,
     },
     logoSubtitle: {
-        fontSize: 14,
-        fontWeight: "600",
+        ...typography.bodyMediumSemiBold,
         color: colors.textMuted,
         marginTop: 6,
         textAlign: "center",
     },
     headerContainer: {
-        marginBottom: 16,
+        marginBottom: 0,
     },
     welcomeText: {
-        color: colors.textDark,
-        fontSize: 28,
-        fontWeight: "800",
+        ...typography.h2,
+        color: colors.accent,
         marginBottom: 6,
+        textAlign: "center",
     },
     subText: {
+        ...typography.bodyMediumMedium,
         color: colors.textMuted,
-        fontSize: 15,
-        fontWeight: "500",
     },
     formContainer: {
         marginTop: 10, 
@@ -260,12 +245,7 @@ const styles = StyleSheet.create({
     inputGroup: {
         marginBottom: 12,
     },
-    fieldLabel: {
-        color: colors.textDark,
-        fontSize: 15,
-        fontWeight: "700",
-        marginBottom: 8,
-    },
+
     customInput: {
         backgroundColor: colors.inputBackground,
         color: colors.textDark,
@@ -283,14 +263,13 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     ghostEmailText: {
-        fontSize: 15,
+        ...typography.bodyLarge,
         color: colors.textPlaceholder,
         opacity: 0.6,
     },
     fieldErrorText: {
+        ...typography.bodySmallSemiBold,
         color: colors.textError,
-        fontSize: 13,
-        fontWeight: "600",
         marginTop: 6,
         paddingLeft: 4,
     },
@@ -300,18 +279,16 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     forgotPassText: {
+        ...typography.bodyMediumSemiBold,
         color: colors.textMuted,
-        fontSize: 14,
-        fontWeight: "600",
     },
     guestButton: {
         alignSelf: "center",
         marginVertical: 8,
     },
     guestText: {
+        ...typography.bodyMediumSemiBold,
         color: colors.primary,
-        fontSize: 14,
-        fontWeight: "600",
         textDecorationLine: "underline",
     },
     dividerContainer: {
@@ -325,8 +302,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.divider,
     },
     dividerText: {
-        fontSize: 13,
-        fontWeight: "500",
+        ...typography.bodySmall,
         color: colors.textMuted,
         paddingHorizontal: 16,
     },
@@ -349,8 +325,7 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     socialBtnText: {
-        fontSize: 14,
-        fontWeight: "700",
+        ...typography.bodyMediumBold,
         color: colors.textDark,
         letterSpacing: 0.5,
     },
@@ -362,12 +337,11 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     footerText: {
-        fontSize: 14,
+        ...typography.bodyMedium,
         color: colors.textMuted,
     },
     registerText: {
-        fontSize: 14,
-        fontWeight: "700",
+        ...typography.bodyMediumBold,
         color: colors.primary,
     },
 });

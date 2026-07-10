@@ -347,6 +347,110 @@ Dùng để test nhanh các endpoint auth, content, test và gamification.
 - `shop`, `inventory`, `national-tests` hiện đang dùng dữ liệu mock phía client, chưa phải luồng API đầy đủ.
 - Một số comment/text trong source đang bị mojibake; README này không sửa source code ngoài tài liệu.
 
+## Quy tắc Đánh giá Câu hỏi Điền từ (Fill Question Evaluation Policy)
+
+Cơ chế đánh giá câu hỏi điền từ (FILL question) được đồng bộ hóa nhất quán giữa FE và BE theo các bước sau:
+
+1. **Chuẩn hóa chuỗi (Normalization)**:
+   * Chuyển về chữ thường (lowercase).
+   * Loại bỏ toàn bộ các dấu câu chuẩn và các ký tự đặc biệt (`.,\/#!$%\^&\*;:{}=\-_`~()?"'’‘“”\[\]{}`).
+   * Rút gọn các khoảng trắng thừa ở giữa và hai đầu chuỗi thành một khoảng trắng duy nhất.
+   * Giữ nguyên các ký tự có dấu tiếng Việt (đ, â, ă, ê, ô, ơ, ư, và các dấu thanh).
+
+2. **Kiểm tra chữ số trước (Numeric Check)**:
+   * Trích xuất toàn bộ các chuỗi chữ số liên tiếp từ câu trả lời của người dùng và đáp án đúng.
+   * Chuyển đổi các chuỗi chữ số này thành các mảng số nguyên tương ứng (loại bỏ số 0 ở đầu, ví dụ `"04"` thành `4`).
+   * Nếu danh sách số nguyên trích xuất được không khớp nhau hoàn toàn về thứ tự và giá trị, câu trả lời bị đánh giá là **Sai ngay lập tức** mà không cần so khớp chữ.
+
+3. **Tính toán khoảng cách lỗi (Typo Allowance)**:
+   * Tính toán khoảng cách Levenshtein giữa chuỗi của người dùng và đáp án đúng (sau khi đã chuẩn hóa).
+   * Ngưỡng lỗi chính tả được chấp nhận dựa trên số lượng từ (syllables) của đáp án đúng:
+     * **1 từ**: Yêu cầu khớp tuyệt đối (không cho phép lỗi chính tả, khoảng cách Levenshtein = 0).
+     * **2 từ**: Cho phép tối đa 1 lỗi chính tả (khoảng cách Levenshtein $\le$ 1).
+     * **Từ 3 đến 5 từ**: Cho phép tối đa 2 lỗi chính tả (khoảng cách Levenshtein $\le$ 2).
+     * **Từ 6 từ trở lên**: Cho phép tối đa 3 lỗi chính tả (khoảng cách Levenshtein $\le$ 3).
+
+4. **Đánh giá chi tiết**:
+   * Câu trả lời được so sánh lần lượt với từng đáp án được chấp nhận (accepted answers). Nếu khớp với bất kỳ đáp án nào thỏa mãn các điều kiện trên, câu trả lời sẽ được coi là **Đúng**.
+
+## Quy tắc Đánh giá Câu hỏi Nối cột và Nhiều lựa chọn (Match and Multiple Choice Scoring Policy)
+
+Cơ chế chấm điểm cho câu hỏi Nối cột (MATCH) và Chọn nhiều đáp án (CHOOSE với > 1 đáp án đúng) được đồng bộ hóa nhất quán giữa FE và BE như sau:
+
+1. **Câu hỏi Nối cột (MATCH)**:
+   * **Điểm tối đa (maxScore)**: Tính theo công thức `max(0.25, floor(N / 2) * 0.25)` với `N` là tổng số cặp (pairs) cần nối.
+     * 2-3 cặp: `0.25` điểm.
+     * 4-5 cặp: `0.5` điểm.
+     * 6-7 cặp: `0.75` điểm.
+     * 8-9 cặp: `1.0` điểm.
+   * **Cơ chế chấm điểm**: Áp dụng quy tắc "Tất cả hoặc không có gì" (All-or-nothing). Người làm bài phải nối chính xác toàn bộ các cặp mới được nhận điểm tối đa (`maxScore`). Nếu nối sai bất kỳ cặp nào, điểm nhận được sẽ là `0`.
+
+2. **Câu hỏi Chọn nhiều đáp án (CHOOSE với > 1 đáp án đúng)**:
+   * **Điểm tối đa (maxScore)**: Tính theo công thức tương tự MATCH: `max(0.25, floor(M / 2) * 0.25)` với `M` là tổng số tùy chọn (options) của câu hỏi.
+     * 2-3 tùy chọn: `0.25` điểm.
+     * 4-5 tùy chọn: `0.5` điểm.
+   * **Cơ chế chấm điểm**: 
+     * Cộng điểm: Nhận `+maxScore / số đáp án đúng` cho mỗi đáp án đúng được chọn.
+     * Trừ điểm: Bị phạt `-maxScore / số đáp án sai` cho mỗi đáp án sai được chọn (để hạn chế việc chọn bừa).
+     * Điểm tối thiểu cho mỗi câu hỏi là `0` (không lấy điểm âm).
+
+## Quy tắc xử lý bài thi đang làm dở (In-progress Test Policy)
+
+Để tránh chặn người dùng khi bắt đầu bài thi mới trong trường hợp frontend chưa hỗ trợ tính năng tiếp tục bài thi (resume):
+* Khi người dùng bắt đầu một bài thi mới (cả loại `PRACTICE` và `EXAM`), mọi bài thi cùng loại hoặc khác loại đang ở trạng thái `IN_PROGRESS` của người dùng đó sẽ tự động được chuyển sang trạng thái `ABANDONED` ở phía Backend, thay vì trả về lỗi chặn `ACTIVE_TEST_EXISTS`.
+
+## Hướng dẫn thiết lập tính năng thanh toán (VietQR & ZaloPay)
+
+Để tính năng thanh toán (Mua Gold) hoạt động đầy đủ cả ở môi trường local và production (Render), bạn cần cấu hình theo hướng dẫn dưới đây:
+
+### 1. Cấu hình biến môi trường (`.env`) cho Server
+Mở file `apps/express-server/.env` và thêm/cập nhật các giá trị cấu hình tương ứng với môi trường của bạn:
+
+```env
+# ─── SePay (VietQR Bank Transfer) ────────────────────────────────────────────
+SEPAY_BANK_ID=MB
+SEPAY_ACCOUNT_NO=your_account_number
+SEPAY_ACCOUNT_NAME=your_account_name
+SEPAY_WEBHOOK_API_KEY=your_sepay_webhook_api_key
+
+# ─── ZaloPay Sandbox ─────────────────────────────────────────────────────────
+ZALOPAY_APP_ID=your_zalopay_app_id
+ZALOPAY_KEY1=your_zalopay_key1
+ZALOPAY_KEY2=your_zalopay_key2
+ZALOPAY_ENDPOINT=https://sb-openapi.zalopay.vn/v2/create
+
+# ─── ngrok (URL webhook callback khi test ở local) ───────────────────────────
+# Chạy lệnh: ngrok http 5000 rồi copy URL ngrok mới nhất vào đây
+PAYMENT_IPN_URL=https://<your-ngrok-subdomain>.ngrok-free.app
+```
+
+### 2. Cách test thanh toán VietQR ở môi trường local
+Do webhook SePay gọi về server cục bộ của bạn, cần thông qua `ngrok` để kết nối:
+1. Chạy lệnh ngrok tại local:
+   ```bash
+   ngrok http 5000
+   ```
+2. Copy địa chỉ HTTPS ngrok tạo ra và cập nhật vào biến `PAYMENT_IPN_URL` trong file `.env` của server.
+3. Khởi động lại server (`npm run server`) để load cấu hình mới.
+4. Đăng nhập vào [SePay Dashboard](https://dashboard.sepay.vn), phần **Tích hợp Webhook** -> Cập nhật URL Webhook mới nhất theo dạng:
+   `https://<your-ngrok-subdomain>.ngrok-free.app/api/payment/sepay/webhook`
+
+### 3. Cài đặt nhận dạng mã thanh toán trên SePay Dashboard
+Để SePay nhận dạng chính xác mã đơn hàng được tạo tự động từ hệ thống và gửi webhook về:
+1. Đăng nhập vào [SePay Dashboard](https://dashboard.sepay.vn).
+2. Vào phần **Cấu hình** -> **Cú pháp nhận diện mã thanh toán** (Payment Code):
+   * Đặt tiền tố (Prefix) là: `DH`
+   * Đặt độ dài hậu tố là: `6` ký tự số nguyên (Ví dụ: mã sinh ra sẽ có dạng `DH182739`).
+   * Chọn kiểu hậu tố là: **`Số nguyên`** (Integer).
+
+### 4. Khi deploy lên môi trường Production (Render)
+Khi code được merge vào nhánh `dev` và deploy lên Render:
+1. Bạn **không cần chạy ngrok**.
+2. Trên dashboard quản trị Render của backend, tại tab **Environment**, cập nhật biến môi trường:
+   `PAYMENT_IPN_URL` = `https://history-app-dev-branch.onrender.com`
+3. Cập nhật lại URL webhook trên SePay Dashboard trỏ cố định về link Render:
+   `https://history-app-dev-branch.onrender.com/api/payment/sepay/webhook`
+
 ## Giấy phép
 
 Dự án riêng tư. Tất cả quyền được bảo lưu.

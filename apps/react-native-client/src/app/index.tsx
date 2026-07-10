@@ -13,7 +13,7 @@ export default function Index() {
         const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
         
         if (hasSeenOnboarding === 'true') {
-          router.replace("/(tabs)/2_1_lessons");
+          router.replace("/(tabs)/home");
         } else {
           router.replace('/(routing)/screen1');
         }

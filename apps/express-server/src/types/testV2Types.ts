@@ -65,6 +65,7 @@ export interface StartTestV2Request {
     scopeId?: number;
     testId?: string;      // for manual/curated test
     presetId?: string;    // optional preset override
+    autoPickStrategy?: string; // BALANCED or LOW_MASTERY
 }
 
 export interface UpdateDraftRequest {
@@ -108,6 +109,7 @@ export interface UserTestLogV2Dto {
     questionSequenceJson: number[];
     draftAnswerJson: DraftAnswerEntry[];
     testTitle?: string | null;
+    autoPickStrategy?: string | null;
     // backward compat
     goldEarned?: number;
     xpEarned?: number;
@@ -116,10 +118,10 @@ export interface UserTestLogV2Dto {
 export interface UserAnswerLogV2Dto {
     questionId: number;
     type: string;
-    userAnswerData: UserAnswer | null;
+    userAnswerData?: UserAnswer | null;
     scoreAwarded: number;
     maxScore: number;
-    correctAnswerData: AnswerData;
+    correctAnswerData?: AnswerData | null;
 }
 
 export interface StartTestV2Response {
@@ -157,6 +159,9 @@ export interface TestInfoV2Response {
     goldReward: number;
     xpReward: number;
     attemptNumber: number;  // what attempt # this will be if user starts now
+    passThreshold: number;
+    attemptCount: number;
+    passCount: number;
 }
 
 export interface NationalTestDto {

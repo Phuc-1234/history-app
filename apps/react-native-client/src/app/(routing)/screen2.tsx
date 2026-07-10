@@ -25,7 +25,7 @@ export default function OnboardingScreen2() {
     console.log('Bỏ qua onboarding ở màn 2');
     await setOnboardingComplete(); 
     // Đưa về màn hình welcome tổng của luồng auth thay vì chỉ vào thẳng form login đơn lẻ
-    router.replace("/(tabs)/2_1_lessons");
+    router.replace("/(tabs)/home");
   }; 
 
   const handleNext = () => {
@@ -53,7 +53,7 @@ export default function OnboardingScreen2() {
         <Text style={styles.title}>Học mà chơi, chơi mà học</Text>
 
         <Text style={styles.description}>
-          Tích lũy XP, thu thập huy hiệu, leo bảng xếp hạng và thách đấu 1v1 với bạn bè. Ôn tập bằng thẻ lật thông minh!
+          Tích lũy XP, thu thập huy hiệu, leo bảng xếp hạng với bạn bè. Ôn tập bằng thẻ lật thông minh!
         </Text>
 
         <View style={styles.paginationContainer}>
