@@ -8,6 +8,7 @@ import {
     RefreshControl,
     TextInput,
     TouchableOpacity,
+    Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Book } from "lucide-react-native";
@@ -19,6 +20,11 @@ import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Card } from "../../../components/Card";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import {
+    useGetTopicsByGradeQuery,
+    useGetLessonsByTopicQuery,
+    useGetSectionsByLessonQuery,
+} from "../contentApiSlice";
 
 interface LessonMenuProps {
     selectedGrade: number;
@@ -114,6 +120,115 @@ function matchesTopicOrLesson(name: string, position: number, prefix: string, qu
     return false;
 }
 
+function TopicMasteryItem({ topic }: { topic: any }) {
+    const [expanded, setExpanded] = useState(false);
+    const pct = topic.masteryPercentage ?? 0;
+    return (
+        <View style={styles.masteryItemWrapper}>
+            <TouchableOpacity onPress={() => setExpanded(!expanded)} style={styles.masteryItemHeader} activeOpacity={0.7}>
+                <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={16} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={styles.masteryItemText} numberOfLines={2}>
+                    Chủ đề {topic.position}: {topic.name}
+                </Text>
+                <Text style={styles.masteryItemPct}>{pct}%</Text>
+            </TouchableOpacity>
+            {expanded && <LessonMasteryList topicId={topic.id} />}
+        </View>
+    );
+}
+
+function LessonMasteryList({ topicId }: { topicId: number }) {
+    const { data, isLoading } = useGetLessonsByTopicQuery(topicId);
+    if (isLoading) return <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 8 }} />;
+    if (!data?.lessons || data.lessons.length === 0) return null;
+    return (
+        <View style={styles.masterySubList}>
+            {data.lessons.map((lesson) => (
+                <LessonMasteryItem key={lesson.id} lesson={lesson} />
+            ))}
+        </View>
+    );
+}
+
+function LessonMasteryItem({ lesson }: { lesson: any }) {
+    const [expanded, setExpanded] = useState(false);
+    const pct = lesson.masteryPercentage ?? 0;
+    return (
+        <View style={styles.masteryItemWrapper}>
+            <TouchableOpacity onPress={() => setExpanded(!expanded)} style={[styles.masteryItemHeader, { paddingLeft: 12 }]} activeOpacity={0.7}>
+                <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={[styles.masteryItemText, { fontSize: 13, fontFamily: typography.fonts.semiBold }]} numberOfLines={2}>
+                    Bài {lesson.position}: {lesson.name}
+                </Text>
+                <Text style={[styles.masteryItemPct, { fontSize: 13 }]}>{pct}%</Text>
+            </TouchableOpacity>
+            {expanded && <SectionMasteryList lessonId={lesson.id} />}
+        </View>
+    );
+}
+
+function SectionMasteryList({ lessonId }: { lessonId: number }) {
+    const { data, isLoading } = useGetSectionsByLessonQuery(lessonId);
+    if (isLoading) return <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 8 }} />;
+    if (!data?.sections || data.sections.length === 0) return null;
+    return (
+        <View style={styles.masterySubList}>
+            {data.sections.map((section) => (
+                <SectionMasteryItem key={section.id} section={section} />
+            ))}
+        </View>
+    );
+}
+
+function SectionMasteryItem({ section }: { section: any }) {
+    const [expanded, setExpanded] = useState(false);
+    const hasChildren = (section.children && section.children.length > 0) || (section.nodes && section.nodes.length > 0);
+    const pct = section.masteryPercentage ?? 0;
+    return (
+        <View style={styles.masteryItemWrapper}>
+            <TouchableOpacity 
+                onPress={() => hasChildren && setExpanded(!expanded)} 
+                style={[styles.masteryItemHeader, { paddingLeft: 24 }]} 
+                activeOpacity={0.7}
+                disabled={!hasChildren}
+            >
+                {hasChildren ? (
+                    <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                ) : (
+                    <View style={{ width: 16 }} />
+                )}
+                <Text style={[styles.masteryItemText, { fontSize: 12, fontFamily: typography.fonts.regular }]} numberOfLines={2}>
+                    Mục: {section.name}
+                </Text>
+                <Text style={[styles.masteryItemPct, { fontSize: 12 }]}>{pct}%</Text>
+            </TouchableOpacity>
+            {expanded && (
+                <View style={styles.masterySubList}>
+                    {section.children?.map((child: any) => (
+                        <SectionMasteryItem key={child.id} section={child} />
+                    ))}
+                    {section.nodes?.map((node: any) => (
+                        <NodeMasteryItem key={node.id} node={node} />
+                    ))}
+                </View>
+            )}
+        </View>
+    );
+}
+
+function NodeMasteryItem({ node }: { node: any }) {
+    const pct = node.masteryPercentage ?? 0;
+    return (
+        <View style={[styles.masteryItemHeader, { paddingLeft: 36 }]}>
+            <Ionicons name="document-text-outline" size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+            <Text style={[styles.masteryItemText, { fontSize: 12, fontFamily: typography.fonts.regular, color: colors.textSecondary }]} numberOfLines={2}>
+                Nội dung: {node.header || "Nội dung học"}
+            </Text>
+            <Text style={[styles.masteryItemPct, { fontSize: 12, color: colors.textSecondary }]}>{pct}%</Text>
+        </View>
+    );
+}
+
 export function LessonMenu({
     selectedGrade,
     onLessonPress,
@@ -129,6 +244,9 @@ export function LessonMenu({
         refetch,
         isFetching,
     } = useLessonMenu(selectedGrade);
+
+    const [isMasteryModalVisible, setIsMasteryModalVisible] = useState(false);
+    const { data: topicsMasteryData, isLoading: loadingMastery } = useGetTopicsByGradeQuery(selectedGrade, { skip: !isMasteryModalVisible });
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -232,9 +350,19 @@ export function LessonMenu({
                                     <Ionicons name="book" size={32} color={themeColor} />
                                 </View>
                                 <View style={styles.gradeProgressRight}>
-                                    <Text style={styles.gradeTitleText}>
-                                        Lịch sử lớp {selectedGrade}
-                                    </Text>
+                                    <View style={styles.gradeHeaderRow}>
+                                        <Text style={styles.gradeTitleText}>
+                                            Lớp {selectedGrade}
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={[styles.masteryBadgeButton, { backgroundColor: themeColor }]}
+                                            onPress={() => setIsMasteryModalVisible(true)}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Ionicons name="ribbon-outline" size={14} color="#FFFFFF" />
+                                            <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                     <View style={styles.topProgressWrapper}>
                                         <View style={styles.topProgressTrack}>
                                             <View
@@ -426,6 +554,40 @@ export function LessonMenu({
                     </>
                 )}
             </View>
+
+            <Modal
+                visible={isMasteryModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsMasteryModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Độ thành thạo Lớp {selectedGrade}</Text>
+                        <Text style={styles.modalSubtitle}>Độ thành thạo theo từng Chủ đề, Bài học và Mục kiến thức</Text>
+                        
+                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                            {loadingMastery ? (
+                                <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
+                            ) : topicsMasteryData?.topics && topicsMasteryData.topics.length > 0 ? (
+                                topicsMasteryData.topics.map((topic: any) => (
+                                    <TopicMasteryItem key={topic.id} topic={topic} />
+                                ))
+                            ) : (
+                                <Text style={styles.noMasteryText}>Chưa có dữ liệu thành thạo. Hãy làm bài luyện tập để tích lũy độ thành thạo!</Text>
+                            )}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={[styles.modalCloseButton, { backgroundColor: themeColor }]}
+                            onPress={() => setIsMasteryModalVisible(false)}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.modalCloseButtonText}>Đóng</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScreenWrapper>
     );
 }
@@ -570,7 +732,103 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.bold,
         fontSize: 16,
         color: colors.textPrimary,
+    },
+    gradeHeaderRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
         marginBottom: 8,
+    },
+    masteryBadgeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderRadius: 30,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    masteryBadgeButtonText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 11,
+        color: "#FFFFFF",
+        marginLeft: 4,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalContent: {
+        width: "100%",
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    modalTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 18,
+        color: colors.textPrimary,
+        marginBottom: 4,
+        textAlign: "center",
+    },
+    modalSubtitle: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginBottom: 16,
+        textAlign: "center",
+    },
+    modalScroll: {
+        maxHeight: 350,
+        marginBottom: 20,
+    },
+    modalCloseButton: {
+        borderRadius: 30,
+        paddingVertical: 12,
+        alignItems: "center",
+    },
+    modalCloseButtonText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: "#FFFFFF",
+    },
+    masteryItemWrapper: {
+        marginVertical: 4,
+        width: "100%",
+    },
+    masteryItemHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 8,
+        paddingRight: 8,
+    },
+    masteryItemText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: colors.textPrimary,
+        flex: 1,
+    },
+    masteryItemPct: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: colors.accent,
+        marginLeft: 8,
+    },
+    masterySubList: {
+        borderLeftWidth: 1,
+        borderLeftColor: colors.borderMedium,
+        marginLeft: 8,
+        paddingLeft: 4,
+    },
+    noMasteryText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: "center",
+        marginVertical: 20,
     },
     topProgressWrapper: {
         position: "relative",
