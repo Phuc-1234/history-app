@@ -11,8 +11,9 @@ export function StatCard({
     value: string;
     label: string;
     backgroundColor?: string;
-    variant?: "solid" | "accent-outline";
+    variant?: "solid" | "accent-outline" | "social-outline";
 }) {
+    // accent-outline: viền + chữ dùng primary (đồng) — dùng cho "Thắng"
     if (variant === "accent-outline") {
         return (
             <View
@@ -27,6 +28,28 @@ export function StatCard({
             >
                 <Text style={[styles.statValue, { color: colors.primary }]}>{value}</Text>
                 <Text style={[styles.statLabel, { color: colors.primary }]}>{label}</Text>
+            </View>
+        );
+    }
+
+    // social-outline: viền + chữ cùng màu social, nền trong suốt.
+    // Dùng cho 3 thẻ Bạn bè / Người theo dõi / Đang theo dõi — nhẹ, hòa
+    // với bảng màu ấm của app thay vì đổ nền đặc gây chói.
+    if (variant === "social-outline") {
+        const accent = backgroundColor ?? colors.primary;
+        return (
+            <View
+                style={[
+                    styles.statCard,
+                    {
+                        backgroundColor: "transparent",
+                        borderWidth: 2,
+                        borderColor: accent,
+                    },
+                ]}
+            >
+                <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
+                <Text style={[styles.statLabel, { color: accent }]}>{label}</Text>
             </View>
         );
     }

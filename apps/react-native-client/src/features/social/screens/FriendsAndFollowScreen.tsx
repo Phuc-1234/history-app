@@ -108,16 +108,19 @@ export function FriendsAndFollowScreen() {
                     <StatCard
                         value={friendsQuery.isFetching ? "--" : String(friends.length)}
                         label="Bạn bè"
+                        variant="social-outline"
                         backgroundColor={colors.socialFriends}
                     />
                     <StatCard
                         value={followersQuery.isFetching ? "--" : String(followers.length)}
                         label="Người theo dõi"
+                        variant="social-outline"
                         backgroundColor={colors.socialFollowers}
                     />
                     <StatCard
                         value={followingQuery.isFetching ? "--" : String(following.length)}
                         label="Đang theo dõi"
+                        variant="social-outline"
                         backgroundColor={colors.socialFollowing}
                     />
                 </View>
