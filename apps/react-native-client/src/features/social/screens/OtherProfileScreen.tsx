@@ -121,11 +121,13 @@ export function OtherProfileScreen() {
                         <StatCard
                             value={String(apiProfile?.stats.friends ?? 0)}
                             label="Bạn bè"
+                            variant="social-outline"
                             backgroundColor={colors.socialFriends}
                         />
                         <StatCard
                             value={String(apiProfile?.stats.followers ?? 0)}
                             label="Người theo dõi"
+                            variant="social-outline"
                             backgroundColor={colors.socialFollowers}
                         />
                         <StatCard
