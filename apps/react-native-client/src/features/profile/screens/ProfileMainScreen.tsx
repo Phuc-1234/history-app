@@ -79,10 +79,6 @@ export default function ProfileMainScreen() {
         router.push("/(social)/friends" as never);
     };
 
-    const handleOpenChallenges = () => {
-        router.push("/(social)/challenges" as never);
-    };
-
     const handleSendFeedback = () => {
         router.push("/(10_proflie)/10_6_feedback");
     };
@@ -148,11 +144,6 @@ export default function ProfileMainScreen() {
                         icon="people-outline"
                         label="Bạn bè & theo dõi"
                         onPress={handleOpenFriends}
-                    />
-                    <ProfileMenuItem
-                        icon="flash-outline"
-                        label="Thi đấu với bạn bè"
-                        onPress={handleOpenChallenges}
                     />
                 </Card>
 
