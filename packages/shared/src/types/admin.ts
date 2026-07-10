@@ -368,5 +368,19 @@ export interface SetScopeTestPresetDefaultBody {
     defaultTestPresetId: string;
 }
 
+export interface AdminFeedbackDto {
+    id: string;
+    userId: string;
+    content: string;
+    type: string; // "BUG" | "FEATURE" | "OTHER"
+    createdAt: string;
+    user: {
+        name: string;
+        email: string | null;
+        profileImgUrl: string | null;
+    };
+}
+
+
 
 

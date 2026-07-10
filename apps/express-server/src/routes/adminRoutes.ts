@@ -52,6 +52,7 @@ import {
     setScopeTestPresetDefault,
     deleteScopeTestPresetDefault,
 } from "../controllers/adminController";
+import { listAllFeedbacks } from "../controllers/feedbackController";
 
 // Cấu hình lưu trữ file tạm của multer
 const uploadDir = path.resolve(__dirname, "../../temp/uploads");
@@ -69,6 +70,10 @@ const router = Router();
 
 // All admin routes require ADMIN or SUPER_ADMIN role
 router.use(requireAdmin);
+
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+// GET    /api/admin/feedback
+router.get("/feedback", listAllFeedbacks);
 
 // ─── Grade ────────────────────────────────────────────────────────────────────
 // POST   /api/admin/grades

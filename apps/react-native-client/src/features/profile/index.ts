@@ -7,3 +7,4 @@ export { useChangePassword } from "./hooks/useChangePassword";
 export { default as ProfileAvatar } from "./components/ProfileAvatar";
 export { default as ProfileMenuItem } from "./components/ProfileMenuItem";
 export { default as SubPageHeader } from "./components/SubPageHeader";
+export { default as AdminFeedbackScreen } from "./screens/AdminFeedbackScreen";

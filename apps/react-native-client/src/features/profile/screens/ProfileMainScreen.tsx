@@ -83,6 +83,10 @@ export default function ProfileMainScreen() {
         router.push("/(social)/challenges" as never);
     };
 
+    const handleSendFeedback = () => {
+        router.push("/(10_proflie)/10_6_feedback");
+    };
+
     const handleLogout = async () => {
         await dispatch(appLogout());
         router.replace("/(1_auth)/1_1_login");
@@ -149,6 +153,15 @@ export default function ProfileMainScreen() {
                         icon="flash-outline"
                         label="Thi đấu với bạn bè"
                         onPress={handleOpenChallenges}
+                    />
+                </Card>
+
+                <Text style={styles.sectionHeader}>Góp ý & Báo lỗi</Text>
+                <Card variant="soft" style={styles.menuContainer}>
+                    <ProfileMenuItem
+                        icon="chatbubble-ellipses-outline"
+                        label="Gửi góp ý cho nhà phát triển"
+                        onPress={handleSendFeedback}
                     />
                 </Card>
             </View>

@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import { typography } from "../../theme/typography";
+import { useAppSelector } from "../../store/storeHook";
 
 interface TabIconProps {
     focused: boolean;
@@ -46,6 +47,8 @@ export default function TabsLayout() {
     const isNarrow = width < 375;
     
     const isWeb = Platform.OS === "web";
+    const profile = useAppSelector((state) => state.auth.profile);
+    const isAdmin = profile?.role === "ADMIN" || profile?.role === "SUPER_ADMIN";
 
     // Detect if safe-area-context hasn't returned the real measurement yet
     const hasInitialInsets = insets.bottom > 0;
@@ -211,6 +214,22 @@ export default function TabsLayout() {
                             color={color}
                             name="person-outline"
                             focusedName="person"
+                            isNarrow={isNarrow}
+                        />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="admin_feedback"
+                options={{
+                    title: "Góp ý",
+                    href: isAdmin ? undefined : null,
+                    tabBarIcon: ({ focused, color }) => (
+                        <TabBarIcon
+                            focused={focused}
+                            color={color}
+                            name="chatbox-ellipses-outline"
+                            focusedName="chatbox-ellipses"
                             isNarrow={isNarrow}
                         />
                     ),

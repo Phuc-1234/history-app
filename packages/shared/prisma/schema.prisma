@@ -246,6 +246,7 @@ model User {
   rewardLogs             UserRewardLog[]
   testLogs               UserTestLog[]
   tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
+  feedbacks              Feedback[]
 
   @@map("users")
 }
@@ -525,3 +526,15 @@ model UserRewardLog {
   @@unique([userId, rewardRuleId, triggerTime])
   @@map("user_reward_logs")
 }
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  content   String
+  type      String   // "BUG" | "FEATURE" | "OTHER"
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+

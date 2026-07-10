@@ -46,6 +46,7 @@ app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies on
 // Mounts your authentication routes under the /api/auth prefix
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+// Triggers hot-reload for feedback routes inclusion
 app.use("/api/content", contentRoutes);
 app.use("/api/gamification", gamificationRoutes);
 app.use("/api/tests", testsRoutes);
