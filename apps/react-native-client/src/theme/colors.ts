@@ -76,6 +76,13 @@ export const colors = {
     facebookText: "#FFFFFF",
 
     // -------------------------------------------------------------
+    // Social Feature Accents (friends / followers / following)
+    // -------------------------------------------------------------
+    socialFriends: "#3182CE", // Blue — friends stat/tab
+    socialFollowers: "#FF6B00", // Orange — followers stat/tab
+    socialFollowing: "#10B981", // Green — following stat/tab
+
+    // -------------------------------------------------------------
     // Match Questions Matching Cells
     // -------------------------------------------------------------
     matchColors: [

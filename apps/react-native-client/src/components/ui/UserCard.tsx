@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { Avatar } from "./Avatar";
 import { PrimaryButton, type PrimaryButtonVariant } from "./PrimaryButton";
 import type { CardUser } from "./types";
@@ -125,19 +126,17 @@ const styles = StyleSheet.create({
     },
     userName: {
         fontSize: 15,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textPrimary,
     },
     userTitle: {
         marginTop: 3,
-        fontSize: 13,
-        fontWeight: "400",
+        ...typography.bodySmall,
         color: colors.textMuted,
     },
     userMeta: {
         marginTop: 4,
-        fontSize: 12,
-        fontWeight: "400",
+        ...typography.caption,
         color: colors.textMuted,
         lineHeight: 17,
     },
@@ -151,7 +150,7 @@ const styles = StyleSheet.create({
     },
     levelText: {
         fontSize: 11,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.warning,
     },
 });

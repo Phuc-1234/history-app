@@ -35,7 +35,7 @@ export function SearchActionButton({
             ? colors.primary
             : disabled
               ? colors.textMuted
-              : "#FFFFFF";
+              : colors.textLight;
 
     return (
         <TouchableOpacity
