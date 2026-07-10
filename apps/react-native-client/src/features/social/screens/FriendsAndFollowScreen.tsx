@@ -11,6 +11,7 @@ import {
 } from "@/components/ui";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useAppSelector } from "@/store/storeHook";
+import { colors } from "@/theme/colors";
 import {
     useGetFollowersQuery,
     useGetFollowingQuery,
@@ -107,17 +108,17 @@ export function FriendsAndFollowScreen() {
                     <StatCard
                         value={friendsQuery.isFetching ? "--" : String(friends.length)}
                         label="Bạn bè"
-                        backgroundColor="#3182CE"
+                        backgroundColor={colors.socialFriends}
                     />
                     <StatCard
                         value={followersQuery.isFetching ? "--" : String(followers.length)}
                         label="Người theo dõi"
-                        backgroundColor="#FF6B00"
+                        backgroundColor={colors.socialFollowers}
                     />
                     <StatCard
                         value={followingQuery.isFetching ? "--" : String(following.length)}
                         label="Đang theo dõi"
-                        backgroundColor="#10B981"
+                        backgroundColor={colors.socialFollowing}
                     />
                 </View>
                 <SegmentTabs
@@ -125,9 +126,9 @@ export function FriendsAndFollowScreen() {
                     active={activeTab}
                     onChange={(t) => setActiveTab(t as Tab)}
                     activeColors={{
-                        "Bạn bè": "#3182CE",
-                        "Đang theo dõi": "#10B981",
-                        "Người theo dõi": "#FF6B00",
+                        "Bạn bè": colors.socialFriends,
+                        "Đang theo dõi": colors.socialFollowing,
+                        "Người theo dõi": colors.socialFollowers,
                     }}
                 />
                 <View style={styles.actionRow}>

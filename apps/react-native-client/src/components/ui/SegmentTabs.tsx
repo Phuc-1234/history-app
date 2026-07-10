@@ -62,6 +62,6 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
     },
     segmentTextActive: {
-        color: "#FFFFFF",
+        color: colors.textLight,
     },
 });

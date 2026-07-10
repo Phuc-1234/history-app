@@ -121,12 +121,12 @@ export function OtherProfileScreen() {
                         <StatCard
                             value={String(apiProfile?.stats.friends ?? 0)}
                             label="Bạn bè"
-                            backgroundColor="#3182CE"
+                            backgroundColor={colors.socialFriends}
                         />
                         <StatCard
                             value={String(apiProfile?.stats.followers ?? 0)}
                             label="Người theo dõi"
-                            backgroundColor="#FF6B00"
+                            backgroundColor={colors.socialFollowers}
                         />
                         <StatCard
                             value={profile.winRate ? `${profile.winRate}%` : "--"}
@@ -170,8 +170,8 @@ export function OtherProfileScreen() {
                                 { backgroundColor: colors.warning, borderWidth: 0 },
                             ]}
                         >
-                            <Ionicons name="trophy" size={24} color="#FFFFFF" />
-                            <Text style={[styles.badgeTitle, { color: "#FFFFFF" }]}>
+                            <Ionicons name="trophy" size={24} color={colors.textLight} />
+                            <Text style={[styles.badgeTitle, { color: colors.textLight }]}>
                                 {profile.xp.toLocaleString()} XP
                             </Text>
                         </View>
@@ -181,8 +181,8 @@ export function OtherProfileScreen() {
                                 { backgroundColor: colors.error, borderWidth: 0 },
                             ]}
                         >
-                            <Ionicons name="flame" size={24} color="#FFFFFF" />
-                            <Text style={[styles.badgeTitle, { color: "#FFFFFF" }]}>
+                            <Ionicons name="flame" size={24} color={colors.textLight} />
+                            <Text style={[styles.badgeTitle, { color: colors.textLight }]}>
                                 Chuỗi học {apiProfile?.currentStreak ?? 0}
                             </Text>
                         </View>

@@ -51,13 +51,13 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 18,
         fontWeight: "600",
-        color: "#FFFFFF",
+        color: colors.textLight,
     },
     statLabel: {
         marginTop: 3,
         fontSize: 11,
         fontWeight: "500",
-        color: "#FFFFFF",
+        color: colors.textLight,
         textAlign: "center",
     },
 });

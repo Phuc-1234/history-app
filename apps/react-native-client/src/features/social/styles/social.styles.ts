@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import { colors } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 
 /**
  * Style layout dùng chung cho các màn social (search, profile, friends, requests).
@@ -33,9 +34,9 @@ export const styles = StyleSheet.create({
     },
     searchInput: {
         flex: 1,
-        fontSize: 15,
+        ...typography.bodyMedium,
+        fontFamily: typography.fonts.regular,
         color: colors.textPrimary,
-        fontWeight: "400",
     },
 
     // ─── Section headers ─────────────────────────────────────────────────
@@ -46,12 +47,11 @@ export const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 17,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textPrimary,
     },
     sectionHint: {
-        fontSize: 13,
-        fontWeight: "500",
+        ...typography.bodySmallMedium,
         color: colors.textMuted,
     },
 
@@ -75,19 +75,17 @@ export const styles = StyleSheet.create({
     },
     userName: {
         fontSize: 15,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textPrimary,
     },
     userTitle: {
         marginTop: 3,
-        fontSize: 13,
-        fontWeight: "400",
+        ...typography.bodySmall,
         color: colors.textMuted,
     },
     userMeta: {
         marginTop: 4,
-        fontSize: 12,
-        fontWeight: "400",
+        ...typography.caption,
         color: colors.textMuted,
         lineHeight: 17,
     },
@@ -101,7 +99,7 @@ export const styles = StyleSheet.create({
     },
     levelText: {
         fontSize: 11,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.warning,
     },
     searchButtonRow: {
@@ -120,13 +118,12 @@ export const styles = StyleSheet.create({
         gap: 10,
     },
     profileName: {
-        fontSize: 22,
-        fontWeight: "600",
+        ...typography.h2,
+        fontFamily: typography.fonts.semiBold,
         color: colors.textPrimary,
     },
     profileSubtitle: {
-        fontSize: 13,
-        fontWeight: "500",
+        ...typography.bodySmallMedium,
         color: colors.textMuted,
     },
     profileStats: {
@@ -149,8 +146,8 @@ export const styles = StyleSheet.create({
         gap: 8,
     },
     badgeTitle: {
-        fontSize: 12,
-        fontWeight: "600",
+        ...typography.caption,
+        fontFamily: typography.fonts.semiBold,
         color: colors.textPrimary,
         textAlign: "center",
     },
