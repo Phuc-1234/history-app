@@ -5,16 +5,17 @@ import { colors } from "../../../theme/colors";
 
 interface PodiumSectionProps {
     topUsers: DisplayUser[];
-    isSmallDevice: boolean;
+    isSmallDevice?: boolean;
     showStreak?: boolean;
 }
 
 export const PodiumSection: React.FC<PodiumSectionProps> = ({
     topUsers,
-    isSmallDevice,
+    isSmallDevice= false,
     showStreak = false,
 }) => {
     const styles = createStyles(isSmallDevice);
+    if (!topUsers || topUsers.length < 3) return null;
 
     return (
         <View style={styles.podiumSection}>

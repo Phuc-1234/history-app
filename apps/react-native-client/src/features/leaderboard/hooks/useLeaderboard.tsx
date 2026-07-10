@@ -1,3 +1,82 @@
+// import { useState, useMemo } from "react";
+// import { useWindowDimensions } from "react-native";
+// import { useGetLeaderboardQuery } from "../services/leaderboardApi";
+// import { SortType } from "../types/leaderboardTypes";
+
+// interface ApiUser {
+//     id: string;
+//     name?: string;
+//     totalXp?: number;
+//     currentStreak?: number;
+//     avatarUrl?: string;
+// }
+
+// export interface DisplayUser {
+//     id: string;
+//     name: string;
+//     xp: number;
+//     streak: number;
+//     avatar: string;
+//     currentUserId: string;
+// }
+
+// export function useLeaderboard() {
+//     const { width } = useWindowDimensions();
+//     const isSmallDevice = width < 390;
+
+//     const [activeTab, setActiveTab] = useState<"xp" | "streak">("xp");
+
+//     const {
+//         data: response,
+//         isLoading,
+//         isError,
+//         refetch,
+//     } = useGetLeaderboardQuery({
+//         limit: 20,
+//         page: 1,
+//         sort: activeTab as SortType,
+//     });
+
+//     const displayUsers: DisplayUser[] = useMemo(() => {
+//         if (!response?.entries) return [];
+//         return response.entries.map((user) => ({
+//             id: user.id,
+//             name: user.name || "Ẩn danh",
+//             xp: user.totalXp ?? 0,
+//             streak: user.currentStreak ?? 0,
+//             avatar:
+//                 user.avatarUrl ||
+//                 `https://ui-avatars.com/api/?name=${encodeURIComponent(
+//                     user.name || "User"
+//                 )}&background=E8E4F4&color=5856D6&bold=true`,
+//         }));
+//     }, [response]);
+
+//     const topUsers = displayUsers.slice(0, 3);
+//     const rankingList = displayUsers.slice(3);
+//     const currentUserId = "id-cua-ban-lay-tu-auth";
+
+//     return {
+//         topUsers,
+//         rankingList,
+//         currentUserId,
+//         isSmallDevice,
+//         activeTab,
+//         setActiveTab,
+//         isLoading,
+//         isError,
+//         refetch,
+//         total: response?.total ?? 0,
+//     };
+// }
+
+
+
+
+
+
+
+
 import { useState, useMemo } from "react";
 import { useWindowDimensions } from "react-native";
 import { useGetLeaderboardQuery } from "../services/leaderboardApi";
@@ -14,15 +93,12 @@ export interface DisplayUser {
 export function useLeaderboard() {
     const { width } = useWindowDimensions();
     const isSmallDevice = width < 390;
-
     const [activeTab, setActiveTab] = useState<"xp" | "streak">("xp");
+    
+    // ID của bạn (Nên thay bằng giá trị lấy từ AuthContext)
+    const currentUserId = "my-user-id-123"; 
 
-    const {
-        data: response,
-        isLoading,
-        isError,
-        refetch,
-    } = useGetLeaderboardQuery({
+    const { data: response, isLoading, isError, refetch } = useGetLeaderboardQuery({
         limit: 20,
         page: 1,
         sort: activeTab as SortType,
@@ -30,25 +106,20 @@ export function useLeaderboard() {
 
     const displayUsers: DisplayUser[] = useMemo(() => {
         if (!response?.entries) return [];
-        return response.entries.map((user) => ({
-            id: user.id,
+        // Sử dụng 'as any' để tránh lỗi biên dịch nếu cấu trúc API thay đổi
+        return (response.entries as any[]).map((user) => ({
+            id: user.id || "",
             name: user.name || "Ẩn danh",
             xp: user.totalXp ?? 0,
             streak: user.currentStreak ?? 0,
-            avatar:
-                user.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    user.name || "User"
-                )}&background=E8E4F4&color=5856D6&bold=true`,
+            avatar: user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}`,
         }));
     }, [response]);
 
-    const topUsers = displayUsers.slice(0, 3);
-    const rankingList = displayUsers.slice(3);
-
     return {
-        topUsers,
-        rankingList,
+        topUsers: displayUsers.slice(0, 3),
+        rankingList: displayUsers.slice(3),
+        currentUserId,
         isSmallDevice,
         activeTab,
         setActiveTab,

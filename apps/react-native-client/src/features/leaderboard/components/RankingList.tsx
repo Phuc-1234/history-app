@@ -1,54 +1,18 @@
 import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
-import { DisplayUser } from "../hooks/useLeaderboard";
+import { View, Text, StyleSheet } from "react-native";
 import { colors } from "../../../theme/colors";
 
-interface RankingListProps {
-    rankingList: DisplayUser[];
-    isSmallDevice: boolean;
-    showStreak?: boolean;
-}
-
-export const RankingList: React.FC<RankingListProps> = ({
-    rankingList,
-    isSmallDevice,
-    showStreak = false,
-}) => {
-    const styles = createStyles(isSmallDevice);
-
+export const RankingList = ({ rankingList, currentUserId, showStreak }: any) => {
     return (
         <View style={styles.listContainer}>
-            {rankingList.map((item, index) => {
-                const hasAvatar = item.avatar && item.avatar.trim() !== "";
-
+            {rankingList?.map((item: any, index: number) => {
+                const isMe = item.id === currentUserId;
                 return (
-                    <View key={item.id} style={styles.rankRow}>
+                    <View key={item.id} style={[styles.rankRow, isMe && styles.meRow]}>
                         <Text style={styles.rowPosition}>{index + 4}</Text>
-
-                        {hasAvatar ? (
-                            <Image
-                                source={{ uri: item.avatar }}
-                                style={styles.rowAvatar}
-                            />
-                        ) : (
-                            <View style={styles.rowDefaultAvatar}>
-                                <Text style={styles.rowDefaultAvatarText}>
-                                    {item.name
-                                        ? item.name.charAt(0).toUpperCase()
-                                        : "?"}
-                                </Text>
-                            </View>
-                        )}
-
-                        <Text style={styles.rowName} numberOfLines={1}>
-                            {item.name}
-                        </Text>
-
-                        <Text style={styles.rowXp}>
-                            {showStreak
-                                ? `🔥 ${item.streak} ngày`
-                                : `${item.xp.toLocaleString()} XP`}
-                        </Text>
+                        <View style={styles.rowAvatar} />
+                        <Text style={styles.rowName}>{item.name}</Text>
+                        <Text style={styles.rowXp}>{showStreak ? `🔥 ${item.streak}` : `${item.xp} XP`}</Text>
                     </View>
                 );
             })}
@@ -56,56 +20,12 @@ export const RankingList: React.FC<RankingListProps> = ({
     );
 };
 
-const createStyles = (isSmallDevice: boolean) =>
-    StyleSheet.create({
-        listContainer: { marginTop: 34 },
-        rankRow: {
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: colors.primary,
-            borderRadius: 20,
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-            marginBottom: 14,
-        },
-        rowPosition: {
-            width: 22,
-            marginRight: 10,
-            fontSize: 15,
-            fontWeight: "500",
-            color: colors.textLight,
-        },
-        rowAvatar: {
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            marginRight: 14,
-            backgroundColor: colors.surfaceVariant,
-        },
-        rowDefaultAvatar: {
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            marginRight: 14,
-            backgroundColor: colors.primaryContainer,
-            justifyContent: "center",
-            alignItems: "center",
-        },
-        rowDefaultAvatarText: {
-            color: colors.primary,
-            fontSize: 16,
-            fontWeight: "700",
-        },
-        rowName: {
-            flex: 1,
-            fontSize: isSmallDevice ? 14 : 15,
-            color: colors.textLight,
-            fontWeight: "500",
-            marginRight: 8,
-        },
-        rowXp: {
-            fontSize: isSmallDevice ? 14 : 15,
-            color: colors.textLight,
-            fontWeight: "700",
-        },
-    });
+const styles = StyleSheet.create({
+    listContainer: { marginTop: 20 },
+    rankRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.primary, borderRadius: 20, padding: 16, marginBottom: 14 },
+    meRow: { borderWidth: 2, borderColor: '#FFD700' }, 
+    rowPosition: { fontSize: 15, color: colors.textLight, width: 22 },
+    rowAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceVariant, marginHorizontal: 14 },
+    rowName: { flex: 1, color: colors.textLight },
+    rowXp: { color: colors.textLight, fontWeight: "700" }
+});
