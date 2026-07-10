@@ -4,6 +4,7 @@
 export interface GradeDto {
     id: number;
     state: "PUBLIC" | "PRIVATE";
+    masteryPercentage?: number | null;
 }
 
 export interface TopicDto {
@@ -11,6 +12,7 @@ export interface TopicDto {
     name: string;
     position: number;
     gradeId: number;
+    masteryPercentage?: number | null;
 }
 
 export interface LessonDto {
@@ -19,6 +21,7 @@ export interface LessonDto {
     summary?: string | null;
     position: number;
     topicId: number;
+    masteryPercentage?: number | null;
 }
 
 export interface NodeDto {
@@ -30,6 +33,7 @@ export interface NodeDto {
     videoId?: string | null;
     sectionId: number | null;
     isComplete?: boolean | null;
+    masteryPercentage?: number | null;
 }
 
 export interface SectionDto {
@@ -39,6 +43,7 @@ export interface SectionDto {
     position: number;
     lessonId: number;
     parentSectionId?: number | null;
+    masteryPercentage?: number | null;
     // nested children (tree shape)
     children?: SectionDto[];
     // nodes directly under this section

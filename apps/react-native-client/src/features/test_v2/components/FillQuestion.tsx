@@ -8,6 +8,7 @@ import type {
     QuestionEvalResult,
 } from "../types";
 import { colors } from "../../../theme/colors";
+import typography from "@/theme/typography";
 import { formatScore } from "../services/scoreEngine";
 
 interface Props {
@@ -88,7 +89,7 @@ export default function FillQuestion({
 
 const styles = StyleSheet.create({
     container: { gap: 10 },
-    label: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+    label: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
     pointsBadge: {
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -102,12 +103,12 @@ const styles = StyleSheet.create({
     },
     pointsBadgeTextCorrect: {
         fontSize: 11,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textSuccess,
     },
     pointsBadgeTextZero: {
         fontSize: 11,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textMuted,
     },
     input: {
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         padding: 14,
         fontSize: 15,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textPrimary,
     },
     inputCorrect: {
@@ -138,10 +139,10 @@ const styles = StyleSheet.create({
         gap: 8,
         alignItems: "center",
     },
-    feedbackLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+    feedbackLabel: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
     feedbackValue: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSuccess,
         flex: 1,
     },

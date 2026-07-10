@@ -8,6 +8,7 @@ import {
     LayoutChangeEvent,
 } from "react-native";
 import { colors } from "../theme/colors";
+import typography from "../theme/typography";
 
 export interface TabOption {
     key: string;
@@ -120,8 +121,8 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     tabText: {
+        fontFamily: typography.fonts.medium,
         fontSize: 15,
-        fontWeight: "500", // Low-mid font weight
     },
     activeText: {
         color: colors.textLight,

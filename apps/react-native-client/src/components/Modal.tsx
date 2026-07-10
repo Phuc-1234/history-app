@@ -8,6 +8,8 @@ import {
     Pressable,
 } from "react-native";
 import Mascot, { MascotExpression } from "./Mascot";
+import colors from "../theme/colors";
+import typography from "../theme/typography";
 
 interface CustomModalProps {
     visible: boolean;
@@ -87,32 +89,29 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     card: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 24,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 24,
         width: "100%",
         maxWidth: 340,
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 5,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
     },
     title: {
+        fontFamily: typography.fonts.bold,
         fontSize: 18,
-        fontWeight: "800",
-        color: "#1C1C1E",
+        color: colors.textDark,
         marginBottom: 10,
         textAlign: "center",
     },
     message: {
+        fontFamily: typography.fonts.medium,
         fontSize: 14,
-        color: "#718096",
+        color: colors.textSecondary,
         textAlign: "center",
         marginBottom: 24,
         lineHeight: 20,
-        fontWeight: "500",
     },
     buttons: {
         flexDirection: "row",
@@ -122,28 +121,28 @@ const styles = StyleSheet.create({
     cancelBtn: {
         flex: 1,
         paddingVertical: 14,
-        borderRadius: 16,
-        backgroundColor: "#F3F4F6",
+        borderRadius: 12,
+        backgroundColor: colors.surfaceVariant,
         alignItems: "center",
         justifyContent: "center",
     },
     cancelText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 15,
-        fontWeight: "700",
-        color: "#4B5563",
+        color: colors.textSecondary,
     },
     confirmBtn: {
         flex: 1,
         paddingVertical: 14,
-        borderRadius: 16,
-        backgroundColor: "#5D45F9",
+        borderRadius: 12,
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
     },
     confirmText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 15,
-        fontWeight: "700",
-        color: "#FFFFFF",
+        color: colors.textLight,
     },
     mascot: {
         marginBottom: 16,

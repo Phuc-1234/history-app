@@ -14,6 +14,7 @@ import { useForgotPassword } from "../hooks/useForgotPassword";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Input from "../../../components/Input";
 import colors from "../../../theme/colors";
+import typography from "../../../theme/typography";
 import Mascot from "../../../components/Mascot";
 import HistoricalBackground from "../../../components/layout/HistoricalBackground";
 
@@ -67,7 +68,6 @@ export default function ForgotPasswordEmailScreen() {
                 {/* Form Inputs Container */}
                 <View style={styles.formContainer}>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.fieldLabel}>{text.email}</Text>
                         <Input
                             icon={Mail}
                             placeholder={text.emailPlaceholder}
@@ -134,15 +134,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     headlineText: {
-        color: colors.textDark,
-        fontSize: 28,
-        fontWeight: "800",
+        ...typography.h2,
+        color: colors.accent,
         textAlign: "center",
         marginBottom: 8,
     },
     subText: {
+        ...typography.bodyMediumMedium,
         color: colors.textMuted,
-        fontSize: 15,
         lineHeight: 22,
         textAlign: "center",
     },
@@ -151,21 +150,14 @@ const styles = StyleSheet.create({
     inputGroup: {
         marginBottom: 12,
     },
-    fieldLabel: {
-        color: colors.textDark,
-        fontSize: 15,
-        fontWeight: "700",
-        marginBottom: 8,
-    },
     customInput: {
         backgroundColor: colors.inputBackground,
         color: colors.textDark,
         borderRadius: 30,
     },
     fieldErrorText: {
+        ...typography.bodySmallSemiBold,
         color: colors.textError,
-        fontSize: 13,
-        fontWeight: "600",
         marginTop: 6,
         paddingLeft: 4,
     },
@@ -184,9 +176,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     primaryButtonText: {
+        ...typography.bodyLargeBold,
         color: colors.textLight,
-        fontSize: 16,
-        fontWeight: "800",
     },
     disabled: {
         opacity: 0.6,
@@ -200,8 +191,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     backLoginText: {
+        ...typography.bodyLargeBold,
         color: colors.primary,
-        fontSize: 15,
-        fontWeight: "700",
     },
 });

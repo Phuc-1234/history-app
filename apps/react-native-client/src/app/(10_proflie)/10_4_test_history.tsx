@@ -9,6 +9,7 @@ export default function TestHistoryRoute() {
 
     return (
         <ScreenWrapper
+            showTopBar={false}
             branchConfig={{
                 hierarchy: "HỒ SƠ > LỊCH SỬ",
                 title: "Lịch sử làm bài",

@@ -20,9 +20,10 @@ import {
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import ProfileAvatar from "../components/ProfileAvatar";
-import SubPageHeader from "../components/SubPageHeader";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import * as ImagePicker from "expo-image-picker";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 export default function ProfileEditScreen() {
     const router = useRouter();
@@ -189,11 +190,14 @@ export default function ProfileEditScreen() {
     };
 
     return (
-        <View style={styles.container}>
-            <SubPageHeader
-                title="Sửa thông tin"
-                onBackPress={() => router.back()}
-            />
+        <ScreenWrapper
+            showTopBar={false}
+            branchConfig={{
+                hierarchy: "Cá nhân",
+                title: "Sửa thông tin",
+                onBackPress: () => router.back(),
+            }}
+        >
 
             <KeyboardAvoidingView
                 style={styles.flex}
@@ -271,7 +275,7 @@ export default function ProfileEditScreen() {
                     />
                 </View>
             </KeyboardAvoidingView>
-        </View>
+        </ScreenWrapper>
     );
 }
 
@@ -317,17 +321,17 @@ const styles = StyleSheet.create({
     },
 
     fieldLabel: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 13,
-        fontWeight: "600",
         color: colors.textSecondary,
         marginBottom: 6,
         marginTop: 8,
     },
 
     errorText: {
+        fontFamily: typography.fonts.medium,
         color: colors.error,
         fontSize: 13,
-        fontWeight: "500",
         marginTop: 8,
         marginLeft: 4,
     },

@@ -7,6 +7,8 @@ import { FlashcardControls } from "../components/FlashcardControls";
 import { FlashcardProgress } from "../components/FlashcardProgress";
 import { useGetFlashcardsByLessonQuery, useGetFlashcardsBySectionQuery, useGetFlashcardsByNodeQuery } from "../flashcardApiSlice";
 import { CardState } from "../types";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 
 interface FlashcardPlayScreenProps {
     lessonId?: number;
@@ -141,7 +143,7 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
     if (isLoading) {
         return (
             <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#5856D6" />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>Đang tải thẻ lật...</Text>
             </View>
         );
@@ -218,7 +220,7 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F8F9FA",
+        backgroundColor: colors.background,
         justifyContent: "space-between",
         alignItems: "center",
         paddingBottom: 24,
@@ -230,9 +232,8 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     cardHintText: {
-        fontSize: 13,
-        color: "#8E8E93",
-        fontWeight: "500",
+        ...typography.bodySmallMedium,
+        color: colors.textMuted,
         marginTop: 8,
         textAlign: "center",
     },
@@ -246,27 +247,25 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: 32,
-        backgroundColor: "#F8F9FA",
+        backgroundColor: colors.background,
     },
     loadingText: {
-        fontSize: 15,
-        color: "#8E8E93",
+        ...typography.bodyMediumMedium,
+        color: colors.textMuted,
         marginTop: 16,
-        fontWeight: "500",
     },
     errorIcon: {
         fontSize: 48,
         marginBottom: 16,
     },
     errorTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: "#1C1C1E",
+        ...typography.h3,
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     errorText: {
-        fontSize: 14,
-        color: "#8E8E93",
+        ...typography.bodyMedium,
+        color: colors.textMuted,
         textAlign: "center",
         lineHeight: 20,
     },
@@ -275,14 +274,13 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     emptyTitle: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: "#1C1C1E",
+        ...typography.h3,
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     emptyText: {
-        fontSize: 14,
-        color: "#8E8E93",
+        ...typography.bodyMedium,
+        color: colors.textMuted,
         textAlign: "center",
         lineHeight: 20,
     },

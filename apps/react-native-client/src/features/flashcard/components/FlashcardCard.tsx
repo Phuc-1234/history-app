@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Flashcard } from "../types";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 
 interface FlashcardCardProps {
     card: Flashcard;
@@ -85,7 +87,7 @@ export function FlashcardCard({ card, isFlipped, onFlip }: FlashcardCardProps) {
                         <Ionicons
                             name="sync-outline"
                             size={20}
-                            color="#C7C7CC"
+                            color={colors.textPlaceholder}
                         />
                     </View>
                 </Animated.View>
@@ -108,7 +110,7 @@ export function FlashcardCard({ card, isFlipped, onFlip }: FlashcardCardProps) {
                         <Ionicons
                             name="checkmark-circle-outline"
                             size={20}
-                            color="#34C759"
+                            color={colors.success}
                         />
                     </View>
                 </Animated.View>
@@ -131,26 +133,21 @@ const styles = StyleSheet.create({
         position: "absolute",
         width: "100%",
         height: "100%",
-        backgroundColor: "#FFF",
-        borderRadius: 24,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 24,
         backfaceVisibility: "hidden",
         justifyContent: "space-between",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
-        elevation: 6,
         borderWidth: 1,
-        borderColor: "#E5E5EA",
+        borderColor: colors.borderMedium,
     },
     cardFront: {
         zIndex: 2,
     },
     cardBack: {
         zIndex: 1,
-        backgroundColor: "#F9F9FF",
-        borderColor: "#EAEAFE",
+        backgroundColor: colors.surfaceVariant,
+        borderColor: colors.borderLight,
     },
     innerContent: {
         flex: 1,
@@ -158,15 +155,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     cardText: {
-        fontSize: 18,
-        fontWeight: "700",
+        ...typography.h3,
         textAlign: "center",
-        color: "#1C1C1E",
+        color: colors.textPrimary,
         lineHeight: 26,
     },
     cardTextBack: {
-        fontWeight: "500",
-        color: "#3A3A3C",
+        ...typography.bodyLarge,
+        color: colors.textSecondary,
     },
     iconCorner: {
         alignSelf: "flex-end",

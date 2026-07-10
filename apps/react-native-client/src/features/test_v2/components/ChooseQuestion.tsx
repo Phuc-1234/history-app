@@ -15,6 +15,7 @@ import type {
 } from "../types";
 import { isSingleChoice, formatScore } from "../services/scoreEngine";
 import { colors } from "../../../theme/colors";
+import typography from "@/theme/typography";
 
 interface Props {
     question: QuestionV2;
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     container: { gap: 10 },
     label: {
         fontSize: 13,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textMuted,
         marginBottom: 4,
     },
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
     checkboxInnerWrong: { backgroundColor: colors.error },
     optionText: {
         fontSize: 14,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
         flex: 1,
     },
@@ -410,17 +411,17 @@ const styles = StyleSheet.create({
     },
     pointsBadgeTextCorrect: {
         fontSize: 11,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textSuccess,
     },
     pointsBadgeTextWrong: {
         fontSize: 11,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textError,
     },
     pointsBadgeTextZero: {
         fontSize: 11,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.textMuted,
     },
     badgeCorrect: { backgroundColor: colors.successContainer },
@@ -428,17 +429,17 @@ const styles = StyleSheet.create({
     badgeMissing: { backgroundColor: colors.warningContainer },
     badgeTextCorrect: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSuccess,
     },
     badgeTextWrong: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textError,
     },
     badgeTextMissing: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textWarning,
     },
 });

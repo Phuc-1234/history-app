@@ -3,16 +3,19 @@ import {
     StyleSheet,
     Text,
     View,
-    TouchableOpacity,
     ActivityIndicator,
     TextInput,
     ScrollView,
     RefreshControl,
+    Modal,
+    TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
-import { useGetGradeStructureQuery } from "../contentApiSlice";
+import { useGetGradeStructureQuery, useGetGradesQuery } from "../contentApiSlice";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
+import { Card } from "../../../components/Card";
 import { Ionicons } from "@expo/vector-icons";
 
 function CourseCard({
@@ -29,23 +32,27 @@ function CourseCard({
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     let themeColor = colors.primary;
-    let bgColor = "#EBE8FF";
     if (grade === 11) {
         themeColor = colors.secondary;
-        bgColor = "#FEF1D3";
     } else if (grade === 12) {
         themeColor = colors.success;
-        bgColor = "#ECFDF5";
     }
 
     return (
-        <TouchableOpacity
-            style={[styles.card, { backgroundColor: bgColor }]}
+        <Card
+            style={[
+                styles.card,
+                {
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.borderMedium,
+                },
+            ]}
             onPress={onPress}
             activeOpacity={0.85}
         >
             {/* Left Image Section */}
-            <View style={[styles.imageContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.imageContainer, { backgroundColor: colors.surfaceVariant }]}>
                 <Ionicons name="book" size={40} color={themeColor} />
                 
                 {/* Overlapping Pill Badge */}
@@ -81,7 +88,7 @@ function CourseCard({
             <View style={styles.chevronContainer}>
                 <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </View>
-        </TouchableOpacity>
+        </Card>
     );
 }
 
@@ -175,9 +182,13 @@ export function CourseMenuScreen() {
     const { data: struct11, isLoading: loading11, refetch: refetch11, isFetching: isFetching11 } = useGetGradeStructureQuery(11);
     const { data: struct12, isLoading: loading12, refetch: refetch12, isFetching: isFetching12 } = useGetGradeStructureQuery(12);
 
+    const { data: gradesData, isLoading: loadingGrades } = useGetGradesQuery();
+    const [isMasteryModalVisible, setIsMasteryModalVisible] = useState(false);
+
     const isLoading = loading10 || loading11 || loading12;
     const isFetching = isFetching10 || isFetching11 || isFetching12;
     const [searchQuery, setSearchQuery] = useState("");
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     const handleRefresh = () => {
         refetch10();
@@ -214,17 +225,32 @@ export function CourseMenuScreen() {
     return (
         <ScreenWrapper>
             <View style={styles.container}>
-                <Text style={styles.screenHeader}>Khóa Học</Text>
+                <View style={styles.headerRow}>
+                    <Text style={styles.screenHeader}>Học phần</Text>
+                    <TouchableOpacity
+                        style={styles.masteryBadgeButton}
+                        onPress={() => setIsMasteryModalVisible(true)}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="ribbon-outline" size={16} color="#FFFFFF" />
+                        <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
+                    </TouchableOpacity>
+                </View>
                 <Text style={styles.screenSubtitle}>Chọn học phần để bắt đầu</Text>
 
                 <View style={styles.searchContainer}>
                     <TextInput
-                        style={styles.searchInput}
+                        style={[
+                            styles.searchInput,
+                            isSearchFocused && styles.searchInputFocused
+                        ]}
                         placeholder="Tìm kiếm bài học, chủ đề..."
                         placeholderTextColor={colors.textPlaceholder}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         underlineColorAndroid="transparent"
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setIsSearchFocused(false)}
                     />
                 </View>
 
@@ -279,6 +305,58 @@ export function CourseMenuScreen() {
                     )}
                 </ScrollView>
             </View>
+
+            <Modal
+                visible={isMasteryModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsMasteryModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Mức độ thành thạo</Text>
+                        <Text style={styles.modalSubtitle}>Thành thạo dựa trên kết quả trả lời đúng liên tục các câu hỏi</Text>
+                        
+                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                            {loadingGrades ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                gradesData?.grades?.map((g) => {
+                                    const pct = g.masteryPercentage ?? 0;
+                                    let gradeColor = colors.primary;
+                                    if (g.id === 11) gradeColor = colors.secondary;
+                                    if (g.id === 12) gradeColor = colors.success;
+
+                                    return (
+                                        <View key={g.id} style={styles.masteryGradeItem}>
+                                            <View style={styles.masteryGradeHeader}>
+                                                <Text style={styles.masteryGradeText}>Lịch sử Lớp {g.id}</Text>
+                                                <Text style={[styles.masteryGradePct, { color: gradeColor }]}>{pct}%</Text>
+                                            </View>
+                                            <View style={styles.masteryProgressBarTrack}>
+                                                <View
+                                                    style={[
+                                                        styles.masteryProgressBarFill,
+                                                        { width: `${pct}%`, backgroundColor: gradeColor },
+                                                    ]}
+                                                />
+                                            </View>
+                                        </View>
+                                    );
+                                })
+                            )}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={() => setIsMasteryModalVisible(false)}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.modalCloseButtonText}>Đóng</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScreenWrapper>
     );
 }
@@ -293,13 +371,14 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     screenHeader: {
+        fontFamily: typography.fonts.bold,
         fontSize: 26,
-        fontWeight: "700",
         color: colors.textPrimary,
         marginBottom: 4,
         textAlign: "center",
     },
     screenSubtitle: {
+        fontFamily: typography.fonts.regular,
         fontSize: 15,
         color: colors.textSecondary,
         marginBottom: 24,
@@ -315,7 +394,6 @@ const styles = StyleSheet.create({
     },
     card: {
         flexDirection: "row",
-        borderRadius: 8,
         marginBottom: 18,
         overflow: "hidden",
         height: 110,
@@ -340,9 +418,9 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
     },
     badgeText: {
+        fontFamily: typography.fonts.light,
         color: colors.textLight,
         fontSize: 11,
-        fontWeight: "300",
     },
     detailsContainer: {
         flex: 1,
@@ -351,14 +429,15 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     courseTitle: {
+        fontFamily: typography.fonts.bold,
         fontSize: 17,
-        fontWeight: "700",
-        color: colors.textPrimary,
+        color: colors.accent,
         marginBottom: 4,
     },
     courseSubtitle: {
+        fontFamily: typography.fonts.regular,
         fontSize: 13,
-        color: colors.textSecondary,
+        color: "#000000",
         marginBottom: 10,
     },
     progressContainer: {
@@ -383,18 +462,116 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     searchInput: {
+        fontFamily: typography.fonts.light,
         height: 48,
         backgroundColor: colors.inputBackground,
         borderRadius: 12,
         paddingHorizontal: 16,
         fontSize: 14,
-        fontWeight: "300",
         color: colors.textPrimary,
+        borderWidth: 1.5,
+        borderColor: "transparent",
+    },
+    searchInputFocused: {
+        borderColor: colors.accent,
     },
     noResultsText: {
+        fontFamily: typography.fonts.regular,
         textAlign: "center",
         color: colors.textSecondary,
         fontSize: 14,
         marginTop: 32,
+    },
+    headerRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 4,
+    },
+    masteryBadgeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.accent,
+        borderRadius: 30,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    masteryBadgeButtonText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 13,
+        color: "#FFFFFF",
+        marginLeft: 4,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalContent: {
+        width: "100%",
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    modalTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 20,
+        color: colors.textPrimary,
+        marginBottom: 4,
+        textAlign: "center",
+    },
+    modalSubtitle: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 13,
+        color: colors.textSecondary,
+        marginBottom: 20,
+        textAlign: "center",
+    },
+    modalScroll: {
+        maxHeight: 300,
+        marginBottom: 20,
+    },
+    masteryGradeItem: {
+        marginBottom: 16,
+    },
+    masteryGradeHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 6,
+    },
+    masteryGradeText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 15,
+        color: colors.textPrimary,
+    },
+    masteryGradePct: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 15,
+    },
+    masteryProgressBarTrack: {
+        height: 8,
+        backgroundColor: colors.borderMedium,
+        borderRadius: 4,
+        overflow: "hidden",
+    },
+    masteryProgressBarFill: {
+        height: "100%",
+        borderRadius: 4,
+    },
+    modalCloseButton: {
+        backgroundColor: colors.primary,
+        borderRadius: 30,
+        paddingVertical: 12,
+        alignItems: "center",
+    },
+    modalCloseButtonText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 15,
+        color: "#FFFFFF",
     },
 });

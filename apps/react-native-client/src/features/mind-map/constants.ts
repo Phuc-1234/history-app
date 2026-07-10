@@ -1,37 +1,12 @@
 import { Platform } from "react-native";
+import { colors } from "../../theme/colors";
 
-export const BRANCH_COLORS = [
-    {
-        color: "#F5F3FF",
-        borderColor: "#C4B5FD",
-        accentColor: "#7C3AED",
-        lightBg: "#FAF5FF",
-    },
-    {
-        color: "#EFF6FF",
-        borderColor: "#93C5FD",
-        accentColor: "#2563EB",
-        lightBg: "#F0F7FF",
-    },
-    {
-        color: "#ECFDF5",
-        borderColor: "#6EE7B7",
-        accentColor: "#059669",
-        lightBg: "#F0FDF4",
-    },
-    {
-        color: "#FFFBEB",
-        borderColor: "#FCD34D",
-        accentColor: "#D97706",
-        lightBg: "#FEFCE8",
-    },
-    {
-        color: "#FFF1F2",
-        borderColor: "#FDA4AF",
-        accentColor: "#E11D48",
-        lightBg: "#FFF1F2",
-    },
-];
+export const BRANCH_COLORS = colors.matchColors.map((item) => ({
+    color: item.bg,
+    borderColor: item.border,
+    accentColor: item.text,
+    lightBg: item.bg,
+}));
 
 export const SAFE_PADDING = Platform.OS === "web" ? 52 : 36;
 export const MOBILE_BREAKPOINT = 600;

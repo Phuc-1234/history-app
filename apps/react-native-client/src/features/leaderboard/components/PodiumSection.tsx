@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 interface PodiumSectionProps {
     topUsers: DisplayUser[];
@@ -145,38 +146,42 @@ const createStyles = (isSmallDevice: boolean) =>
         rank1Badge: { backgroundColor: colors.secondary },
         rank2Badge: { backgroundColor: colors.success },
         rank3Badge: { backgroundColor: colors.primary },
-        rankNumberText: { color: colors.textLight, fontSize: 11, fontWeight: "700" },
+        rankNumberText: { 
+            fontFamily: typography.fonts.bold,
+            color: colors.textLight, 
+            fontSize: 11 
+        },
         podiumName: {
+            fontFamily: typography.fonts.medium,
             marginTop: 10,
             color: colors.textPrimary,
             fontSize: isSmallDevice ? 11 : 12,
-            fontWeight: "500",
             textAlign: "center",
         },
         rank1Name: {
+            fontFamily: typography.fonts.medium,
             fontSize: isSmallDevice ? 15 : 16,
-            fontWeight: "500",
             marginTop: 12,
         },
         rank1Xp: {
+            fontFamily: typography.fonts.bold,
             fontSize: isSmallDevice ? 13 : 14,
-            fontWeight: "700",
             color: colors.secondary,
             marginTop: 3,
             marginBottom: 8,
             textAlign: "center",
         },
         rank2Xp: {
+            fontFamily: typography.fonts.semiBold,
             fontSize: isSmallDevice ? 11 : 12,
-            fontWeight: "600",
             color: colors.success,
             marginTop: 4,
             marginBottom: 8,
             textAlign: "center",
         },
         rank3Xp: {
+            fontFamily: typography.fonts.semiBold,
             fontSize: isSmallDevice ? 11 : 12,
-            fontWeight: "600",
             color: colors.primary,
             marginTop: 4,
             marginBottom: 8,

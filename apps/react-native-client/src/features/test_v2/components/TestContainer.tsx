@@ -32,6 +32,7 @@ import Mascot from "@/components/Mascot";
 import TestIntro, { getScopePlaceholder } from "./TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { colors } from "@/theme/colors";
+import typography from "@/theme/typography";
 import { useGetTestInfoQuery } from "../services/testApi";
 import ChooseQuestion from "./ChooseQuestion";
 import FillQuestion from "./FillQuestion";
@@ -147,6 +148,7 @@ export default function TestContainerV2({
     const runner = useTestRunnerV2(params);
     const router = useRouter();
     const profile = useAppSelector((state) => state.auth.profile);
+    const [wasInitiallyLoggedIn] = useState(!!profile);
     const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(
         params,
         {
@@ -277,6 +279,9 @@ export default function TestContainerV2({
 
     // ── Auth check ───────────────────────────────────────────────────
     if (!profile) {
+        if (wasInitiallyLoggedIn) {
+            return null;
+        }
         return (
             <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <CustomModal
@@ -1082,22 +1087,22 @@ const commonTagsStyles = {
         textDecorationLine: "underline" as const,
     },
     strong: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
     b: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
     i: {
-        fontStyle: "italic" as const,
+        fontFamily: typography.fonts.italic,
     },
     em: {
-        fontStyle: "italic" as const,
+        fontFamily: typography.fonts.italic,
     },
     u: {
         textDecorationLine: "underline" as const,
     },
     th: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
 };
 
@@ -1105,7 +1110,7 @@ const promptTagsStyles = {
     body: {
         color: colors.textPrimary,
         fontSize: 16,
-        fontWeight: "700" as const,
+        fontFamily: typography.fonts.bold,
         lineHeight: 24,
     },
     p: {
@@ -1115,6 +1120,7 @@ const promptTagsStyles = {
     li: {
         color: colors.textPrimary,
         fontSize: 15,
+        fontFamily: typography.fonts.regular,
         lineHeight: 22,
     },
     ...commonTagsStyles,
@@ -1124,6 +1130,7 @@ const docTagsStyles = {
     body: {
         color: colors.textSecondary,
         fontSize: 14,
+        fontFamily: typography.fonts.regular,
         lineHeight: 22,
     },
     p: {
@@ -1133,6 +1140,7 @@ const docTagsStyles = {
     li: {
         color: colors.textSecondary,
         fontSize: 13,
+        fontFamily: typography.fonts.regular,
         lineHeight: 20,
     },
     ...commonTagsStyles,
@@ -1142,18 +1150,22 @@ const classesStyles = {
     "text-tiny": {
         fontSize: 10,
         lineHeight: 14,
+        fontFamily: typography.fonts.regular,
     },
     "text-small": {
         fontSize: 13,
         lineHeight: 18,
+        fontFamily: typography.fonts.regular,
     },
     "text-big": {
         fontSize: 20,
         lineHeight: 28,
+        fontFamily: typography.fonts.regular,
     },
     "text-huge": {
         fontSize: 24,
         lineHeight: 34,
+        fontFamily: typography.fonts.regular,
     },
 };
 
@@ -1232,12 +1244,12 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 15,
         color: colors.textMuted,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
     },
     errorText: {
         fontSize: 15,
         color: colors.textError,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         textAlign: "center",
         marginBottom: 16,
     },
@@ -1247,7 +1259,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingVertical: 12,
     },
-    retryBtnText: { color: colors.textLight, fontWeight: "700", fontSize: 14 },
+    retryBtnText: { color: colors.textLight, fontFamily: typography.fonts.bold, fontSize: 14 },
     scrollContent: { padding: 16, paddingBottom: 40 },
 
     // Header
@@ -1259,7 +1271,7 @@ const styles = StyleSheet.create({
         paddingBottom: 8,
     },
     headerLeft: { flex: 1, gap: 6 },
-    headerProgress: { fontSize: 13, fontWeight: "800", color: colors.primary },
+    headerProgress: { fontSize: 13, fontFamily: typography.fonts.extraBold, color: colors.primary },
     progressBar: {
         height: 4,
         backgroundColor: colors.borderMedium,
@@ -1277,7 +1289,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     timerWarning: { backgroundColor: colors.errorContainer },
-    timerText: { fontSize: 13, fontWeight: "800", color: colors.primary },
+    timerText: { fontSize: 13, fontFamily: typography.fonts.extraBold, color: colors.primary },
     timerTextWarning: { color: colors.textError },
 
     // Question
@@ -1285,7 +1297,7 @@ const styles = StyleSheet.create({
     questionContent: { padding: 16 },
     questionPrompt: {
         fontSize: 16,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textPrimary,
         lineHeight: 24,
         marginBottom: 16,
@@ -1301,13 +1313,14 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
     docToggle: { padding: 12 },
-    docToggleText: { fontSize: 13, fontWeight: "700", color: colors.primary },
+    docToggleText: { fontSize: 13, fontFamily: typography.fonts.bold, color: colors.primary },
     docText: {
         fontSize: 14,
         color: colors.textSecondary,
         lineHeight: 22,
         padding: 12,
         paddingTop: 0,
+        fontFamily: typography.fonts.regular,
     },
 
     // Explanation
@@ -1320,7 +1333,7 @@ const styles = StyleSheet.create({
     },
     explanationLabel: {
         fontSize: 12,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textSuccess,
         marginBottom: 4,
     },
@@ -1328,6 +1341,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.textSuccess,
         lineHeight: 20,
+        fontFamily: typography.fonts.regular,
     },
 
     // Footer
@@ -1350,7 +1364,7 @@ const styles = StyleSheet.create({
     navBtnDisabled: { opacity: 0.4 },
     navBtnText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSecondary,
     },
     submitBtn: {
@@ -1360,7 +1374,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         alignItems: "center",
     },
-    submitBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
+    submitBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textLight },
     nextBtn: {
         flex: 1,
         backgroundColor: colors.primary,
@@ -1369,7 +1383,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     nextBtnDisabled: { opacity: 0.4 },
-    nextBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
+    nextBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textLight },
     blockIndicatorsRow: {
         flexDirection: "row",
         flexWrap: "wrap",
@@ -1404,7 +1418,7 @@ const styles = StyleSheet.create({
     },
     listLinkText: {
         fontSize: 13,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textMuted,
     },
     drawerOverlay: {
@@ -1439,7 +1453,7 @@ const styles = StyleSheet.create({
     },
     modalDrawerTitle: {
         fontSize: 18,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
     },
     modalCloseButton: {
@@ -1452,7 +1466,7 @@ const styles = StyleSheet.create({
     },
     modalCloseText: {
         fontSize: 12,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textMuted,
     },
     modalDrawerGrid: {
@@ -1481,7 +1495,7 @@ const styles = StyleSheet.create({
     },
     gridItemTextDrawer: {
         fontSize: 16,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textMuted,
     },
     gridItemTextAnsweredDrawer: {
@@ -1502,22 +1516,22 @@ const styles = StyleSheet.create({
     resultEmoji: { fontSize: 48, marginBottom: 8 },
     resultTitle: {
         fontSize: 22,
-        fontWeight: "900",
+        fontFamily: typography.fonts.black,
         color: colors.textPrimary,
         marginBottom: 8,
     },
     scoreRow: { flexDirection: "row", alignItems: "baseline" },
-    scoreValue: { fontSize: 48, fontWeight: "900", color: colors.primary },
+    scoreValue: { fontSize: 48, fontFamily: typography.fonts.black, color: colors.primary },
     scoreMax: {
         fontSize: 20,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textMuted,
         marginLeft: 2,
     },
     resultSubtext: {
         fontSize: 14,
         color: colors.textMuted,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         marginTop: 4,
     },
     consequencesBlock: {
@@ -1541,7 +1555,7 @@ const styles = StyleSheet.create({
     },
     rewardChipXp: { backgroundColor: colors.primary },
     rewardChipGold: { backgroundColor: colors.gold },
-    rewardChipText: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
+    rewardChipText: { fontSize: 12, fontFamily: typography.fonts.bold, color: "#FFFFFF" },
     milestoneRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -1553,7 +1567,7 @@ const styles = StyleSheet.create({
     },
     milestoneText: {
         fontSize: 12,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textWarning,
     },
     streakRow: {
@@ -1561,7 +1575,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 4,
     },
-    streakText: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
+    streakText: { fontSize: 12, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
     resultActions: { gap: 10, marginBottom: 24 },
     redoBtn: {
         backgroundColor: colors.warning,
@@ -1569,7 +1583,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         alignItems: "center",
     },
-    redoBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
+    redoBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textLight },
     restartBtn: {
         backgroundColor: colors.primary,
         borderRadius: 30,
@@ -1578,7 +1592,7 @@ const styles = StyleSheet.create({
     },
     restartBtnText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textLight,
     },
     exitBtn: {
@@ -1592,7 +1606,7 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         borderColor: colors.primary,
     },
-    exitBtnText: { fontSize: 14, fontWeight: "700", color: colors.primary },
+    exitBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.primary },
     viewDetailsBtn: {
         backgroundColor: colors.surface,
         borderRadius: 30,
@@ -1603,14 +1617,14 @@ const styles = StyleSheet.create({
     },
     viewDetailsBtnText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.primary,
     },
 
     // Review
     sectionTitle: {
         fontSize: 16,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
         marginBottom: 12,
     },
@@ -1630,7 +1644,7 @@ const styles = StyleSheet.create({
     },
     reviewIndex: {
         fontSize: 12,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPlaceholder,
     },
     reviewBadge: {
@@ -1640,12 +1654,12 @@ const styles = StyleSheet.create({
     },
     badgeCorrect: { backgroundColor: colors.successContainer },
     badgeWrong: { backgroundColor: colors.errorContainer },
-    reviewBadgeText: { fontSize: 11, fontWeight: "800" },
+    reviewBadgeText: { fontSize: 11, fontFamily: typography.fonts.extraBold },
     badgeTextCorrect: { color: colors.textSuccess },
     badgeTextWrong: { color: colors.textError },
     reviewQuestion: {
         fontSize: 14,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
         lineHeight: 20,
     },
@@ -1675,7 +1689,7 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 18,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
         marginBottom: 10,
     },
@@ -1700,7 +1714,7 @@ const styles = StyleSheet.create({
     },
     modalCancelText: {
         fontSize: 15,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSecondary,
     },
     modalConfirmBtn: {
@@ -1712,7 +1726,7 @@ const styles = StyleSheet.create({
     },
     modalConfirmText: {
         fontSize: 15,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textLight,
     },
     optionsList: { gap: 8, marginTop: 8 },
@@ -1731,7 +1745,7 @@ const styles = StyleSheet.create({
         borderColor: colors.error,
         backgroundColor: colors.errorContainer,
     },
-    optText: { fontSize: 14, fontWeight: "600", color: colors.textSecondary },
+    optText: { fontSize: 14, fontFamily: typography.fonts.semiBold, color: colors.textSecondary },
     optTextCorrect: { color: colors.textSuccess },
     optTextWrong: { color: colors.textError },
     fillContainer: {
@@ -1746,8 +1760,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
     },
-    fillLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-    fillValue: { fontSize: 14, fontWeight: "700" },
+    fillLabel: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
+    fillValue: { fontSize: 14, fontFamily: typography.fonts.bold },
     textGreen: { color: colors.success },
     textRed: { color: colors.error },
     matchContainer: { gap: 8, marginTop: 8 },
@@ -1763,12 +1777,12 @@ const styles = StyleSheet.create({
     },
     matchCorrect: { borderColor: colors.success },
     matchWrong: { borderColor: colors.error },
-    matchText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary },
-    matchArrow: { fontSize: 14, color: colors.textMuted },
+    matchText: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textSecondary },
+    matchArrow: { fontSize: 14, fontFamily: typography.fonts.regular, color: colors.textMuted },
     matchCorrectHint: {
         fontSize: 11,
         color: colors.success,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
     },
     explBox: {
         marginTop: 12,
@@ -1779,11 +1793,11 @@ const styles = StyleSheet.create({
     },
     explLabel: {
         fontSize: 12,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textSuccess,
         marginBottom: 4,
     },
-    explText: { fontSize: 13, color: colors.textSuccess, lineHeight: 20 },
+    explText: { fontSize: 13, fontFamily: typography.fonts.regular, color: colors.textSuccess, lineHeight: 20 },
     scoreBadge: {
         backgroundColor: colors.successContainer,
         borderRadius: 5,
@@ -1792,18 +1806,18 @@ const styles = StyleSheet.create({
     },
     scoreBadgeText: {
         fontSize: 13,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textSuccess,
     },
     possiblePointsText: {
         fontSize: 13,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textMuted,
         marginBottom: 16,
     },
     diffPointsText: {
         fontSize: 14,
-        fontWeight: "900",
+        fontFamily: typography.fonts.black,
         color: colors.success,
     },
     promptHeader: {
@@ -1822,7 +1836,7 @@ const styles = StyleSheet.create({
     },
     pointPillText: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSuccess,
     },
     helpIconContainer: {
@@ -1844,14 +1858,14 @@ const styles = StyleSheet.create({
     },
     tooltipTitle: {
         fontSize: 13,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         color: colors.primary,
     },
     tooltipText: {
         fontSize: 12,
         color: colors.textSecondary,
         lineHeight: 18,
-        fontWeight: "300",
+        fontFamily: typography.fonts.light,
     },
     tooltipCloseBtn: {
         padding: 2,
@@ -1873,7 +1887,7 @@ const styles = StyleSheet.create({
     },
     feedbackDrawerTitle: {
         fontSize: 16,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         textAlign: "center",
         marginBottom: 8,
     },
@@ -1891,7 +1905,7 @@ const styles = StyleSheet.create({
     },
     feedbackDrawerText: {
         fontSize: 14,
-        fontWeight: "300",
+        fontFamily: typography.fonts.light,
         lineHeight: 20,
     },
     feedbackDrawerTextCorrect: {
