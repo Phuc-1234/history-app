@@ -20,23 +20,25 @@ export function charWidthFor(depth: number): number {
     return config.fontSize * 0.55 + FIXED_LETTER_SPACING;
 }
 
-// Total horizontal room consumed by the non-text decorations on a card:
-//   depth 0 (root): none
-//   depth 1 (branch): left accent bar (4) + right collapse-icon room (24)
-//   depth 2 (leaf): left bullet dot room (20) + right collapse-icon room (22)
-// `hasChildren` only matters for layout fit; the right room is reserved
-// unconditionally so a node that gains children later doesn't shift text.
+// Total horizontal room consumed by the non-text decorations + padding on a
+// card. This drives the wrap point, so it must match where text actually
+// starts/ends when rendered (textStartOffset + right padding + icon room).
+//   depth 0 (root):   left padding 14 + right padding 14
+//   depth 1 (branch): accent bar 4 + left padding 12 + right icon room 24
+//   depth 2 (leaf):   bullet dot 20 + left padding 8 + right icon room 22
 export function sideRoomFor(depth: number): number {
-    if (depth === 1) return 4 + 24;
-    if (depth === 2) return 20 + 22;
-    return 0;
+    if (depth === 1) return 4 + 12 + 24;
+    if (depth === 2) return 20 + 8 + 22;
+    return 14 + 14;
 }
 
-// X offset from the card's left edge where the text area starts.
+// X offset from the card's left edge where the text starts (decorations +
+// left padding). Text was hugging the left edge; the extra padding gives it
+// breathing room.
 export function textStartOffset(depth: number): number {
-    if (depth === 1) return 4; // past the accent bar
-    if (depth === 2) return 20; // past the bullet dot
-    return 0;
+    if (depth === 1) return 4 + 12; // accent bar + padding
+    if (depth === 2) return 20 + 8; // bullet dot + padding
+    return 14; // root left padding
 }
 
 // ─── Text wrapping ──────────────────────────────────────────────────────────
