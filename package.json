@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "db:push": "prisma db push --schema=packages/shared/prisma/schema.prisma",
+    "db:push": "cd packages/shared && prisma db push",
     "client": "npm start --workspace=react-native-client",
     "client:local": "npm run start:local --workspace=react-native-client",
     "client:feature": "npm run start:feature --workspace=react-native-client",

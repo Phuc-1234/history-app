@@ -250,6 +250,10 @@ model User {
   feedbacks              Feedback[]
   questionMasteries      UserQuestionMastery[]
 
+  isPro                  Boolean            @default(false) @map("is_pro")
+  proExpiresAt           DateTime?          @map("pro_expires_at")
+  subscriptions          Subscription[]
+
   @@map("users")
 }
 
@@ -556,5 +560,34 @@ model UserQuestionMastery {
 enum AutoPickStrategy {
   BALANCED
   LOW_MASTERY
+}
+
+model Subscription {
+  id                String             @id @default(uuid())
+  userId            String             @map("user_id")
+  status            SubscriptionStatus @default(PENDING)
+  amountVnd         Int                @default(2000) @map("amount_vnd")
+  provider          PaymentProvider
+  providerOrderId   String             @unique @map("provider_order_id")
+  providerTransId   String?            @map("provider_trans_id")
+  
+  autoRenew         Boolean            @default(true) @map("auto_renew")
+  startDate         DateTime?          @map("start_date")
+  endDate           DateTime?          @map("end_date")
+  
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  FAILED
 }
 

@@ -50,3 +50,10 @@ Desktop.ini
 *.njsproj
 *.sln
 *.swp
+
+# ==========================================
+# Accidental Root Native Builds
+# ==========================================
+/android/
+/ios/
+/app.json

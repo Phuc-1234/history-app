@@ -260,45 +260,85 @@ export class PaymentService {
 
         const content = payload.content || "";
         // Support both old 10-char codes and new 5-char codes
-        const match = content.match(/DH[A-Z0-9]{5,10}/i);
+        const match = content.match(/(DH|SUB)[A-Z0-9]{5,10}/i);
         if (!match) {
             console.log(`[SePay Webhook] Ignored transaction: missing or invalid payment code in content "${content}"`);
             return;
         }
         const paymentCode = match[0].toUpperCase();
 
-        const purchase = await prisma.goldPurchase.findUnique({
-            where: { providerOrderId: paymentCode },
-        });
+        if (paymentCode.startsWith("DH9")) {
+            const subscription = await prisma.subscription.findUnique({
+                where: { providerOrderId: paymentCode },
+            });
 
-        if (!purchase) {
-            throw new Error(`No purchase record found for code: ${paymentCode}`);
+            if (!subscription) {
+                throw new Error(`No subscription record found for code: ${paymentCode}`);
+            }
+
+            if (subscription.status !== "PENDING") {
+                console.log(`[SePay Webhook] Subscription ${subscription.id} already processed. Status: ${subscription.status}`);
+                return;
+            }
+
+            if (payload.transferAmount < subscription.amountVnd) {
+                throw new Error(`Amount mismatch. Expected ${subscription.amountVnd} but got ${payload.transferAmount}`);
+            }
+
+            await this.activateSubscription(subscription.id, String(payload.id || payload.referenceCode));
+        } else if (paymentCode.startsWith("DH")) {
+            const purchase = await prisma.goldPurchase.findUnique({
+                where: { providerOrderId: paymentCode },
+            });
+
+            if (!purchase) {
+                throw new Error(`No purchase record found for code: ${paymentCode}`);
+            }
+
+            if (purchase.status !== "PENDING") {
+                console.log(`[SePay Webhook] Order ${purchase.id} already processed. Status: ${purchase.status}`);
+                return;
+            }
+
+            if (payload.transferAmount < purchase.amountVnd) {
+                throw new Error(`Amount mismatch. Expected ${purchase.amountVnd} but got ${payload.transferAmount}`);
+            }
+
+            await prisma.$transaction([
+                prisma.goldPurchase.update({
+                    where: { id: purchase.id },
+                    data: {
+                        status: "SUCCESS",
+                        providerTransId: String(payload.id || payload.referenceCode),
+                    },
+                }),
+                prisma.user.update({
+                    where: { id: purchase.userId },
+                    data: { totalGold: { increment: purchase.goldAmount } },
+                }),
+            ]);
+
+            console.log(`[SePay Webhook] Processed successfully. Order: ${purchase.id}, Gold credited: ${purchase.goldAmount}`);
+        } else if (paymentCode.startsWith("SUB")) {
+            const subscription = await prisma.subscription.findUnique({
+                where: { providerOrderId: paymentCode },
+            });
+
+            if (!subscription) {
+                throw new Error(`No subscription record found for code: ${paymentCode}`);
+            }
+
+            if (subscription.status !== "PENDING") {
+                console.log(`[SePay Webhook] Subscription ${subscription.id} already processed. Status: ${subscription.status}`);
+                return;
+            }
+
+            if (payload.transferAmount < subscription.amountVnd) {
+                throw new Error(`Amount mismatch. Expected ${subscription.amountVnd} but got ${payload.transferAmount}`);
+            }
+
+            await this.activateSubscription(subscription.id, String(payload.id || payload.referenceCode));
         }
-
-        if (purchase.status !== "PENDING") {
-            console.log(`[SePay Webhook] Order ${purchase.id} already processed. Status: ${purchase.status}`);
-            return;
-        }
-
-        if (payload.transferAmount < purchase.amountVnd) {
-            throw new Error(`Amount mismatch. Expected ${purchase.amountVnd} but got ${payload.transferAmount}`);
-        }
-
-        await prisma.$transaction([
-            prisma.goldPurchase.update({
-                where: { id: purchase.id },
-                data: {
-                    status: "SUCCESS",
-                    providerTransId: String(payload.id || payload.referenceCode),
-                },
-            }),
-            prisma.user.update({
-                where: { id: purchase.userId },
-                data: { totalGold: { increment: purchase.goldAmount } },
-            }),
-        ]);
-
-        console.log(`[SePay Webhook] Processed successfully. Order: ${purchase.id}, Gold credited: ${purchase.goldAmount}`);
     }
 
     /** Called when ZaloPay callback arrives */
@@ -320,21 +360,33 @@ export class PaymentService {
         const purchase = await prisma.goldPurchase.findUnique({
             where: { id: orderId },
         });
-        if (!purchase || purchase.status !== "PENDING") return;
 
-        await prisma.$transaction([
-            prisma.goldPurchase.update({
-                where: { id: purchase.id },
-                data: {
-                    status: "SUCCESS",
-                    providerTransId: String(data.zp_trans_id),
-                },
-            }),
-            prisma.user.update({
-                where: { id: purchase.userId },
-                data: { totalGold: { increment: purchase.goldAmount } },
-            }),
-        ]);
+        if (purchase) {
+            if (purchase.status !== "PENDING") return;
+
+            await prisma.$transaction([
+                prisma.goldPurchase.update({
+                    where: { id: purchase.id },
+                    data: {
+                        status: "SUCCESS",
+                        providerTransId: String(data.zp_trans_id),
+                    },
+                }),
+                prisma.user.update({
+                    where: { id: purchase.userId },
+                    data: { totalGold: { increment: purchase.goldAmount } },
+                }),
+            ]);
+            console.log(`[ZaloPay Callback] Gold credited for Order: ${purchase.id}`);
+        } else {
+            const subscription = await prisma.subscription.findUnique({
+                where: { id: orderId },
+            });
+            if (subscription) {
+                if (subscription.status !== "PENDING") return;
+                await this.activateSubscription(subscription.id, String(data.zp_trans_id));
+            }
+        }
     }
 
     /**
@@ -397,6 +449,195 @@ export class PaymentService {
             amountVnd: purchase.amountVnd,
             providerTransId: resolvedTransId,
             providerOrderId: purchase.providerOrderId,
+        };
+    }
+
+    /**
+     * Creates a new pending Pro Subscription.
+     */
+    async initiateSubscription(
+        userId: string,
+        provider: PaymentProvider,
+    ): Promise<{
+        orderId: string;
+        payUrl: string;
+        zpTransToken?: string;
+        amountVnd: number;
+        vietQrUrl?: string;
+        bankId?: string;
+        accountNo?: string;
+        accountName?: string;
+        providerOrderId?: string;
+    }> {
+        const amountVnd = 2000; // Fixed 2000đ for Pro package
+        const orderId = crypto.randomUUID();
+        const ipnUrl = process.env.PAYMENT_IPN_URL || `http://${process.env.LOCAL_COMPUTER_IP || 'localhost'}:5000`;
+
+        let payUrl = "";
+        let zpTransToken: string | undefined = undefined;
+        let providerOrderId: string = orderId;
+
+        let bankId = "";
+        let accountNo = "";
+        let accountName = "";
+        let vietQrUrl = "";
+
+        if (provider === "ZALOPAY") {
+            try {
+                const callbackUrl = `${ipnUrl}/api/payment/zalopay/callback`;
+                const zaloResult = await createZaloPayOrder(orderId, amountVnd, callbackUrl);
+                payUrl = zaloResult.payUrl;
+                zpTransToken = zaloResult.zpTransToken;
+                providerOrderId = zaloResult.appTransId;
+                console.log(`[ZaloPay Subscription] Created order. app_trans_id=${providerOrderId}, order_url=${payUrl}, token=${zpTransToken}`);
+            } catch (zaloError: any) {
+                console.error("Failed to create ZaloPay subscription order:", zaloError.message);
+                throw zaloError;
+            }
+        } else if (provider === "SEPAY") {
+            const randomDigits = Math.floor(100000 + Math.random() * 900000);
+            providerOrderId = "DH9" + randomDigits;
+            payUrl = `${ipnUrl}/api/subscription/checkout?orderId=${orderId}`;
+
+            bankId = process.env.SEPAY_BANK_ID || "MB";
+            accountNo = process.env.SEPAY_ACCOUNT_NO || "0999999999";
+            accountName = process.env.SEPAY_ACCOUNT_NAME || "NGUYEN VAN A";
+            vietQrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${amountVnd}&addInfo=${providerOrderId}&accountName=${encodeURIComponent(accountName)}`;
+        } else {
+            payUrl = `${ipnUrl}/api/subscription/checkout?orderId=${orderId}`;
+        }
+
+        await prisma.subscription.create({
+            data: {
+                id: orderId,
+                userId,
+                status: "PENDING",
+                amountVnd,
+                provider,
+                providerOrderId,
+                autoRenew: true,
+            },
+        });
+
+        return {
+            orderId,
+            payUrl,
+            zpTransToken,
+            amountVnd,
+            vietQrUrl,
+            bankId,
+            accountNo,
+            accountName,
+            providerOrderId,
+        };
+    }
+
+    /**
+     * Activates a pending subscription and marks the user as Pro.
+     */
+    async activateSubscription(subscriptionId: string, providerTransId: string): Promise<void> {
+        const subscription = await prisma.subscription.findUnique({
+            where: { id: subscriptionId },
+        });
+        if (!subscription || subscription.status !== "PENDING") return;
+
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 30); // 30 days of Pro
+
+        await prisma.$transaction([
+            prisma.subscription.update({
+                where: { id: subscriptionId },
+                data: {
+                    status: "ACTIVE",
+                    providerTransId,
+                    startDate,
+                    endDate,
+                },
+            }),
+            prisma.user.update({
+                where: { id: subscription.userId },
+                data: {
+                    isPro: true,
+                    proExpiresAt: endDate,
+                },
+            }),
+        ]);
+        console.log(`[Subscription Service] Activated subscription ${subscriptionId} for User: ${subscription.userId}`);
+    }
+
+    /**
+     * Cancels the auto renewal of an active subscription.
+     */
+    async cancelSubscription(userId: string): Promise<{ success: boolean; message: string }> {
+        const activeSub = await prisma.subscription.findFirst({
+            where: {
+                userId,
+                status: "ACTIVE",
+                autoRenew: true,
+            },
+            orderBy: {
+                endDate: "desc",
+            },
+        });
+
+        if (!activeSub) {
+            return { success: false, message: "Không tìm thấy gói đăng ký hoạt động có tự động gia hạn." };
+        }
+
+        await prisma.subscription.update({
+            where: { id: activeSub.id },
+            data: {
+                autoRenew: false,
+                status: "CANCELLED",
+            },
+        });
+
+        return { success: true, message: "Hủy tự động gia hạn thành công. Bạn vẫn có thể sử dụng gói đến hết chu kỳ." };
+    }
+
+    /**
+     * Queries the status of a subscription.
+     */
+    async getSubscriptionStatus(orderId: string) {
+        const subscription = await prisma.subscription.findUnique({
+            where: { id: orderId },
+        });
+
+        if (!subscription) return null;
+
+        let resolvedStatus = subscription.status as string;
+        let resolvedTransId = subscription.providerTransId;
+
+        if (subscription.status === "PENDING" && subscription.provider === "ZALOPAY") {
+            try {
+                const { returnCode, zpTransId } = await queryZaloPayOrder(subscription.providerOrderId);
+
+                if (returnCode === 1) {
+                    await this.activateSubscription(subscription.id, zpTransId || "MOCK_ZALO_TRANS");
+                    resolvedStatus = "ACTIVE";
+                    resolvedTransId = zpTransId ?? null;
+                } else if (returnCode === 2) {
+                    await prisma.subscription.update({
+                        where: { id: subscription.id },
+                        data: { status: "FAILED" },
+                    });
+                    resolvedStatus = "FAILED";
+                }
+            } catch (err) {
+                console.warn("[getSubscriptionStatus] ZaloPay query failed:", err);
+            }
+        }
+
+        return {
+            orderId: subscription.id,
+            status: resolvedStatus,
+            provider: subscription.provider,
+            amountVnd: subscription.amountVnd,
+            providerTransId: resolvedTransId,
+            providerOrderId: subscription.providerOrderId,
+            autoRenew: subscription.autoRenew,
+            endDate: subscription.endDate,
         };
     }
 }

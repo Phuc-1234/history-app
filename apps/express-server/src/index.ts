@@ -23,6 +23,8 @@ import testRoutesV2 from "./routes/testRoutesV2";
 import paymentRoutes from "./routes/paymentRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import homeRoutes from "./routes/homeRoutes";
+import subscriptionRoutes from "./routes/subscriptionRoutes";
+import { startDailySubscriptionCron } from "./services/subscriptionCron";
 
 
 
@@ -56,6 +58,7 @@ app.use("/api/flashcards", flashcardRoutes);
 app.use("/api/social", socialRoutes);
 app.use("/api/tests-v2", testRoutesV2);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/home", homeRoutes);
 
@@ -95,4 +98,9 @@ app.listen(PORT, () => {
     console.log(
         `🚀 History Duolingo Engine running on http://localhost:${PORT}`,
     );
+    console.log(
+        `📡 [Database Config] Connecting to: ${process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:@]+@/, ":****@") : "undefined"}`
+    );
+    // Start the daily cron checker for Pro subscriptions
+    startDailySubscriptionCron();
 });
