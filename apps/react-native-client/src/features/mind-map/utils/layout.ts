@@ -1,6 +1,52 @@
 import type { MindMapNode, LayoutNode } from "../types";
 import { NODE_CONFIGS, SAFE_PADDING } from "../constants";
 
+// ─── Single source of truth for text geometry ───────────────────────────────
+// Every measurement (width, height, wrap point) and every render coordinate
+// (text center, icon position) MUST go through these helpers. Before this,
+// measurement used one width formula and rendering used another, so wrapped
+// text was wider than predicted and overlapped the +/- collapse icon.
+
+// Fixed letter-spacing applied to every card's text (see NodeCard).
+export const FIXED_LETTER_SPACING = 2;
+
+// Effective width of one character, INCLUDING the fixed letter-spacing. SVG
+// adds letterSpacing after every glyph, so a char "costs" its glyph width
+// plus the spacing.
+export function charWidthFor(depth: number): number {
+    const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+    return config.fontSize * 0.55 + FIXED_LETTER_SPACING;
+}
+
+// Total horizontal room consumed by the non-text decorations on a card:
+//   depth 0 (root): none
+//   depth 1 (branch): left accent bar (4) + right collapse-icon room (24)
+//   depth 2 (leaf): left bullet dot room (20) + right collapse-icon room (22)
+// `hasChildren` only matters for layout fit; the right room is reserved
+// unconditionally so a node that gains children later doesn't shift text.
+export function sideRoomFor(depth: number): number {
+    if (depth === 1) return 4 + 24;
+    if (depth === 2) return 20 + 22;
+    return 0;
+}
+
+// X offset from the card's left edge where the text area starts.
+export function textStartOffset(depth: number): number {
+    if (depth === 1) return 4; // past the accent bar
+    if (depth === 2) return 20; // past the bullet dot
+    return 0;
+}
+
+// X coordinate of the text-area center, used by NodeCard to center text.
+// textAreaWidth = cardWidth - (leftStart + rightRoom), where rightRoom is the
+// space reserved on the right (sideRoom minus the left start).
+export function textCenterX(node: { x: number; width: number; depth: number }): number {
+    const left = textStartOffset(node.depth);
+    const rightRoom = sideRoomFor(node.depth) - left;
+    const textAreaWidth = node.width - left - rightRoom;
+    return node.x + left + textAreaWidth / 2;
+}
+
 // ─── Text wrapping ──────────────────────────────────────────────────────────
 
 export function wrapText(text: string, maxCharsPerLine: number): string[] {
@@ -20,50 +66,39 @@ export function wrapText(text: string, maxCharsPerLine: number): string[] {
     return lines;
 }
 
-// Shared line-height so measurement and rendering always agree on how tall a
-// block of wrapped text is. Mismatched values here previously caused the card
-// height to be reserved for more lines than were actually drawn, leaving the
-// visible empty gap inside the card.
 function lineHeightFor(config: (typeof NODE_CONFIGS)[keyof typeof NODE_CONFIGS]): number {
     return config.fontSize + 4;
 }
 
 // Number of characters that fit on one line inside a card of `allocatedWidth`.
-// Shared by measurement (layout.ts) and rendering (NodeCard) so the wrap point
-// always agrees — the card height matches the number of lines actually drawn.
+// Uses the EFFECTIVE char width (incl. letter-spacing) and subtracts the real
+// side room, so the wrap point matches what the renderer can actually show.
 export function charsPerLine(depth: number, allocatedWidth: number): number {
-    const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
-    // Reserve room for the side decorations so text never overlaps them:
-    //  depth 1: left accent bar (4) + right collapse icon room
-    //  depth 2: left bullet dot room + right collapse icon room
-    const sideRoom = depth === 1 ? 4 + 24 : depth === 2 ? 20 + 22 : 0;
     return Math.max(
-        12,
-        Math.floor((allocatedWidth - sideRoom) / (config.fontSize * 0.55)),
+        8,
+        Math.floor((allocatedWidth - sideRoomFor(depth)) / charWidthFor(depth)),
     );
 }
 
-// Count wrapped lines for a label at a given allocated width. Extracted so both
-// width measurement and height measurement stay in sync.
 function countLines(label: string, depth: number, allocatedWidth: number): number {
     return wrapText(label, charsPerLine(depth, allocatedWidth)).length;
 }
 
 // ─── Measure ────────────────────────────────────────────────────────────────
 
-// Measure a node's natural width (single-line) — used to derive the per-depth
-// max so all cards at the same depth share one width (visual consistency).
+// Natural single-line width of a label — used to derive the per-depth max so
+// all cards at the same depth share one width (visual consistency).
 export function measureNode(label: string, depth: number): { width: number; height: number } {
-    const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
-    const charWidth = config.fontSize * 0.55;
-    const iconRoom = depth === 1 ? 28 : 0;
-    const width = Math.max(config.minWidth, label.length * charWidth + config.paddingH * 2 + iconRoom);
+    const width = Math.max(
+        NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS]?.minWidth ?? NODE_CONFIGS[2].minWidth,
+        label.length * charWidthFor(depth) + sideRoomFor(depth),
+    );
     const height = measureNodeHeight(label, depth, width);
     return { width, height };
 }
 
-// Measure the real height for a label at a given (already-final) width.
-// Wraps at the actual rendered column so the card hugs its text vertically.
+// Real height for a label at a given (already-final) width. Wraps at the
+// actual rendered column so the card hugs its text vertically.
 export function measureNodeHeight(label: string, depth: number, allocatedWidth: number): number {
     const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
     const lineHeight = lineHeightFor(config);

@@ -10,14 +10,11 @@ import Animated, {
 } from "react-native-reanimated";
 import type { LayoutNode } from "../types";
 import { animationConfig, NODE_CONFIGS } from "../constants";
-import { charsPerLine, wrapText } from "../utils/layout";
+import { charsPerLine, wrapText, textCenterX, FIXED_LETTER_SPACING } from "../utils/layout";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-
-// Fixed letter spacing for a clean, evenly-spaced look across all cards.
-const FIXED_LETTER_SPACING = 2;
 
 interface NodeCardProps {
     node: LayoutNode;
@@ -194,7 +191,7 @@ export const NodeCard = React.memo(function NodeCard({
                 {lines.map((line, li) => (
                     <SvgText
                         key={li}
-                        x={node.x + node.width / 2}
+                        x={textCenterX(node)}
                         y={
                             node.y +
                             node.height / 2 -
@@ -218,12 +215,6 @@ export const NodeCard = React.memo(function NodeCard({
 
     // ── Depth 1: branch ─────────────────────────────────────────────────────
     if (node.depth === 1) {
-        // Usable text area: left accent bar (4px) + padding to the collapse icon.
-        const ACCENT_W = 4;
-        const ICON_ROOM = hasChildren ? 24 : 12;
-        const textAreaX = node.x + ACCENT_W;
-        const textAreaW = node.width - ACCENT_W - ICON_ROOM;
-        const textCenterX = textAreaX + textAreaW / 2;
         return (
             <AnimatedG animatedProps={animatedProps}>
                 <Rect
@@ -249,7 +240,7 @@ export const NodeCard = React.memo(function NodeCard({
                 {lines.map((line, li) => (
                     <SvgText
                         key={li}
-                        x={textCenterX}
+                        x={textCenterX(node)}
                         y={
                             node.y +
                             node.height / 2 -
@@ -282,12 +273,6 @@ export const NodeCard = React.memo(function NodeCard({
 
     // ── Depth 2: leaf ───────────────────────────────────────────────────────
     const lightBg = node.lightBg || colors.surface;
-    // Usable text area: bullet dot on the left + padding to the collapse icon.
-    const DOT_ROOM = 20;
-    const ICON_ROOM = hasChildren ? 22 : 12;
-    const textAreaX2 = node.x + DOT_ROOM;
-    const textAreaW2 = node.width - DOT_ROOM - ICON_ROOM;
-    const textCenterX2 = textAreaX2 + textAreaW2 / 2;
     return (
         <AnimatedG animatedProps={animatedProps}>
             <Rect
@@ -311,7 +296,7 @@ export const NodeCard = React.memo(function NodeCard({
             {lines.map((line, li) => (
                 <SvgText
                     key={li}
-                    x={textCenterX2}
+                    x={textCenterX(node)}
                     y={
                         node.y +
                         node.height / 2 -
