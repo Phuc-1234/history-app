@@ -13,7 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { LayoutNode } from "../types";
 import { animationConfig, NODE_CONFIGS } from "../constants";
-import { wrapText } from "../utils/layout";
+import { charsPerLine, wrapText } from "../utils/layout";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 
@@ -137,13 +137,13 @@ export const NodeCard = React.memo(function NodeCard({
         NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] ||
         NODE_CONFIGS[2];
     const hasChildren = node.childIds.length > 0;
-    const lines = useMemo(() => {
-        const maxCharsPerLine = Math.floor(
-            (node.width - config.paddingH * 2 - (node.depth === 1 ? 28 : 0)) /
-                (config.fontSize * 0.55),
-        );
-        return wrapText(node.label, Math.max(12, maxCharsPerLine));
-    }, [config.fontSize, config.paddingH, node.depth, node.label, node.width]);
+    // Use the shared charsPerLine so the wrap point matches what layout.ts used
+    // to measure the card height — otherwise the drawn line count could differ
+    // from the measured one and re-introduce the empty-gap mismatch.
+    const lines = useMemo(
+        () => wrapText(node.label, charsPerLine(node.depth, node.width)),
+        [node.depth, node.label, node.width],
+    );
     const lineHeight = config.fontSize + 4;
 
     useEffect(() => {

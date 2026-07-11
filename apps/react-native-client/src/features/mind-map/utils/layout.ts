@@ -20,19 +20,61 @@ export function wrapText(text: string, maxCharsPerLine: number): string[] {
     return lines;
 }
 
+// Shared line-height so measurement and rendering always agree on how tall a
+// block of wrapped text is. Mismatched values here previously caused the card
+// height to be reserved for more lines than were actually drawn, leaving the
+// visible empty gap inside the card.
+function lineHeightFor(config: (typeof NODE_CONFIGS)[keyof typeof NODE_CONFIGS]): number {
+    return config.fontSize + 4;
+}
+
+// Number of characters that fit on one line inside a card of `allocatedWidth`.
+// `allocatedWidth` is the REAL card width (the per-depth max), so text wraps at
+// the same column the renderer draws at — previously measurement wrapped at the
+// (narrower) `minWidth`, reserving height for lines that never appeared.
+export function charsPerLine(depth: number, allocatedWidth: number): number {
+    const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+    // depth===1 reserves room on the right for the collapse icon (matches NodeCard).
+    const iconRoom = depth === 1 ? 28 : 0;
+    return Math.max(
+        12,
+        Math.floor((allocatedWidth - config.paddingH * 2 - iconRoom) / (config.fontSize * 0.55)),
+    );
+}
+
+// Count wrapped lines for a label at a given allocated width. Extracted so both
+// width measurement (per-depth max) and height measurement stay in sync.
+function countLines(label: string, depth: number, allocatedWidth: number): number {
+    return wrapText(label, charsPerLine(depth, allocatedWidth)).length;
+}
+
 // ─── Measure ────────────────────────────────────────────────────────────────
 
+// First pass: compute the natural width of a label assuming a single line, used
+// to derive the per-depth max width (kept for visual consistency across cards
+// at the same depth).
 export function measureNode(label: string, depth: number): { width: number; height: number } {
     const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
-    const maxCharsPerLine = Math.floor((config.minWidth - config.paddingH) / (config.fontSize * 0.55));
-    const lines = wrapText(label, Math.max(12, maxCharsPerLine));
     const charWidth = config.fontSize * 0.55;
-    const longestLine = Math.max(...lines.map((l) => l.length * charWidth));
-    const textWidth = longestLine;
-    const width = Math.max(config.minWidth, textWidth + config.paddingH * 2 + (depth === 1 ? 28 : 0));
-    const lineHeight = config.fontSize + 4;
-    const height = Math.max(config.height, lines.length * lineHeight + config.paddingV);
+    const iconRoom = depth === 1 ? 28 : 0;
+    const textWidth = label.length * charWidth;
+    const width = Math.max(config.minWidth, textWidth + config.paddingH * 2 + iconRoom);
+    const lineHeight = lineHeightFor(config);
+    // Height here is only a fallback for the per-depth pass; the real height is
+    // recomputed in measureNodeHeight once the allocated width is known.
+    const lines = Math.max(1, countLines(label, depth, width));
+    const height = Math.max(config.height, lines * lineHeight + config.paddingV);
     return { width, height };
+}
+
+// Second pass: given the FINAL (per-depth max) width, measure the real height.
+// This is what makes the card hug its text — it wraps at the actual rendered
+// column instead of the narrower measurement column.
+export function measureNodeHeight(label: string, depth: number, allocatedWidth: number): number {
+    const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+    const lineHeight = lineHeightFor(config);
+    const lines = Math.max(1, countLines(label, depth, allocatedWidth));
+    return Math.max(config.height, lines * lineHeight + config.paddingV);
 }
 
 // ─── Max width per depth (equal-width nodes) ────────────────────────────────
@@ -65,7 +107,11 @@ export function layoutTree(
 ): { nodes: LayoutNode[]; totalHeight: number } {
     const ownMeasure = measureNode(node.label, depth);
     const width = maxWidthsPerDepth?.get(depth) ?? ownMeasure.width;
-    const height = ownMeasure.height;
+    // Recompute height against the FINAL (per-depth max) width so the card
+    // hugs its text. Without this, height was based on the narrower measurement
+    // width, reserving space for more lines than were actually drawn and
+    // leaving an empty band inside the card.
+    const height = measureNodeHeight(node.label, depth, width);
     const visibleChildren = collapsedSet.has(node.id) ? [] : node.children;
 
     if (visibleChildren.length === 0) {
