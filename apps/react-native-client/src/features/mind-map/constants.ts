@@ -14,6 +14,7 @@ export const MOBILE_BREAKPOINT = 600;
 export const NODE_CONFIGS = {
     0: {
         minWidth: 200,
+        maxWidth: 240,
         height: 56,
         fontSize: 14,
         fontWeight: "700" as const,
@@ -23,6 +24,7 @@ export const NODE_CONFIGS = {
     },
     1: {
         minWidth: 155,
+        maxWidth: 190,
         height: 44,
         fontSize: 12.5,
         fontWeight: "600" as const,
@@ -32,6 +34,7 @@ export const NODE_CONFIGS = {
     },
     2: {
         minWidth: 120,
+        maxWidth: 150,
         height: 36,
         fontSize: 11.5,
         fontWeight: "500" as const,

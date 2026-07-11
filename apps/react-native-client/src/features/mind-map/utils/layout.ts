@@ -84,8 +84,13 @@ export function measureMaxWidthsPerDepth(tree: MindMapNode): Map<number, number>
 
     function walk(node: MindMapNode, depth: number) {
         const { width } = measureNode(node.label, depth);
+        // Cap the per-depth width so one long label can't balloon every card
+        // at that depth. Long labels wrap to a second line instead of stretching
+        // short-text siblings — keeps cards equal-width but tight to their text.
+        const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+        const clamped = Math.min(width, config.maxWidth);
         const current = maxWidths.get(depth) ?? 0;
-        if (width > current) maxWidths.set(depth, width);
+        if (clamped > current) maxWidths.set(depth, clamped);
         for (const child of node.children) {
             walk(child, depth + 1);
         }
