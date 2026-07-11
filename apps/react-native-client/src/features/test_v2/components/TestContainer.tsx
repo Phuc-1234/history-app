@@ -138,11 +138,13 @@ function AnimatedTimerBadge({
 interface TestContainerV2Props {
     params: StartTestV2Request;
     onExit?: () => void;
+    skipIntro?: boolean;
 }
 
 export default function TestContainerV2({
     params,
     onExit,
+    skipIntro,
 }: TestContainerV2Props) {
     const { width } = useWindowDimensions();
     const runner = useTestRunnerV2(params);
@@ -180,6 +182,12 @@ export default function TestContainerV2({
         getAnswerForQuestion,
         getEvalForQuestion,
     } = runner;
+
+    useEffect(() => {
+        if (skipIntro && status === "idle") {
+            actions.start();
+        }
+    }, [skipIntro, status, actions.start]);
 
     const practiceEarned = React.useMemo(() => {
         return Object.values(evaluations).reduce(
@@ -318,6 +326,16 @@ export default function TestContainerV2({
 
     // ── Exam Intro state ──────────────────────────────────────────────
     if (status === "idle") {
+        if (skipIntro) {
+            return (
+                <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
+                    <View style={styles.centerContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Đang tải bài luyện tập...</Text>
+                    </View>
+                </ScreenWrapper>
+            );
+        }
         return (
             <TestIntro
                 title={testInfo?.title}
@@ -563,8 +581,39 @@ export default function TestContainerV2({
         : false;
     const showFeedback = purposeType === "PRACTICE" && !!evalResult;
 
+    const runningBranchConfig = {
+        ...branchConfig,
+        hideBack: true,
+        hideHome: true,
+        rightElement: (
+            <TouchableOpacity
+                style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 30,
+                    opacity: status === "submitting" ? 0.5 : 1,
+                }}
+                onPress={() => {
+                    if (status === "submitting") return;
+                    if (purposeType === "EXAM") {
+                        setShowSubmitConfirm(true);
+                    } else {
+                        setShowPracticeConfirm(true);
+                    }
+                }}
+                disabled={status === "submitting"}
+                activeOpacity={0.7}
+            >
+                <Text style={{ color: "#FFFFFF", fontFamily: typography.fonts.bold, fontSize: 14 }}>
+                    Nộp bài
+                </Text>
+            </TouchableOpacity>
+        ),
+    };
+
     return (
-        <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
+        <ScreenWrapper branchConfig={runningBranchConfig} showTopBar={false} showHistoricalBackground={false}>
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
@@ -824,17 +873,6 @@ export default function TestContainerV2({
                                 )}
                             </View>
 
-                            <TouchableOpacity
-                                style={styles.listLink}
-                                onPress={() => setIsListModalVisible(true)}
-                                activeOpacity={0.7}
-                            >
-                                <Grid size={16} color={colors.textMuted} />
-                                <Text style={styles.listLinkText}>
-                                    Xem danh sách {totalCount} câu hỏi
-                                </Text>
-                            </TouchableOpacity>
-
                             <View style={styles.navButtonsRow}>
                                 <TouchableOpacity
                                     style={[
@@ -850,12 +888,16 @@ export default function TestContainerV2({
                                     </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={styles.submitBtn}
-                                    onPress={() => setShowSubmitConfirm(true)}
+                                    style={styles.navBtn}
+                                    onPress={() => setIsListModalVisible(true)}
+                                    activeOpacity={0.7}
                                 >
-                                    <Text style={styles.submitBtnText}>
-                                        Nộp bài
-                                    </Text>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                        <Grid size={14} color={colors.textSecondary} />
+                                        <Text style={styles.navBtnText}>
+                                            Danh sách
+                                        </Text>
+                                    </View>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[

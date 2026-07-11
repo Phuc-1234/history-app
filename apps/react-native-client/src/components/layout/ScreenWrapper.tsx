@@ -30,6 +30,9 @@ export interface BranchConfig {
     onBackPress?: () => void;
     onHomePress?: () => void;
     uppercaseHierarchy?: boolean;
+    hideBack?: boolean;
+    hideHome?: boolean;
+    rightElement?: React.ReactNode;
 }
 
 // ─── Props ──────────────────────────────────────────────────────────────────

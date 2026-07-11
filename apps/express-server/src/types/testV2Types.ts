@@ -78,6 +78,7 @@ export interface UpdateDraftRequest {
 
 export interface FinishTestV2Request {
     draftAnswerJson: DraftAnswerEntry[]; // final snapshot from FE
+    seenQuestionIds?: number[];
 }
 
 // ─── API Response DTOs ───────────────────────────────────────────────────

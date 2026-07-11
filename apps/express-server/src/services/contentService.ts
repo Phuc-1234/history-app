@@ -612,7 +612,7 @@ export class ContentService {
     async getGradeStructure(
         gradeId: number,
         userId?: string | null,
-    ): Promise<GradeStructureDto & { progress?: ProgressCounts | null; masteryPercentage?: number | null }> {
+    ): Promise<GradeStructureDto & { progress?: ProgressCounts | null; masteryPercentage?: number | null; wrongQuestionCount?: number; answeredQuestionCount?: number }> {
         const topics = await prisma.topic.findMany({
             where: { gradeId },
             orderBy: { position: "asc" },
@@ -638,7 +638,7 @@ export class ContentService {
             }
         }
 
-        // Batch-fetch all nodes in the grade
+        // BATCH-FETCH ALL NODES IN THE GRADE
         const allNodes = await prisma.node.findMany({
             where: { sectionId: { in: allSectionIds } },
             select: { id: true, sectionId: true },
@@ -773,11 +773,36 @@ export class ContentService {
 
         const gradeMastery = userId ? await this.getMasteryPercentage(userId, "GRADE", gradeId) : null;
 
+        const wrongQuestionCount = userId ? await prisma.userQuestionMastery.count({
+            where: {
+                userId,
+                consecutiveCorrect: 0,
+                question: {
+                    gradeId,
+                    isActive: true,
+                    answerDataJson: { not: Prisma.DbNull }
+                }
+            }
+        }) : 0;
+
+        const answeredQuestionCount = userId ? await prisma.userQuestionMastery.count({
+            where: {
+                userId,
+                question: {
+                    gradeId,
+                    isActive: true,
+                    answerDataJson: { not: Prisma.DbNull }
+                }
+            }
+        }) : 0;
+
         return {
             topics: formattedTopics,
             testPassed: userId ? gradeTestPassed : null,
             progress: { totalNodes: gradeTotal, completedNodes: gradeCompleted },
             masteryPercentage: gradeMastery,
+            wrongQuestionCount,
+            answeredQuestionCount,
         };
     }
 

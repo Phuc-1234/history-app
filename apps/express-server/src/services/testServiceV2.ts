@@ -312,14 +312,21 @@ async function autoPickQuestions(
             select: {
                 questionId: true,
                 level: true,
+                consecutiveCorrect: true,
             },
         });
-        const masteryMap = new Map<number, number>(
-            masteryRecords.map((r) => [r.questionId, r.level]),
+        const masteryMap = new Map<number, { level: number; consecutiveCorrect: number }>(
+            masteryRecords.map((r) => [r.questionId, { level: r.level, consecutiveCorrect: r.consecutiveCorrect }]),
         );
 
-        const wrongPool = allQuestionIds.filter((id) => masteryMap.has(id) && (masteryMap.get(id) ?? 0) === 0);
-        const fallbackPool = allQuestionIds.filter((id) => masteryMap.has(id) && (masteryMap.get(id) ?? 0) >= 1);
+        const wrongPool = allQuestionIds.filter((id) => {
+            const m = masteryMap.get(id);
+            return m !== undefined && m.consecutiveCorrect === 0;
+        });
+        const fallbackPool = allQuestionIds.filter((id) => {
+            const m = masteryMap.get(id);
+            return m !== undefined && m.consecutiveCorrect >= 1;
+        });
 
         const shuffledWrong = shuffle(wrongPool);
         const shuffledFallback = shuffle(fallbackPool);
@@ -717,6 +724,7 @@ export class TestServiceV2 {
         logId: string,
         userId: string,
         finalDraft: DraftAnswerEntry[],
+        seenQuestionIds?: number[],
     ): Promise<FinishTestV2Response> {
         return await prisma.$transaction(async (tx) => {
             const log = await tx.userTestLog.findUnique({ where: { id: logId } });
@@ -781,48 +789,67 @@ export class TestServiceV2 {
                     },
                 });
 
-                const mastery = await tx.userQuestionMastery.findUnique({
-                    where: {
-                        userId_questionId: { userId, questionId: r.questionId },
-                    },
-                });
-
-                const currentLevel = mastery?.level ?? 0;
-                const currentConsecutive = mastery?.consecutiveCorrect ?? 0;
-
-                let nextLevel = currentLevel;
-                let nextConsecutive = currentConsecutive;
-
-                if (r.isCorrect) {
-                    if (currentLevel === 0) {
-                        nextLevel = 1;
-                        nextConsecutive = 1;
-                    } else {
-                        if (currentConsecutive >= 1) {
-                            nextLevel = Math.min(currentLevel + 1, 5);
-                        }
-                        nextConsecutive = currentConsecutive + 1;
+                let isAnswered = false;
+                if (draft) {
+                    if (r.type === "CHOOSE") {
+                        const ans = draft.answerData as any;
+                        isAnswered = Array.isArray(ans?.selectedOptions) && ans.selectedOptions.length > 0;
+                    } else if (r.type === "FILL") {
+                        const ans = draft.answerData as any;
+                        isAnswered = typeof ans?.typedAnswer === "string" && ans.typedAnswer.trim() !== "";
+                    } else if (r.type === "MATCH") {
+                        const ans = draft.answerData as any;
+                        isAnswered = Array.isArray(ans?.pairs) && ans.pairs.length > 0;
                     }
-                } else {
-                    nextLevel = Math.max(currentLevel - 1, 0);
-                    nextConsecutive = 0;
                 }
 
-                await tx.userQuestionMastery.upsert({
-                    where: {
-                        userId_questionId: { userId, questionId: r.questionId },
-                    },
-                    update: {
-                        level: nextLevel,
-                        consecutiveCorrect: nextConsecutive,
-                    },
-                    create: {
-                        userId,
-                        questionId: r.questionId,
-                        level: nextLevel,
-                        consecutiveCorrect: nextConsecutive,
-                    },
-                });
+                const isSeen = !seenQuestionIds || seenQuestionIds.includes(r.questionId);
+                const shouldUpdateMastery = isSeen || isAnswered;
+
+                if (shouldUpdateMastery) {
+                    const mastery = await tx.userQuestionMastery.findUnique({
+                        where: {
+                            userId_questionId: { userId, questionId: r.questionId },
+                        },
+                    });
+
+                    const currentLevel = mastery?.level ?? 0;
+                    const currentConsecutive = mastery?.consecutiveCorrect ?? 0;
+
+                    let nextLevel = currentLevel;
+                    let nextConsecutive = currentConsecutive;
+
+                    if (r.isCorrect) {
+                        if (currentLevel === 0) {
+                            nextLevel = 1;
+                            nextConsecutive = 1;
+                        } else {
+                            if (currentConsecutive >= 1) {
+                                nextLevel = Math.min(currentLevel + 1, 5);
+                            }
+                            nextConsecutive = currentConsecutive + 1;
+                        }
+                    } else {
+                        nextLevel = Math.max(currentLevel - 1, 0);
+                        nextConsecutive = 0;
+                    }
+
+                    await tx.userQuestionMastery.upsert({
+                        where: {
+                            userId_questionId: { userId, questionId: r.questionId },
+                        },
+                        update: {
+                            level: nextLevel,
+                            consecutiveCorrect: nextConsecutive,
+                        },
+                        create: {
+                            userId,
+                            questionId: r.questionId,
+                            level: nextLevel,
+                            consecutiveCorrect: nextConsecutive,
+                        },
+                    });
+                }
             }
 
             // Update log with scores
@@ -846,8 +873,10 @@ export class TestServiceV2 {
                     log.testId,
                     log.scopeType,
                     log.scopeId,
+                    log.purposeType,
                     logId,
                     tx,
+                    log.autoPickStrategy,
                 );
                 consequences.push(...rewardResult.consequences);
 
@@ -886,6 +915,9 @@ export class TestServiceV2 {
                 answerLogs,
                 consequences,
             };
+        }, {
+            maxWait: 15000,
+            timeout: 30000,
         });
     }
 
@@ -1070,6 +1102,8 @@ export class TestServiceV2 {
             scopeType,
             scopeId,
             userId,
+            purposeType,
+            req.autoPickStrategy,
         );
 
         // Compute attempt count and pass count
