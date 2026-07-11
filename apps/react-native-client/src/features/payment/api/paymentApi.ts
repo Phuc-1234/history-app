@@ -33,6 +33,33 @@ export interface GetPaymentStatusResponse {
     providerTransId: string | null;
 }
 
+export interface InitiateSubscriptionRequestBody {
+    provider: PaymentProvider;
+}
+
+export interface InitiateSubscriptionResponse {
+    orderId: string;
+    payUrl: string;
+    zpTransToken?: string;
+    amountVnd: number;
+    vietQrUrl?: string;
+    bankId?: string;
+    accountNo?: string;
+    accountName?: string;
+    providerOrderId?: string;
+}
+
+export interface GetSubscriptionStatusResponse {
+    orderId: string;
+    status: string;
+    provider: PaymentProvider;
+    amountVnd: number;
+    providerTransId: string | null;
+    providerOrderId: string;
+    autoRenew: boolean;
+    endDate: string | null;
+}
+
 // ─── RTK Query endpoints ──────────────────────────────────────────────────────
 
 export const paymentApi = apiSlice.injectEndpoints({
@@ -51,6 +78,28 @@ export const paymentApi = apiSlice.injectEndpoints({
                 method: "GET",
             }),
         }),
+
+        initiateSubscription: builder.mutation<InitiateSubscriptionResponse, InitiateSubscriptionRequestBody>({
+            query: (body) => ({
+                url: "/api/subscription/subscribe",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        cancelSubscription: builder.mutation<{ message: string }, void>({
+            query: () => ({
+                url: "/api/subscription/cancel",
+                method: "POST",
+            }),
+        }),
+
+        getSubscriptionStatus: builder.query<GetSubscriptionStatusResponse, string>({
+            query: (orderId) => ({
+                url: `/api/subscription/status/${orderId}`,
+                method: "GET",
+            }),
+        }),
     }),
     overrideExisting: __DEV__,
 });
@@ -58,4 +107,8 @@ export const paymentApi = apiSlice.injectEndpoints({
 export const {
     useInitiatePaymentMutation,
     useGetPaymentStatusQuery,
+    useInitiateSubscriptionMutation,
+    useCancelSubscriptionMutation,
+    useGetSubscriptionStatusQuery,
 } = paymentApi;
+

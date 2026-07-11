@@ -144,6 +144,8 @@ export const loginUser = async (
                 profileImgUrl: true,
                 currentStreak: true,
                 role: true,
+                isPro: true,
+                proExpiresAt: true,
                 tier: {
                     select: {
                         name: true,
@@ -171,6 +173,8 @@ export const loginUser = async (
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
             role: userProfile.role as any,
+            isPro: userProfile.isPro,
+            proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
         };
 
         // Meets LoginSuccessResponse contract perfectly
@@ -227,6 +231,8 @@ export const verifyOtp = async (
                 profileImgUrl: true,
                 currentStreak: true,
                 role: true,
+                isPro: true,
+                proExpiresAt: true,
                 tier: {
                     select: {
                         name: true,
@@ -253,6 +259,8 @@ export const verifyOtp = async (
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
             role: userProfile.role as any,
+            isPro: userProfile.isPro,
+            proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
         };
 
         // 4. Return tokens and data right back to the React Native UI layout
@@ -398,6 +406,8 @@ export const verifyGoogleSession = async (
                 currentStreak: true,
                 email: true,
                 role: true,
+                isPro: true,
+                proExpiresAt: true,
                 tier: {
                     select: {
                         name: true,
@@ -427,6 +437,8 @@ export const verifyGoogleSession = async (
             tierName: userProfile.tier?.name || "Bronze",
             badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
             role: userProfile.role as any,
+            isPro: userProfile.isPro,
+            proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
         };
 
         // 6. Return unified payload containing native, auto-refreshing Supabase session JWTs
@@ -487,6 +499,8 @@ export const verifyFacebookSession = async (
                 currentStreak: true,
                 email: true,
                 role: true,
+                isPro: true,
+                proExpiresAt: true,
                 tier: {
                     select: {
                         name: true,
@@ -514,6 +528,8 @@ export const verifyFacebookSession = async (
             tierName: userProfile.tier?.name || "Bronze",
             badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
             role: userProfile.role as any,
+            isPro: userProfile.isPro,
+            proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
         };
 
         return res.status(200).json({

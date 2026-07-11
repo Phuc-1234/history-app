@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAppDispatch, useAppSelector } from "@/store/storeHook";
 import { appLogout } from "@/features/auth/store/authSlice";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
@@ -111,10 +112,32 @@ export default function ProfileMainScreen() {
                         <Text style={styles.tierText}>{profile.tierName}</Text>
                     </View>
                 )}
+
+                {profile?.isPro && (
+                    <View style={styles.proBadgeContainer}>
+                        <LinearGradient
+                            colors={["#8A2387", "#E94057", "#F27121"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.proBadge}
+                        >
+                            <Text style={styles.proBadgeText}>Người dùng Pro 👑</Text>
+                        </LinearGradient>
+                    </View>
+                )}
             </View>
 
 
             <View style={styles.menuSection}>
+                <Text style={styles.sectionHeader}>Gói dịch vụ</Text>
+                <View style={styles.menuContainer}>
+                    <ProfileMenuItem
+                        icon="gift-outline"
+                        label={profile?.isPro ? "Quản lý gói Pro 👑" : "Đăng ký gói Pro ✨"}
+                        onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
+                    />
+                </View>
+
                 <Text style={styles.sectionHeader}>Quản lý tài khoản</Text>
                 <Card variant="soft" style={styles.menuContainer}>
                     <ProfileMenuItem
@@ -262,5 +285,28 @@ const styles = StyleSheet.create({
     guestActions: {
         width: "100%",
         gap: 8,
+    },
+    proBadgeContainer: {
+        marginTop: 8,
+        borderRadius: 20,
+        overflow: "hidden",
+        shadowColor: "#E94057",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    proBadge: {
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    proBadgeText: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: "#ffffff",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
     },
 });

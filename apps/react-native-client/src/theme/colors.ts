@@ -76,6 +76,12 @@ export const colors = {
     facebookText: "#FFFFFF",
 
     // -------------------------------------------------------------
+    // Payment Branding
+    // -------------------------------------------------------------
+    zalopay: "#0068FF",
+    vietqr: "#E4002B",
+
+    // -------------------------------------------------------------
     // Social Feature Accents (friends / followers / following)
     // -------------------------------------------------------------
     socialFriends: "#3182CE", // Blue — friends stat/tab
