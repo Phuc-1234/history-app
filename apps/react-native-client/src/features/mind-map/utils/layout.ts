@@ -7,8 +7,10 @@ import { NODE_CONFIGS, SAFE_PADDING } from "../constants";
 // measurement used one width formula and rendering used another, so wrapped
 // text was wider than predicted and overlapped the +/- collapse icon.
 
-// Fixed letter-spacing applied to every card's text (see NodeCard).
-export const FIXED_LETTER_SPACING = 2;
+// Fixed letter-spacing applied to every card's text (see NodeCard). Kept tight
+// (1px) so characters stay naturally close — never the loose, spread-out look
+// that justified text produced on short labels.
+export const FIXED_LETTER_SPACING = 1;
 
 // Effective width of one character, INCLUDING the fixed letter-spacing. SVG
 // adds letterSpacing after every glyph, so a char "costs" its glyph width
@@ -68,31 +70,6 @@ export function wrapText(text: string, maxCharsPerLine: number): string[] {
 
 function lineHeightFor(config: (typeof NODE_CONFIGS)[keyof typeof NODE_CONFIGS]): number {
     return config.fontSize + 4;
-}
-
-// ─── Justified text (spread to fill the text area) ──────────────────────────
-
-// Extra letter-spacing (SVG units) to stretch a line so it fills `targetWidth`.
-// The last line of a block is left natural (standard typography). A cap stops
-// short words from spreading absurdly wide — keep it at FIXED_LETTER_SPACING so
-// justify never looks looser than the normal spacing.
-export function justifyLetterSpacing(
-    line: string,
-    depth: number,
-    targetWidth: number,
-    isLastLine: boolean,
-): number {
-    if (isLastLine || line.trim().length === 0) return FIXED_LETTER_SPACING;
-    const natural = line.length * charWidthFor(depth);
-    const diff = targetWidth - natural;
-    if (diff <= 0) return FIXED_LETTER_SPACING;
-    const spacing = FIXED_LETTER_SPACING + diff / line.length;
-    return Math.min(spacing, FIXED_LETTER_SPACING * 2.5);
-}
-
-// Width of the text area inside a card (card width minus side decorations).
-export function textAreaWidth(node: { width: number; depth: number }): number {
-    return node.width - sideRoomFor(node.depth);
 }
 
 // Number of characters that fit on one line inside a card of `allocatedWidth`.
