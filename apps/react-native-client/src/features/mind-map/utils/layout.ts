@@ -33,11 +33,13 @@ function lineHeightFor(config: (typeof NODE_CONFIGS)[keyof typeof NODE_CONFIGS])
 // always agrees — the card height matches the number of lines actually drawn.
 export function charsPerLine(depth: number, allocatedWidth: number): number {
     const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
-    // depth===1 reserves room on the right for the collapse icon (matches NodeCard).
-    const iconRoom = depth === 1 ? 28 : 0;
+    // Reserve room for the side decorations so text never overlaps them:
+    //  depth 1: left accent bar (4) + right collapse icon room
+    //  depth 2: left bullet dot room + right collapse icon room
+    const sideRoom = depth === 1 ? 4 + 24 : depth === 2 ? 20 + 22 : 0;
     return Math.max(
         12,
-        Math.floor((allocatedWidth - config.paddingH * 2 - iconRoom) / (config.fontSize * 0.55)),
+        Math.floor((allocatedWidth - sideRoom) / (config.fontSize * 0.55)),
     );
 }
 
