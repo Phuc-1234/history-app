@@ -266,13 +266,14 @@ async function autoPickQuestions(
             masteryRecords.map((r) => [r.questionId, r.level]),
         );
 
-        const lowPool = allQuestionIds.filter((id) => (masteryMap.get(id) ?? 0) <= 2);
-        const highPool = allQuestionIds.filter((id) => (masteryMap.get(id) ?? 0) >= 3);
+        const lowPool = allQuestionIds.filter((id) => masteryMap.has(id) && (masteryMap.get(id) ?? 0) <= 2);
+        const highPool = allQuestionIds.filter((id) => masteryMap.has(id) && (masteryMap.get(id) ?? 0) >= 3);
 
         const shuffledLow = shuffle(lowPool);
         const shuffledHigh = shuffle(highPool);
 
-        const target = questionCount != null ? Math.min(questionCount, allQuestionIds.length) : allQuestionIds.length;
+        const totalSeen = lowPool.length + highPool.length;
+        const target = questionCount != null ? Math.min(questionCount, totalSeen) : totalSeen;
         if (target === 0) return [];
 
         const targetLow = Math.round(target * 0.8);
