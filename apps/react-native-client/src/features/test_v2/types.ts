@@ -105,6 +105,11 @@ export interface StartTestV2Request {
     scopeId?: number;
     testId?: string;
     presetId?: string;
+    autoPickStrategy?: string;
+    questionCount?: number;
+    passThreshold?: number;
+    timeLimit?: number | null;
+    difficultyRatioJson?: any;
 }
 
 export interface StartTestV2Response {

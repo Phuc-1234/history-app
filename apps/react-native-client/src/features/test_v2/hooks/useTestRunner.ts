@@ -86,11 +86,13 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
     const [result, setResult] = useState<FinishTestV2Response | null>(null);
     const [timeLeft, setTimeLeft] = useState(0);
     const [redoQueue, setRedoQueue] = useState<number[]>([]);
+    const [seenQuestionIds, setSeenQuestionIds] = useState<number[]>([]);
 
     const timerRef = useRef<any>(null);
     const draftSyncRef = useRef<any>(null);
     const sessionRef = useRef(session);
     const draftRef = useRef(draftAnswers);
+    const seenRef = useRef(seenQuestionIds);
 
     const purposeType = (params.purposeType ?? session?.purposeType ?? "PRACTICE") as "PRACTICE" | "EXAM";
     const currentQuestion = questions[currentIndex] ?? null;
@@ -98,6 +100,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
     // Keep refs in sync
     useEffect(() => { sessionRef.current = session; }, [session]);
     useEffect(() => { draftRef.current = draftAnswers; }, [draftAnswers]);
+    useEffect(() => { seenRef.current = seenQuestionIds; }, [seenQuestionIds]);
 
     // ── Timer (exam mode) ────────────────────────────────────────────
     useEffect(() => {
@@ -134,6 +137,16 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         return () => { if (draftSyncRef.current) clearTimeout(draftSyncRef.current); };
     }, [draftAnswers, status, session?.id]);
 
+    // ── Track seen questions ─────────────────────────────────────────
+    useEffect(() => {
+        if (currentQuestion) {
+            setSeenQuestionIds((prev) => {
+                if (prev.includes(currentQuestion.id)) return prev;
+                return [...prev, currentQuestion.id];
+            });
+        }
+    }, [currentQuestion]);
+
     // ── Start test ───────────────────────────────────────────────────
     const handleStart = useCallback(async () => {
         try {
@@ -144,6 +157,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
             setQuestions(resp.questions);
             setCurrentIndex(0);
             setDraftAnswers(resp.userTestLog.draftAnswerJson ?? []);
+            setSeenQuestionIds(resp.userTestLog.draftAnswerJson?.map((d) => d.questionId) ?? []);
             setEvaluations({});
             setRedoQueue([]);
             setResult(null);
@@ -167,6 +181,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         setQuestions(qs);
         setCurrentIndex(log.currentQuestionIndex);
         setDraftAnswers(log.draftAnswerJson ?? []);
+        setSeenQuestionIds(log.draftAnswerJson?.map((d) => d.questionId) ?? []);
         setEvaluations({});
         setRedoQueue([]);
         setResult(null);
@@ -235,6 +250,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
             const resp = await finishTestMut({
                 logId: sessionRef.current.id,
                 draftAnswerJson: draftRef.current,
+                seenQuestionIds: seenRef.current,
             }).unwrap();
 
             setResult(resp);
@@ -283,6 +299,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         setQuestions([]);
         setCurrentIndex(0);
         setDraftAnswers([]);
+        setSeenQuestionIds([]);
         setEvaluations({});
         setRedoQueue([]);
         setResult(null);

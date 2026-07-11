@@ -24,6 +24,7 @@ type SectionWithProgress = SectionDto & {
     children: SectionWithProgress[];
     nodes: NodeDto[];
     progress: ProgressCounts | null;
+    testPassed?: boolean | null;
 };
 
 export class ContentService {
@@ -52,8 +53,10 @@ export class ContentService {
             select: { level: true },
         });
 
+        if (masteries.length === 0) return null;
+
         const totalLevel = masteries.reduce((sum, m) => sum + m.level, 0);
-        const maxPossibleLevel = questionIds.length * 5;
+        const maxPossibleLevel = masteries.length * 5;
 
         return Math.round((totalLevel / maxPossibleLevel) * 100);
     }
@@ -187,7 +190,7 @@ export class ContentService {
     async getLessonTree(
         lessonId: number,
         userId?: string | null,
-    ): Promise<(LessonWithContentDto & { progress?: ProgressCounts | null }) | null> {
+    ): Promise<(LessonWithContentDto & { progress?: ProgressCounts | null; testPassed?: boolean | null; masteryPercentage?: number | null }) | null> {
         // 1. Fetch lesson details along with its nested videos and sections in parallel
         const [lessonData, sections] = await Promise.all([
             prisma.lesson.findUnique({
@@ -241,18 +244,34 @@ export class ContentService {
             orderBy: { position: "asc" },
         });
 
-        // 2b. Fetch user progress if logged in
+        // 2b. Fetch user progress and passed tests if logged in
         const completedNodeIds = new Set<number>();
+        const passedScopeKeys = new Set<string>();
         if (userId) {
-            const progresses = await prisma.userNodeProgress.findMany({
-                where: {
-                    userId,
-                    nodeId: { in: nodes.map((n) => n.id) },
-                    nodeCompletedAt: { not: null },
-                },
-                select: { nodeId: true },
-            });
+            const [progresses, passedTests] = await Promise.all([
+                prisma.userNodeProgress.findMany({
+                    where: {
+                        userId,
+                        nodeId: { in: nodes.map((n) => n.id) },
+                        nodeCompletedAt: { not: null },
+                    },
+                    select: { nodeId: true },
+                }),
+                prisma.userTestLog.findMany({
+                    where: {
+                        userId,
+                        isPassed: true,
+                        scopeType: { in: ["LESSON", "SECTION"] },
+                    },
+                    select: { scopeType: true, scopeId: true },
+                })
+            ]);
             for (const p of progresses) completedNodeIds.add(p.nodeId);
+            for (const pt of passedTests) {
+                if (pt.scopeType && pt.scopeId != null) {
+                    passedScopeKeys.add(`${pt.scopeType}:${pt.scopeId}`);
+                }
+            }
         }
 
         // 3. Reconstruct tree elements using map mapping structures
@@ -269,23 +288,9 @@ export class ContentService {
                 children: [],
                 nodes: [],
                 progress: null,
+                testPassed: userId ? passedScopeKeys.has(`SECTION:${s.id}`) : false,
+                masteryPercentage: null,
             });
-        }
-
-        for (const n of nodes) {
-            const nd: NodeDto = {
-                id: n.id,
-                position: n.position,
-                header: n.header,
-                body: n.body,
-                imgUrl: n.imgUrl ?? null,
-                videoId: n.videoId ?? null,
-                sectionId: n.sectionId ?? null,
-                isComplete: completedNodeIds.has(n.id),
-            };
-            if (n.sectionId && map.has(n.sectionId)) {
-                map.get(n.sectionId)!.nodes!.push(nd);
-            }
         }
 
         const roots: SectionWithProgress[] = [];
@@ -299,45 +304,87 @@ export class ContentService {
             }
         }
 
-        // 3b. Calculate progress counts bottom-up if user is logged in
+        // Calculate mastery percentages for nodes, top-level sections (roots), and lesson
+        const nodeMasteryMap = new Map<number, number | null>();
+        const sectionMasteryMap = new Map<number, number | null>();
+        let lessonMastery: number | null = null;
+
         if (userId) {
-            const calcProgress = (section: SectionWithProgress): ProgressCounts => {
-                let total = section.nodes.length;
-                let completed = section.nodes.filter((n) =>
-                    completedNodeIds.has(n.id),
-                ).length;
+            const nodeIds = nodes.map(n => n.id);
+            const rootIds = roots.map(r => r.id);
 
-                for (const child of section.children) {
-                    const childProgress = calcProgress(child);
-                    total += childProgress.totalNodes;
-                    completed += childProgress.completedNodes;
-                }
+            const [nodeMasteries, sectionMasteries, lMastery] = await Promise.all([
+                Promise.all(nodeIds.map(id => this.getMasteryPercentage(userId, "NODE", id))),
+                Promise.all(rootIds.map(id => this.getMasteryPercentage(userId, "SECTION", id))),
+                this.getMasteryPercentage(userId, "LESSON", lessonId)
+            ]);
 
-                section.progress = { totalNodes: total, completedNodes: completed };
-                return section.progress;
-            };
-
-            let lessonTotal = 0;
-            let lessonCompleted = 0;
-            for (const root of roots) {
-                const p = calcProgress(root);
-                lessonTotal += p.totalNodes;
-                lessonCompleted += p.completedNodes;
-            }
-
-            return {
-                id: lessonData.id,
-                name: lessonData.name,
-                summary: lessonData.summary ?? null,
-                position: lessonData.position,
-                topicId: lessonData.topicId,
-                videos: lessonData.videos,
-                sections: roots,
-                progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
-            };
+            nodeIds.forEach((id, i) => nodeMasteryMap.set(id, nodeMasteries[i]));
+            rootIds.forEach((id, i) => sectionMasteryMap.set(id, sectionMasteries[i]));
+            lessonMastery = lMastery;
         }
 
-        // 4. Return parent lesson wrapper along with attached nested lists
+        for (const n of nodes) {
+            const nd: NodeDto = {
+                id: n.id,
+                position: n.position,
+                header: n.header,
+                body: n.body,
+                imgUrl: n.imgUrl ?? null,
+                videoId: n.videoId ?? null,
+                sectionId: n.sectionId ?? null,
+                isComplete: completedNodeIds.has(n.id),
+                masteryPercentage: nodeMasteryMap.get(n.id) ?? null,
+            };
+            if (n.sectionId && map.has(n.sectionId)) {
+                map.get(n.sectionId)!.nodes!.push(nd);
+            }
+        }
+
+        for (const s of roots) {
+            s.masteryPercentage = sectionMasteryMap.get(s.id) ?? null;
+        }
+
+        // 3b. Calculate progress counts bottom-up
+        const calcProgress = (section: SectionWithProgress): ProgressCounts => {
+            let total = section.nodes.length;
+            let completed = section.nodes.filter((n) =>
+                completedNodeIds.has(n.id),
+            ).length;
+
+            // Include section test if it's a top-level section
+            if (section.parentSectionId === null) {
+                total += 1;
+                if (userId && passedScopeKeys.has(`SECTION:${section.id}`)) {
+                    completed += 1;
+                }
+            }
+
+            for (const child of section.children) {
+                const childProgress = calcProgress(child);
+                total += childProgress.totalNodes;
+                completed += childProgress.completedNodes;
+            }
+
+            section.progress = { totalNodes: total, completedNodes: completed };
+            return section.progress;
+        };
+
+        let lessonTotal = 0;
+        let lessonCompleted = 0;
+        for (const root of roots) {
+            const p = calcProgress(root);
+            lessonTotal += p.totalNodes;
+            lessonCompleted += p.completedNodes;
+        }
+
+        // Include lesson test
+        lessonTotal += 1;
+        const lessonTestPassed = userId ? passedScopeKeys.has(`LESSON:${lessonId}`) : false;
+        if (lessonTestPassed) {
+            lessonCompleted += 1;
+        }
+
         return {
             id: lessonData.id,
             name: lessonData.name,
@@ -346,7 +393,9 @@ export class ContentService {
             topicId: lessonData.topicId,
             videos: lessonData.videos,
             sections: roots,
-            progress: null,
+            progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
+            testPassed: lessonTestPassed,
+            masteryPercentage: lessonMastery,
         };
     }
 
@@ -563,7 +612,7 @@ export class ContentService {
     async getGradeStructure(
         gradeId: number,
         userId?: string | null,
-    ): Promise<GradeStructureDto & { progress?: ProgressCounts | null }> {
+    ): Promise<GradeStructureDto & { progress?: ProgressCounts | null; masteryPercentage?: number | null; wrongQuestionCount?: number; answeredQuestionCount?: number }> {
         const topics = await prisma.topic.findMany({
             where: { gradeId },
             orderBy: { position: "asc" },
@@ -572,7 +621,7 @@ export class ContentService {
                     orderBy: { position: "asc" },
                     include: {
                         sections: {
-                            select: { id: true },
+                            select: { id: true, parentSectionId: true },
                         },
                     },
                 },
@@ -589,7 +638,7 @@ export class ContentService {
             }
         }
 
-        // Batch-fetch all nodes in the grade
+        // BATCH-FETCH ALL NODES IN THE GRADE
         const allNodes = await prisma.node.findMany({
             where: { sectionId: { in: allSectionIds } },
             select: { id: true, sectionId: true },
@@ -639,63 +688,121 @@ export class ContentService {
         let gradeTotal = 0;
         let gradeCompleted = 0;
 
-        const formattedTopics: (TopicWithContentsDto & { progress?: ProgressCounts | null })[] = topics.map((topic) => {
-            let topicTotal = 0;
-            let topicCompleted = 0;
+        const formattedTopics = await Promise.all(
+            topics.map(async (topic) => {
+                let topicTotal = 0;
+                let topicCompleted = 0;
 
-            const lessonsWithProgress = topic.lessons.map((lesson) => {
-                let lessonTotal = 0;
-                let lessonCompleted = 0;
+                const lessonsWithProgress = await Promise.all(
+                    topic.lessons.map(async (lesson) => {
+                        let lessonTotal = 0;
+                        let lessonCompleted = 0;
 
-                for (const section of lesson.sections) {
-                    const nodeIds = sectionNodeMap.get(section.id) ?? [];
-                    lessonTotal += nodeIds.length;
-                    lessonCompleted += nodeIds.filter((id) =>
-                        completedNodeIds.has(id),
-                    ).length;
+                        for (const section of lesson.sections) {
+                            const nodeIds = sectionNodeMap.get(section.id) ?? [];
+                            lessonTotal += nodeIds.length;
+                            lessonCompleted += nodeIds.filter((id) =>
+                                completedNodeIds.has(id),
+                            ).length;
+
+                            // Include section-level test if it's a top-level section
+                            if (section.parentSectionId === null) {
+                                lessonTotal += 1;
+                                if (userId && passedScopeKeys.has(`SECTION:${section.id}`)) {
+                                    lessonCompleted += 1;
+                                }
+                            }
+                        }
+
+                        // Lesson test as progress unit
+                        const lessonTestPassed = passedScopeKeys.has(`LESSON:${lesson.id}`);
+                        lessonTotal += 1;
+                        if (userId && lessonTestPassed) {
+                            lessonCompleted += 1;
+                        }
+
+                        topicTotal += lessonTotal;
+                        topicCompleted += lessonCompleted;
+
+                        const lessonMastery = userId ? await this.getMasteryPercentage(userId, "LESSON", lesson.id) : null;
+
+                        return {
+                            id: lesson.id,
+                            name: lesson.name,
+                            summary: lesson.summary ?? null,
+                            position: lesson.position,
+                            topicId: lesson.topicId,
+                            progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
+                            testPassed: userId ? lessonTestPassed : null,
+                            masteryPercentage: lessonMastery,
+                        };
+                    })
+                );
+
+                // Topic test as progress unit
+                const topicTestPassed = passedScopeKeys.has(`TOPIC:${topic.id}`);
+                topicTotal += 1;
+                if (userId && topicTestPassed) {
+                    topicCompleted += 1;
                 }
 
-                // Lesson test as progress unit
-                const lessonTestPassed = passedScopeKeys.has(`LESSON:${lesson.id}`);
+                gradeTotal += topicTotal;
+                gradeCompleted += topicCompleted;
 
-                topicTotal += lessonTotal;
-                topicCompleted += lessonCompleted;
+                const topicMastery = userId ? await this.getMasteryPercentage(userId, "TOPIC", topic.id) : null;
 
                 return {
-                    id: lesson.id,
-                    name: lesson.name,
-                    summary: lesson.summary ?? null,
-                    position: lesson.position,
-                    topicId: lesson.topicId,
-                    progress: { totalNodes: lessonTotal, completedNodes: userId ? lessonCompleted : 0 },
-                    testPassed: userId ? lessonTestPassed : null,
+                    id: topic.id,
+                    name: topic.name,
+                    position: topic.position,
+                    gradeId: topic.gradeId,
+                    lessons: lessonsWithProgress,
+                    testPassed: userId ? topicTestPassed : null,
+                    progress: { totalNodes: topicTotal, completedNodes: topicCompleted },
+                    masteryPercentage: topicMastery,
                 };
-            });
-
-            // Topic test as progress unit
-            const topicTestPassed = passedScopeKeys.has(`TOPIC:${topic.id}`);
-
-            gradeTotal += topicTotal;
-            gradeCompleted += topicCompleted;
-
-            return {
-                id: topic.id,
-                name: topic.name,
-                position: topic.position,
-                gradeId: topic.gradeId,
-                lessons: lessonsWithProgress,
-                testPassed: userId ? topicTestPassed : null,
-                progress: { totalNodes: topicTotal, completedNodes: userId ? topicCompleted : 0 },
-            };
-        });
+            })
+        );
 
         // Grade test as progress unit
         const gradeTestPassed = passedScopeKeys.has(`GRADE:${gradeId}`);
+        gradeTotal += 1;
+        if (userId && gradeTestPassed) {
+            gradeCompleted += 1;
+        }
+
+        const gradeMastery = userId ? await this.getMasteryPercentage(userId, "GRADE", gradeId) : null;
+
+        const wrongQuestionCount = userId ? await prisma.userQuestionMastery.count({
+            where: {
+                userId,
+                consecutiveCorrect: 0,
+                question: {
+                    gradeId,
+                    isActive: true,
+                    answerDataJson: { not: Prisma.DbNull }
+                }
+            }
+        }) : 0;
+
+        const answeredQuestionCount = userId ? await prisma.userQuestionMastery.count({
+            where: {
+                userId,
+                question: {
+                    gradeId,
+                    isActive: true,
+                    answerDataJson: { not: Prisma.DbNull }
+                }
+            }
+        }) : 0;
 
         return {
             topics: formattedTopics,
             testPassed: userId ? gradeTestPassed : null,
-            progress: { totalNodes: gradeTotal, completedNodes: userId ? gradeCompleted : 0 },
+            progress: { totalNodes: gradeTotal, completedNodes: gradeCompleted },
+            masteryPercentage: gradeMastery,
+            wrongQuestionCount,
+            answeredQuestionCount,
         };
     }
 
