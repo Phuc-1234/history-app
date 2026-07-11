@@ -10,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { LayoutNode } from "../types";
 import { animationConfig, NODE_CONFIGS } from "../constants";
-import { charsPerLine, wrapText, textCenterX, FIXED_LETTER_SPACING } from "../utils/layout";
+import { charsPerLine, wrapText, textStartOffset, FIXED_LETTER_SPACING } from "../utils/layout";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 
@@ -191,7 +191,7 @@ export const NodeCard = React.memo(function NodeCard({
                 {lines.map((line, li) => (
                     <SvgText
                         key={li}
-                        x={textCenterX(node)}
+                        x={node.x + textStartOffset(node.depth)}
                         y={
                             node.y +
                             node.height / 2 -
@@ -199,7 +199,7 @@ export const NodeCard = React.memo(function NodeCard({
                             li * lineHeight +
                             config.fontSize / 3
                         }
-                        textAnchor="middle"
+                        textAnchor="start"
                         letterSpacing={FIXED_LETTER_SPACING}
                         fill="#FFFFFF"
                         fontSize={config.fontSize}
@@ -240,7 +240,7 @@ export const NodeCard = React.memo(function NodeCard({
                 {lines.map((line, li) => (
                     <SvgText
                         key={li}
-                        x={textCenterX(node)}
+                        x={node.x + textStartOffset(node.depth)}
                         y={
                             node.y +
                             node.height / 2 -
@@ -248,7 +248,7 @@ export const NodeCard = React.memo(function NodeCard({
                             li * lineHeight +
                             config.fontSize / 3
                         }
-                        textAnchor="middle"
+                        textAnchor="start"
                         letterSpacing={FIXED_LETTER_SPACING}
                         fill={colors.textPrimary}
                         fontSize={config.fontSize}
@@ -296,7 +296,7 @@ export const NodeCard = React.memo(function NodeCard({
             {lines.map((line, li) => (
                 <SvgText
                     key={li}
-                    x={textCenterX(node)}
+                    x={node.x + textStartOffset(node.depth)}
                     y={
                         node.y +
                         node.height / 2 -
@@ -304,7 +304,7 @@ export const NodeCard = React.memo(function NodeCard({
                         li * lineHeight +
                         config.fontSize / 3
                     }
-                    textAnchor="middle"
+                    textAnchor="start"
                     letterSpacing={FIXED_LETTER_SPACING}
                     fill={colors.textSecondary}
                     fontSize={config.fontSize}

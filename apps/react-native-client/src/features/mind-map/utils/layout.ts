@@ -39,16 +39,6 @@ export function textStartOffset(depth: number): number {
     return 0;
 }
 
-// X coordinate of the text-area center, used by NodeCard to center text.
-// textAreaWidth = cardWidth - (leftStart + rightRoom), where rightRoom is the
-// space reserved on the right (sideRoom minus the left start).
-export function textCenterX(node: { x: number; width: number; depth: number }): number {
-    const left = textStartOffset(node.depth);
-    const rightRoom = sideRoomFor(node.depth) - left;
-    const textAreaWidth = node.width - left - rightRoom;
-    return node.x + left + textAreaWidth / 2;
-}
-
 // ─── Text wrapping ──────────────────────────────────────────────────────────
 
 export function wrapText(text: string, maxCharsPerLine: number): string[] {
