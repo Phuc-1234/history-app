@@ -42,9 +42,40 @@ export function charsPerLine(depth: number, allocatedWidth: number): number {
 }
 
 // Count wrapped lines for a label at a given allocated width. Extracted so both
-// width measurement (per-depth max) and height measurement stay in sync.
+// width measurement and height measurement stay in sync.
 function countLines(label: string, depth: number, allocatedWidth: number): number {
     return wrapText(label, charsPerLine(depth, allocatedWidth)).length;
+}
+
+// ─── Justified text (fill card width) ───────────────────────────────────────
+
+// Width (in SVG user units) a single line of text occupies at a given font size.
+// 0.55 is the average char-width factor used elsewhere in this file for measure.
+export function textWidthFor(line: string, fontSize: number): number {
+    return line.length * fontSize * 0.55;
+}
+
+// Extra letter-spacing (in SVG user units) needed to stretch a line so it fills
+// `targetWidth`. SVG's `letterSpacing` is added AFTER each glyph (including the
+// last), so for a string of n chars the spacing is distributed across n slots.
+// The last line of a paragraph is NOT justified in normal typography — pass
+// `isLastLine` to keep it natural. A `maxSpacing` cap stops tiny words from
+// spreading absurdly wide.
+export function justifyLetterSpacing(
+    line: string,
+    fontSize: number,
+    targetWidth: number,
+    isLastLine: boolean,
+    maxSpacing = 6,
+): number {
+    if (isLastLine || line.trim().length === 0) return 0;
+    const natural = textWidthFor(line, fontSize);
+    const diff = targetWidth - natural;
+    if (diff <= 0) return 0;
+    // distribute the leftover width across character gaps; n chars -> n slots
+    // because SVG letterSpacing also trails the final glyph.
+    const spacing = diff / line.length;
+    return Math.max(0, Math.min(spacing, maxSpacing));
 }
 
 // ─── Measure ────────────────────────────────────────────────────────────────
