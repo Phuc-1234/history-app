@@ -47,6 +47,7 @@ import {
     normalizeCoordinates,
     computeBounds,
     buildBezierPath,
+    measureMaxWidthsPerDepth,
 } from "../utils/layout";
 import { EdgePath, type MindMapConnection } from "./EdgePath";
 import { NodeCard } from "./NodeCard";
@@ -163,8 +164,16 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         maxScale.value = limits.max;
     }, [isMobile, maxScale, minScale]);
 
+    // Width-per-depth depends ONLY on the tree shape, not on what's collapsed, so
+    // memoize it on `mindMap` alone — otherwise Expand/Collapse all re-walks the
+    // entire tree every time for no reason.
+    const maxWidths = useMemo(
+        () => (mindMap ? measureMaxWidthsPerDepth(mindMap) : null),
+        [mindMap],
+    );
+
     const { nodes, bounds } = useMemo(() => {
-        if (!mindMap) {
+        if (!mindMap || !maxWidths) {
             return {
                 nodes: [] as LayoutNode[],
                 bounds: { width: 400, height: 300 },
@@ -176,11 +185,12 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
             0,
             null,
             collapsedNodes,
+            maxWidths,
         );
         const positioned = applyHorizontalPositions(raw);
         const normalized = normalizeCoordinates(positioned);
         return { nodes: normalized, bounds: computeBounds(normalized) };
-    }, [mindMap, collapsedNodes]);
+    }, [mindMap, maxWidths, collapsedNodes]);
 
     const fitScale = useMemo(
         () => getFitScaleForBounds(bounds, containerSize),

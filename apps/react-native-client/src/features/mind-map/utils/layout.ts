@@ -49,21 +49,13 @@ function countLines(label: string, depth: number, allocatedWidth: number): numbe
 
 // ─── Measure ────────────────────────────────────────────────────────────────
 
-// Measure a node's natural size. Width fits the label content but is clamped to
-// [minWidth, maxWidth]: a short label never stretches (no empty band), a very
-// long label wraps to a second line instead of growing unbounded. Each card now
-// hugs its own text — like XMind/MindMeister — so there's no dead space.
+// Measure a node's natural width (single-line) — used to derive the per-depth
+// max so all cards at the same depth share one width (visual consistency).
 export function measureNode(label: string, depth: number): { width: number; height: number } {
     const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
     const charWidth = config.fontSize * 0.55;
     const iconRoom = depth === 1 ? 28 : 0;
-    // Try the label on a single line first.
-    let width = Math.max(config.minWidth, label.length * charWidth + config.paddingH * 2 + iconRoom);
-    // If it's wider than the cap, wrap and recompute width from the longest
-    // wrapped line — the card settles at the size its text actually needs.
-    if (width > config.maxWidth) {
-        width = config.maxWidth;
-    }
+    const width = Math.max(config.minWidth, label.length * charWidth + config.paddingH * 2 + iconRoom);
     const height = measureNodeHeight(label, depth, width);
     return { width, height };
 }
@@ -77,6 +69,30 @@ export function measureNodeHeight(label: string, depth: number, allocatedWidth: 
     return Math.max(config.height, lines * lineHeight + config.paddingV);
 }
 
+// ─── Max width per depth (equal-width cards) ────────────────────────────────
+
+// All cards at the same depth share one width = the widest label at that depth,
+// capped at maxWidth so a single long label can't stretch every sibling. Cards
+// stay equal-width (uniform look); short labels are centered (see NodeCard) so
+// the remaining space reads as balanced padding, not a lopsided gap.
+export function measureMaxWidthsPerDepth(tree: MindMapNode): Map<number, number> {
+    const maxWidths = new Map<number, number>();
+
+    function walk(node: MindMapNode, depth: number) {
+        const { width } = measureNode(node.label, depth);
+        const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+        const clamped = Math.min(width, config.maxWidth);
+        const current = maxWidths.get(depth) ?? 0;
+        if (clamped > current) maxWidths.set(depth, clamped);
+        for (const child of node.children) {
+            walk(child, depth + 1);
+        }
+    }
+
+    walk(tree, 0);
+    return maxWidths;
+}
+
 // ─── Layout ─────────────────────────────────────────────────────────────────
 
 export function layoutTree(
@@ -85,9 +101,13 @@ export function layoutTree(
     startY: number,
     parentId: string | null,
     collapsedSet: Set<string>,
+    maxWidthsPerDepth?: Map<number, number>,
 ): { nodes: LayoutNode[]; totalHeight: number } {
-    // Each node measures its own fit-content size (clamped to [min,max]).
-    const { width, height } = measureNode(node.label, depth);
+    const ownMeasure = measureNode(node.label, depth);
+    // Equal width across a depth: every card uses the per-depth max (capped).
+    const width = maxWidthsPerDepth?.get(depth) ?? ownMeasure.width;
+    // Recompute height at the final shared width so the card hugs its text.
+    const height = measureNodeHeight(node.label, depth, width);
     const visibleChildren = collapsedSet.has(node.id) ? [] : node.children;
 
     if (visibleChildren.length === 0) {
@@ -108,7 +128,7 @@ export function layoutTree(
     const allNodes: LayoutNode[] = [];
 
     for (const child of visibleChildren) {
-        const result = layoutTree(child, depth + 1, childY, node.id, collapsedSet);
+        const result = layoutTree(child, depth + 1, childY, node.id, collapsedSet, maxWidthsPerDepth);
         allNodes.push(...result.nodes);
         childY += result.totalHeight + vGap;
     }

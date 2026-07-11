@@ -313,7 +313,7 @@ export const NodeCard = React.memo(function NodeCard({
                 {lines.map((line, li) => (
                     <SvgText
                         key={li}
-                        x={node.x + 20}
+                        x={node.x + node.width / 2}
                         y={
                             node.y +
                             node.height / 2 -
@@ -321,7 +321,7 @@ export const NodeCard = React.memo(function NodeCard({
                             li * lineHeight +
                             config.fontSize / 3
                         }
-                        textAnchor="start"
+                        textAnchor="middle"
                         fill={colors.textPrimary}
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
@@ -388,7 +388,7 @@ export const NodeCard = React.memo(function NodeCard({
             {lines.map((line, li) => (
                 <SvgText
                     key={li}
-                    x={node.x + 22}
+                    x={node.x + (node.width + 14) / 2}
                     y={
                         node.y +
                         node.height / 2 -
@@ -396,7 +396,7 @@ export const NodeCard = React.memo(function NodeCard({
                         li * lineHeight +
                         config.fontSize / 3
                     }
-                    textAnchor="start"
+                    textAnchor="middle"
                     fill={colors.textSecondary}
                     fontSize={config.fontSize}
                     fontWeight={config.fontWeight}
