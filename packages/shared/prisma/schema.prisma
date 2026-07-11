@@ -560,6 +560,7 @@ model UserQuestionMastery {
 enum AutoPickStrategy {
   BALANCED
   LOW_MASTERY
+  WRONG
 }
 
 model Subscription {

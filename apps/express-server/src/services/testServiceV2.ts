@@ -297,6 +297,58 @@ async function autoPickQuestions(
         return shuffle(selectedIds);
     }
 
+    if (strategy === "WRONG") {
+        const allQuestions = await prisma.question.findMany({
+            where: { ...scopeWhere, isActive: true, answerDataJson: { not: Prisma.DbNull } },
+            select: { id: true },
+        });
+        const allQuestionIds = allQuestions.map((q) => q.id);
+
+        const masteryRecords = await prisma.userQuestionMastery.findMany({
+            where: {
+                userId,
+                questionId: { in: allQuestionIds },
+            },
+            select: {
+                questionId: true,
+                level: true,
+            },
+        });
+        const masteryMap = new Map<number, number>(
+            masteryRecords.map((r) => [r.questionId, r.level]),
+        );
+
+        const wrongPool = allQuestionIds.filter((id) => masteryMap.has(id) && (masteryMap.get(id) ?? 0) === 0);
+        const fallbackPool = allQuestionIds.filter((id) => masteryMap.has(id) && (masteryMap.get(id) ?? 0) >= 1);
+
+        const shuffledWrong = shuffle(wrongPool);
+        const shuffledFallback = shuffle(fallbackPool);
+
+        const totalSeen = wrongPool.length + fallbackPool.length;
+        const target = questionCount != null ? Math.min(questionCount, totalSeen) : totalSeen;
+        if (target === 0) return [];
+
+        const targetWrong = Math.round(target * 0.8);
+        const targetFallback = target - targetWrong;
+
+        const selectedIds: number[] = [];
+
+        if (shuffledWrong.length < targetWrong) {
+            selectedIds.push(...shuffledWrong);
+            const remaining = target - selectedIds.length;
+            selectedIds.push(...shuffledFallback.slice(0, remaining));
+        } else if (shuffledFallback.length < targetFallback) {
+            selectedIds.push(...shuffledFallback);
+            const remaining = target - selectedIds.length;
+            selectedIds.push(...shuffledWrong.slice(0, remaining));
+        } else {
+            selectedIds.push(...shuffledWrong.slice(0, targetWrong));
+            selectedIds.push(...shuffledFallback.slice(0, targetFallback));
+        }
+
+        return shuffle(selectedIds);
+    }
+
     // Default strategy: BALANCED
     // 1. Get all active questions under the target scope
     const allQuestionsInScope = await prisma.question.findMany({
