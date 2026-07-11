@@ -60,13 +60,13 @@ export function textWidthFor(line: string, fontSize: number): number {
 // last), so for a string of n chars the spacing is distributed across n slots.
 // The last line of a paragraph is NOT justified in normal typography — pass
 // `isLastLine` to keep it natural. A `maxSpacing` cap stops tiny words from
-// spreading absurdly wide.
+// spreading absurdly wide; keep it small so text still reads tight and natural.
 export function justifyLetterSpacing(
     line: string,
     fontSize: number,
     targetWidth: number,
     isLastLine: boolean,
-    maxSpacing = 6,
+    maxSpacing = 2,
 ): number {
     if (isLastLine || line.trim().length === 0) return 0;
     const natural = textWidthFor(line, fontSize);
