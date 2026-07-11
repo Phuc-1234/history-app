@@ -66,6 +66,10 @@ export interface StartTestV2Request {
     testId?: string;      // for manual/curated test
     presetId?: string;    // optional preset override
     autoPickStrategy?: string; // BALANCED or LOW_MASTERY
+    questionCount?: number;
+    passThreshold?: number;
+    timeLimit?: number | null;
+    difficultyRatioJson?: any;
 }
 
 export interface UpdateDraftRequest {

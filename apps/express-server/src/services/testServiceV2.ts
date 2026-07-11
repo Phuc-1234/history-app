@@ -503,10 +503,11 @@ export class TestServiceV2 {
         let scopeId = req.scopeId ?? null;
         let purposeType = req.purposeType ?? "PRACTICE";
         let testId: string | null = req.testId ?? null;
+        let test: any = null;
 
         // ── Manual test path ──
         if (testId) {
-            const test = await prisma.test.findUnique({
+            test = await prisma.test.findUnique({
                 where: { id: testId },
                 include: {
                     testQuestions: {
@@ -526,11 +527,10 @@ export class TestServiceV2 {
             scopeType = test.scopeType ?? scopeType;
             scopeId = test.scopeId ?? scopeId;
             if (preset) purposeType = preset.purposeType ?? purposeType;
+        }
 
-            sequence = test.testQuestions.map((tq) => tq.questionId);
-        } else {
-            // ── Auto-pick path ──
-            // Resolve preset
+        // Resolve preset if not already loaded or if we need default fallback
+        if (!preset) {
             if (req.presetId) {
                 preset = await prisma.testPreset.findUnique({ where: { id: req.presetId } });
             }
@@ -549,7 +549,6 @@ export class TestServiceV2 {
             if (!preset && scopeType) {
                 preset = await prisma.testPreset.findFirst({
                     where: {
-                        
                         purposeType: purposeType as any,
                     },
                 });
@@ -563,25 +562,37 @@ export class TestServiceV2 {
                     timeLimit: purposeType === "EXAM" ? 15 : null,
                     difficultyRatioJson: { 1: 40, 2: 30, 3: 20, 4: 10 },
                     purposeType,
-                    
                 };
             }
+        }
 
-            purposeType = preset.purposeType ?? purposeType;
+        purposeType = preset.purposeType ?? purposeType;
 
+        // Resolve final parameters (Request overrides -> Test settings -> Preset settings -> Default fallbacks)
+        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (test?.questionNumber ?? preset?.questionCount ?? 10);
+        const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
+        const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
+        const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
+
+        if (testId && test) {
+            sequence = test.testQuestions.map((tq: any) => tq.questionId);
+            if (finalQuestionCount !== null && sequence.length > finalQuestionCount) {
+                sequence = sequence.slice(0, finalQuestionCount);
+            }
+        } else {
             sequence = await autoPickQuestions(
                 userId,
                 scopeType,
                 scopeId,
                 req.autoPickStrategy ?? "BALANCED",
-                preset.questionCount,
-                preset.difficultyRatioJson,
+                finalQuestionCount,
+                finalDifficultyRatioJson,
             );
 
             if (sequence.length === 0) {
                 throw serviceError("No questions available in this scope", "NO_QUESTIONS");
             }
-        } 
+        }
 
         // Compute attempt number
         const prevCount = testId
@@ -597,8 +608,7 @@ export class TestServiceV2 {
               });
 
         const now = new Date();
-        const timeLimit = preset?.timeLimit ?? null;
-        const expiresAt = timeLimit ? new Date(now.getTime() + timeLimit * 60000) : null;
+        const expiresAt = finalTimeLimit ? new Date(now.getTime() + finalTimeLimit * 60000) : null;
 
         const log = await prisma.userTestLog.create({
             data: {
@@ -615,8 +625,8 @@ export class TestServiceV2 {
                 expiresAt,
                 attemptNumber: prevCount + 1,
                 questionCount: sequence.length,
-                passThreshold: preset?.passThreshold ?? 80,
-                timeLimit,
+                passThreshold: finalPassThreshold,
+                timeLimit: finalTimeLimit,
                 scopeType: scopeType as any,
                 scopeId,
                 questionSequenceJson: sequence,
@@ -908,12 +918,11 @@ export class TestServiceV2 {
         let scopeId = req.scopeId ?? null;
         let purposeType = req.purposeType ?? "PRACTICE";
         let testId: string | null = req.testId ?? null;
-        let questionCount = 0;
-        let passThreshold = 80;
+        let test: any = null;
 
         // ── Manual test path ──
         if (testId) {
-            const test = await prisma.test.findUnique({
+            test = await prisma.test.findUnique({
                 where: { id: testId },
                 include: {
                     testQuestions: {
@@ -932,10 +941,10 @@ export class TestServiceV2 {
             scopeType = test.scopeType ?? scopeType;
             scopeId = test.scopeId ?? scopeId;
             if (preset) purposeType = preset.purposeType ?? purposeType;
-            questionCount = test.testQuestions.length;
-            passThreshold = test.passThreshold ?? preset?.passThreshold ?? 80;
-        } else {
-            // ── Auto-pick path ──
+        }
+
+        // Resolve preset if not already loaded or if we need default fallback
+        if (!preset) {
             if (req.presetId) {
                 preset = await prisma.testPreset.findUnique({ where: { id: req.presetId } });
             }
@@ -968,19 +977,30 @@ export class TestServiceV2 {
                     purposeType,
                 };
             }
+        }
 
-            purposeType = preset.purposeType ?? purposeType;
+        purposeType = preset.purposeType ?? purposeType;
 
+        // Resolve final parameters (Request overrides -> Test settings -> Preset settings -> Default fallbacks)
+        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (test?.questionNumber ?? preset?.questionCount ?? 10);
+        const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
+        const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
+        const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
+
+        let questionCount = 0;
+        if (testId && test) {
+            const sequenceLength = test.testQuestions.length;
+            questionCount = finalQuestionCount !== null && sequenceLength > finalQuestionCount ? finalQuestionCount : sequenceLength;
+        } else {
             const sequence = await autoPickQuestions(
                 userId,
                 scopeType,
                 scopeId,
                 req.autoPickStrategy ?? "BALANCED",
-                preset.questionCount,
-                preset.difficultyRatioJson,
+                finalQuestionCount,
+                finalDifficultyRatioJson,
             );
             questionCount = sequence.length;
-            passThreshold = preset?.passThreshold ?? 80;
         }
 
         const mockLog = {
@@ -991,7 +1011,6 @@ export class TestServiceV2 {
             generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
         };
         const title = await resolveTestTitle(mockLog);
-        const timeLimit = preset?.timeLimit ?? null;
 
         // Reward preview
         const rewardPreview = await rewardEngine.previewTestReward(
@@ -1030,14 +1049,14 @@ export class TestServiceV2 {
         return {
             title,
             questionCount,
-            timeLimit,
+            timeLimit: finalTimeLimit,
             scopeType,
             scopeId,
             purposeType,
             goldReward: rewardPreview.gold,
             xpReward: rewardPreview.xp,
             attemptNumber: rewardPreview.attemptNumber,
-            passThreshold,
+            passThreshold: finalPassThreshold,
             attemptCount,
             passCount,
         };
