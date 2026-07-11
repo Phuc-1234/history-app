@@ -146,7 +146,6 @@ model Test {
   title          String
   summary        String?        @default("Kiểm tra kiến thức của bạn")
   goldReward     Int            @default(0) @map("gold_reward")
-  
   passThreshold  Int            @default(70) @map("pass_threshold")
   questionNumber Int            @default(10) @map("question_number")
   timeLimit      Int?           @map("time_limit")
@@ -166,29 +165,30 @@ model Test {
 }
 
 model Question {
-  id             Int              @id @default(autoincrement())
-  type           QuestionType
-  difficulty     Int              @default(1)
-  promptText     String           @map("prompt_text")
-  gradeId        Int?             @map("grade_id")
-  topicId        Int?             @map("topic_id")
-  lessonId       Int?             @map("lesson_id")
-  sectionId      Int?             @map("section_id")
-  nodeId         Int?             @map("node_id")
-  document       String?
-  answerDataJson Json?            @map("answer_data_json")
-  explanation    String?
-  isActive       Boolean          @default(true) @map("is_active")
-  scopeId        Int?             @map("scope_id")
-  scopeType      ScopeType?       @map("scope_type")
-  answers        QuestionAnswer[]
-  grade          Grade?           @relation(fields: [gradeId], references: [id])
-  lesson         Lesson?          @relation(fields: [lessonId], references: [id])
-  node           Node?            @relation(fields: [nodeId], references: [id])
-  section        Section?         @relation(fields: [sectionId], references: [id])
-  topic          Topic?           @relation(fields: [topicId], references: [id])
-  testQuestions  TestQuestion[]
-  userAnswerLogs UserAnswerLog[]
+  id                    Int                     @id @default(autoincrement())
+  type                  QuestionType
+  difficulty            Int                     @default(1)
+  promptText            String                  @map("prompt_text")
+  gradeId               Int?                    @map("grade_id")
+  topicId               Int?                    @map("topic_id")
+  lessonId              Int?                    @map("lesson_id")
+  sectionId             Int?                    @map("section_id")
+  nodeId                Int?                    @map("node_id")
+  document              String?
+  answerDataJson        Json?                   @map("answer_data_json")
+  explanation           String?
+  isActive              Boolean                 @default(true) @map("is_active")
+  scopeId               Int?                    @map("scope_id")
+  scopeType             ScopeType?              @map("scope_type")
+  answers               QuestionAnswer[]
+  grade                 Grade?                  @relation(fields: [gradeId], references: [id])
+  lesson                Lesson?                 @relation(fields: [lessonId], references: [id])
+  node                  Node?                   @relation(fields: [nodeId], references: [id])
+  section               Section?                @relation(fields: [sectionId], references: [id])
+  topic                 Topic?                  @relation(fields: [topicId], references: [id])
+  testQuestions         TestQuestion[]
+  userAnswerLogs        UserAnswerLog[]
+  user_question_mastery user_question_mastery[]
 
   @@map("questions")
 }
@@ -218,35 +218,39 @@ model TestQuestion {
 }
 
 model User {
-  id                     String             @id @default(uuid())
-  role                   UserRole           @default(STUDENT)
+  id                     String                  @id @default(uuid())
+  role                   UserRole                @default(STUDENT)
   name                   String
-  email                  String?            @unique
-  totalXp                Int                @default(0) @map("total_xp")
-  totalGold              Int                @default(0) @map("total_gold")
-  isHidden               Boolean            @default(false) @map("is_hidden")
-  profileImgUrl          String?            @map("profile_img_url")
-  currentStreak          Int                @default(0) @map("current_streak")
-  highestStreak          Int                @default(0) @map("highest_streak")
-  lastTestPassedAt       DateTime?          @map("last_test_passed_at")
-  currentTierIndex       Int                @default(1) @map("current_tier_index")
-  isVerified             Boolean            @default(false) @map("is_verified")
-  isPrivate              Boolean            @default(false) @map("is_private")
-  allowFollow            Boolean            @default(true) @map("allow_follow")
-  allowFriendRequest     Boolean            @default(true) @map("allow_friend_request")
-  following              Follow[]           @relation("FollowFollower")
-  followers              Follow[]           @relation("FollowFollowing")
-  receivedFriendRequests FriendRequest[]    @relation("FriendRequestReceiver")
-  sentFriendRequests     FriendRequest[]    @relation("FriendRequestSender")
-  friendshipsAsFriend    Friendship[]       @relation("FriendshipFriend")
-  friendshipsAsUser      Friendship[]       @relation("FriendshipUser")
+  email                  String?                 @unique
+  totalXp                Int                     @default(0) @map("total_xp")
+  totalGold              Int                     @default(0) @map("total_gold")
+  isHidden               Boolean                 @default(false) @map("is_hidden")
+  profileImgUrl          String?                 @map("profile_img_url")
+  currentStreak          Int                     @default(0) @map("current_streak")
+  highestStreak          Int                     @default(0) @map("highest_streak")
+  lastTestPassedAt       DateTime?               @map("last_test_passed_at")
+  currentTierIndex       Int                     @default(1) @map("current_tier_index")
+  isVerified             Boolean                 @default(false) @map("is_verified")
+  isPrivate              Boolean                 @default(false) @map("is_private")
+  allowFollow            Boolean                 @default(true) @map("allow_follow")
+  allowFriendRequest     Boolean                 @default(true) @map("allow_friend_request")
+  is_pro                 Boolean?                @default(false)
+  pro_expires_at         DateTime?               @db.Timestamptz(6)
+  feedbacks              Feedback[]
+  following              Follow[]                @relation("FollowFollower")
+  followers              Follow[]                @relation("FollowFollowing")
+  receivedFriendRequests FriendRequest[]         @relation("FriendRequestReceiver")
+  sentFriendRequests     FriendRequest[]         @relation("FriendRequestSender")
+  friendshipsAsFriend    Friendship[]            @relation("FriendshipFriend")
+  friendshipsAsUser      Friendship[]            @relation("FriendshipUser")
   goldPurchases          GoldPurchase[]
+  subscriptions          subscriptions[]
   userFlashcards         UserFlashcard[]
   nodeProgresses         UserNodeProgress[]
+  user_question_mastery  user_question_mastery[]
   rewardLogs             UserRewardLog[]
   testLogs               UserTestLog[]
-  tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
-  feedbacks              Feedback[]
+  tier                   Tier                    @relation(fields: [currentTierIndex], references: [index])
 
   @@map("users")
 }
@@ -305,36 +309,37 @@ model Tier {
 }
 
 model UserTestLog {
-  id                    String          @id @default(uuid())
+  id                    String            @id @default(uuid())
   score                 Int
-  startedAt             DateTime        @default(now()) @map("started_at")
-  submittedAt           DateTime?       @map("submitted_at")
-  isPassed              Boolean?        @map("is_passed")
-  attemptNumber         Int             @map("attempt_number")
-  testId                String?         @map("test_id")
-  userId                String          @map("user_id")
-  questionSequenceJson  Json?           @map("question_sequence_json")
-  timezoneOffsetMinutes Int             @map("timezone_offset_minutes")
-  goldEarned            Int             @default(0) @map("gold_earned")
-  xpEarned              Int             @default(0) @map("xp_earned")
-  currentQuestionIndex  Int?            @default(0) @map("current_question_index")
-  draftAnswerJson       Json?           @map("draft_answer_json")
-  expiresAt             DateTime?       @map("expires_at")
-  generatedFromPresetId String?         @map("generated_from_preset_id")
-  maxScore              Float?          @map("max_score")
-  passThreshold         Int?            @map("pass_threshold")
-  purposeType           PurposeType?    @map("purpose_type")
-  questionCount         Int?            @map("question_count")
-  scopeId               Int?            @map("scope_id")
-  scopeType             ScopeType?      @map("scope_type")
-  scoreAwarded          Float?          @map("score_awarded")
-  status                TestStatus?     @map("status")
-  timeLimit             Int?            @map("time_limit")
+  startedAt             DateTime          @default(now()) @map("started_at")
+  submittedAt           DateTime?         @map("submitted_at")
+  isPassed              Boolean?          @map("is_passed")
+  attemptNumber         Int               @map("attempt_number")
+  testId                String?           @map("test_id")
+  userId                String            @map("user_id")
+  questionSequenceJson  Json?             @map("question_sequence_json")
+  timezoneOffsetMinutes Int               @map("timezone_offset_minutes")
+  goldEarned            Int               @default(0) @map("gold_earned")
+  xpEarned              Int               @default(0) @map("xp_earned")
+  currentQuestionIndex  Int?              @default(0) @map("current_question_index")
+  draftAnswerJson       Json?             @map("draft_answer_json")
+  expiresAt             DateTime?         @map("expires_at")
+  generatedFromPresetId String?           @map("generated_from_preset_id")
+  maxScore              Float?            @map("max_score")
+  passThreshold         Int?              @map("pass_threshold")
+  purposeType           PurposeType?      @map("purpose_type")
+  questionCount         Int?              @map("question_count")
+  scopeId               Int?              @map("scope_id")
+  scopeType             ScopeType?        @map("scope_type")
+  scoreAwarded          Float?            @map("score_awarded")
+  status                TestStatus?       @map("status")
+  timeLimit             Int?              @map("time_limit")
+  auto_pick_strategy    AutoPickStrategy?
   answerLogs            UserAnswerLog[]
   rewardLogs            UserRewardLog[]
-  generatedFromPreset   TestPreset?     @relation(fields: [generatedFromPresetId], references: [id])
-  test                  Test?           @relation(fields: [testId], references: [id], onDelete: Cascade)
-  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedFromPreset   TestPreset?       @relation(fields: [generatedFromPresetId], references: [id])
+  test                  Test?             @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("user_test_logs")
@@ -412,6 +417,79 @@ model GoldPurchase {
   @@map("gold_purchases")
 }
 
+model RewardRule {
+  id              Int               @id @default(autoincrement())
+  triggerType     RewardTriggerType @map("trigger_type")
+  triggerTargetId String?           @map("trigger_target_id")
+  triggerTimeMin  Int               @map("trigger_time_min")
+  triggerTimeMax  Int?              @map("trigger_time_max")
+  xp              Int               @default(0)
+  gold            Int               @default(0)
+  rewardLogs      UserRewardLog[]
+
+  @@unique([triggerType, triggerTargetId, triggerTimeMin, triggerTimeMax])
+  @@map("reward_rules")
+}
+
+model UserRewardLog {
+  id              Int               @id @default(autoincrement())
+  userId          String            @map("user_id")
+  rewardRuleId    Int               @map("reward_rule_id")
+  triggerType     RewardTriggerType @map("trigger_type")
+  triggerTargetId String?           @map("trigger_target_id")
+  triggerTime     Int               @map("trigger_time")
+  xpAwarded       Int               @default(0) @map("xp_awarded")
+  goldAwarded     Int               @default(0) @map("gold_awarded")
+  userTestLogId   String?           @map("user_test_log_id")
+  rewardRule      RewardRule        @relation(fields: [rewardRuleId], references: [id])
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userTestLog     UserTestLog?      @relation(fields: [userTestLogId], references: [id])
+
+  @@unique([userId, rewardRuleId, triggerTime])
+  @@map("user_reward_logs")
+}
+
+model Feedback {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  content    String
+  type       String
+  targetType String?  @map("target_type")
+  targetId   String?  @map("target_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+model subscriptions {
+  id                String             @id
+  user_id           String
+  status            SubscriptionStatus @default(PENDING)
+  amount_vnd        Int                @default(2000)
+  provider          PaymentProvider
+  provider_order_id String             @unique
+  provider_trans_id String?
+  auto_renew        Boolean            @default(true)
+  start_date        DateTime?          @db.Timestamptz(6)
+  end_date          DateTime?          @db.Timestamptz(6)
+  created_at        DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime           @default(now()) @db.Timestamptz(6)
+  users             User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_question_mastery {
+  user_id             String
+  question_id         Int
+  level               Int      @default(0)
+  consecutive_correct Int      @default(0)
+  questions           Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  users               User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, question_id])
+}
+
 enum HierachyState {
   PUBLIC
   PRIVATE
@@ -460,6 +538,8 @@ enum RewardTriggerType {
   AUTO_GRADE_TEST_COMPLETE
   STREAK_REACHED
   TIER_REACHED
+  AUTO_PERSONAL_PRACTICE_COMPLETE
+  AUTO_WRONG_PRACTICE_COMPLETE
 }
 
 enum ScopeType {
@@ -495,46 +575,16 @@ enum PaymentStatus {
   FAILED
 }
 
-model RewardRule {
-  id              Int               @id @default(autoincrement())
-  triggerType     RewardTriggerType @map("trigger_type")
-  triggerTargetId String?           @map("trigger_target_id")
-  triggerTimeMin  Int               @map("trigger_time_min")
-  triggerTimeMax  Int?              @map("trigger_time_max")
-  xp              Int               @default(0)
-  gold            Int               @default(0)
-  rewardLogs      UserRewardLog[]
-
-  @@unique([triggerType, triggerTargetId, triggerTimeMin, triggerTimeMax])
-  @@map("reward_rules")
+enum AutoPickStrategy {
+  BALANCED
+  LOW_MASTERY
+  WRONG
 }
 
-model UserRewardLog {
-  id              Int               @id @default(autoincrement())
-  userId          String            @map("user_id")
-  rewardRuleId    Int               @map("reward_rule_id")
-  triggerType     RewardTriggerType @map("trigger_type")
-  triggerTargetId String?           @map("trigger_target_id")
-  triggerTime     Int               @map("trigger_time")
-  xpAwarded       Int               @default(0) @map("xp_awarded")
-  goldAwarded     Int               @default(0) @map("gold_awarded")
-  userTestLogId   String?           @map("user_test_log_id")
-  rewardRule      RewardRule        @relation(fields: [rewardRuleId], references: [id])
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userTestLog     UserTestLog?      @relation(fields: [userTestLogId], references: [id])
-
-  @@unique([userId, rewardRuleId, triggerTime])
-  @@map("user_reward_logs")
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  FAILED
 }
-
-model Feedback {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  content   String
-  type      String   // "BUG" | "FEATURE" | "OTHER"
-  createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("feedbacks")
-}
-

@@ -372,14 +372,18 @@ export interface AdminFeedbackDto {
     id: string;
     userId: string;
     content: string;
-    type: string; // "BUG" | "FEATURE" | "OTHER"
+    type: string; // "BUG" | "FEATURE" | "OTHER" | "INCORRECT_INFO"
     createdAt: string;
+    targetType?: string | null;
+    targetId?: string | null;
+    targetName?: string | null;
     user: {
         name: string;
         email: string | null;
         profileImgUrl: string | null;
     };
 }
+
 
 
 

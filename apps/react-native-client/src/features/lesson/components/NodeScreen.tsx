@@ -23,6 +23,7 @@ import {
 } from "../lessonApiSlice";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import FeedbackModal from "../../../components/FeedbackModal";
 
 function convertHslToHex(html: string): string {
     if (!html) return "";
@@ -75,6 +76,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
     const [studyDone, setStudyDone] = useState(false);
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
     const progressTriggered = useRef(false);
 
     useEffect(() => {
@@ -189,9 +191,18 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                     <Text style={styles.nodeTitleText}>
                         {node.header || ""}
                     </Text>
-                    {studyDone && isLoggedIn && (
-                        <Ionicons name="checkmark-circle" size={24} color={colors.success} style={styles.completedTickIcon} />
-                    )}
+                    <View style={styles.rightHeaderActions}>
+                        {studyDone && isLoggedIn && (
+                            <Ionicons name="checkmark-circle" size={24} color={colors.success} style={styles.completedTickIcon} />
+                        )}
+                        <TouchableOpacity
+                            onPress={() => setFeedbackModalVisible(true)}
+                            style={styles.flagButton}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Body — HTML rendered content */}
@@ -303,9 +314,19 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 visible={toastVisible}
                 onHide={() => setToastVisible(false)}
             />
+
+            {/* Context Feedback Modal */}
+            <FeedbackModal
+                visible={feedbackModalVisible}
+                onClose={() => setFeedbackModalVisible(false)}
+                targetType="NODE"
+                targetId={node.id}
+                targetTitle={node.header || `Mục số ${node.position}`}
+            />
         </View>
     );
 }
+
 
 const tagsStyles = {
     body: {
@@ -447,6 +468,15 @@ const styles = StyleSheet.create({
     completedTickIcon: {
         flexShrink: 0,
     },
+    rightHeaderActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    flagButton: {
+        padding: 4,
+    },
+
 
     /* Content */
     scrollContent: {

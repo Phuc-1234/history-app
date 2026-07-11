@@ -47,7 +47,9 @@ export interface ChangePasswordRequestBody {
 
 export interface CreateFeedbackRequestBody {
     content: string;
-    type: string; // "BUG" | "FEATURE" | "OTHER"
+    type: string; // "BUG" | "FEATURE" | "OTHER" | "INCORRECT_INFO"
+    targetType?: string | null;
+    targetId?: string | null;
 }
 
 export interface FeedbackDto {
@@ -56,6 +58,10 @@ export interface FeedbackDto {
     content: string;
     type: string;
     createdAt: string;
+    targetType?: string | null;
+    targetId?: string | null;
+    targetName?: string | null;
 }
+
 
 

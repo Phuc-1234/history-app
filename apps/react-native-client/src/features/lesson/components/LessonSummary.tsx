@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     StyleSheet,
     Text,
@@ -14,6 +14,8 @@ import { ExpandableSection } from "./ExpandableSection";
 import VideoPlayer from "../../videostream/components/VideoPlayer";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import FeedbackModal from "../../../components/FeedbackModal";
+
 
 interface LessonSummaryProps {
     data: LessonSummaryData;
@@ -53,6 +55,8 @@ export function LessonSummary({
     onSectionTestPress,
 }: LessonSummaryProps) {
     const { completed, total } = getLessonProgress(sections);
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+
 
     return (
         <View style={styles.container}>
@@ -87,10 +91,20 @@ export function LessonSummary({
                     </Text>
                 </View>
 
-                <Text style={styles.lessonHeading}>
-                    Bài {data.position}: {data.name}
-                </Text>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <Text style={[styles.lessonHeading, { flex: 1, marginBottom: 0 }]}>
+                        Bài {data.position}: {data.name}
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => setFeedbackModalVisible(true)}
+                        style={styles.flagButton}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                </View>
                 <Text style={styles.lessonDescription}>{data.summary}</Text>
+
             </View>
 
             {/* --- Matrix Action Grid Button Links --- */}
@@ -183,9 +197,18 @@ export function LessonSummary({
                 <Ionicons name="document-text" size={18} color={colors.textLight} />
                 <Text style={styles.pillTestButtonText}>Kiểm tra toàn bài</Text>
             </TouchableOpacity>
+            {/* Context Feedback Modal */}
+            <FeedbackModal
+                visible={feedbackModalVisible}
+                onClose={() => setFeedbackModalVisible(false)}
+                targetType="LESSON"
+                targetId={data.lessonId}
+                targetTitle={`Bài ${data.position}: ${data.name}`}
+            />
         </View>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: { padding: 16, backgroundColor: colors.background, paddingBottom: 40 },
@@ -232,6 +255,10 @@ const styles = StyleSheet.create({
         color: colors.primary,
         marginBottom: 8,
     },
+    flagButton: {
+        padding: 4,
+    },
+
     lessonDescription: {
         ...typography.bodyMedium,
         color: colors.textSecondary,

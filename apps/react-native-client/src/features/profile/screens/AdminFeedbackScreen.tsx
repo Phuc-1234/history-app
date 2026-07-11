@@ -14,7 +14,7 @@ import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import { useGetAdminFeedbacksQuery } from "../services/feedbackApi";
 
-type FilterType = "ALL" | "BUG" | "FEATURE" | "OTHER";
+type FilterType = "ALL" | "BUG" | "FEATURE" | "OTHER" | "INCORRECT_INFO";
 
 export default function AdminFeedbackScreen() {
     const { data: feedbacks = [], isLoading, refetch, isFetching } = useGetAdminFeedbacksQuery();
@@ -36,6 +36,13 @@ export default function AdminFeedbackScreen() {
                     color: colors.warning,
                     bgColor: colors.warningContainer,
                 };
+            case "INCORRECT_INFO":
+                return {
+                    label: "Thông tin sai",
+                    icon: "alert-circle-outline" as const,
+                    color: colors.error,
+                    bgColor: colors.errorContainer,
+                };
             default:
                 return {
                     label: "Ý kiến khác",
@@ -45,6 +52,7 @@ export default function AdminFeedbackScreen() {
                 };
         }
     };
+
 
     const formatDate = (dateStr: string) => {
         try {
@@ -93,6 +101,14 @@ export default function AdminFeedbackScreen() {
                 </View>
 
                 <Text style={styles.feedbackContent}>{item.content}</Text>
+                {item.targetName && (
+                    <View style={styles.targetContainer}>
+                        <Ionicons name="flag-outline" size={12} color={colors.primary} />
+                        <Text style={styles.targetText} numberOfLines={1}>
+                            {item.targetName}
+                        </Text>
+                    </View>
+                )}
             </Card>
         );
     };
@@ -101,8 +117,10 @@ export default function AdminFeedbackScreen() {
         { key: "ALL", label: "Tất cả" },
         { key: "BUG", label: "Lỗi" },
         { key: "FEATURE", label: "Tính năng" },
+        { key: "INCORRECT_INFO", label: "Thông tin sai" },
         { key: "OTHER", label: "Khác" },
     ];
+
 
     return (
         <ScreenWrapper
@@ -277,7 +295,26 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         lineHeight: 20,
     },
+    targetContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.primaryContainer,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+        gap: 6,
+    },
+    targetText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 12,
+        color: colors.primary,
+        flex: 1,
+    },
     emptyContainer: {
+
         alignItems: "center",
         justifyContent: "center",
         paddingVertical: 100,

@@ -19,6 +19,8 @@ import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Card } from "../../../components/Card";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import FeedbackModal from "../../../components/FeedbackModal";
+
 
 interface LessonMenuProps {
     selectedGrade: number;
@@ -133,6 +135,8 @@ export function LessonMenu({
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [collapsedTopics, setCollapsedTopics] = useState<Record<number, boolean>>({});
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+
 
     const toggleTopic = (topicId: number) => {
         setCollapsedTopics((prev) => ({
@@ -232,9 +236,19 @@ export function LessonMenu({
                                     <Ionicons name="book" size={32} color={themeColor} />
                                 </View>
                                 <View style={styles.gradeProgressRight}>
-                                    <Text style={styles.gradeTitleText}>
-                                        Lịch sử lớp {selectedGrade}
-                                    </Text>
+                                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                                        <Text style={[styles.gradeTitleText, { flex: 1, marginBottom: 0 }]}>
+                                            Lịch sử lớp {selectedGrade}
+                                        </Text>
+                                        <TouchableOpacity
+                                            onPress={() => setFeedbackModalVisible(true)}
+                                            style={styles.flagButton}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
+                                        </TouchableOpacity>
+                                    </View>
+
                                     <View style={styles.topProgressWrapper}>
                                         <View style={styles.topProgressTrack}>
                                             <View
@@ -426,9 +440,19 @@ export function LessonMenu({
                     </>
                 )}
             </View>
+            {/* Context Feedback Modal */}
+            <FeedbackModal
+                visible={feedbackModalVisible}
+                onClose={() => setFeedbackModalVisible(false)}
+                targetType="GRADE"
+                targetId={selectedGrade}
+                targetTitle={`Khối lớp ${selectedGrade}`}
+            />
         </ScreenWrapper>
     );
 }
+
+
 
 const styles = StyleSheet.create({
     centerLoader: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -572,6 +596,10 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         marginBottom: 8,
     },
+    flagButton: {
+        padding: 4,
+    },
+
     topProgressWrapper: {
         position: "relative",
         height: 28,
