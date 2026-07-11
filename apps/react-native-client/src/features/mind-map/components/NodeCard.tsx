@@ -10,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { LayoutNode } from "../types";
 import { animationConfig, NODE_CONFIGS } from "../constants";
-import { charsPerLine, wrapText, textCenterX, FIXED_LETTER_SPACING } from "../utils/layout";
+import { charsPerLine, wrapText, textCenterX, justifyLetterSpacing, textAreaWidth, FIXED_LETTER_SPACING } from "../utils/layout";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 
@@ -177,6 +177,7 @@ export const NodeCard = React.memo(function NodeCard({
 
     // ── Depth 0: root ───────────────────────────────────────────────────────
     if (node.depth === 0) {
+        const area = textAreaWidth(node);
         return (
             <AnimatedG animatedProps={animatedProps}>
                 <Rect
@@ -200,7 +201,12 @@ export const NodeCard = React.memo(function NodeCard({
                             config.fontSize / 3
                         }
                         textAnchor="middle"
-                        letterSpacing={FIXED_LETTER_SPACING}
+                        letterSpacing={justifyLetterSpacing(
+                            line,
+                            node.depth,
+                            area,
+                            li === lines.length - 1,
+                        )}
                         fill="#FFFFFF"
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
@@ -215,6 +221,7 @@ export const NodeCard = React.memo(function NodeCard({
 
     // ── Depth 1: branch ─────────────────────────────────────────────────────
     if (node.depth === 1) {
+        const area1 = textAreaWidth(node);
         return (
             <AnimatedG animatedProps={animatedProps}>
                 <Rect
@@ -249,7 +256,12 @@ export const NodeCard = React.memo(function NodeCard({
                             config.fontSize / 3
                         }
                         textAnchor="middle"
-                        letterSpacing={FIXED_LETTER_SPACING}
+                        letterSpacing={justifyLetterSpacing(
+                            line,
+                            node.depth,
+                            area1,
+                            li === lines.length - 1,
+                        )}
                         fill={colors.textPrimary}
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
@@ -273,6 +285,7 @@ export const NodeCard = React.memo(function NodeCard({
 
     // ── Depth 2: leaf ───────────────────────────────────────────────────────
     const lightBg = node.lightBg || colors.surface;
+    const area2 = textAreaWidth(node);
     return (
         <AnimatedG animatedProps={animatedProps}>
             <Rect
@@ -305,7 +318,12 @@ export const NodeCard = React.memo(function NodeCard({
                         config.fontSize / 3
                     }
                     textAnchor="middle"
-                    letterSpacing={FIXED_LETTER_SPACING}
+                    letterSpacing={justifyLetterSpacing(
+                        line,
+                        node.depth,
+                        area2,
+                        li === lines.length - 1,
+                    )}
                     fill={colors.textSecondary}
                     fontSize={config.fontSize}
                     fontWeight={config.fontWeight}
