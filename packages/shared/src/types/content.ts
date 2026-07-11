@@ -101,11 +101,13 @@ export interface TopicWithContentsDto {
     gradeId: number;
     lessons: LessonDto[];
     testPassed?: boolean | null;
+    masteryPercentage?: number | null;
 }
 
 export interface GradeStructureDto {
     topics: TopicWithContentsDto[];
     testPassed?: boolean | null;
+    masteryPercentage?: number | null;
 }
 
 export type GetGradeStructureParams = { gradeId: string };

@@ -51,11 +51,25 @@ export class RewardEngine {
         testId: string | null,
         scopeType: string | null,
         scopeId: number | null,
+        purposeType?: string | null,
+        autoPickStrategy?: string | null,
     ): { triggerType: RewardTriggerType; triggerTargetId: string | null } {
         if (testId) {
             return {
                 triggerType: RewardTriggerType.MANUAL_TEST_COMPLETE,
                 triggerTargetId: testId,
+            };
+        }
+        if (purposeType === "PRACTICE") {
+            if (autoPickStrategy === "WRONG") {
+                return {
+                    triggerType: RewardTriggerType.AUTO_WRONG_PRACTICE_COMPLETE,
+                    triggerTargetId: null,
+                };
+            }
+            return {
+                triggerType: RewardTriggerType.AUTO_PERSONAL_PRACTICE_COMPLETE,
+                triggerTargetId: null,
             };
         }
         if (scopeType) {
@@ -435,15 +449,17 @@ export class RewardEngine {
         testId: string | null,
         scopeType: string | null,
         scopeId: number | null,
+        purposeType: string | null,
         userTestLogId: string,
         tx: TxClient,
+        autoPickStrategy?: string | null,
     ): Promise<{ consequences: ProgressConsequence[]; totalXpGained: number; totalGoldGained: number }> {
         const consequences: ProgressConsequence[] = [];
         let totalXpGained = 0;
         let totalGoldGained = 0;
 
         // 1. Determine trigger
-        const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId);
+        const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId, purposeType, autoPickStrategy);
 
         // 2. Count previous passes for trigger time
         const prevTimes = await this.countPreviousTriggerTimes(userId, triggerType, triggerTargetId, tx);
@@ -554,8 +570,10 @@ export class RewardEngine {
         scopeType: string | null,
         scopeId: number | null,
         userId: string,
+        purposeType?: string | null,
+        autoPickStrategy?: string | null,
     ): Promise<{ xp: number; gold: number; attemptNumber: number }> {
-        const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId);
+        const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId, purposeType, autoPickStrategy);
 
         // Count previous reward grants for this trigger
         const prevTimes = await prisma.userRewardLog.count({
