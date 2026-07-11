@@ -197,7 +197,14 @@ export function CourseMenuScreen() {
     };
 
     const getProgress = (structure: any) => {
-        if (!structure || !structure.topics) return { completed: 0, total: 0 };
+        if (!structure) return { completed: 0, total: 0 };
+        if (structure.progress) {
+            return {
+                completed: structure.progress.completedNodes,
+                total: structure.progress.totalNodes,
+            };
+        }
+        if (!structure.topics) return { completed: 0, total: 0 };
         let total = 0;
         let completed = 0;
         for (const t of structure.topics) {

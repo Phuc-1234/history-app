@@ -52,7 +52,13 @@ export function LessonSummary({
     onNodePress,
     onSectionTestPress,
 }: LessonSummaryProps) {
-    const { completed, total } = getLessonProgress(sections);
+    const progress = data.progress || getLessonProgress(sections);
+    const completed = "completedNodes" in progress && progress.completedNodes !== undefined
+        ? progress.completedNodes
+        : (progress as any).completed;
+    const total = "totalNodes" in progress && progress.totalNodes !== undefined
+        ? progress.totalNodes
+        : (progress as any).total;
 
     return (
         <View style={styles.container}>
@@ -64,7 +70,7 @@ export function LessonSummary({
                         uri: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500",
                     }}
                     style={styles.bannerBg}
-                    imageStyle={{ borderRadius: 5 }}
+                    imageStyle={{ borderRadius: 12 }}
                 >
                     
                 </ImageBackground>
@@ -83,7 +89,7 @@ export function LessonSummary({
                         />
                     </View>
                     <Text style={styles.progressText}>
-                        {completed}/{total} phần
+                        {completed}/{total}
                     </Text>
                 </View>
 
@@ -132,18 +138,6 @@ export function LessonSummary({
                     </View>
                     <Text style={styles.gridButtonText}>Mind map</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.gridButton, styles.filledGridButton]}
-                    onPress={() => onActionPress("quiz")}
-                >
-                    <View style={styles.iconWrapperTransparent}>
-                        <Ionicons name="document-text" size={16} color={colors.textLight} />
-                    </View>
-                    <Text style={[styles.gridButtonText, styles.whiteText]}>
-                        Kiểm tra toàn bài
-                    </Text>
-                </TouchableOpacity>
             </View>
 
             {/* --- Video Player Section --- */}
@@ -161,27 +155,30 @@ export function LessonSummary({
 
             {/* --- Render Root Document Node Tree --- */}
             <View style={styles.sectionsList}>
-                {sections.map((section, index) => (
-                    <React.Fragment key={section.id}>
-                        {index > 0 && <View style={styles.divider} />}
-                        <ExpandableSection
-                            section={section}
-                            isTopLevel={true}
-                            onNodePress={onNodePress}
-                            onSectionTestPress={onSectionTestPress}
-                        />
-                    </React.Fragment>
+                {sections.map((section) => (
+                    <ExpandableSection
+                        key={section.id}
+                        section={section}
+                        isTopLevel={true}
+                        onNodePress={onNodePress}
+                        onSectionTestPress={onSectionTestPress}
+                    />
                 ))}
             </View>
 
             {/* Pill-shaped lesson-level test button */}
             <TouchableOpacity
-                style={styles.pillTestButton}
+                style={[
+                    styles.pillTestButton,
+                    data.testPassed && { backgroundColor: colors.success }
+                ]}
                 onPress={() => onActionPress("quiz")}
                 activeOpacity={0.8}
             >
-                <Ionicons name="document-text" size={18} color={colors.textLight} />
                 <Text style={styles.pillTestButtonText}>Kiểm tra toàn bài</Text>
+                {data.testPassed && (
+                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                )}
             </TouchableOpacity>
         </View>
     );
@@ -241,32 +238,26 @@ const styles = StyleSheet.create({
     /* Feature Navigation Grid Matrix */
     gridContainer: {
         flexDirection: "row",
-        gap: 8,
+        gap: 12,
         marginBottom: 20,
+        justifyContent: "center",
     },
     gridButton: {
-        flex: 1,
+        flexDirection: "row",
         backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: colors.borderMedium,
-        borderRadius: 9,
-        paddingVertical: 10,
-        paddingHorizontal: 4,
+        borderRadius: 30,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
+        gap: 8,
     },
-    filledGridButton: { backgroundColor: colors.primary, borderColor: colors.primary },
     iconWrapper: {
-        width: 32,
-        height: 32,
-        borderRadius: 4,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    iconWrapperTransparent: {
-        width: 32,
-        height: 32,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -275,16 +266,9 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.bold,
         color: colors.textPrimary,
     },
-    whiteText: { color: colors.textLight },
 
     /* Tree List Wrapper */
     sectionsList: { marginTop: 8 },
-    divider: {
-        height: 2,
-        backgroundColor: colors.borderDark,
-        marginVertical: 16,
-        marginHorizontal: 8,
-    },
 
     /* Video Player */
     videoContainer: {
@@ -303,7 +287,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.primary,
-        borderRadius: 40,
+        borderRadius: 30,
         paddingVertical: 12,
         paddingHorizontal: 24,
         gap: 8,

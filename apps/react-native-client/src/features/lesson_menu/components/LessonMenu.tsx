@@ -240,6 +240,7 @@ export function LessonMenu({
     const {
         topics,
         finalTestPassed,
+        gradeProgress,
         loading,
         refetch,
         isFetching,
@@ -291,6 +292,12 @@ export function LessonMenu({
     }, [selectedGrade, searchQuery]);
 
     const overallStats = React.useMemo(() => {
+        if (gradeProgress) {
+            return {
+                completed: gradeProgress.completedNodes,
+                total: gradeProgress.totalNodes,
+            };
+        }
         let total = 0;
         let completed = 0;
         topics.forEach((topic) => {
@@ -303,7 +310,7 @@ export function LessonMenu({
             });
         });
         return { completed, total };
-    }, [topics]);
+    }, [topics, gradeProgress]);
 
     const overallProgress = overallStats.total > 0 ? overallStats.completed / overallStats.total : 0;
     const progressPercentage = Math.round(overallProgress * 100);
@@ -507,7 +514,7 @@ export function LessonMenu({
                                                             </View>
                                                             <View style={styles.cardRightContainer}>
                                                                 {testIsDone ? (
-                                                                    <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                                                                    <Ionicons name="checkmark-circle" size={24} color={colors.success} />
                                                                 ) : (
                                                                     <SmallProgressRing pct={0} isAccent={true} />
                                                                 )}
@@ -542,7 +549,7 @@ export function LessonMenu({
                                         </View>
                                         <View style={styles.cardRightContainer}>
                                             {finalIsDone ? (
-                                                <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                                                <Ionicons name="checkmark-circle" size={24} color={colors.success} />
                                             ) : (
                                                 <SmallProgressRing pct={0} isAccent={true} />
                                             )}
@@ -858,8 +865,9 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: 0,
         bottom: 0,
+        right: 0,
         justifyContent: "center",
-        paddingLeft: 8,
+        alignItems: "center",
     },
     progressNumberTextOutside: {
         fontFamily: typography.fonts.bold,

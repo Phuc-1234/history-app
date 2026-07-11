@@ -12,6 +12,7 @@ export function useLessonMenu(selectedGrade: number) {
     return {
         topics,
         finalTestPassed,
+        gradeProgress: (gradeStructure as any)?.progress ?? null,
         loading: !gradeStructure,
         error,
         refetch,

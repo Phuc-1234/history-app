@@ -24,6 +24,7 @@ type SectionWithProgress = SectionDto & {
     children: SectionWithProgress[];
     nodes: NodeDto[];
     progress: ProgressCounts | null;
+    testPassed?: boolean | null;
 };
 
 export class ContentService {
@@ -187,7 +188,7 @@ export class ContentService {
     async getLessonTree(
         lessonId: number,
         userId?: string | null,
-    ): Promise<(LessonWithContentDto & { progress?: ProgressCounts | null }) | null> {
+    ): Promise<(LessonWithContentDto & { progress?: ProgressCounts | null; testPassed?: boolean | null }) | null> {
         // 1. Fetch lesson details along with its nested videos and sections in parallel
         const [lessonData, sections] = await Promise.all([
             prisma.lesson.findUnique({
@@ -241,18 +242,34 @@ export class ContentService {
             orderBy: { position: "asc" },
         });
 
-        // 2b. Fetch user progress if logged in
+        // 2b. Fetch user progress and passed tests if logged in
         const completedNodeIds = new Set<number>();
+        const passedScopeKeys = new Set<string>();
         if (userId) {
-            const progresses = await prisma.userNodeProgress.findMany({
-                where: {
-                    userId,
-                    nodeId: { in: nodes.map((n) => n.id) },
-                    nodeCompletedAt: { not: null },
-                },
-                select: { nodeId: true },
-            });
+            const [progresses, passedTests] = await Promise.all([
+                prisma.userNodeProgress.findMany({
+                    where: {
+                        userId,
+                        nodeId: { in: nodes.map((n) => n.id) },
+                        nodeCompletedAt: { not: null },
+                    },
+                    select: { nodeId: true },
+                }),
+                prisma.userTestLog.findMany({
+                    where: {
+                        userId,
+                        isPassed: true,
+                        scopeType: { in: ["LESSON", "SECTION"] },
+                    },
+                    select: { scopeType: true, scopeId: true },
+                })
+            ]);
             for (const p of progresses) completedNodeIds.add(p.nodeId);
+            for (const pt of passedTests) {
+                if (pt.scopeType && pt.scopeId != null) {
+                    passedScopeKeys.add(`${pt.scopeType}:${pt.scopeId}`);
+                }
+            }
         }
 
         // 3. Reconstruct tree elements using map mapping structures
@@ -269,6 +286,7 @@ export class ContentService {
                 children: [],
                 nodes: [],
                 progress: null,
+                testPassed: userId ? passedScopeKeys.has(`SECTION:${s.id}`) : false,
             });
         }
 
@@ -299,45 +317,46 @@ export class ContentService {
             }
         }
 
-        // 3b. Calculate progress counts bottom-up if user is logged in
-        if (userId) {
-            const calcProgress = (section: SectionWithProgress): ProgressCounts => {
-                let total = section.nodes.length;
-                let completed = section.nodes.filter((n) =>
-                    completedNodeIds.has(n.id),
-                ).length;
+        // 3b. Calculate progress counts bottom-up
+        const calcProgress = (section: SectionWithProgress): ProgressCounts => {
+            let total = section.nodes.length;
+            let completed = section.nodes.filter((n) =>
+                completedNodeIds.has(n.id),
+            ).length;
 
-                for (const child of section.children) {
-                    const childProgress = calcProgress(child);
-                    total += childProgress.totalNodes;
-                    completed += childProgress.completedNodes;
+            // Include section test if it's a top-level section
+            if (section.parentSectionId === null) {
+                total += 1;
+                if (userId && passedScopeKeys.has(`SECTION:${section.id}`)) {
+                    completed += 1;
                 }
-
-                section.progress = { totalNodes: total, completedNodes: completed };
-                return section.progress;
-            };
-
-            let lessonTotal = 0;
-            let lessonCompleted = 0;
-            for (const root of roots) {
-                const p = calcProgress(root);
-                lessonTotal += p.totalNodes;
-                lessonCompleted += p.completedNodes;
             }
 
-            return {
-                id: lessonData.id,
-                name: lessonData.name,
-                summary: lessonData.summary ?? null,
-                position: lessonData.position,
-                topicId: lessonData.topicId,
-                videos: lessonData.videos,
-                sections: roots,
-                progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
-            };
+            for (const child of section.children) {
+                const childProgress = calcProgress(child);
+                total += childProgress.totalNodes;
+                completed += childProgress.completedNodes;
+            }
+
+            section.progress = { totalNodes: total, completedNodes: completed };
+            return section.progress;
+        };
+
+        let lessonTotal = 0;
+        let lessonCompleted = 0;
+        for (const root of roots) {
+            const p = calcProgress(root);
+            lessonTotal += p.totalNodes;
+            lessonCompleted += p.completedNodes;
         }
 
-        // 4. Return parent lesson wrapper along with attached nested lists
+        // Include lesson test
+        lessonTotal += 1;
+        const lessonTestPassed = userId ? passedScopeKeys.has(`LESSON:${lessonId}`) : false;
+        if (lessonTestPassed) {
+            lessonCompleted += 1;
+        }
+
         return {
             id: lessonData.id,
             name: lessonData.name,
@@ -346,7 +365,8 @@ export class ContentService {
             topicId: lessonData.topicId,
             videos: lessonData.videos,
             sections: roots,
-            progress: null,
+            progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
+            testPassed: lessonTestPassed,
         };
     }
 
@@ -572,7 +592,7 @@ export class ContentService {
                     orderBy: { position: "asc" },
                     include: {
                         sections: {
-                            select: { id: true },
+                            select: { id: true, parentSectionId: true },
                         },
                     },
                 },
@@ -653,10 +673,22 @@ export class ContentService {
                     lessonCompleted += nodeIds.filter((id) =>
                         completedNodeIds.has(id),
                     ).length;
+
+                    // Include section-level test if it's a top-level section
+                    if (section.parentSectionId === null) {
+                        lessonTotal += 1;
+                        if (userId && passedScopeKeys.has(`SECTION:${section.id}`)) {
+                            lessonCompleted += 1;
+                        }
+                    }
                 }
 
                 // Lesson test as progress unit
                 const lessonTestPassed = passedScopeKeys.has(`LESSON:${lesson.id}`);
+                lessonTotal += 1;
+                if (userId && lessonTestPassed) {
+                    lessonCompleted += 1;
+                }
 
                 topicTotal += lessonTotal;
                 topicCompleted += lessonCompleted;
@@ -667,13 +699,17 @@ export class ContentService {
                     summary: lesson.summary ?? null,
                     position: lesson.position,
                     topicId: lesson.topicId,
-                    progress: { totalNodes: lessonTotal, completedNodes: userId ? lessonCompleted : 0 },
+                    progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
                     testPassed: userId ? lessonTestPassed : null,
                 };
             });
 
             // Topic test as progress unit
             const topicTestPassed = passedScopeKeys.has(`TOPIC:${topic.id}`);
+            topicTotal += 1;
+            if (userId && topicTestPassed) {
+                topicCompleted += 1;
+            }
 
             gradeTotal += topicTotal;
             gradeCompleted += topicCompleted;
@@ -685,17 +721,21 @@ export class ContentService {
                 gradeId: topic.gradeId,
                 lessons: lessonsWithProgress,
                 testPassed: userId ? topicTestPassed : null,
-                progress: { totalNodes: topicTotal, completedNodes: userId ? topicCompleted : 0 },
+                progress: { totalNodes: topicTotal, completedNodes: topicCompleted },
             };
         });
 
         // Grade test as progress unit
         const gradeTestPassed = passedScopeKeys.has(`GRADE:${gradeId}`);
+        gradeTotal += 1;
+        if (userId && gradeTestPassed) {
+            gradeCompleted += 1;
+        }
 
         return {
             topics: formattedTopics,
             testPassed: userId ? gradeTestPassed : null,
-            progress: { totalNodes: gradeTotal, completedNodes: userId ? gradeCompleted : 0 },
+            progress: { totalNodes: gradeTotal, completedNodes: gradeCompleted },
         };
     }
 
