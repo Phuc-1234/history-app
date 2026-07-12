@@ -173,7 +173,7 @@ export const loginUser = async (
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
             role: userProfile.role as any,
-            isPro: userProfile.isPro,
+            isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
         };
 
@@ -259,7 +259,7 @@ export const verifyOtp = async (
             tierName: userProfile.tier.name,
             badgeImgUrl: userProfile.tier.badgeImgUrl,
             role: userProfile.role as any,
-            isPro: userProfile.isPro,
+            isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
         };
 
@@ -437,7 +437,7 @@ export const verifyGoogleSession = async (
             tierName: userProfile.tier?.name || "Bronze",
             badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
             role: userProfile.role as any,
-            isPro: userProfile.isPro,
+            isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
         };
 
@@ -528,7 +528,7 @@ export const verifyFacebookSession = async (
             tierName: userProfile.tier?.name || "Bronze",
             badgeImgUrl: userProfile.tier?.badgeImgUrl || "",
             role: userProfile.role as any,
-            isPro: userProfile.isPro,
+            isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
         };
 

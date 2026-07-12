@@ -382,6 +382,12 @@ export type RewardTriggerType =
     | "STREAK_REACHED"
     | "TIER_REACHED";
 
+export interface RewardRuleItemDto {
+    itemDefinitionId: number;
+    quantity: number;
+    itemDefinition?: ItemDefinitionDto;
+}
+
 export interface CreateRewardRuleBody {
     triggerType: RewardTriggerType;
     triggerTargetId?: string | null;
@@ -389,6 +395,7 @@ export interface CreateRewardRuleBody {
     triggerTimeMax?: number | null;
     xp?: number;
     gold?: number;
+    rewardRuleItems?: { itemDefinitionId: number; quantity: number }[];
 }
 
 export interface UpdateRewardRuleBody {
@@ -398,6 +405,7 @@ export interface UpdateRewardRuleBody {
     triggerTimeMax?: number | null;
     xp?: number;
     gold?: number;
+    rewardRuleItems?: { itemDefinitionId: number; quantity: number }[];
 }
 
 export interface RewardRuleDto {
@@ -408,7 +416,64 @@ export interface RewardRuleDto {
     triggerTimeMax: number | null;
     xp: number;
     gold: number;
+    rewardRuleItems: RewardRuleItemDto[];
 }
+
+// ─── Item Definitions ─────────────────────────────────────────────────────────
+
+export type ItemDefinitionType = "SKIN" | "BOOST" | "BADGE";
+export type BoostEffectType = "XP_MULTIPLIER" | "GOLD_MULTIPLIER";
+export type EquipmentSlot = "AVT_FRAME" | "BACKGROUND";
+
+export interface CreateItemDefinitionBody {
+    name: string;
+    maxStackSize?: number | null;
+    description?: string | null;
+    shownInStore?: boolean;
+    price?: number;
+    isConsumable: boolean;
+    type: ItemDefinitionType;
+    effectType?: BoostEffectType | null;
+    effectValue?: number | null;
+    imgUrl?: string | null;
+    equipmentSlot?: EquipmentSlot | null;
+    durationMinutes?: number | null;
+    allowEffectStacking?: boolean;
+}
+
+export interface UpdateItemDefinitionBody {
+    name?: string;
+    maxStackSize?: number | null;
+    description?: string | null;
+    shownInStore?: boolean;
+    price?: number;
+    isConsumable?: boolean;
+    type?: ItemDefinitionType;
+    effectType?: BoostEffectType | null;
+    effectValue?: number | null;
+    imgUrl?: string | null;
+    equipmentSlot?: EquipmentSlot | null;
+    durationMinutes?: number | null;
+    allowEffectStacking?: boolean;
+}
+
+export interface ItemDefinitionDto {
+    id: number;
+    name: string;
+    maxStackSize: number | null;
+    description: string | null;
+    shownInStore: boolean;
+    price: number;
+    isConsumable: boolean;
+    type: ItemDefinitionType;
+    effectType: BoostEffectType | null;
+    effectValue: number | null;
+    imgUrl: string | null;
+    equipmentSlot: EquipmentSlot | null;
+    durationMinutes: number | null;
+    allowEffectStacking: boolean;
+}
+
 export interface AdminFeedbackDto {
     id: string;
     userId: string;

@@ -55,6 +55,10 @@ import {
     createRewardRule,
     updateRewardRule,
     deleteRewardRule,
+    listItemDefinitions,
+    createItemDefinition,
+    updateItemDefinition,
+    deleteItemDefinition,
 } from "../controllers/adminController";
 import { listAllFeedbacks } from "../controllers/feedbackController";
 
@@ -236,4 +240,15 @@ router.patch("/reward-rules/:id", updateRewardRule);
 // DELETE /api/admin/reward-rules/:id
 router.delete("/reward-rules/:id", deleteRewardRule);
 
+// ─── Item Definitions ─────────────────────────────────────────────────────────
+// GET    /api/admin/item-definitions
+router.get("/item-definitions", listItemDefinitions);
+// POST   /api/admin/item-definitions
+router.post("/item-definitions", createItemDefinition);
+// PATCH  /api/admin/item-definitions/:id
+router.patch("/item-definitions/:id", updateItemDefinition);
+// DELETE /api/admin/item-definitions/:id
+router.delete("/item-definitions/:id", deleteItemDefinition);
+
 export default router;
+

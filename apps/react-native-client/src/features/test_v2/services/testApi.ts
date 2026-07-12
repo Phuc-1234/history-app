@@ -24,6 +24,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            providesTags: ["User"],
         }),
 
         // POST /api/tests-v2/start
@@ -33,6 +34,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: ["User"],
         }),
 
         // PUT /api/tests-v2/:logId/draft
@@ -60,6 +62,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
                 url: `/api/tests-v2/${logId}/abandon`,
                 method: "POST",
             }),
+            invalidatesTags: ["User"],
         }),
 
         // GET /api/tests-v2/history
@@ -68,6 +71,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
                 url: "/api/tests-v2/history",
                 params,
             }),
+            providesTags: ["User"],
         }),
 
         // GET /api/tests-v2/history/:logId
