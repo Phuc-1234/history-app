@@ -30,6 +30,9 @@ import {
     FlashcardDto,
     CreateFlashcardBody,
     UpdateFlashcardBody,
+    CreateRewardRuleBody,
+    UpdateRewardRuleBody,
+    RewardRuleDto,
 } from "@history-app/shared";
 import { supabase } from "../config/supabaseClient";
 import { contentService } from "./contentService";
@@ -1063,6 +1066,78 @@ export class AdminService {
         await prisma.scopeTestPresetDefault.delete({
             where: { scopeType_purposeType: key }
         });
+        return true;
+    }
+
+    // ─── REWARD RULE ─────────────────────────────────────────────────────────
+
+    async listRewardRules(): Promise<RewardRuleDto[]> {
+        const rules = await prisma.rewardRule.findMany({
+            orderBy: { id: "asc" }
+        });
+        return rules.map(r => ({
+            id: r.id,
+            triggerType: r.triggerType as any,
+            triggerTargetId: r.triggerTargetId,
+            triggerTimeMin: r.triggerTimeMin,
+            triggerTimeMax: r.triggerTimeMax,
+            xp: r.xp,
+            gold: r.gold,
+        }));
+    }
+
+    async createRewardRule(data: CreateRewardRuleBody): Promise<RewardRuleDto> {
+        const rule = await prisma.rewardRule.create({
+            data: {
+                triggerType: data.triggerType as any,
+                triggerTargetId: data.triggerTargetId !== undefined ? data.triggerTargetId : null,
+                triggerTimeMin: Number(data.triggerTimeMin),
+                triggerTimeMax: data.triggerTimeMax !== null && data.triggerTimeMax !== undefined ? Number(data.triggerTimeMax) : null,
+                xp: data.xp !== undefined ? Number(data.xp) : 0,
+                gold: data.gold !== undefined ? Number(data.gold) : 0,
+            }
+        });
+        return {
+            id: rule.id,
+            triggerType: rule.triggerType as any,
+            triggerTargetId: rule.triggerTargetId,
+            triggerTimeMin: rule.triggerTimeMin,
+            triggerTimeMax: rule.triggerTimeMax,
+            xp: rule.xp,
+            gold: rule.gold,
+        };
+    }
+
+    async updateRewardRule(id: number, data: UpdateRewardRuleBody): Promise<RewardRuleDto | null> {
+        const existing = await prisma.rewardRule.findUnique({ where: { id } });
+        if (!existing) return null;
+
+        const updated = await prisma.rewardRule.update({
+            where: { id },
+            data: {
+                ...(data.triggerType !== undefined && { triggerType: data.triggerType as any }),
+                triggerTargetId: data.triggerTargetId !== undefined ? data.triggerTargetId : existing.triggerTargetId,
+                ...(data.triggerTimeMin !== undefined && { triggerTimeMin: Number(data.triggerTimeMin) }),
+                triggerTimeMax: data.triggerTimeMax !== undefined ? (data.triggerTimeMax !== null ? Number(data.triggerTimeMax) : null) : existing.triggerTimeMax,
+                ...(data.xp !== undefined && { xp: Number(data.xp) }),
+                ...(data.gold !== undefined && { gold: Number(data.gold) }),
+            }
+        });
+        return {
+            id: updated.id,
+            triggerType: updated.triggerType as any,
+            triggerTargetId: updated.triggerTargetId,
+            triggerTimeMin: updated.triggerTimeMin,
+            triggerTimeMax: updated.triggerTimeMax,
+            xp: updated.xp,
+            gold: updated.gold,
+        };
+    }
+
+    async deleteRewardRule(id: number): Promise<boolean> {
+        const existing = await prisma.rewardRule.findUnique({ where: { id } });
+        if (!existing) return false;
+        await prisma.rewardRule.delete({ where: { id } });
         return true;
     }
 }
