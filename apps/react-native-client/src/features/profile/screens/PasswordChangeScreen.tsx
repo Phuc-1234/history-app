@@ -16,6 +16,8 @@ import Input from "../../../components/Input";
 import { useChangePassword } from "../hooks/useChangePassword";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { colors } from "../../../theme/colors";
+import { Toast } from "../../../components/Toast";
+import { useState, useEffect } from "react";
 
 const text = {
     title: "Sửa mật khẩu",
@@ -34,6 +36,17 @@ export default function PasswordChangeScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const state = useChangePassword();
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMessage, setToastMessage] = useState("");
+    const [toastType, setToastType] = useState<"success" | "error">("success");
+
+    useEffect(() => {
+        if (state.feedbackMessage) {
+            setToastMessage(state.feedbackMessage);
+            setToastType(state.isSuccess ? "success" : "error");
+            setToastVisible(true);
+        }
+    }, [state.feedbackMessage, state.isSuccess]);
 
     return (
         <ScreenWrapper
@@ -101,17 +114,6 @@ export default function PasswordChangeScreen() {
                         {state.confirmPasswordError ? (
                             <Text style={styles.errorText}>{state.confirmPasswordError}</Text>
                         ) : null}
-
-                        {state.feedbackMessage ? (
-                            <Text
-                                style={[
-                                    styles.feedbackText,
-                                    state.isSuccess ? styles.feedbackSuccess : styles.feedbackError,
-                                ]}
-                            >
-                                {state.feedbackMessage}
-                            </Text>
-                        ) : null}
                     </View>
                 </ScrollView>
 
@@ -129,6 +131,12 @@ export default function PasswordChangeScreen() {
                     ]}
                 />
             </KeyboardAvoidingView>
+            <Toast
+                visible={toastVisible}
+                message={toastMessage}
+                type={toastType}
+                onHide={() => setToastVisible(false)}
+            />
         </ScreenWrapper>
     );
 }

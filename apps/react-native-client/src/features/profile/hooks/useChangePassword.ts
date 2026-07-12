@@ -9,7 +9,7 @@ const message = {
     newSame: "Mật khẩu mới không được trùng mật khẩu cũ.",
     confirmRequired: "Vui lòng xác nhận mật khẩu mới.",
     confirmMismatch: "Mật khẩu xác nhận không khớp.",
-    success: "Cập nhật mật khẩu thành công.",
+    success: "Đổi mật khẩu thành công",
 };
 
 export function useChangePassword() {
@@ -79,7 +79,7 @@ export function useChangePassword() {
             setConfirmPassword("");
             setTimeout(() => {
                 if (router.canGoBack()) router.back();
-            }, 900);
+            }, 1800);
             return true;
         } catch (err: any) {
             setIsSuccess(false);

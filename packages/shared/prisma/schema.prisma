@@ -454,14 +454,14 @@ model UserRewardLog {
 }
 
 model Feedback {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  content     String
-  type        String
-  createdAt   DateTime @default(now()) @map("created_at")
-  target_id   String?
-  target_type String?
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  content    String
+  type       String
+  targetType String?  @map("target_type")
+  targetId   String?  @map("target_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("feedbacks")
 }
@@ -683,4 +683,3 @@ model UserEquippedItem {
   @@id([userId, equipmentSlot])
   @@map("user_equipped_items")
 }
-

@@ -13,8 +13,9 @@ import {
     useWindowDimensions,
     Image,
 } from "react-native";
-import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X } from "lucide-react-native";
+import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag } from "lucide-react-native";
 import { useRouter } from "expo-router";
+
 import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
 import Animated, {
     FadeIn,
@@ -44,6 +45,8 @@ import {
     formatScore,
     getQuestionPointsRange,
 } from "../services/scoreEngine";
+import FeedbackModal from "@/components/FeedbackModal";
+
 import type {
     StartTestV2Request,
     QuestionV2,
@@ -164,6 +167,9 @@ export default function TestContainerV2({
             console.log("Test Info (/info) response:", JSON.stringify(testInfo, null, 2));
         }
     }, [testInfo]);
+
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+
     const {
         session,
         questions,
@@ -795,37 +801,47 @@ export default function TestContainerV2({
                                         renderers={renderers}
                                     />
                                 </View>
-                                <View style={[styles.pointPill, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
-                                    <Text style={styles.pointPillText}>
-                                        {(() => {
-                                            const range =
-                                                getQuestionPointsRange(
-                                                    currentQuestion,
-                                                );
-                                            const isChooseMulti =
-                                                currentQuestion.type === "CHOOSE" &&
-                                                !isSingleChoice(currentQuestion);
-                                            if (isChooseMulti) {
-                                                return `Tối đa ${formatScore(range.max)}đ`;
-                                            }
-                                            if (range.isRange) {
-                                                return `${formatScore(range.min)} - ${formatScore(range.max)}đ`;
-                                            }
-                                            return `${formatScore(range.max)}đ`;
-                                        })()}
-                                    </Text>
-                                    {currentQuestion.type === "CHOOSE" &&
-                                        !isSingleChoice(currentQuestion) && (
-                                            <TouchableOpacity
-                                                onPress={() => setShowExplanationTooltip(!showExplanationTooltip)}
-                                                style={styles.helpIconContainer}
-                                                activeOpacity={0.7}
-                                            >
-                                                <HelpCircle size={13} color={colors.textSuccess} />
-                                            </TouchableOpacity>
-                                        )}
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                    <View style={[styles.pointPill, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
+                                        <Text style={styles.pointPillText}>
+                                            {(() => {
+                                                const range =
+                                                    getQuestionPointsRange(
+                                                        currentQuestion,
+                                                    );
+                                                const isChooseMulti =
+                                                    currentQuestion.type === "CHOOSE" &&
+                                                    !isSingleChoice(currentQuestion);
+                                                if (isChooseMulti) {
+                                                    return `Tối đa ${formatScore(range.max)}đ`;
+                                                }
+                                                if (range.isRange) {
+                                                    return `${formatScore(range.min)} - ${formatScore(range.max)}đ`;
+                                                }
+                                                return `${formatScore(range.max)}đ`;
+                                            })()}
+                                        </Text>
+                                        {currentQuestion.type === "CHOOSE" &&
+                                            !isSingleChoice(currentQuestion) && (
+                                                <TouchableOpacity
+                                                    onPress={() => setShowExplanationTooltip(!showExplanationTooltip)}
+                                                    style={styles.helpIconContainer}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <HelpCircle size={13} color={colors.textSuccess} />
+                                                </TouchableOpacity>
+                                            )}
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={() => setFeedbackModalVisible(true)}
+                                        style={{ padding: 6 }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Flag size={18} color={colors.textSecondary} />
+                                    </TouchableOpacity>
                                 </View>
                             </View>
+
 
                             {showExplanationTooltip && (
                                 <View style={styles.tooltipBubble}>
@@ -1176,10 +1192,21 @@ export default function TestContainerV2({
                         </View>
                     </View>
                 </Modal>
+                {/* Context Feedback Modal */}
+                {currentQuestion && (
+                    <FeedbackModal
+                        visible={feedbackModalVisible}
+                        onClose={() => setFeedbackModalVisible(false)}
+                        targetType="QUESTION"
+                        targetId={currentQuestion.id}
+                        targetTitle={`Câu hỏi số ${currentIndex + 1}: ${currentQuestion.promptText.replace(/<[^>]*>/g, "").trim().substring(0, 55)}...`}
+                    />
+                )}
             </View>
         </ScreenWrapper>
     );
 }
+
 
 // ── Collapsible document component ──────────────────────────────────
 function CollapsibleDocument({ text }: { text: string }) {

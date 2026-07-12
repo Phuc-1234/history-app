@@ -24,10 +24,13 @@ import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import * as ImagePicker from "expo-image-picker";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import { Toast } from "../../../components/Toast";
 
 export default function ProfileEditScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMessage, setToastMessage] = useState("");
     const profile = useAppSelector((state) => state.auth.profile);
     const [name, setName] = useState(profile?.name ?? "");
     const [email, setEmail] = useState(profile?.email ?? "");
@@ -176,10 +179,13 @@ export default function ProfileEditScreen() {
             if (Platform.OS === 'web') {
                 alert("Đã cập nhật thông tin thành công!");
             } else {
-                Alert.alert("Thành công", "Đã cập nhật thông tin thành công!");
+                setToastMessage("Đã cập nhật thông tin thành công!");
+                setToastVisible(true);
             }
 
-            router.back();
+            setTimeout(() => {
+                router.back();
+            }, 1800);
         } catch (err: any) {
             console.error("Save error:", err);
             setErrorMsg(err.message || err?.data?.error || "Cập nhật thông tin thất bại");
@@ -275,6 +281,11 @@ export default function ProfileEditScreen() {
                     />
                 </View>
             </KeyboardAvoidingView>
+            <Toast
+                visible={toastVisible}
+                message={toastMessage}
+                onHide={() => setToastVisible(false)}
+            />
         </ScreenWrapper>
     );
 }

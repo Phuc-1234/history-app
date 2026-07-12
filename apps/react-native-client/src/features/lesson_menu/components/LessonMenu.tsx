@@ -20,6 +20,8 @@ import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Card } from "../../../components/Card";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import FeedbackModal from "../../../components/FeedbackModal";
+
 import {
     useGetTopicsByGradeQuery,
     useGetLessonsByTopicQuery,
@@ -257,6 +259,8 @@ export function LessonMenu({
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [collapsedTopics, setCollapsedTopics] = useState<Record<number, boolean>>({});
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+
 
     const TABS = [
         { key: "HOC_PHAN", label: "Học phần" },
@@ -421,19 +425,41 @@ export function LessonMenu({
                                     <Ionicons name="book" size={32} color={themeColor} />
                                 </View>
                                 <View style={styles.gradeProgressRight}>
-                                    <View style={styles.gradeHeaderRow}>
-                                        <Text style={styles.gradeTitleText}>
-                                            Lớp {selectedGrade}
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={[styles.masteryBadgeButton, { backgroundColor: themeColor }]}
-                                            onPress={() => setIsMasteryModalVisible(true)}
-                                            activeOpacity={0.8}
-                                        >
-                                            <Ionicons name="ribbon-outline" size={14} color="#FFFFFF" />
-                                            <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
-                                        </TouchableOpacity>
-                                    </View>
+                                   <View
+    style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    }}
+>
+    <Text style={[styles.gradeTitleText, { flex: 1, marginBottom: 0 }]}>
+        Lớp {selectedGrade}
+    </Text>
+
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <TouchableOpacity
+            style={[styles.masteryBadgeButton, { backgroundColor: themeColor }]}
+            onPress={() => setIsMasteryModalVisible(true)}
+            activeOpacity={0.8}
+        >
+            <Ionicons name="ribbon-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+            onPress={() => setFeedbackModalVisible(true)}
+            style={styles.flagButton}
+            activeOpacity={0.7}
+        >
+            <Ionicons
+                name="flag-outline"
+                size={20}
+                color={colors.textSecondary}
+            />
+        </TouchableOpacity>
+    </View>
+</View>
                                     <View style={styles.topProgressWrapper}>
                                         <View style={styles.topProgressTrack}>
                                             <View
@@ -767,6 +793,14 @@ export function LessonMenu({
                     </>
                 )}
             </View>
+            {/* Context Feedback Modal */}
+            <FeedbackModal
+                visible={feedbackModalVisible}
+                onClose={() => setFeedbackModalVisible(false)}
+                targetType="GRADE"
+                targetId={selectedGrade}
+                targetTitle={`Khối lớp ${selectedGrade}`}
+            />
 
             <Modal
                 visible={isMasteryModalVisible}
@@ -804,6 +838,8 @@ export function LessonMenu({
         </ScreenWrapper>
     );
 }
+
+
 
 const styles = StyleSheet.create({
     centerLoader: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -952,6 +988,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 8,
     },
+    flagButton: {
+        padding: 4,
+    },
+
     masteryBadgeButton: {
         flexDirection: "row",
         alignItems: "center",
@@ -1192,4 +1232,4 @@ const styles = StyleSheet.create({
         shadowRadius: 2.5,
         elevation: 3,
     },
-});
+});
