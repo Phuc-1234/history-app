@@ -449,7 +449,7 @@ model UserRewardLog {
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   userTestLog     UserTestLog?      @relation(fields: [userTestLogId], references: [id])
 
-  @@unique([userId, rewardRuleId, triggerTime])
+  @@unique([userId, rewardRuleId, triggerTargetId, triggerTime])
   @@map("user_reward_logs")
 }
 

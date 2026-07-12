@@ -60,12 +60,7 @@ export class RewardEngine {
                 triggerTargetId: testId,
             };
         }
-        if (scopeType && purposeType === "PRACTICE") {
-            return {
-                triggerType: scopeToAutoTrigger(scopeType),
-                triggerTargetId: scopeId != null ? String(scopeId) : null,
-            };
-        }
+        
         
         if (autoPickStrategy === "WRONG") {
             return {
@@ -77,6 +72,13 @@ export class RewardEngine {
             triggerType: RewardTriggerType.AUTO_PERSONAL_PRACTICE_COMPLETE,
             triggerTargetId: null,
         };
+        if (scopeType) {
+            
+            return {
+                triggerType: scopeToAutoTrigger(scopeType),
+                triggerTargetId: scopeId != null ? String(scopeId) : null,
+            };
+        }
         
         return {
             triggerType: RewardTriggerType.MANUAL_TEST_COMPLETE,
@@ -208,9 +210,10 @@ export class RewardEngine {
         // Idempotency check
         const existing = await tx.userRewardLog.findUnique({
             where: {
-                userId_rewardRuleId_triggerTime: {
+                userId_rewardRuleId_triggerTargetId_triggerTime: {
                     userId,
                     rewardRuleId: ruleId,
+                    triggerTargetId: triggerTargetId as any,
                     triggerTime,
                 },
             },
