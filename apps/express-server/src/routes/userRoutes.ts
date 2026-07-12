@@ -7,6 +7,7 @@ import {
     updateUserData,
     updateUserEmail,
 } from "../controllers/userController";
+import { createFeedback, getUserFeedbackHistory } from "../controllers/feedbackController";
 
 const router = Router();
 
@@ -28,5 +29,11 @@ router.put("/email", requireStudent, updateUserEmail);
 
 // Route target: PUT /api/user/password
 router.put("/password", requireStudent, changeUserPassword);
+
+// Route target: POST /api/user/feedback
+router.post("/feedback", requireStudent, createFeedback);
+
+// Route target: GET /api/user/feedback/history
+router.get("/feedback/history", requireStudent, getUserFeedbackHistory);
 
 export default router;

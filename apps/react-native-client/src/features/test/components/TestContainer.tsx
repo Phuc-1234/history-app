@@ -752,6 +752,7 @@ const styles = StyleSheet.create({
   },
   blockIndicatorsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
     gap: 5,
     marginTop: 36,

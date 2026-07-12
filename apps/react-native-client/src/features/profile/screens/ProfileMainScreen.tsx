@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAppDispatch, useAppSelector } from "@/store/storeHook";
 import { appLogout } from "@/features/auth/store/authSlice";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
@@ -14,6 +15,9 @@ import ProfileAvatar from "../components/ProfileAvatar";
 import ProfileMenuItem from "../components/ProfileMenuItem";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
+import { Card } from "../../../components/Card";
+import Button from "../../../components/Button";
 
 export default function ProfileMainScreen() {
     const router = useRouter();
@@ -24,6 +28,41 @@ export default function ProfileMainScreen() {
 
     const profile = useAppSelector((state) => state.auth.profile);
 
+    if (!profile) {
+        return (
+            <ScreenWrapper
+                enableScroll={true}
+                showTopBar={false}
+                style={styles.container}
+                contentContainerStyle={styles.guestContentContainer}
+            >
+                <View style={styles.guestContainer}>
+                    <Ionicons
+                        name="person-circle-outline"
+                        size={100}
+                        color={colors.primary}
+                        style={styles.guestIcon}
+                    />
+                    <Text style={styles.guestTitle}>Chế độ khách</Text>
+                    <Text style={styles.guestSubText}>
+                        Vui lòng đăng nhập hoặc đăng ký tài khoản để lưu trữ lịch sử làm bài và theo dõi bạn bè.
+                    </Text>
+                    <View style={styles.guestActions}>
+                        <Button
+                            title="Đăng nhập"
+                            variant="primary"
+                            onPress={() => router.push("/(1_auth)/1_1_login")}
+                        />
+                        <Button
+                            title="Đăng ký"
+                            variant="outline"
+                            onPress={() => router.push("/(1_auth)/1_2_register")}
+                        />
+                    </View>
+                </View>
+            </ScreenWrapper>
+        );
+    }
 
     const handleEditProfile = () => {
         router.push("/(10_proflie)/10_2_profile_edit");
@@ -31,10 +70,6 @@ export default function ProfileMainScreen() {
 
     const handleChangePassword = () => {
         router.push("/(10_proflie)/10_3_password_change");
-    };
-
-    const handleLinkAccounts = () => {
-        // TODO: Navigate to link accounts screen
     };
 
     const handleViewHistory = () => {
@@ -45,8 +80,8 @@ export default function ProfileMainScreen() {
         router.push("/(social)/friends" as never);
     };
 
-    const handleOpenChallenges = () => {
-        router.push("/(social)/challenges" as never);
+    const handleSendFeedback = () => {
+        router.push("/(10_proflie)/10_6_feedback");
     };
 
     const handleLogout = async () => {
@@ -77,11 +112,34 @@ export default function ProfileMainScreen() {
                         <Text style={styles.tierText}>{profile.tierName}</Text>
                     </View>
                 )}
+
+                {profile?.isPro && (
+                    <View style={styles.proBadgeContainer}>
+                        <LinearGradient
+                            colors={["#8A2387", "#E94057", "#F27121"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.proBadge}
+                        >
+                            <Text style={styles.proBadgeText}>Người dùng Pro 👑</Text>
+                        </LinearGradient>
+                    </View>
+                )}
             </View>
 
 
             <View style={styles.menuSection}>
+                <Text style={styles.sectionHeader}>Gói dịch vụ</Text>
                 <View style={styles.menuContainer}>
+                    <ProfileMenuItem
+                        icon="gift-outline"
+                        label={profile?.isPro ? "Quản lý gói Pro 👑" : "Đăng ký gói Pro ✨"}
+                        onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
+                    />
+                </View>
+
+                <Text style={styles.sectionHeader}>Quản lý tài khoản</Text>
+                <Card variant="soft" style={styles.menuContainer}>
                     <ProfileMenuItem
                         icon="person-outline"
                         label="Sửa thông tin"
@@ -92,27 +150,34 @@ export default function ProfileMainScreen() {
                         label="Đổi mật khẩu"
                         onPress={handleChangePassword}
                     />
+                </Card>
+
+                <Text style={styles.sectionHeader}>Quản lý làm bài</Text>
+                <Card variant="soft" style={styles.menuContainer}>
                     <ProfileMenuItem
                         icon="document-text-outline"
                         label="Lịch sử làm bài"
                         onPress={handleViewHistory}
                     />
+                </Card>
+
+                <Text style={styles.sectionHeader}>Cộng đồng</Text>
+                <Card variant="soft" style={styles.menuContainer}>
                     <ProfileMenuItem
                         icon="people-outline"
                         label="Bạn bè & theo dõi"
                         onPress={handleOpenFriends}
                     />
+                </Card>
+
+                <Text style={styles.sectionHeader}>Góp ý & Báo lỗi</Text>
+                <Card variant="soft" style={styles.menuContainer}>
                     <ProfileMenuItem
-                        icon="flash-outline"
-                        label="Thi đấu với bạn bè"
-                        onPress={handleOpenChallenges}
+                        icon="chatbubble-ellipses-outline"
+                        label="Gửi góp ý cho nhà phát triển"
+                        onPress={handleSendFeedback}
                     />
-                    <ProfileMenuItem
-                        icon="link-outline"
-                        label="Liên kết tài khoản"
-                        onPress={handleLinkAccounts}
-                    />
-                </View>
+                </Card>
             </View>
 
             <TouchableOpacity
@@ -142,8 +207,8 @@ const styles = StyleSheet.create({
         paddingBottom: 24,
     },
     userName: {
+        fontFamily: typography.fonts.bold,
         fontSize: 20,
-        fontWeight: "500",
         color: colors.textPrimary,
         marginTop: 16,
     },
@@ -155,33 +220,93 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
     tierText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 13,
-        fontWeight: "600",
         color: colors.primary,
     },
     menuSection: {
         paddingHorizontal: 20,
         marginTop: 8,
     },
+    sectionHeader: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginTop: 16,
+        marginBottom: 8,
+        paddingLeft: 4,
+    },
     menuContainer: {
-        backgroundColor: colors.primaryContainer,
-        borderRadius: 12,
         paddingVertical: 8,
+        marginBottom: 8,
     },
     logoutButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         marginHorizontal: 20,
-        marginTop: 12,
+        marginTop: 20,
         paddingVertical: 14,
         backgroundColor: colors.error,
         borderRadius: 30,
     },
     logoutText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 15,
-        fontWeight: "500",
         color: colors.textLight,
         marginLeft: 8,
+    },
+    guestContentContainer: {
+        flexGrow: 1,
+        justifyContent: "center",
+        paddingHorizontal: 24,
+    },
+    guestContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    guestIcon: {
+        marginBottom: 16,
+    },
+    guestTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 22,
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    guestSubText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 15,
+        color: colors.textSecondary,
+        textAlign: "center",
+        marginBottom: 24,
+        lineHeight: 22,
+    },
+    guestActions: {
+        width: "100%",
+        gap: 8,
+    },
+    proBadgeContainer: {
+        marginTop: 8,
+        borderRadius: 20,
+        overflow: "hidden",
+        shadowColor: "#E94057",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    proBadge: {
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    proBadgeText: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: "#ffffff",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
     },
 });

@@ -46,6 +46,7 @@ export const finishTest = async (req: Request, res: Response) => {
             req.params.logId,
             req.user.id,
             req.body.draftAnswerJson ?? [],
+            req.body.seenQuestionIds,
         );
         return res.status(200).json(resp);
     } catch (err: any) {
@@ -113,7 +114,6 @@ export const getTestInfo = async (req: Request, res: Response) => {
 
 export const getNationalTests = async (req: Request, res: Response) => {
     try {
-        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
         const resp = await testServiceV2.getNationalTests();
         return res.status(200).json(resp);
     } catch (err: any) {

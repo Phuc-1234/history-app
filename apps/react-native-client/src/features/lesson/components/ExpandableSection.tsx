@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { LessonSection } from "../hooks/useLessonSummary";
 import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 
 const getSectionDisplaySuffix = (name: string): string => {
     const match = name.trim().match(/^([0-9]+|[IVXLCDMivxlcdm]+)\./);
@@ -139,12 +140,6 @@ export function ExpandableSection({
                                     onPress={() => onNodePress?.(node.id)}
                                     activeOpacity={0.7}
                                 >
-                                    <View
-                                        style={[
-                                            styles.bulletPoint,
-                                            node.isComplete && styles.bulletPointCompleted,
-                                        ]}
-                                    />
                                     <Text
                                         style={[
                                             styles.nodeText,
@@ -183,14 +178,25 @@ export function ExpandableSection({
                     {/* Section test button — only for top-level sections */}
                     {isTopLevel && onSectionTestPress && (
                         <TouchableOpacity
-                            style={styles.sectionTestBtn}
+                            style={[
+                                styles.sectionTestBtn,
+                                section.testPassed && {
+                                    backgroundColor: colors.success,
+                                    borderColor: colors.success,
+                                }
+                            ]}
                             onPress={() => onSectionTestPress(section.id)}
                             activeOpacity={0.8}
                         >
-                            <Ionicons name="document-text" size={16} color={colors.primary} />
-                            <Text style={styles.sectionTestBtnText}>
+                            <Text style={[
+                                styles.sectionTestBtnText,
+                                section.testPassed && { color: "#FFFFFF" }
+                            ]}>
                                 Thử thách mục {getSectionDisplaySuffix(section.name)}
                             </Text>
+                            {section.testPassed && (
+                                <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+                            )}
                         </TouchableOpacity>
                     )}
                 </View>
@@ -211,6 +217,7 @@ const styles = StyleSheet.create({
     nestedCard: {
         marginTop: 10,
         backgroundColor: "transparent",
+        paddingLeft: 12,
     },
     header: {
         flexDirection: "row",
@@ -231,13 +238,11 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     topLevelTitle: {
-        fontSize: 18,
-        fontWeight: "700",
+        ...typography.h3,
         color: colors.textPrimary,
     },
     nestedTitle: {
-        fontSize: 16,
-        fontWeight: "600",
+        ...typography.bodyMediumBold,
         color: colors.primary,
     },
     contentContainer: {
@@ -253,32 +258,21 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
         borderWidth: 1,
         borderColor: colors.borderDark,
-        borderRadius: 5,
+        borderRadius: 12,
     },
     nodeRowCompleted: {
         backgroundColor: colors.success,
         borderWidth: 0,
     },
-    bulletPoint: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.primary,
-        marginRight: 10,
-        flexShrink: 0,
-    },
-    bulletPointCompleted: {
-        backgroundColor: colors.textLight,
-    },
     nodeText: {
         flex: 1,
-        fontSize: 15,
+        ...typography.bodyMedium,
         color: colors.textSecondary,
         lineHeight: 22,
     },
     nodeTextCompleted: {
         color: colors.textLight,
-        fontWeight: "600",
+        fontFamily: typography.fonts.bold,
     },
     nodeChevron: {
         marginLeft: 6,
@@ -298,8 +292,8 @@ const styles = StyleSheet.create({
     },
     sectionTestBtnText: {
         color: colors.primary,
+        fontFamily: typography.fonts.bold,
         fontSize: 13,
-        fontWeight: "700",
         textAlign: "center",
     },
 });

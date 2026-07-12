@@ -13,8 +13,9 @@ import type {
     UserChooseAnswer,
     QuestionEvalResult,
 } from "../types";
-import { isSingleChoice } from "../services/scoreEngine";
+import { isSingleChoice, formatScore } from "../services/scoreEngine";
 import { colors } from "../../../theme/colors";
+import typography from "@/theme/typography";
 
 interface Props {
     question: QuestionV2;
@@ -205,21 +206,72 @@ export default function ChooseQuestion({
                 let textStyle: any[] = [styles.optionText];
                 let badge = null;
 
+                const correctCount = data.correctOption.length;
+                const totalOptions = data.options.length;
+                const maxScore = single ? 0.25 : (totalOptions === 0 ? 0 : Math.max(0.25, Math.floor(totalOptions / 2) * 0.25));
+                const incorrectCount = totalOptions - correctCount;
+                const correctScorePerItem = correctCount > 0 ? maxScore / correctCount : 0;
+                const incorrectPenaltyPerItem = incorrectCount > 0 ? maxScore / incorrectCount : 0;
+
                 if (showCorrect) {
+                    let pointsText = "";
+                    let pointsBadgeStyle = styles.pointsBadgeZero;
+                    let pointsTextStyle = styles.pointsBadgeTextZero;
+
+                    if (isSelected) {
+                        if (isCorrect) {
+                            pointsText = `+${formatScore(correctScorePerItem)}đ`;
+                            pointsBadgeStyle = styles.pointsBadgeCorrect;
+                            pointsTextStyle = styles.pointsBadgeTextCorrect;
+                        } else {
+                            const penalty = single ? 0 : incorrectPenaltyPerItem;
+                            if (penalty > 0) {
+                                pointsText = `-${formatScore(penalty)}đ`;
+                                pointsBadgeStyle = styles.pointsBadgeWrong;
+                                pointsTextStyle = styles.pointsBadgeTextWrong;
+                            } else {
+                                pointsText = "+0đ";
+                            }
+                        }
+                    } else {
+                        pointsText = "+0đ";
+                    }
+
                     if (isSelected && isCorrect) {
                         optStyle.push(styles.optionCorrect);
                         textStyle.push(styles.textCorrect);
+                        badge = (
+                            <View style={[styles.pointsBadge, pointsBadgeStyle]}>
+                                <Text style={pointsTextStyle}>{pointsText}</Text>
+                            </View>
+                        );
                     } else if (isSelected && !isCorrect) {
                         optStyle.push(styles.optionWrong);
                         textStyle.push(styles.textWrong);
+                        badge = (
+                            <View style={[styles.pointsBadge, pointsBadgeStyle]}>
+                                <Text style={pointsTextStyle}>{pointsText}</Text>
+                            </View>
+                        );
                     } else if (!isSelected && isCorrect) {
                         optStyle.push(styles.optionMissing);
                         textStyle.push(styles.textMissing);
                         badge = (
-                            <View style={[styles.badge, styles.badgeMissing]}>
-                                <Text style={styles.badgeTextMissing}>
-                                    Đáp án chính xác bỏ lỡ
-                                </Text>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                <View style={[styles.pointsBadge, pointsBadgeStyle]}>
+                                    <Text style={pointsTextStyle}>{pointsText}</Text>
+                                </View>
+                                <View style={[styles.badge, styles.badgeMissing]}>
+                                    <Text style={styles.badgeTextMissing}>
+                                        Bỏ lỡ
+                                    </Text>
+                                </View>
+                            </View>
+                        );
+                    } else {
+                        badge = (
+                            <View style={[styles.pointsBadge, pointsBadgeStyle]}>
+                                <Text style={pointsTextStyle}>{pointsText}</Text>
                             </View>
                         );
                     }
@@ -262,7 +314,7 @@ const styles = StyleSheet.create({
     container: { gap: 10 },
     label: {
         fontSize: 13,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textMuted,
         marginBottom: 4,
     },
@@ -327,7 +379,7 @@ const styles = StyleSheet.create({
     checkboxInnerWrong: { backgroundColor: colors.error },
     optionText: {
         fontSize: 14,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
         flex: 1,
     },
@@ -342,22 +394,52 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         marginLeft: 8,
     },
+    pointsBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 30,
+        marginLeft: 8,
+    },
+    pointsBadgeCorrect: {
+        backgroundColor: colors.successContainer,
+    },
+    pointsBadgeWrong: {
+        backgroundColor: colors.errorContainer,
+    },
+    pointsBadgeZero: {
+        backgroundColor: colors.surfaceVariant,
+    },
+    pointsBadgeTextCorrect: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: colors.textSuccess,
+    },
+    pointsBadgeTextWrong: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: colors.textError,
+    },
+    pointsBadgeTextZero: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: colors.textMuted,
+    },
     badgeCorrect: { backgroundColor: colors.successContainer },
     badgeWrong: { backgroundColor: colors.errorContainer },
     badgeMissing: { backgroundColor: colors.warningContainer },
     badgeTextCorrect: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSuccess,
     },
     badgeTextWrong: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textError,
     },
     badgeTextMissing: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textWarning,
     },
 });

@@ -26,12 +26,27 @@ export function LessonMenuScreen() {
         });
     };
 
+    const handlePracticeTest = (options: { scopeType: string; scopeId: number; questionCount: number; autoPickStrategy: string }) => {
+        router.push({
+            pathname: "/(6_tests)/6_2_ques_choose",
+            params: {
+                scopeType: options.scopeType,
+                scopeId: String(options.scopeId),
+                purposeType: "PRACTICE",
+                questionCount: String(options.questionCount),
+                autoPickStrategy: options.autoPickStrategy,
+                skipIntro: "true",
+            },
+        });
+    };
+
     return (
         <LessonMenu
             selectedGrade={selectedGrade}
             onLessonPress={handleLessonNavigation}
             onMindmapPress={handleMindmapView}
             onTestPress={handleTestEngine}
+            onPracticePress={handlePracticeTest}
         />
     );
 }

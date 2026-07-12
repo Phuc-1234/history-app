@@ -14,6 +14,9 @@ import type {
     UserMatchAnswer,
     QuestionEvalResult,
 } from "../types";
+import { colors } from "../../../theme/colors";
+import typography from "@/theme/typography";
+import { formatScore } from "../services/scoreEngine";
 
 interface Props {
     question: QuestionV2;
@@ -345,7 +348,17 @@ export default function MatchQuestion({
             {/* Show correct pairs on feedback */}
             {showFeedback && evalResult && (
                 <View style={styles.feedbackContainer}>
-                    <Text style={styles.feedbackTitle}>Kết quả ghép cặp:</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                        <Text style={styles.feedbackTitle}>Kết quả ghép cặp:</Text>
+                        <View style={[
+                            styles.pointsBadge,
+                            evalResult.scoreAwarded > 0 ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
+                        ]}>
+                            <Text style={evalResult.scoreAwarded > 0 ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
+                                {evalResult.scoreAwarded > 0 ? `+${formatScore(evalResult.scoreAwarded)}đ` : "+0đ (Cần đúng tất cả)"}
+                            </Text>
+                        </View>
+                    </View>
                     {normalizedPairs.map((correct, idx) => {
                         const userPair = currentPairs.find(
                             (p) =>
@@ -406,6 +419,14 @@ export default function MatchQuestion({
                                                   : "Chưa ghép"}
                                         </Text>
                                     </View>
+                                    <View style={[
+                                        styles.pointsBadge,
+                                        (isPairCorrect && evalResult.scoreAwarded > 0) ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
+                                    ]}>
+                                        <Text style={(isPairCorrect && evalResult.scoreAwarded > 0) ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
+                                            {(isPairCorrect && evalResult.scoreAwarded > 0) ? `+${formatScore(evalResult.scoreAwarded)}đ` : "+0đ"}
+                                        </Text>
+                                    </View>
                                 </View>
                                 {!isPairCorrect && (
                                     <View style={styles.feedbackCorrectHintRow}>
@@ -428,7 +449,7 @@ export default function MatchQuestion({
 
 const styles = StyleSheet.create({
     container: { gap: 12 },
-    label: { fontSize: 13, fontWeight: "600", color: "#718096" },
+    label: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: "#718096" },
     rowsContainer: { gap: 8 },
     rowWrapper: {
         flexDirection: "row",
@@ -451,7 +472,7 @@ const styles = StyleSheet.create({
     itemSelectable: { borderColor: "#A78BFA", borderStyle: "dashed" },
     itemText: {
         fontSize: 13,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: "#4A5568",
         textAlign: "center",
     },
@@ -467,7 +488,7 @@ const styles = StyleSheet.create({
     },
     feedbackTitle: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: "#1C1C1E",
         marginBottom: 6,
     },
@@ -480,9 +501,9 @@ const styles = StyleSheet.create({
         gap: 6,
         flexWrap: "wrap",
     },
-    feedbackLeftText: { fontSize: 13, fontWeight: "600", color: "#4A5568" },
-    feedbackArrow: { fontSize: 14, color: "#718096" },
-    feedbackRightText: { fontSize: 13, fontWeight: "700" },
+    feedbackLeftText: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: "#4A5568" },
+    feedbackArrow: { fontSize: 14, fontFamily: typography.fonts.regular, color: "#718096" },
+    feedbackRightText: { fontSize: 13, fontFamily: typography.fonts.bold },
     feedbackBadge: {
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -497,12 +518,34 @@ const styles = StyleSheet.create({
         paddingTop: 6,
         marginTop: 4,
     },
-    feedbackHintLabel: { fontSize: 11, fontWeight: "600", color: "#B91C1C" },
-    feedbackHintValue: { fontSize: 12, fontWeight: "700", color: "#065F46" },
+    feedbackHintLabel: { fontSize: 11, fontFamily: typography.fonts.semiBold, color: "#B91C1C" },
+    feedbackHintValue: { fontSize: 12, fontFamily: typography.fonts.bold, color: "#065F46" },
     textGreen: { color: "#059669" },
     textRed: { color: "#DC2626" },
     badgeCorrect: { backgroundColor: "#D1FAE5" },
     badgeWrong: { backgroundColor: "#FEE2E2" },
-    badgeTextCorrect: { fontSize: 11, fontWeight: "700", color: "#065F46" },
-    badgeTextWrong: { fontSize: 11, fontWeight: "700", color: "#991B1B" },
+    badgeTextCorrect: { fontSize: 11, fontFamily: typography.fonts.bold, color: "#065F46" },
+    badgeTextWrong: { fontSize: 11, fontFamily: typography.fonts.bold, color: "#991B1B" },
+    pointsBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 30,
+        marginLeft: 8,
+    },
+    pointsBadgeCorrect: {
+        backgroundColor: "#D1FAE5",
+    },
+    pointsBadgeZero: {
+        backgroundColor: "#F3F4F6",
+    },
+    pointsBadgeTextCorrect: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: "#065F46",
+    },
+    pointsBadgeTextZero: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: "#4B5563",
+    },
 });

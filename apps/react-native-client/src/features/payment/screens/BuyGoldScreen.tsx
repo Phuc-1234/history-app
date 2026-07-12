@@ -9,9 +9,14 @@ import {
     ScrollView,
     Modal,
     SafeAreaView,
+    Image,
+    TextInput,
+    Clipboard,
+    Alert,
 } from "react-native";
 import { usePayment } from "../hooks/usePayment";
 import { PaymentProvider } from "../api/paymentApi";
+import { API_BASE_URL } from "../../../services/config";
 
 // ─── Gold packages ────────────────────────────────────────────────────────────
 
@@ -24,11 +29,33 @@ interface GoldPackage {
 }
 
 const GOLD_PACKAGES: GoldPackage[] = [
-    { id: "pkg-1", goldAmount: 1, priceVnd: 10_000, label: "1 Gold" },
-    { id: "pkg-2", goldAmount: 5, priceVnd: 50_000, label: "5 Gold", popular: true },
-    { id: "pkg-3", goldAmount: 10, priceVnd: 100_000, label: "10 Gold" },
-    { id: "pkg-4", goldAmount: 20, priceVnd: 200_000, label: "20 Gold" },
+    { id: "pkg-1", goldAmount: 1, priceVnd: 2_000, label: "1 Gold" },
+    { id: "pkg-2", goldAmount: 5, priceVnd: 10_000, label: "5 Gold", popular: true },
+    { id: "pkg-3", goldAmount: 10, priceVnd: 20_000, label: "10 Gold" },
+    { id: "pkg-4", goldAmount: 20, priceVnd: 40_000, label: "20 Gold" },
 ];
+
+const PAYMENT_PROVIDERS: PaymentProvider[] = ["ZALOPAY", "SEPAY"];
+
+function getProviderLabel(provider: PaymentProvider) {
+    if (provider === "ZALOPAY") return "ZaloPay";
+    return "VietQR";
+}
+
+function getProviderSubLabel(provider: PaymentProvider) {
+    if (provider === "ZALOPAY") return "Ví điện tử";
+    return "Ngân hàng";
+}
+
+function getProviderIcon(provider: PaymentProvider) {
+    if (provider === "ZALOPAY") return "💙";
+    return "🏦";
+}
+
+function getProviderColor(provider: PaymentProvider) {
+    if (provider === "ZALOPAY") return "#0068FF";
+    return "#E4002B";
+}
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -36,11 +63,49 @@ export const BuyGoldScreen: React.FC = () => {
     const { state, pay, reset } = usePayment();
     const [selectedPackage, setSelectedPackage] = useState<GoldPackage>(GOLD_PACKAGES[1]);
     const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("ZALOPAY");
+    const [isSimulating, setIsSimulating] = useState(false);
 
-    const isLoading = state.phase === "loading" || state.phase === "waiting";
+    const isLoading = state.phase === "loading" || (state.phase === "waiting" && !state.vietQrUrl);
 
     const handlePay = () => {
         pay(selectedProvider, selectedPackage.goldAmount);
+    };
+
+    const copyToClipboard = (value: string, label: string) => {
+        Clipboard.setString(value);
+        Alert.alert("Đã sao chép", `${label} đã được sao chép.`);
+    };
+
+    const simulateNativePayment = async () => {
+        if (state.phase !== "waiting" || !state.vietQrUrl) return;
+        setIsSimulating(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/payment/sepay/webhook`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Apikey history_app_secure_token_2026",
+                },
+                body: JSON.stringify({
+                    id: Math.floor(Math.random() * 100000),
+                    gateway: state.bankId,
+                    transactionDate: new Date().toISOString().slice(0, 19).replace("T", " "),
+                    accountNumber: state.accountNo,
+                    transferType: "in",
+                    transferAmount: state.amountVnd,
+                    content: state.providerOrderId,
+                    referenceCode: "SIM_FT_" + Math.random().toString(36).substring(2, 10).toUpperCase(),
+                }),
+            });
+            if (!response.ok) {
+                const errData = await response.json();
+                console.error("Simulation failed:", errData);
+            }
+        } catch (e) {
+            console.error("Simulation connection error:", e);
+        } finally {
+            setIsSimulating(false);
+        }
     };
 
     // ─── Result modal ─────────────────────────────────────────────────────────
@@ -56,10 +121,12 @@ export const BuyGoldScreen: React.FC = () => {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerEmoji}>💰</Text>
+                    <View style={styles.headerIconBg}>
+                        <Text style={styles.headerEmoji}>💰</Text>
+                    </View>
                     <Text style={styles.headerTitle}>Mua Gold</Text>
                     <Text style={styles.headerSub}>
-                        1 Gold = 10.000đ · Thanh toán an toàn qua MoMo hoặc ZaloPay
+                        1 Gold = 2.000đ · Thanh toán an toàn qua ZaloPay hoặc Ngân hàng VietQR
                     </Text>
                 </View>
 
@@ -94,29 +161,46 @@ export const BuyGoldScreen: React.FC = () => {
                 {/* Provider Selector */}
                 <Text style={styles.sectionLabel}>Phương thức thanh toán</Text>
                 <View style={styles.providerRow}>
-                    {(["MOMO", "ZALOPAY"] as PaymentProvider[]).map((provider) => (
-                        <TouchableOpacity
-                            key={provider}
-                            style={[
-                                styles.providerCard,
-                                selectedProvider === provider && styles.providerCardSelected,
-                            ]}
-                            onPress={() => setSelectedProvider(provider)}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.providerIcon}>
-                                {provider === "MOMO" ? "💜" : "🔵"}
-                            </Text>
-                            <Text
+                    {PAYMENT_PROVIDERS.map((provider) => {
+                        const isSelected = selectedProvider === provider;
+                        const color = getProviderColor(provider);
+                        return (
+                            <TouchableOpacity
+                                key={provider}
                                 style={[
-                                    styles.providerLabel,
-                                    selectedProvider === provider && styles.providerLabelSelected,
+                                    styles.providerCard,
+                                    isSelected && { borderColor: color, backgroundColor: color + "10" },
                                 ]}
+                                onPress={() => setSelectedProvider(provider)}
+                                activeOpacity={0.8}
                             >
-                                {provider === "MOMO" ? "MoMo" : "ZaloPay"}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                                <Text style={styles.providerIcon}>{getProviderIcon(provider)}</Text>
+                                <Text
+                                    style={[
+                                        styles.providerLabel,
+                                        isSelected && { color: color },
+                                    ]}
+                                    numberOfLines={1}
+                                >
+                                    {getProviderLabel(provider)}
+                                </Text>
+                                <Text
+                                    style={[
+                                        styles.providerSubLabel,
+                                        isSelected && { color: color + "AA" },
+                                    ]}
+                                    numberOfLines={1}
+                                >
+                                    {getProviderSubLabel(provider)}
+                                </Text>
+                                {isSelected && (
+                                    <View style={[styles.providerCheckDot, { backgroundColor: color }]}>
+                                        <Text style={styles.providerCheckMark}>✓</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
 
                 {/* Order Summary */}
@@ -129,7 +213,7 @@ export const BuyGoldScreen: React.FC = () => {
                     <View style={styles.summaryRow}>
                         <Text style={styles.summaryKey}>Thanh toán qua</Text>
                         <Text style={styles.summaryValue}>
-                            {selectedProvider === "MOMO" ? "MoMo" : "ZaloPay"}
+                            {getProviderLabel(selectedProvider)}
                         </Text>
                     </View>
                     <View style={styles.summaryDivider} />
@@ -146,7 +230,7 @@ export const BuyGoldScreen: React.FC = () => {
                     <View style={styles.waitingBanner}>
                         <ActivityIndicator color="#4E3FE0" />
                         <Text style={styles.waitingText}>
-                            Đang chờ xác nhận từ {selectedProvider === "MOMO" ? "MoMo" : "ZaloPay"}…
+                            Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
                         </Text>
                     </View>
                 )}
@@ -169,7 +253,7 @@ export const BuyGoldScreen: React.FC = () => {
 
                 <Text style={styles.footnote}>
                     Giao dịch được xử lý bởi{" "}
-                    {selectedProvider === "MOMO" ? "MoMo" : "ZaloPay"} · Sandbox mode
+                    {getProviderLabel(selectedProvider)} · Sandbox mode
                 </Text>
             </ScrollView>
 
@@ -201,6 +285,121 @@ export const BuyGoldScreen: React.FC = () => {
                     </View>
                 </View>
             </Modal>
+
+            {/* VietQR Modal */}
+            <Modal
+                visible={state.phase === "waiting" && !!state.vietQrUrl}
+                transparent
+                animationType="slide"
+                onRequestClose={reset}
+            >
+                <View style={styles.qrModalBackdrop}>
+                    <View style={styles.qrModalSheet}>
+                        {/* Handle bar */}
+                        <View style={styles.qrSheetHandle} />
+
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.qrScrollContent}
+                        >
+                            {/* Header */}
+                            <View style={styles.qrHeader}>
+                                <View style={styles.qrBankBadge}>
+                                    <Text style={styles.qrBankBadgeText}>🏦 MB Bank</Text>
+                                </View>
+                                <Text style={styles.qrTitle}>Quét mã VietQR</Text>
+                                <Text style={styles.qrSubtitle}>
+                                    Mở app ngân hàng và quét mã để thanh toán
+                                </Text>
+                            </View>
+
+                            {/* QR Image */}
+                            {state.phase === "waiting" && state.vietQrUrl && (
+                                <View style={styles.qrImageContainer}>
+                                    <Image
+                                        source={{ uri: state.vietQrUrl }}
+                                        style={styles.qrImage}
+                                        resizeMode="contain"
+                                    />
+                                    <View style={styles.qrAmountBadge}>
+                                        <Text style={styles.qrAmountText}>
+                                            {state.amountVnd.toLocaleString("vi-VN")}đ
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* Bank info */}
+                            {state.phase === "waiting" && (
+                                <>
+                                    <View style={styles.bankInfoCard}>
+                                        <View style={styles.bankInfoRow}>
+                                            <Text style={styles.bankInfoLabel}>Ngân hàng</Text>
+                                            <Text style={styles.bankInfoValue}>{state.bankId}</Text>
+                                        </View>
+
+                                        <View style={styles.bankInfoDivider} />
+
+                                        <View style={styles.bankInfoRow}>
+                                            <Text style={styles.bankInfoLabel}>Số tài khoản</Text>
+                                            <TouchableOpacity
+                                                onPress={() => copyToClipboard(state.accountNo, "Số tài khoản")}
+                                                style={styles.copyRow}
+                                            >
+                                                <Text style={styles.bankInfoValue} numberOfLines={1}>{state.accountNo}</Text>
+                                                <Text style={styles.copyIcon}>⎘</Text>
+                                            </TouchableOpacity>
+                                        </View>
+
+                                        <View style={styles.bankInfoDivider} />
+
+                                        <View style={styles.bankInfoRow}>
+                                            <Text style={styles.bankInfoLabel}>Chủ tài khoản</Text>
+                                            <Text style={styles.bankInfoValue} numberOfLines={1}>{state.accountName}</Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Transfer content — highlighted */}
+                                    <View style={styles.transferContentCard}>
+                                        <Text style={styles.transferContentLabel}>Nội dung chuyển khoản</Text>
+                                        <TouchableOpacity
+                                            onPress={() => copyToClipboard(state.providerOrderId, "Nội dung chuyển khoản")}
+                                            style={styles.transferContentRow}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={styles.transferContentValue} numberOfLines={2}>{state.providerOrderId}</Text>
+                                            <Text style={styles.copyIcon}>⎘</Text>
+                                        </TouchableOpacity>
+                                        <Text style={styles.transferContentHint}>
+                                            ⚠️ Nhập đúng nội dung để hệ thống xác nhận tự động
+                                        </Text>
+                                    </View>
+
+                                    {/* Simulate button */}
+                                    <TouchableOpacity
+                                        style={[styles.simulateButton, isSimulating && { opacity: 0.7 }]}
+                                        onPress={simulateNativePayment}
+                                        disabled={isSimulating}
+                                    >
+                                        {isSimulating ? (
+                                            <ActivityIndicator color="#FFFFFF" size="small" />
+                                        ) : (
+                                            <Text style={styles.simulateButtonText}>
+                                                🧪 Mô phỏng chuyển khoản
+                                            </Text>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    {/* Cancel */}
+                                    <TouchableOpacity style={styles.cancelButton} onPress={reset}>
+                                        <Text style={styles.cancelButtonText}>Hủy giao dịch</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -226,9 +425,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 28,
     },
+    headerIconBg: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: "#EEF0FF",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 12,
+    },
     headerEmoji: {
-        fontSize: 48,
-        marginBottom: 8,
+        fontSize: 36,
     },
     headerTitle: {
         fontSize: 26,
@@ -240,17 +447,18 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: "#7B7490",
         textAlign: "center",
-        lineHeight: 18,
+        lineHeight: 20,
+        paddingHorizontal: 8,
     },
 
     // Section label
     sectionLabel: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: "700",
         color: "#49435E",
         marginBottom: 10,
         textTransform: "uppercase",
-        letterSpacing: 0.5,
+        letterSpacing: 0.8,
     },
 
     // Packages grid
@@ -307,7 +515,7 @@ const styles = StyleSheet.create({
         fontWeight: "500",
     },
 
-    // Provider row
+    // Provider row — fixed text overflow
     providerRow: {
         flexDirection: "row",
         gap: 12,
@@ -315,30 +523,48 @@ const styles = StyleSheet.create({
     },
     providerCard: {
         flex: 1,
-        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
         backgroundColor: "#FFFFFF",
         borderRadius: 16,
-        paddingVertical: 14,
+        paddingVertical: 16,
+        paddingHorizontal: 8,
         borderWidth: 2,
         borderColor: "#E8E4F5",
-    },
-    providerCardSelected: {
-        borderColor: PRIMARY,
-        backgroundColor: "#EEF0FF",
+        position: "relative",
+        minHeight: 90,
     },
     providerIcon: {
-        fontSize: 20,
+        fontSize: 24,
+        marginBottom: 6,
     },
     providerLabel: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: "#7B7490",
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#49435E",
+        textAlign: "center",
     },
-    providerLabelSelected: {
-        color: PRIMARY,
+    providerSubLabel: {
+        fontSize: 11,
+        fontWeight: "500",
+        color: "#ABA8B8",
+        textAlign: "center",
+        marginTop: 2,
+    },
+    providerCheckDot: {
+        position: "absolute",
+        top: 8,
+        right: 8,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    providerCheckMark: {
+        color: "#FFFFFF",
+        fontSize: 10,
+        fontWeight: "900",
     },
 
     // Summary card
@@ -405,11 +631,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 12,
-        shadowColor: PRIMARY,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 5,
     },
     payButtonDisabled: {
         opacity: 0.6,
@@ -425,7 +646,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
 
-    // Modal
+    // Result Modal
     modalBackdrop: {
         flex: 1,
         backgroundColor: "rgba(20, 15, 40, 0.55)",
@@ -439,11 +660,6 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         padding: 32,
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 16 },
-        shadowOpacity: 0.2,
-        shadowRadius: 32,
-        elevation: 12,
     },
     modalEmoji: {
         fontSize: 56,
@@ -473,5 +689,207 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
         fontSize: 15,
         fontWeight: "700",
+    },
+
+    // ─── VietQR bottom sheet modal ────────────────────────────────────────────
+    qrModalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(20, 15, 40, 0.5)",
+        justifyContent: "flex-end",
+    },
+    qrModalSheet: {
+        backgroundColor: "#FFFFFF",
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingBottom: 32,
+        maxHeight: "92%",
+    },
+    qrSheetHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: "#E0DCF0",
+        borderRadius: 2,
+        alignSelf: "center",
+        marginTop: 12,
+        marginBottom: 4,
+    },
+    qrScrollContent: {
+        paddingHorizontal: 20,
+        paddingTop: 8,
+        paddingBottom: 12,
+        alignItems: "center",
+    },
+
+    // QR Header
+    qrHeader: {
+        alignItems: "center",
+        marginBottom: 16,
+        width: "100%",
+    },
+    qrBankBadge: {
+        backgroundColor: "#FFF0F0",
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 5,
+        marginBottom: 10,
+    },
+    qrBankBadgeText: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#E4002B",
+    },
+    qrTitle: {
+        fontSize: 20,
+        fontWeight: "800",
+        color: "#1A1235",
+        marginBottom: 4,
+    },
+    qrSubtitle: {
+        fontSize: 13,
+        color: "#7B7490",
+        textAlign: "center",
+        lineHeight: 18,
+    },
+
+    // QR Image
+    qrImageContainer: {
+        alignItems: "center",
+        marginBottom: 6,
+        backgroundColor: "#F7F6FF",
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: "#ECEAF7",
+        width: "100%",
+    },
+    qrImage: {
+        width: 200,
+        height: 200,
+    },
+    qrAmountBadge: {
+        marginTop: 10,
+        backgroundColor: "#E8FFE8",
+        borderRadius: 12,
+        paddingHorizontal: 18,
+        paddingVertical: 6,
+    },
+    qrAmountText: {
+        fontSize: 22,
+        fontWeight: "800",
+        color: "#22A45D",
+        textAlign: "center",
+    },
+
+    // Bank info card
+    bankInfoCard: {
+        width: "100%",
+        backgroundColor: "#F7F6FF",
+        borderRadius: 16,
+        padding: 14,
+        marginTop: 14,
+        borderWidth: 1,
+        borderColor: "#ECEAF7",
+    },
+    bankInfoRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: 8,
+    },
+    bankInfoLabel: {
+        fontSize: 13,
+        color: "#7B7490",
+        fontWeight: "500",
+        flexShrink: 0,
+    },
+    bankInfoValue: {
+        fontSize: 13,
+        color: "#1A1235",
+        fontWeight: "700",
+        textAlign: "right",
+        flexShrink: 1,
+        marginLeft: 8,
+    },
+    bankInfoDivider: {
+        height: 1,
+        backgroundColor: "#ECEAF7",
+    },
+    copyRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        flexShrink: 1,
+    },
+    copyIcon: {
+        fontSize: 16,
+        color: PRIMARY,
+    },
+
+    // Transfer content card
+    transferContentCard: {
+        width: "100%",
+        backgroundColor: "#FFF8ED",
+        borderRadius: 16,
+        padding: 14,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: "#F5A623",
+    },
+    transferContentLabel: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#B07000",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        marginBottom: 8,
+    },
+    transferContentRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+    },
+    transferContentValue: {
+        fontSize: 15,
+        fontWeight: "800",
+        color: "#D4820A",
+        flex: 1,
+    },
+    transferContentHint: {
+        fontSize: 11,
+        color: "#B07000",
+        marginTop: 8,
+        lineHeight: 16,
+    },
+
+    // Simulate button
+    simulateButton: {
+        backgroundColor: "#5856D6",
+        borderRadius: 14,
+        paddingVertical: 14,
+        width: "100%",
+        alignItems: "center",
+        marginTop: 18,
+    },
+    simulateButtonText: {
+        color: "#FFFFFF",
+        fontSize: 14,
+        fontWeight: "700",
+    },
+
+    // Cancel button
+    cancelButton: {
+        paddingVertical: 13,
+        width: "100%",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#E8E4F5",
+        borderRadius: 14,
+        marginTop: 10,
+    },
+    cancelButtonText: {
+        color: "#FF453A",
+        fontSize: 14,
+        fontWeight: "600",
     },
 });

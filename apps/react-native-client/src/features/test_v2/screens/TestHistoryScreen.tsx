@@ -1,10 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import Card from "../../../components/Card";
 import { useGetTestHistoryQuery } from "../services/testApi";
 import { formatScore } from "../services/scoreEngine";
 import type { UserTestLogV2 } from "../types";
 import { colors } from "../../../theme/colors";
+import typography from "@/theme/typography";
 
 interface Props {
     scopeType?: string;
@@ -42,36 +44,37 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
         const dateStr = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
 
         return (
-            <TouchableOpacity
+            <Card
+                variant="grayBorder"
                 style={styles.card}
-                //  onPress={() => router.push({ pathname: "/(tabs)/test-detail-v2", params: { logId: item.id } } as any)}
                 onPress={() => router.push({ pathname: "/(10_proflie)/10_5_test_detail", params: { logId: item.id } } as any)}
                 activeOpacity={0.7}
             >
                 <View style={styles.cardTop}>
-                    <View style={[
-                        styles.statusBadge,
-                        item.isPassed ? styles.badgePassed : styles.badgeFailed,
-                    ]}>
-                        <Text style={styles.statusText}>
-                            {item.isPassed ? "Đạt" : item.status === "EXPIRED" ? "Hết giờ" : item.status === "ABANDONED" ? "Bỏ dở" : "Chưa đạt"}
-                        </Text>
+                    <View style={styles.scoreAndStatus}>
+                        <View style={styles.scoreRow}>
+                            <Text style={styles.scoreValue}>{scoreDisplay}</Text>
+                            <Text style={styles.scoreMax}>/10</Text>
+                        </View>
+                        <View style={[
+                            styles.statusBadge,
+                            item.isPassed ? styles.badgePassed : styles.badgeFailed,
+                        ]}>
+                            <Text style={styles.statusText}>
+                                {item.isPassed ? "Đạt" : item.status === "EXPIRED" ? "Hết giờ" : item.status === "ABANDONED" ? "Bỏ dở" : "Chưa đạt"}
+                            </Text>
+                        </View>
                     </View>
                     <Text style={styles.attemptText}>Lần {item.attemptNumber}</Text>
                 </View>
 
-                <View style={styles.scoreRow}>
-                    <Text style={styles.scoreValue}>{scoreDisplay}</Text>
-                    <Text style={styles.scoreMax}>/10</Text>
-                </View>
-
                 <View style={styles.metaRow}>
-                    <Text style={styles.metaText}>{dateStr}</Text>
                     <Text style={styles.metaText}>
                         {item.purposeType === "PRACTICE" ? "Luyện tập" : "Kiểm tra"}
                     </Text>
+                    <Text style={styles.metaText}>{dateStr}</Text>
                 </View>
-            </TouchableOpacity>
+            </Card>
         );
     };
 
@@ -90,24 +93,21 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
 
 const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 40 },
-    emptyText: { fontSize: 15, color: colors.textMuted, fontWeight: "600" },
+    emptyText: { fontSize: 15, color: colors.textMuted, fontFamily: typography.fonts.semiBold },
     list: { padding: 16, gap: 12 },
     card: {
-        backgroundColor: colors.primaryContainer,
-        borderRadius: 12,
         padding: 16,
     },
-    cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+    cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+    scoreAndStatus: { flexDirection: "row", alignItems: "center", gap: 8 },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 5 },
     badgePassed: { backgroundColor: colors.success },
     badgeFailed: { backgroundColor: colors.error },
-    statusText: { fontSize: 11, fontWeight: "500", color: colors.textLight },
-
-
-    attemptText: { fontSize: 12, fontWeight: "600", color: colors.textPlaceholder },
-    scoreRow: { flexDirection: "row", alignItems: "baseline", marginBottom: 8 },
-    scoreValue: { fontSize: 28, fontWeight: "900", color: colors.primary },
-    scoreMax: { fontSize: 14, fontWeight: "700", color: colors.textMuted, marginLeft: 2 },
-    metaRow: { flexDirection: "row", justifyContent: "space-between" },
-    metaText: { fontSize: 12, color: colors.textPlaceholder, fontWeight: "500" },
+    statusText: { fontSize: 11, fontFamily: typography.fonts.medium, color: colors.textLight },
+    attemptText: { fontSize: 12, fontFamily: typography.fonts.semiBold, color: colors.textPlaceholder },
+    scoreRow: { flexDirection: "row", alignItems: "baseline" },
+    scoreValue: { fontSize: 24, fontFamily: typography.fonts.black, color: colors.primary },
+    scoreMax: { fontSize: 13, fontFamily: typography.fonts.bold, color: colors.textMuted, marginLeft: 2 },
+    metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    metaText: { fontSize: 12, color: colors.textPlaceholder, fontFamily: typography.fonts.medium },
 });

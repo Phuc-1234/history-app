@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
 
 interface FlashcardControlsProps {
     onNotMemorized: () => void;
@@ -23,7 +25,7 @@ export function FlashcardControls({
                 onPress={onNotMemorized}
                 activeOpacity={0.7}
             >
-                <Ionicons name="close" size={28} color="#E53E3E" />
+                <Ionicons name="close" size={28} color={colors.error} />
             </TouchableOpacity>
 
             {/* --- Lật (Flip) Button --- */}
@@ -65,39 +67,28 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        elevation: 3,
     },
     notMemorizedButton: {
-        backgroundColor: "#FEE2E2", // Light pink/red background
+        backgroundColor: colors.errorContainer,
         borderWidth: 1,
-        borderColor: "#FCA5A5",
+        borderColor: colors.error,
     },
     memorizedButton: {
-        backgroundColor: "#0A7E56", // Dark green/teal background
+        backgroundColor: colors.success,
     },
     flipButton: {
         paddingHorizontal: 36,
         paddingVertical: 14,
-        borderRadius: 24,
+        borderRadius: 30,
         borderWidth: 1,
-        borderColor: "#AEAEB2",
-        backgroundColor: "#FFF",
+        borderColor: colors.borderMedium,
+        backgroundColor: colors.surface,
         justifyContent: "center",
         alignItems: "center",
         minWidth: 120,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 1,
     },
     flipButtonText: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: "#5856D6", // Matches brand color
+        ...typography.bodyLargeBold,
+        color: colors.primary,
     },
 });

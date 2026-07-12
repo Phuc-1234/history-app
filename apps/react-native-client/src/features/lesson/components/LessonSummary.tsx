@@ -13,6 +13,7 @@ import { LessonSummaryData, LessonSection } from "../hooks/useLessonSummary";
 import { ExpandableSection } from "./ExpandableSection";
 import VideoPlayer from "../../videostream/components/VideoPlayer";
 import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 interface LessonSummaryProps {
     data: LessonSummaryData;
@@ -51,7 +52,13 @@ export function LessonSummary({
     onNodePress,
     onSectionTestPress,
 }: LessonSummaryProps) {
-    const { completed, total } = getLessonProgress(sections);
+    const progress = data.progress || getLessonProgress(sections);
+    const completed = "completedNodes" in progress && progress.completedNodes !== undefined
+        ? progress.completedNodes
+        : (progress as any).completed;
+    const total = "totalNodes" in progress && progress.totalNodes !== undefined
+        ? progress.totalNodes
+        : (progress as any).total;
 
     return (
         <View style={styles.container}>
@@ -63,13 +70,9 @@ export function LessonSummary({
                         uri: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500",
                     }}
                     style={styles.bannerBg}
-                    imageStyle={{ borderRadius: 5 }}
+                    imageStyle={{ borderRadius: 12 }}
                 >
-                    <View style={styles.tag}>
-                        <Text style={styles.tagText}>
-                            Lịch sử lớp {data.position * 10}
-                        </Text>
-                    </View>
+                    
                 </ImageBackground>
             </View>
 
@@ -86,7 +89,7 @@ export function LessonSummary({
                         />
                     </View>
                     <Text style={styles.progressText}>
-                        {completed}/{total} phần
+                        {completed}/{total}
                     </Text>
                 </View>
 
@@ -135,18 +138,6 @@ export function LessonSummary({
                     </View>
                     <Text style={styles.gridButtonText}>Mind map</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.gridButton, styles.filledGridButton]}
-                    onPress={() => onActionPress("quiz")}
-                >
-                    <View style={styles.iconWrapperTransparent}>
-                        <Ionicons name="document-text" size={16} color={colors.textLight} />
-                    </View>
-                    <Text style={[styles.gridButtonText, styles.whiteText]}>
-                        Kiểm tra toàn bài
-                    </Text>
-                </TouchableOpacity>
             </View>
 
             {/* --- Video Player Section --- */}
@@ -164,27 +155,30 @@ export function LessonSummary({
 
             {/* --- Render Root Document Node Tree --- */}
             <View style={styles.sectionsList}>
-                {sections.map((section, index) => (
-                    <React.Fragment key={section.id}>
-                        {index > 0 && <View style={styles.divider} />}
-                        <ExpandableSection
-                            section={section}
-                            isTopLevel={true}
-                            onNodePress={onNodePress}
-                            onSectionTestPress={onSectionTestPress}
-                        />
-                    </React.Fragment>
+                {sections.map((section) => (
+                    <ExpandableSection
+                        key={section.id}
+                        section={section}
+                        isTopLevel={true}
+                        onNodePress={onNodePress}
+                        onSectionTestPress={onSectionTestPress}
+                    />
                 ))}
             </View>
 
             {/* Pill-shaped lesson-level test button */}
             <TouchableOpacity
-                style={styles.pillTestButton}
+                style={[
+                    styles.pillTestButton,
+                    data.testPassed && { backgroundColor: colors.success }
+                ]}
                 onPress={() => onActionPress("quiz")}
                 activeOpacity={0.8}
             >
-                <Ionicons name="document-text" size={18} color={colors.textLight} />
                 <Text style={styles.pillTestButtonText}>Kiểm tra toàn bài</Text>
+                {data.testPassed && (
+                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                )}
             </TouchableOpacity>
         </View>
     );
@@ -201,7 +195,11 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 15,
     },
-    tagText: { color: colors.textLight, fontSize: 12, fontWeight: "700" },
+    tagText: {
+        ...typography.caption,
+        fontFamily: typography.fonts.bold,
+        color: colors.textLight,
+    },
     heroContent: { marginBottom: 20 },
     progressContainer: {
         flexDirection: "row",
@@ -223,69 +221,62 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     progressText: {
-        fontSize: 13,
-        fontWeight: "600",
+        ...typography.bodySmallSemiBold,
         color: colors.textSecondary,
     },
     lessonHeading: {
-        fontSize: 22,
-        fontWeight: "normal",
+        ...typography.h2,
         color: colors.primary,
         marginBottom: 8,
     },
-    lessonDescription: { fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
+    lessonDescription: {
+        ...typography.bodyMedium,
+        color: colors.textSecondary,
+        lineHeight: 22,
+    },
 
     /* Feature Navigation Grid Matrix */
     gridContainer: {
         flexDirection: "row",
-        gap: 8,
+        gap: 12,
         marginBottom: 20,
+        justifyContent: "center",
     },
     gridButton: {
-        flex: 1,
+        flexDirection: "row",
         backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: colors.borderMedium,
-        borderRadius: 9,
-        paddingVertical: 10,
-        paddingHorizontal: 4,
+        borderRadius: 30,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
+        gap: 8,
     },
-    filledGridButton: { backgroundColor: colors.primary, borderColor: colors.primary },
     iconWrapper: {
-        width: 32,
-        height: 32,
-        borderRadius: 4,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         justifyContent: "center",
         alignItems: "center",
     },
-    iconWrapperTransparent: {
-        width: 32,
-        height: 32,
-        justifyContent: "center",
-        alignItems: "center",
+    gridButtonText: {
+        ...typography.caption,
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
     },
-    gridButtonText: { fontSize: 12, fontWeight: "700", color: colors.textPrimary },
-    whiteText: { color: colors.textLight },
 
     /* Tree List Wrapper */
     sectionsList: { marginTop: 8 },
-    divider: {
-        height: 2,
-        backgroundColor: colors.borderDark,
-        marginVertical: 16,
-        marginHorizontal: 8,
-    },
 
     /* Video Player */
     videoContainer: {
         marginBottom: 24,
     },
     videoTitle: {
-        fontSize: 18,
-        fontWeight: "800",
+        ...typography.h3,
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
         marginBottom: 12,
     },
@@ -296,7 +287,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.primary,
-        borderRadius: 40,
+        borderRadius: 30,
         paddingVertical: 12,
         paddingHorizontal: 24,
         gap: 8,
@@ -306,7 +297,7 @@ const styles = StyleSheet.create({
     },
     pillTestButtonText: {
         color: colors.textLight,
+        fontFamily: typography.fonts.bold,
         fontSize: 17,
-        fontWeight: "700",
     },
 });

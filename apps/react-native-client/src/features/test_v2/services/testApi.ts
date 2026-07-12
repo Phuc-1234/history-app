@@ -45,7 +45,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
         }),
 
         // POST /api/tests-v2/:logId/finish
-        finishTestV2: builder.mutation<FinishTestV2Response, { logId: string; draftAnswerJson: DraftAnswerEntry[] }>({
+        finishTestV2: builder.mutation<FinishTestV2Response, { logId: string; draftAnswerJson: DraftAnswerEntry[]; seenQuestionIds?: number[] }>({
             query: ({ logId, ...body }) => ({
                 url: `/api/tests-v2/${logId}/finish`,
                 method: "POST",

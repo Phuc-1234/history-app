@@ -45,3 +45,17 @@ export interface ChangePasswordRequestBody {
     newPassword?: string;
 }
 
+export interface CreateFeedbackRequestBody {
+    content: string;
+    type: string; // "BUG" | "FEATURE" | "OTHER"
+}
+
+export interface FeedbackDto {
+    id: string;
+    userId: string;
+    content: string;
+    type: string;
+    createdAt: string;
+}
+
+

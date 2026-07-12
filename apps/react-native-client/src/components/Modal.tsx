@@ -7,6 +7,9 @@ import {
     View,
     Pressable,
 } from "react-native";
+import Mascot, { MascotExpression } from "./Mascot";
+import colors from "../theme/colors";
+import typography from "../theme/typography";
 
 interface CustomModalProps {
     visible: boolean;
@@ -15,7 +18,9 @@ interface CustomModalProps {
     confirmText?: string;
     cancelText?: string;
     onConfirm: () => void;
-    onCancel: () => void;
+    onCancel?: () => void;
+    showMascot?: boolean;
+    mascotExpression?: MascotExpression;
 }
 
 export function CustomModal({
@@ -26,26 +31,41 @@ export function CustomModal({
     cancelText = "Hủy",
     onConfirm,
     onCancel,
+    showMascot = false,
+    mascotExpression = "focused",
 }: CustomModalProps) {
+    const handleClose = onCancel || onConfirm;
+    const showCancel = !!onCancel;
+
     return (
         <RNModal
             visible={visible}
             transparent={true}
             animationType="fade"
-            onRequestClose={onCancel}
+            onRequestClose={handleClose}
         >
-            <Pressable style={styles.overlay} onPress={onCancel}>
+            <Pressable style={styles.overlay} onPress={handleClose}>
                 <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
+                    {showMascot && (
+                        <Mascot
+                            expression={mascotExpression}
+                            width={100}
+                            height={100}
+                            style={styles.mascot}
+                        />
+                    )}
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.message}>{message}</Text>
                     <View style={styles.buttons}>
-                        <TouchableOpacity
-                            style={styles.cancelBtn}
-                            onPress={onCancel}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.cancelText}>{cancelText}</Text>
-                        </TouchableOpacity>
+                        {showCancel && (
+                            <TouchableOpacity
+                                style={styles.cancelBtn}
+                                onPress={onCancel}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.cancelText}>{cancelText}</Text>
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                             style={styles.confirmBtn}
                             onPress={onConfirm}
@@ -69,32 +89,29 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     card: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 24,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 24,
         width: "100%",
         maxWidth: 340,
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 5,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
     },
     title: {
+        fontFamily: typography.fonts.bold,
         fontSize: 18,
-        fontWeight: "800",
-        color: "#1C1C1E",
+        color: colors.textDark,
         marginBottom: 10,
         textAlign: "center",
     },
     message: {
+        fontFamily: typography.fonts.medium,
         fontSize: 14,
-        color: "#718096",
+        color: colors.textSecondary,
         textAlign: "center",
         marginBottom: 24,
         lineHeight: 20,
-        fontWeight: "500",
     },
     buttons: {
         flexDirection: "row",
@@ -104,27 +121,30 @@ const styles = StyleSheet.create({
     cancelBtn: {
         flex: 1,
         paddingVertical: 14,
-        borderRadius: 16,
-        backgroundColor: "#F3F4F6",
+        borderRadius: 12,
+        backgroundColor: colors.surfaceVariant,
         alignItems: "center",
         justifyContent: "center",
     },
     cancelText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 15,
-        fontWeight: "700",
-        color: "#4B5563",
+        color: colors.textSecondary,
     },
     confirmBtn: {
         flex: 1,
         paddingVertical: 14,
-        borderRadius: 16,
-        backgroundColor: "#5D45F9",
+        borderRadius: 12,
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
     },
     confirmText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 15,
-        fontWeight: "700",
-        color: "#FFFFFF",
+        color: colors.textLight,
+    },
+    mascot: {
+        marginBottom: 16,
     },
 });

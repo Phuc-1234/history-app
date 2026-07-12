@@ -30,31 +30,27 @@ function scoreChoose(
     }
 
     const totalOptions = answerData.options.length;
-    const partialTable4 = [0, 0.1, 0.2, 0.5, 1.0];
-    const getMaxScore = (n: number) => (n <= 4 ? (partialTable4[n] ?? 1.0) : 1.0 + (n - 4) * 0.25);
-    const getPartialScore = (n: number, hits: number) => {
-        if (hits <= 0) return 0;
-        if (n <= 4) return partialTable4[Math.min(hits, n)] ?? 0;
-        const table = [0, 0.1, 0.2, 0.75, 1.0];
-        if (hits <= 4) return table[hits] ?? 0;
-        return 1.0 + (hits - 4) * 0.25;
-    };
+    const maxScore = totalOptions === 0 ? 0 : Math.max(0.25, Math.floor(totalOptions / 2) * 0.25);
 
-    const maxScore = getMaxScore(totalOptions);
     if (!userAnswer || !userAnswer.selectedOptions || !userAnswer.selectedOptions.length) {
         return { scoreAwarded: 0, maxScore };
     }
 
-    let correctHits = 0;
-    for (let idx = 0; idx < totalOptions; idx++) {
-        const isCorrectOption = answerData.correctOption.includes(idx);
-        const isSelectedByUser = userAnswer.selectedOptions.includes(idx);
-        if (isCorrectOption === isSelectedByUser) {
-            correctHits++;
+    const incorrectCount = totalOptions - correctCount;
+    let score = 0;
+    const correctScorePerItem = correctCount > 0 ? maxScore / correctCount : 0;
+    const incorrectPenaltyPerItem = incorrectCount > 0 ? maxScore / incorrectCount : 0;
+
+    for (const optionIdx of userAnswer.selectedOptions) {
+        if (answerData.correctOption.includes(optionIdx)) {
+            score += correctScorePerItem;
+        } else {
+            score -= incorrectPenaltyPerItem;
         }
     }
 
-    return { scoreAwarded: getPartialScore(totalOptions, correctHits), maxScore };
+    const scoreAwarded = Math.max(0, Math.round(score * 10000) / 10000);
+    return { scoreAwarded, maxScore };
 }
 
 function getLevenshteinDistance(a: string, b: string): number {
@@ -171,13 +167,12 @@ function scoreMatch(
     answerData: MatchAnswerData,
     userAnswer: UserMatchAnswer | null,
 ): { scoreAwarded: number; maxScore: number } {
-    const maxScore = 1.0;
     const totalPairs = answerData.pairs.length;
-    if (totalPairs === 0) return { scoreAwarded: 0, maxScore };
+    if (totalPairs === 0) return { scoreAwarded: 0, maxScore: 0 };
+    const maxScore = Math.max(0.25, Math.floor(totalPairs / 2) * 0.25);
     if (!userAnswer?.pairs?.length) return { scoreAwarded: 0, maxScore };
 
-    const perPair = maxScore / totalPairs;
-    let score = 0;
+    let correctCount = 0;
     for (const rawPair of answerData.pairs) {
         let correctLeft = "";
         let correctRight = "";
@@ -196,10 +191,11 @@ function scoreMatch(
             (p) => p.left?.trim().toLowerCase() === correctLeft.trim().toLowerCase(),
         );
         if (userPair && userPair.right?.trim().toLowerCase() === correctRight.trim().toLowerCase()) {
-            score += perPair;
+            correctCount++;
         }
     }
-    return { scoreAwarded: Math.round(score * 10000) / 10000, maxScore };
+    const scoreAwarded = correctCount === totalPairs ? maxScore : 0;
+    return { scoreAwarded, maxScore };
 }
      
 /**
@@ -257,18 +253,22 @@ export function getQuestionPointsRange(question: QuestionV2): { min: number; max
             return { min: 0.25, max: 0.25, isRange: false };
         } else {
             const totalOptions = data.options.length;
-            const partialTable4 = [0, 0.1, 0.2, 0.5, 1.0];
-            const getMaxScore = (n: number) => (n <= 4 ? (partialTable4[n] ?? 1.0) : 1.0 + (n - 4) * 0.25);
-            const max = getMaxScore(totalOptions);
-            return { min: 0.1, max, isRange: true };
+            const max = totalOptions === 0 ? 0 : Math.max(0.25, Math.floor(totalOptions / 2) * 0.25);
+            const correctCount = data.correctOption?.length ?? 0;
+            const min = correctCount > 0 ? max / correctCount : 0;
+            return {
+                min: Math.round(min * 10000) / 10000,
+                max: Math.round(max * 10000) / 10000,
+                isRange: min < max,
+            };
         }
     } else if (question.type === "FILL") {
         return { min: 0.5, max: 0.5, isRange: false };
     } else if (question.type === "MATCH") {
         const data = question.answerData as MatchAnswerData;
-        const totalPairs = data.pairs?.length || 1;
-        const perPair = 1.0 / totalPairs;
-        return { min: perPair, max: 1.0, isRange: true };
+        const totalPairs = data.pairs?.length || 0;
+        const max = totalPairs === 0 ? 0 : Math.max(0.25, Math.floor(totalPairs / 2) * 0.25);
+        return { min: max, max, isRange: false };
     }
     return { min: 0, max: 0, isRange: false };
 }

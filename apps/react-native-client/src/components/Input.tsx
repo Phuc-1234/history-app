@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 import colors from "../theme/colors";
+import typography from "../theme/typography";
 
 interface InputProps extends TextInputProps {
     icon?: React.ElementType;
@@ -25,6 +26,7 @@ export default function Input({
     ...props
 }: InputProps) {
     const [secureText, setSecureText] = useState(isPassword);
+    const [isFocused, setIsFocused] = useState(false);
 
     return (
         <View style={[styles.container, containerStyle]}>
@@ -39,11 +41,20 @@ export default function Input({
                     styles.input,
                     IconComponent && { paddingLeft: 58 },
                     isPassword && { paddingRight: 58 },
+                    isFocused && styles.inputFocused,
                     style,
                 ]}
                 placeholderTextColor={colors.textPlaceholder}
                 secureTextEntry={secureText}
                 autoCapitalize="none"
+                onFocus={(e) => {
+                    setIsFocused(true);
+                    props.onFocus?.(e);
+                }}
+                onBlur={(e) => {
+                    setIsFocused(false);
+                    props.onBlur?.(e);
+                }}
                 {...props}
             />
 
@@ -71,6 +82,7 @@ const styles = StyleSheet.create({
         marginVertical: 8,
     },
     input: {
+        fontFamily: typography.fonts.regular,
         backgroundColor: colors.inputBackground,
         borderRadius: 30,
         paddingLeft: 24,
@@ -79,6 +91,12 @@ const styles = StyleSheet.create({
         color: colors.textDark,
         height: 54,
         textAlignVertical: "center",
+        borderWidth: 1.5,
+        borderColor: "transparent",
+    },
+    inputFocused: {
+        borderColor: colors.accent,
+        backgroundColor: colors.surface,
     },
     iconLeft: {
         position: "absolute",

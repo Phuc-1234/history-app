@@ -189,6 +189,7 @@ model Question {
   topic          Topic?           @relation(fields: [topicId], references: [id])
   testQuestions  TestQuestion[]
   userAnswerLogs UserAnswerLog[]
+  questionMasteries UserQuestionMastery[]
 
   @@map("questions")
 }
@@ -246,6 +247,12 @@ model User {
   rewardLogs             UserRewardLog[]
   testLogs               UserTestLog[]
   tier                   Tier               @relation(fields: [currentTierIndex], references: [index])
+  feedbacks              Feedback[]
+  questionMasteries      UserQuestionMastery[]
+
+  isPro                  Boolean            @default(false) @map("is_pro")
+  proExpiresAt           DateTime?          @map("pro_expires_at")
+  subscriptions          Subscription[]
 
   @@map("users")
 }
@@ -329,6 +336,7 @@ model UserTestLog {
   scoreAwarded          Float?          @map("score_awarded")
   status                TestStatus?     @map("status")
   timeLimit             Int?            @map("time_limit")
+  autoPickStrategy      AutoPickStrategy? @map("auto_pick_strategy")
   answerLogs            UserAnswerLog[]
   rewardLogs            UserRewardLog[]
   generatedFromPreset   TestPreset?     @relation(fields: [generatedFromPresetId], references: [id])
@@ -457,6 +465,8 @@ enum RewardTriggerType {
   AUTO_LESSON_TEST_COMPLETE
   AUTO_TOPIC_TEST_COMPLETE
   AUTO_GRADE_TEST_COMPLETE
+  AUTO_PERSONAL_PRACTICE_COMPLETE
+  AUTO_WRONG_PRACTICE_COMPLETE
   STREAK_REACHED
   TIER_REACHED
 }
@@ -485,6 +495,7 @@ enum TestStatus {
 enum PaymentProvider {
   MOMO
   ZALOPAY
+  SEPAY
 }
 
 enum PaymentStatus {
@@ -524,3 +535,62 @@ model UserRewardLog {
   @@unique([userId, rewardRuleId, triggerTime])
   @@map("user_reward_logs")
 }
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  content   String
+  type      String   // "BUG" | "FEATURE" | "OTHER"
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+model UserQuestionMastery {
+  userId             String               @map("user_id")
+  questionId         Int                  @map("question_id")
+  level              Int                  @default(0)
+  consecutiveCorrect Int                  @default(0) @map("consecutive_correct")
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question           Question             @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+  @@map("user_question_mastery")
+}
+
+enum AutoPickStrategy {
+  BALANCED
+  LOW_MASTERY
+  WRONG
+}
+
+model Subscription {
+  id                String             @id @default(uuid())
+  userId            String             @map("user_id")
+  status            SubscriptionStatus @default(PENDING)
+  amountVnd         Int                @default(2000) @map("amount_vnd")
+  provider          PaymentProvider
+  providerOrderId   String             @unique @map("provider_order_id")
+  providerTransId   String?            @map("provider_trans_id")
+  
+  autoRenew         Boolean            @default(true) @map("auto_renew")
+  startDate         DateTime?          @map("start_date")
+  endDate           DateTime?          @map("end_date")
+  
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  FAILED
+}
+

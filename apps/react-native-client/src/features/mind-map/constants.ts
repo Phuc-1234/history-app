@@ -1,37 +1,12 @@
 import { Platform } from "react-native";
+import { colors } from "../../theme/colors";
 
-export const BRANCH_COLORS = [
-    {
-        color: "#F5F3FF",
-        borderColor: "#C4B5FD",
-        accentColor: "#7C3AED",
-        lightBg: "#FAF5FF",
-    },
-    {
-        color: "#EFF6FF",
-        borderColor: "#93C5FD",
-        accentColor: "#2563EB",
-        lightBg: "#F0F7FF",
-    },
-    {
-        color: "#ECFDF5",
-        borderColor: "#6EE7B7",
-        accentColor: "#059669",
-        lightBg: "#F0FDF4",
-    },
-    {
-        color: "#FFFBEB",
-        borderColor: "#FCD34D",
-        accentColor: "#D97706",
-        lightBg: "#FEFCE8",
-    },
-    {
-        color: "#FFF1F2",
-        borderColor: "#FDA4AF",
-        accentColor: "#E11D48",
-        lightBg: "#FFF1F2",
-    },
-];
+export const BRANCH_COLORS = colors.matchColors.map((item) => ({
+    color: item.bg,
+    borderColor: item.border,
+    accentColor: item.text,
+    lightBg: item.bg,
+}));
 
 export const SAFE_PADDING = Platform.OS === "web" ? 52 : 36;
 export const MOBILE_BREAKPOINT = 600;
@@ -39,6 +14,7 @@ export const MOBILE_BREAKPOINT = 600;
 export const NODE_CONFIGS = {
     0: {
         minWidth: 200,
+        maxWidth: 240,
         height: 56,
         fontSize: 14,
         fontWeight: "700" as const,
@@ -48,6 +24,7 @@ export const NODE_CONFIGS = {
     },
     1: {
         minWidth: 155,
+        maxWidth: 190,
         height: 44,
         fontSize: 12.5,
         fontWeight: "600" as const,
@@ -57,6 +34,7 @@ export const NODE_CONFIGS = {
     },
     2: {
         minWidth: 120,
+        maxWidth: 150,
         height: 36,
         fontSize: 11.5,
         fontWeight: "500" as const,

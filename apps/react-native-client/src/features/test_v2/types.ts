@@ -91,10 +91,10 @@ export interface UserTestLogV2 {
 export interface UserAnswerLogV2 {
     questionId: number;
     type: QuestionType;
-    userAnswerData: UserAnswer | null;
+    userAnswerData?: UserAnswer | null;
     scoreAwarded: number;
     maxScore: number;
-    correctAnswerData: AnswerData;
+    correctAnswerData?: AnswerData | null;
 }
 
 // ─── API Request/Response ────────────────────────────────────────────────
@@ -105,6 +105,11 @@ export interface StartTestV2Request {
     scopeId?: number;
     testId?: string;
     presetId?: string;
+    autoPickStrategy?: string;
+    questionCount?: number;
+    passThreshold?: number;
+    timeLimit?: number | null;
+    difficultyRatioJson?: any;
 }
 
 export interface StartTestV2Response {

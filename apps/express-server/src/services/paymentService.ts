@@ -5,12 +5,12 @@ import http from "http";
 import { prisma } from "@history-app/shared";
 import {
     PaymentProvider,
-    MoMoIpnPayload,
     ZaloPayCallbackPayload,
     ZaloPayCallbackData,
+    SePayWebhookPayload,
 } from "../types/payment";
 
-const GOLD_PRICE_VND = 10_000; // 10,000 VND = 1 Gold
+const GOLD_PRICE_VND = 2_000; // 2,000 VND = 1 Gold (TEST MODE)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -51,87 +51,6 @@ function postJson(url: string, body: object): Promise<any> {
         req.write(payload);
         req.end();
     });
-}
-
-// ─── MoMo ─────────────────────────────────────────────────────────────────────
-
-async function createMoMoOrder(
-    orderId: string,
-    amountVnd: number,
-    ipnUrl: string,
-    redirectUrl: string,
-): Promise<{ payUrl: string }> {
-    const partnerCode = process.env.MOMO_PARTNER_CODE!;
-    const accessKey = process.env.MOMO_ACCESS_KEY!;
-    const secretKey = process.env.MOMO_SECRET_KEY!;
-    const endpoint = process.env.MOMO_ENDPOINT!;
-
-    const requestId = orderId;
-    const orderInfo = `Mua ${amountVnd / GOLD_PRICE_VND} Gold`;
-    const extraData = "";
-    const requestType = "payWithMethod";
-
-    const rawSignature = [
-        `accessKey=${accessKey}`,
-        `amount=${amountVnd}`,
-        `extraData=${extraData}`,
-        `ipnUrl=${ipnUrl}`,
-        `orderId=${orderId}`,
-        `orderInfo=${orderInfo}`,
-        `partnerCode=${partnerCode}`,
-        `redirectUrl=${redirectUrl}`,
-        `requestId=${requestId}`,
-        `requestType=${requestType}`,
-    ].join("&");
-
-    const signature = hmacSHA256(rawSignature, secretKey);
-
-    const body = {
-        partnerCode,
-        accessKey,
-        requestId,
-        amount: amountVnd,
-        orderId,
-        orderInfo,
-        redirectUrl,
-        ipnUrl,
-        extraData,
-        requestType,
-        signature,
-        lang: "vi",
-    };
-
-    const response = await postJson(endpoint, body);
-
-    if (response.resultCode !== 0) {
-        throw new Error(`MoMo error: ${response.message} (code ${response.resultCode})`);
-    }
-
-    return { payUrl: response.payUrl };
-}
-
-function verifyMoMoSignature(payload: MoMoIpnPayload): boolean {
-    const secretKey = process.env.MOMO_SECRET_KEY!;
-    const accessKey = process.env.MOMO_ACCESS_KEY!;
-
-    const rawSignature = [
-        `accessKey=${accessKey}`,
-        `amount=${payload.amount}`,
-        `extraData=${payload.extraData}`,
-        `message=${payload.message}`,
-        `orderId=${payload.orderId}`,
-        `orderInfo=${payload.orderInfo}`,
-        `orderType=${payload.orderType}`,
-        `partnerCode=${payload.partnerCode}`,
-        `payType=${payload.payType}`,
-        `requestId=${payload.requestId}`,
-        `responseTime=${payload.responseTime}`,
-        `resultCode=${payload.resultCode}`,
-        `transId=${payload.transId}`,
-    ].join("&");
-
-    const expected = hmacSHA256(rawSignature, secretKey);
-    return expected === payload.signature;
 }
 
 // ─── ZaloPay ──────────────────────────────────────────────────────────────────
@@ -251,7 +170,18 @@ export class PaymentService {
         userId: string,
         provider: PaymentProvider,
         goldAmount: number,
-    ): Promise<{ orderId: string; payUrl: string; zpTransToken?: string; amountVnd: number; goldAmount: number }> {
+    ): Promise<{
+        orderId: string;
+        payUrl: string;
+        zpTransToken?: string;
+        amountVnd: number;
+        goldAmount: number;
+        vietQrUrl?: string;
+        bankId?: string;
+        accountNo?: string;
+        accountName?: string;
+        providerOrderId?: string;
+    }> {
         const amountVnd = goldAmount * GOLD_PRICE_VND;
         const orderId = crypto.randomUUID();
         // Expose webhook/IPN URL based on configured environment variable or local computer IP
@@ -259,8 +189,13 @@ export class PaymentService {
 
         let payUrl = "";
         let zpTransToken: string | undefined = undefined;
-        // providerOrderId stores app_trans_id for ZaloPay or orderId for MoMo/mock
+        // providerOrderId stores app_trans_id for ZaloPay or orderId/paymentCode for SePay/mock
         let providerOrderId: string = orderId;
+
+        let bankId = "";
+        let accountNo = "";
+        let accountName = "";
+        let vietQrUrl = "";
 
         if (provider === "ZALOPAY") {
             try {
@@ -275,16 +210,16 @@ export class PaymentService {
                 console.error("Failed to create ZaloPay order:", zaloError.message);
                 throw zaloError; // surface the real error to the client
             }
-        } else if (provider === "MOMO" && process.env.MOMO_SECRET_KEY) {
-            try {
-                const callbackUrl = `${ipnUrl}/api/payment/momo/webhook`;
-                const redirectUrl = `${ipnUrl}/api/payment/mock-checkout?orderId=${orderId}&status=success`;
-                const momoResult = await createMoMoOrder(orderId, amountVnd, callbackUrl, redirectUrl);
-                payUrl = momoResult.payUrl;
-            } catch (momoError: any) {
-                console.warn("Failed to create real MoMo order, falling back to mock:", momoError.message);
-                payUrl = `${ipnUrl}/api/payment/mock-checkout?orderId=${orderId}`;
-            }
+        } else if (provider === "SEPAY") {
+            // Generate unique transfer content with only numbers (e.g. DH182739) to match SePay's numeric configuration
+            const randomDigits = Math.floor(100000 + Math.random() * 900000); // 6 random digits
+            providerOrderId = "DH" + randomDigits;
+            payUrl = `${ipnUrl}/api/payment/sepay-checkout?orderId=${orderId}`;
+
+            bankId = process.env.SEPAY_BANK_ID || "MB";
+            accountNo = process.env.SEPAY_ACCOUNT_NO || "0999999999";
+            accountName = process.env.SEPAY_ACCOUNT_NAME || "NGUYEN VAN A";
+            vietQrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${amountVnd}&addInfo=${providerOrderId}&accountName=${encodeURIComponent(accountName)}`;
         } else {
             payUrl = `${ipnUrl}/api/payment/mock-checkout?orderId=${orderId}`;
         }
@@ -298,32 +233,83 @@ export class PaymentService {
                 amountVnd,
                 provider,
                 status: "PENDING",
-                providerOrderId, // For ZaloPay: app_trans_id. For others: orderId.
+                providerOrderId, // For ZaloPay: app_trans_id. For SePay: transfer content code.
             },
         });
 
-        return { orderId, payUrl, zpTransToken, amountVnd, goldAmount };
+        return {
+            orderId,
+            payUrl,
+            zpTransToken,
+            amountVnd,
+            goldAmount,
+            vietQrUrl,
+            bankId,
+            accountNo,
+            accountName,
+            providerOrderId,
+        };
     }
 
-    /** Called when MoMo IPN webhook arrives */
-    async handleMoMoWebhook(payload: MoMoIpnPayload): Promise<void> {
-        if (!verifyMoMoSignature(payload)) {
-            throw new Error("Invalid MoMo signature");
+    /** Called when SePay webhook arrives */
+    async handleSePayWebhook(payload: SePayWebhookPayload): Promise<void> {
+        if (payload.transferType !== "in") {
+            console.log(`[SePay Webhook] Ignored non-incoming transaction: ${payload.transferType}`);
+            return;
         }
 
-        const purchase = await prisma.goldPurchase.findFirst({
-            where: { id: payload.orderId },
-        });
-        if (!purchase || purchase.status !== "PENDING") return;
+        const content = payload.content || "";
+        // Support both old 10-char codes and new 5-char codes
+        const match = content.match(/(DH|SUB)[A-Z0-9]{5,10}/i);
+        if (!match) {
+            console.log(`[SePay Webhook] Ignored transaction: missing or invalid payment code in content "${content}"`);
+            return;
+        }
+        const paymentCode = match[0].toUpperCase();
 
-        if (payload.resultCode === 0) {
-            // Success
+        if (paymentCode.startsWith("DH9")) {
+            const subscription = await prisma.subscription.findUnique({
+                where: { providerOrderId: paymentCode },
+            });
+
+            if (!subscription) {
+                throw new Error(`No subscription record found for code: ${paymentCode}`);
+            }
+
+            if (subscription.status !== "PENDING") {
+                console.log(`[SePay Webhook] Subscription ${subscription.id} already processed. Status: ${subscription.status}`);
+                return;
+            }
+
+            if (payload.transferAmount < subscription.amountVnd) {
+                throw new Error(`Amount mismatch. Expected ${subscription.amountVnd} but got ${payload.transferAmount}`);
+            }
+
+            await this.activateSubscription(subscription.id, String(payload.id || payload.referenceCode));
+        } else if (paymentCode.startsWith("DH")) {
+            const purchase = await prisma.goldPurchase.findUnique({
+                where: { providerOrderId: paymentCode },
+            });
+
+            if (!purchase) {
+                throw new Error(`No purchase record found for code: ${paymentCode}`);
+            }
+
+            if (purchase.status !== "PENDING") {
+                console.log(`[SePay Webhook] Order ${purchase.id} already processed. Status: ${purchase.status}`);
+                return;
+            }
+
+            if (payload.transferAmount < purchase.amountVnd) {
+                throw new Error(`Amount mismatch. Expected ${purchase.amountVnd} but got ${payload.transferAmount}`);
+            }
+
             await prisma.$transaction([
                 prisma.goldPurchase.update({
                     where: { id: purchase.id },
                     data: {
                         status: "SUCCESS",
-                        providerTransId: String(payload.transId),
+                        providerTransId: String(payload.id || payload.referenceCode),
                     },
                 }),
                 prisma.user.update({
@@ -331,11 +317,27 @@ export class PaymentService {
                     data: { totalGold: { increment: purchase.goldAmount } },
                 }),
             ]);
-        } else {
-            await prisma.goldPurchase.update({
-                where: { id: purchase.id },
-                data: { status: "FAILED" },
+
+            console.log(`[SePay Webhook] Processed successfully. Order: ${purchase.id}, Gold credited: ${purchase.goldAmount}`);
+        } else if (paymentCode.startsWith("SUB")) {
+            const subscription = await prisma.subscription.findUnique({
+                where: { providerOrderId: paymentCode },
             });
+
+            if (!subscription) {
+                throw new Error(`No subscription record found for code: ${paymentCode}`);
+            }
+
+            if (subscription.status !== "PENDING") {
+                console.log(`[SePay Webhook] Subscription ${subscription.id} already processed. Status: ${subscription.status}`);
+                return;
+            }
+
+            if (payload.transferAmount < subscription.amountVnd) {
+                throw new Error(`Amount mismatch. Expected ${subscription.amountVnd} but got ${payload.transferAmount}`);
+            }
+
+            await this.activateSubscription(subscription.id, String(payload.id || payload.referenceCode));
         }
     }
 
@@ -358,21 +360,33 @@ export class PaymentService {
         const purchase = await prisma.goldPurchase.findUnique({
             where: { id: orderId },
         });
-        if (!purchase || purchase.status !== "PENDING") return;
 
-        await prisma.$transaction([
-            prisma.goldPurchase.update({
-                where: { id: purchase.id },
-                data: {
-                    status: "SUCCESS",
-                    providerTransId: String(data.zp_trans_id),
-                },
-            }),
-            prisma.user.update({
-                where: { id: purchase.userId },
-                data: { totalGold: { increment: purchase.goldAmount } },
-            }),
-        ]);
+        if (purchase) {
+            if (purchase.status !== "PENDING") return;
+
+            await prisma.$transaction([
+                prisma.goldPurchase.update({
+                    where: { id: purchase.id },
+                    data: {
+                        status: "SUCCESS",
+                        providerTransId: String(data.zp_trans_id),
+                    },
+                }),
+                prisma.user.update({
+                    where: { id: purchase.userId },
+                    data: { totalGold: { increment: purchase.goldAmount } },
+                }),
+            ]);
+            console.log(`[ZaloPay Callback] Gold credited for Order: ${purchase.id}`);
+        } else {
+            const subscription = await prisma.subscription.findUnique({
+                where: { id: orderId },
+            });
+            if (subscription) {
+                if (subscription.status !== "PENDING") return;
+                await this.activateSubscription(subscription.id, String(data.zp_trans_id));
+            }
+        }
     }
 
     /**
@@ -434,6 +448,196 @@ export class PaymentService {
             goldAmount: purchase.goldAmount,
             amountVnd: purchase.amountVnd,
             providerTransId: resolvedTransId,
+            providerOrderId: purchase.providerOrderId,
+        };
+    }
+
+    /**
+     * Creates a new pending Pro Subscription.
+     */
+    async initiateSubscription(
+        userId: string,
+        provider: PaymentProvider,
+    ): Promise<{
+        orderId: string;
+        payUrl: string;
+        zpTransToken?: string;
+        amountVnd: number;
+        vietQrUrl?: string;
+        bankId?: string;
+        accountNo?: string;
+        accountName?: string;
+        providerOrderId?: string;
+    }> {
+        const amountVnd = 2000; // Fixed 2000đ for Pro package
+        const orderId = crypto.randomUUID();
+        const ipnUrl = process.env.PAYMENT_IPN_URL || `http://${process.env.LOCAL_COMPUTER_IP || 'localhost'}:5000`;
+
+        let payUrl = "";
+        let zpTransToken: string | undefined = undefined;
+        let providerOrderId: string = orderId;
+
+        let bankId = "";
+        let accountNo = "";
+        let accountName = "";
+        let vietQrUrl = "";
+
+        if (provider === "ZALOPAY") {
+            try {
+                const callbackUrl = `${ipnUrl}/api/payment/zalopay/callback`;
+                const zaloResult = await createZaloPayOrder(orderId, amountVnd, callbackUrl);
+                payUrl = zaloResult.payUrl;
+                zpTransToken = zaloResult.zpTransToken;
+                providerOrderId = zaloResult.appTransId;
+                console.log(`[ZaloPay Subscription] Created order. app_trans_id=${providerOrderId}, order_url=${payUrl}, token=${zpTransToken}`);
+            } catch (zaloError: any) {
+                console.error("Failed to create ZaloPay subscription order:", zaloError.message);
+                throw zaloError;
+            }
+        } else if (provider === "SEPAY") {
+            const randomDigits = Math.floor(100000 + Math.random() * 900000);
+            providerOrderId = "DH9" + randomDigits;
+            payUrl = `${ipnUrl}/api/subscription/checkout?orderId=${orderId}`;
+
+            bankId = process.env.SEPAY_BANK_ID || "MB";
+            accountNo = process.env.SEPAY_ACCOUNT_NO || "0999999999";
+            accountName = process.env.SEPAY_ACCOUNT_NAME || "NGUYEN VAN A";
+            vietQrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${amountVnd}&addInfo=${providerOrderId}&accountName=${encodeURIComponent(accountName)}`;
+        } else {
+            payUrl = `${ipnUrl}/api/subscription/checkout?orderId=${orderId}`;
+        }
+
+        await prisma.subscription.create({
+            data: {
+                id: orderId,
+                userId,
+                status: "PENDING",
+                amountVnd,
+                provider,
+                providerOrderId,
+                autoRenew: true,
+            },
+        });
+
+        return {
+            orderId,
+            payUrl,
+            zpTransToken,
+            amountVnd,
+            vietQrUrl,
+            bankId,
+            accountNo,
+            accountName,
+            providerOrderId,
+        };
+    }
+
+    /**
+     * Activates a pending subscription and marks the user as Pro.
+     */
+    async activateSubscription(subscriptionId: string, providerTransId: string): Promise<void> {
+        const subscription = await prisma.subscription.findUnique({
+            where: { id: subscriptionId },
+        });
+        if (!subscription || subscription.status !== "PENDING") return;
+
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 30); // 30 days of Pro
+
+        await prisma.$transaction([
+            prisma.subscription.update({
+                where: { id: subscriptionId },
+                data: {
+                    status: "ACTIVE",
+                    providerTransId,
+                    startDate,
+                    endDate,
+                },
+            }),
+            prisma.user.update({
+                where: { id: subscription.userId },
+                data: {
+                    isPro: true,
+                    proExpiresAt: endDate,
+                },
+            }),
+        ]);
+        console.log(`[Subscription Service] Activated subscription ${subscriptionId} for User: ${subscription.userId}`);
+    }
+
+    /**
+     * Cancels the auto renewal of an active subscription.
+     */
+    async cancelSubscription(userId: string): Promise<{ success: boolean; message: string }> {
+        const activeSub = await prisma.subscription.findFirst({
+            where: {
+                userId,
+                status: "ACTIVE",
+                autoRenew: true,
+            },
+            orderBy: {
+                endDate: "desc",
+            },
+        });
+
+        if (!activeSub) {
+            return { success: false, message: "Không tìm thấy gói đăng ký hoạt động có tự động gia hạn." };
+        }
+
+        await prisma.subscription.update({
+            where: { id: activeSub.id },
+            data: {
+                autoRenew: false,
+                status: "CANCELLED",
+            },
+        });
+
+        return { success: true, message: "Hủy tự động gia hạn thành công. Bạn vẫn có thể sử dụng gói đến hết chu kỳ." };
+    }
+
+    /**
+     * Queries the status of a subscription.
+     */
+    async getSubscriptionStatus(orderId: string) {
+        const subscription = await prisma.subscription.findUnique({
+            where: { id: orderId },
+        });
+
+        if (!subscription) return null;
+
+        let resolvedStatus = subscription.status as string;
+        let resolvedTransId = subscription.providerTransId;
+
+        if (subscription.status === "PENDING" && subscription.provider === "ZALOPAY") {
+            try {
+                const { returnCode, zpTransId } = await queryZaloPayOrder(subscription.providerOrderId);
+
+                if (returnCode === 1) {
+                    await this.activateSubscription(subscription.id, zpTransId || "MOCK_ZALO_TRANS");
+                    resolvedStatus = "ACTIVE";
+                    resolvedTransId = zpTransId ?? null;
+                } else if (returnCode === 2) {
+                    await prisma.subscription.update({
+                        where: { id: subscription.id },
+                        data: { status: "FAILED" },
+                    });
+                    resolvedStatus = "FAILED";
+                }
+            } catch (err) {
+                console.warn("[getSubscriptionStatus] ZaloPay query failed:", err);
+            }
+        }
+
+        return {
+            orderId: subscription.id,
+            status: resolvedStatus,
+            provider: subscription.provider,
+            amountVnd: subscription.amountVnd,
+            providerTransId: resolvedTransId,
+            providerOrderId: subscription.providerOrderId,
+            autoRenew: subscription.autoRenew,
+            endDate: subscription.endDate,
         };
     }
 }

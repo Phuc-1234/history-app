@@ -8,6 +8,8 @@ import type {
     QuestionEvalResult,
 } from "../types";
 import { colors } from "../../../theme/colors";
+import typography from "@/theme/typography";
+import { formatScore } from "../services/scoreEngine";
 
 interface Props {
     question: QuestionV2;
@@ -39,7 +41,19 @@ export default function FillQuestion({
             entering={FadeInDown.duration(300)}
             style={styles.container}
         >
-            <Text style={styles.label}>Nhập câu trả lời:</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={styles.label}>Nhập câu trả lời:</Text>
+                {showFeedback && evalResult && (
+                    <View style={[
+                        styles.pointsBadge,
+                        evalResult.isCorrect ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
+                    ]}>
+                        <Text style={evalResult.isCorrect ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
+                            {evalResult.isCorrect ? `+${formatScore(evalResult.scoreAwarded)}đ` : "+0đ"}
+                        </Text>
+                    </View>
+                )}
+            </View>
             <TextInput
                 style={[
                     styles.input,
@@ -58,7 +72,7 @@ export default function FillQuestion({
                 editable={!disabled && !(showFeedback && evalResult)}
                 returnKeyType="done"
             />
-            {showFeedback && evalResult && !evalResult.isCorrect && (
+            {showFeedback && evalResult && (
                 <Animated.View
                     entering={FadeInDown.delay(100).duration(300)}
                     style={styles.feedbackContainer}
@@ -75,7 +89,28 @@ export default function FillQuestion({
 
 const styles = StyleSheet.create({
     container: { gap: 10 },
-    label: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+    label: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
+    pointsBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 30,
+    },
+    pointsBadgeCorrect: {
+        backgroundColor: colors.successContainer,
+    },
+    pointsBadgeZero: {
+        backgroundColor: colors.surfaceVariant,
+    },
+    pointsBadgeTextCorrect: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: colors.textSuccess,
+    },
+    pointsBadgeTextZero: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: colors.textMuted,
+    },
     input: {
         backgroundColor: colors.surface,
         borderWidth: 1.5,
@@ -83,7 +118,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         padding: 14,
         fontSize: 15,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textPrimary,
     },
     inputCorrect: {
@@ -104,10 +139,10 @@ const styles = StyleSheet.create({
         gap: 8,
         alignItems: "center",
     },
-    feedbackLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+    feedbackLabel: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
     feedbackValue: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSuccess,
         flex: 1,
     },

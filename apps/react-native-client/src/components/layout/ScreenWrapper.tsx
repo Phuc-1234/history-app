@@ -6,6 +6,7 @@ import {
     ScrollView,
     StyleSheet,
     View,
+    StatusBar,
 } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,6 +30,9 @@ export interface BranchConfig {
     onBackPress?: () => void;
     onHomePress?: () => void;
     uppercaseHierarchy?: boolean;
+    hideBack?: boolean;
+    hideHome?: boolean;
+    rightElement?: React.ReactNode;
 }
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -158,10 +162,12 @@ function ScreenWithTopBar({
     const segments = useSegments() as string[];
     const insets = useSafeAreaInsets();
 
+    const showHeader = true;
     const isInTabs = segments.includes("(tabs)");
     const hasBottomEdge = safeAreaEdges ? safeAreaEdges.includes("bottom") : !isInTabs;
+    const hasTopEdge = safeAreaEdges ? safeAreaEdges.includes("top") : !showHeader;
     const resolvedEdges = (safeAreaEdges ?? (isInTabs ? ["top", "left", "right"] : ["top", "left", "right", "bottom"]))
-        .filter((edge) => edge !== "bottom");
+        .filter((edge) => edge !== "bottom" && (edge !== "top" || hasTopEdge)) as Edge[];
 
     return (
         <SafeAreaView
@@ -171,6 +177,11 @@ function ScreenWithTopBar({
             ]}
             edges={resolvedEdges}
         >
+            <StatusBar
+                barStyle="light-content"
+                translucent={true}
+                backgroundColor="transparent"
+            />
             <TopBar
                 data={data}
                 branchConfig={branchConfig}
@@ -183,7 +194,6 @@ function ScreenWithTopBar({
                     {children}
                 </ContentLayer>
             </View>
-
             {/* Streak / Reward modals */}
             <StreakCelebrationModal
                 visible={streakManager.celebrationVisible}
@@ -215,17 +225,19 @@ function ScreenWithoutTopBar({
     safeAreaEdges,
     backgroundColor,
     style,
-    showHistoricalBackground = true,
+    showHistoricalBackground = false,
     branchConfig,
     ...contentProps
 }: Omit<ScreenWrapperProps, "showTopBar">) {
     const segments = useSegments() as string[];
     const insets = useSafeAreaInsets();
 
+    const showHeader = !!branchConfig;
     const isInTabs = segments.includes("(tabs)");
     const hasBottomEdge = safeAreaEdges ? safeAreaEdges.includes("bottom") : !isInTabs;
+    const hasTopEdge = safeAreaEdges ? safeAreaEdges.includes("top") : !showHeader;
     const resolvedEdges = (safeAreaEdges ?? (isInTabs ? ["top", "left", "right"] : ["top", "left", "right", "bottom"]))
-        .filter((edge) => edge !== "bottom");
+        .filter((edge) => edge !== "bottom" && (edge !== "top" || hasTopEdge)) as Edge[];
 
     return (
         <SafeAreaView
@@ -235,6 +247,11 @@ function ScreenWithoutTopBar({
             ]}
             edges={resolvedEdges}
         >
+            <StatusBar
+                barStyle={showHeader ? "light-content" : "dark-content"}
+                translucent={showHeader}
+                backgroundColor={showHeader ? "transparent" : (backgroundColor ?? colors.background)}
+            />
             {branchConfig && (
                 <TopBar
                     showStatsBar={false}

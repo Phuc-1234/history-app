@@ -12,7 +12,7 @@ import {
     Dimensions,
     useWindowDimensions,
 } from "react-native";
-import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft } from "lucide-react-native";
+import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
 import Animated, {
@@ -25,12 +25,14 @@ import Animated, {
     Easing,
     withRepeat,
 } from "react-native-reanimated";
+import { useAppSelector } from "@/store/storeHook";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { CustomModal } from "@/components/Modal";
 import Mascot from "@/components/Mascot";
-import TestIntro from "./TestIntro";
+import TestIntro, { getScopePlaceholder } from "./TestIntro";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { colors } from "@/theme/colors";
+import typography from "@/theme/typography";
 import { useGetTestInfoQuery } from "../services/testApi";
 import ChooseQuestion from "./ChooseQuestion";
 import FillQuestion from "./FillQuestion";
@@ -136,15 +138,19 @@ function AnimatedTimerBadge({
 interface TestContainerV2Props {
     params: StartTestV2Request;
     onExit?: () => void;
+    skipIntro?: boolean;
 }
 
 export default function TestContainerV2({
     params,
     onExit,
+    skipIntro,
 }: TestContainerV2Props) {
     const { width } = useWindowDimensions();
     const runner = useTestRunnerV2(params);
     const router = useRouter();
+    const profile = useAppSelector((state) => state.auth.profile);
+    const [wasInitiallyLoggedIn] = useState(!!profile);
     const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(
         params,
         {
@@ -176,6 +182,12 @@ export default function TestContainerV2({
         getAnswerForQuestion,
         getEvalForQuestion,
     } = runner;
+
+    useEffect(() => {
+        if (skipIntro && status === "idle") {
+            actions.start();
+        }
+    }, [skipIntro, status, actions.start]);
 
     const practiceEarned = React.useMemo(() => {
         return Object.values(evaluations).reduce(
@@ -237,6 +249,11 @@ export default function TestContainerV2({
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [showPracticeConfirm, setShowPracticeConfirm] = useState(false);
     const [isListModalVisible, setIsListModalVisible] = useState(false);
+    const [showExplanationTooltip, setShowExplanationTooltip] = useState(false);
+
+    useEffect(() => {
+        setShowExplanationTooltip(false);
+    }, [currentIndex]);
 
     const handleBack = () => {
         if (status === "running") {
@@ -256,21 +273,44 @@ export default function TestContainerV2({
 
     const displayTitle =
         session?.testTitle ||
-        (params.purposeType === "EXAM" ? "Bài thi tự do" : "Luyện tập");
+        testInfo?.title ||
+        getScopePlaceholder(params.scopeType, params.purposeType);
     const branchConfig = {
         hierarchy:
             params.purposeType === "EXAM"
-                ? "KIỂM TRA > BÀI THI"
-                : "KIỂM TRA > LUYỆN TẬP",
+                ? "KIỂM TRA"
+                : "THỬ THÁCH",
         title: displayTitle,
         onBackPress: handleBack,
         onHomePress: handleBack,
     };
 
+    // ── Auth check ───────────────────────────────────────────────────
+    if (!profile) {
+        if (wasInitiallyLoggedIn) {
+            return null;
+        }
+        return (
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
+                <CustomModal
+                    visible={true}
+                    title="Yêu cầu đăng nhập"
+                    message="Bạn cần đăng nhập để làm bài kiểm tra. Đăng nhập ngay?"
+                    confirmText="Đăng nhập"
+                    cancelText="Hủy"
+                    onConfirm={() => router.push("/(1_auth)/1_1_login")}
+                    onCancel={handleBack}
+                    showMascot={true}
+                    mascotExpression="thinking"
+                />
+            </ScreenWrapper>
+        );
+    }
+
     // ── Error state ──────────────────────────────────────────────────
     if (status === "idle" && error) {
         return (
-            <ScreenWrapper branchConfig={branchConfig}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <View style={styles.centerContainer}>
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity
@@ -286,6 +326,16 @@ export default function TestContainerV2({
 
     // ── Exam Intro state ──────────────────────────────────────────────
     if (status === "idle") {
+        if (skipIntro) {
+            return (
+                <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
+                    <View style={styles.centerContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Đang tải bài luyện tập...</Text>
+                    </View>
+                </ScreenWrapper>
+            );
+        }
         return (
             <TestIntro
                 title={testInfo?.title}
@@ -301,6 +351,7 @@ export default function TestContainerV2({
                 passThreshold={testInfo?.passThreshold}
                 attemptCount={testInfo?.attemptCount}
                 passCount={testInfo?.passCount}
+                scopeType={params.scopeType}
             />
         );
     }
@@ -308,7 +359,7 @@ export default function TestContainerV2({
     // ── Loading state ────────────────────────────────────────────────
     if (status === "loading") {
         return (
-            <ScreenWrapper branchConfig={branchConfig}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={styles.loadingText}>
@@ -333,7 +384,7 @@ export default function TestContainerV2({
         );
 
         return (
-            <ScreenWrapper branchConfig={branchConfig}>
+            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
                 <ScrollView
                     style={styles.container}
                     contentContainerStyle={styles.scrollContent}
@@ -343,6 +394,7 @@ export default function TestContainerV2({
                         style={styles.resultCard}
                     >
                         <Mascot
+                            expression={!userTestLog.isPassed ? "sad" : undefined}
                             event={{
                                 type: "finish-test",
                                 score: parseFloat(scoreDisplay),
@@ -529,8 +581,39 @@ export default function TestContainerV2({
         : false;
     const showFeedback = purposeType === "PRACTICE" && !!evalResult;
 
+    const runningBranchConfig = {
+        ...branchConfig,
+        hideBack: true,
+        hideHome: true,
+        rightElement: (
+            <TouchableOpacity
+                style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 30,
+                    opacity: status === "submitting" ? 0.5 : 1,
+                }}
+                onPress={() => {
+                    if (status === "submitting") return;
+                    if (purposeType === "EXAM") {
+                        setShowSubmitConfirm(true);
+                    } else {
+                        setShowPracticeConfirm(true);
+                    }
+                }}
+                disabled={status === "submitting"}
+                activeOpacity={0.7}
+            >
+                <Text style={{ color: "#FFFFFF", fontFamily: typography.fonts.bold, fontSize: 14 }}>
+                    Nộp bài
+                </Text>
+            </TouchableOpacity>
+        ),
+    };
+
     return (
-        <ScreenWrapper branchConfig={branchConfig} showTopBar={false}>
+        <ScreenWrapper branchConfig={runningBranchConfig} showTopBar={false} showHistoricalBackground={false}>
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
@@ -593,21 +676,57 @@ export default function TestContainerV2({
                                         renderers={renderers}
                                     />
                                 </View>
-                                <View style={styles.pointPill}>
+                                <View style={[styles.pointPill, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
                                     <Text style={styles.pointPillText}>
                                         {(() => {
                                             const range =
                                                 getQuestionPointsRange(
                                                     currentQuestion,
                                                 );
+                                            const isChooseMulti =
+                                                currentQuestion.type === "CHOOSE" &&
+                                                !isSingleChoice(currentQuestion);
+                                            if (isChooseMulti) {
+                                                return `Tối đa ${formatScore(range.max)}đ`;
+                                            }
                                             if (range.isRange) {
                                                 return `${formatScore(range.min)} - ${formatScore(range.max)}đ`;
                                             }
                                             return `${formatScore(range.max)}đ`;
                                         })()}
                                     </Text>
+                                    {currentQuestion.type === "CHOOSE" &&
+                                        !isSingleChoice(currentQuestion) && (
+                                            <TouchableOpacity
+                                                onPress={() => setShowExplanationTooltip(!showExplanationTooltip)}
+                                                style={styles.helpIconContainer}
+                                                activeOpacity={0.7}
+                                            >
+                                                <HelpCircle size={13} color={colors.textSuccess} />
+                                            </TouchableOpacity>
+                                        )}
                                 </View>
                             </View>
+
+                            {showExplanationTooltip && (
+                                <View style={styles.tooltipBubble}>
+                                    <View style={styles.tooltipHeader}>
+                                        <Text style={styles.tooltipTitle}>Cách tính điểm chọn nhiều đáp án:</Text>
+                                        <TouchableOpacity
+                                            onPress={() => setShowExplanationTooltip(false)}
+                                            style={styles.tooltipCloseBtn}
+                                            activeOpacity={0.7}
+                                        >
+                                            <X size={14} color={colors.textSecondary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <Text style={styles.tooltipText}>
+                                        • Chọn đúng mỗi đáp án: cộng điểm (+Điểm tối đa / số đáp án đúng).{"\n"}
+                                        • Chọn sai mỗi đáp án: trừ điểm (-Điểm tối đa / số đáp án sai) để hạn chế đoán mò.{"\n"}
+                                        • Điểm tối thiểu cho câu hỏi là 0 điểm.
+                                    </Text>
+                                </View>
+                            )}
 
                             {/* Document (collapsible) */}
                             {currentQuestion.document && (
@@ -754,17 +873,6 @@ export default function TestContainerV2({
                                 )}
                             </View>
 
-                            <TouchableOpacity
-                                style={styles.listLink}
-                                onPress={() => setIsListModalVisible(true)}
-                                activeOpacity={0.7}
-                            >
-                                <Grid size={16} color={colors.textMuted} />
-                                <Text style={styles.listLinkText}>
-                                    Xem danh sách {totalCount} câu hỏi
-                                </Text>
-                            </TouchableOpacity>
-
                             <View style={styles.navButtonsRow}>
                                 <TouchableOpacity
                                     style={[
@@ -780,12 +888,16 @@ export default function TestContainerV2({
                                     </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={styles.submitBtn}
-                                    onPress={() => setShowSubmitConfirm(true)}
+                                    style={styles.navBtn}
+                                    onPress={() => setIsListModalVisible(true)}
+                                    activeOpacity={0.7}
                                 >
-                                    <Text style={styles.submitBtnText}>
-                                        Nộp bài
-                                    </Text>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                        <Grid size={14} color={colors.textSecondary} />
+                                        <Text style={styles.navBtnText}>
+                                            Danh sách
+                                        </Text>
+                                    </View>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[
@@ -863,25 +975,10 @@ export default function TestContainerV2({
                 {/* Submitting Status Modal Overlay */}
                 {status === "submitting" && (
                     <View style={styles.modalOverlay}>
-                        <View
-                            style={[
-                                styles.modalCard,
-                                { paddingVertical: 30, width: 250 },
-                            ]}
-                        >
-                            <ActivityIndicator
-                                size="large"
-                                color={colors.primary}
-                            />
-                            <Text
-                                style={[
-                                    styles.modalTitle,
-                                    { marginTop: 16, marginBottom: 0 },
-                                ]}
-                            >
-                                Đang nộp bài...
-                            </Text>
-                        </View>
+                        <ActivityIndicator
+                            size="large"
+                            color={colors.primary}
+                        />
                     </View>
                 )}
 
@@ -1032,22 +1129,22 @@ const commonTagsStyles = {
         textDecorationLine: "underline" as const,
     },
     strong: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
     b: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
     i: {
-        fontStyle: "italic" as const,
+        fontFamily: typography.fonts.italic,
     },
     em: {
-        fontStyle: "italic" as const,
+        fontFamily: typography.fonts.italic,
     },
     u: {
         textDecorationLine: "underline" as const,
     },
     th: {
-        fontWeight: "bold" as const,
+        fontFamily: typography.fonts.bold,
     },
 };
 
@@ -1055,7 +1152,7 @@ const promptTagsStyles = {
     body: {
         color: colors.textPrimary,
         fontSize: 16,
-        fontWeight: "700" as const,
+        fontFamily: typography.fonts.bold,
         lineHeight: 24,
     },
     p: {
@@ -1065,6 +1162,7 @@ const promptTagsStyles = {
     li: {
         color: colors.textPrimary,
         fontSize: 15,
+        fontFamily: typography.fonts.regular,
         lineHeight: 22,
     },
     ...commonTagsStyles,
@@ -1074,6 +1172,7 @@ const docTagsStyles = {
     body: {
         color: colors.textSecondary,
         fontSize: 14,
+        fontFamily: typography.fonts.regular,
         lineHeight: 22,
     },
     p: {
@@ -1083,6 +1182,7 @@ const docTagsStyles = {
     li: {
         color: colors.textSecondary,
         fontSize: 13,
+        fontFamily: typography.fonts.regular,
         lineHeight: 20,
     },
     ...commonTagsStyles,
@@ -1092,18 +1192,22 @@ const classesStyles = {
     "text-tiny": {
         fontSize: 10,
         lineHeight: 14,
+        fontFamily: typography.fonts.regular,
     },
     "text-small": {
         fontSize: 13,
         lineHeight: 18,
+        fontFamily: typography.fonts.regular,
     },
     "text-big": {
         fontSize: 20,
         lineHeight: 28,
+        fontFamily: typography.fonts.regular,
     },
     "text-huge": {
         fontSize: 24,
         lineHeight: 34,
+        fontFamily: typography.fonts.regular,
     },
 };
 
@@ -1182,12 +1286,12 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 15,
         color: colors.textMuted,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
     },
     errorText: {
         fontSize: 15,
         color: colors.textError,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         textAlign: "center",
         marginBottom: 16,
     },
@@ -1197,7 +1301,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingVertical: 12,
     },
-    retryBtnText: { color: colors.textLight, fontWeight: "700", fontSize: 14 },
+    retryBtnText: { color: colors.textLight, fontFamily: typography.fonts.bold, fontSize: 14 },
     scrollContent: { padding: 16, paddingBottom: 40 },
 
     // Header
@@ -1209,7 +1313,7 @@ const styles = StyleSheet.create({
         paddingBottom: 8,
     },
     headerLeft: { flex: 1, gap: 6 },
-    headerProgress: { fontSize: 13, fontWeight: "800", color: colors.primary },
+    headerProgress: { fontSize: 13, fontFamily: typography.fonts.extraBold, color: colors.primary },
     progressBar: {
         height: 4,
         backgroundColor: colors.borderMedium,
@@ -1227,7 +1331,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     timerWarning: { backgroundColor: colors.errorContainer },
-    timerText: { fontSize: 13, fontWeight: "800", color: colors.primary },
+    timerText: { fontSize: 13, fontFamily: typography.fonts.extraBold, color: colors.primary },
     timerTextWarning: { color: colors.textError },
 
     // Question
@@ -1235,7 +1339,7 @@ const styles = StyleSheet.create({
     questionContent: { padding: 16 },
     questionPrompt: {
         fontSize: 16,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textPrimary,
         lineHeight: 24,
         marginBottom: 16,
@@ -1251,13 +1355,14 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
     docToggle: { padding: 12 },
-    docToggleText: { fontSize: 13, fontWeight: "700", color: colors.primary },
+    docToggleText: { fontSize: 13, fontFamily: typography.fonts.bold, color: colors.primary },
     docText: {
         fontSize: 14,
         color: colors.textSecondary,
         lineHeight: 22,
         padding: 12,
         paddingTop: 0,
+        fontFamily: typography.fonts.regular,
     },
 
     // Explanation
@@ -1270,7 +1375,7 @@ const styles = StyleSheet.create({
     },
     explanationLabel: {
         fontSize: 12,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textSuccess,
         marginBottom: 4,
     },
@@ -1278,6 +1383,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.textSuccess,
         lineHeight: 20,
+        fontFamily: typography.fonts.regular,
     },
 
     // Footer
@@ -1300,7 +1406,7 @@ const styles = StyleSheet.create({
     navBtnDisabled: { opacity: 0.4 },
     navBtnText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSecondary,
     },
     submitBtn: {
@@ -1310,7 +1416,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         alignItems: "center",
     },
-    submitBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
+    submitBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textLight },
     nextBtn: {
         flex: 1,
         backgroundColor: colors.primary,
@@ -1319,9 +1425,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     nextBtnDisabled: { opacity: 0.4 },
-    nextBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
+    nextBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textLight },
     blockIndicatorsRow: {
         flexDirection: "row",
+        flexWrap: "wrap",
         justifyContent: "center",
         gap: 5,
         marginTop: 4,
@@ -1353,7 +1460,7 @@ const styles = StyleSheet.create({
     },
     listLinkText: {
         fontSize: 13,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textMuted,
     },
     drawerOverlay: {
@@ -1388,7 +1495,7 @@ const styles = StyleSheet.create({
     },
     modalDrawerTitle: {
         fontSize: 18,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
     },
     modalCloseButton: {
@@ -1401,7 +1508,7 @@ const styles = StyleSheet.create({
     },
     modalCloseText: {
         fontSize: 12,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textMuted,
     },
     modalDrawerGrid: {
@@ -1430,7 +1537,7 @@ const styles = StyleSheet.create({
     },
     gridItemTextDrawer: {
         fontSize: 16,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textMuted,
     },
     gridItemTextAnsweredDrawer: {
@@ -1451,22 +1558,22 @@ const styles = StyleSheet.create({
     resultEmoji: { fontSize: 48, marginBottom: 8 },
     resultTitle: {
         fontSize: 22,
-        fontWeight: "900",
+        fontFamily: typography.fonts.black,
         color: colors.textPrimary,
         marginBottom: 8,
     },
     scoreRow: { flexDirection: "row", alignItems: "baseline" },
-    scoreValue: { fontSize: 48, fontWeight: "900", color: colors.primary },
+    scoreValue: { fontSize: 48, fontFamily: typography.fonts.black, color: colors.primary },
     scoreMax: {
         fontSize: 20,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textMuted,
         marginLeft: 2,
     },
     resultSubtext: {
         fontSize: 14,
         color: colors.textMuted,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         marginTop: 4,
     },
     consequencesBlock: {
@@ -1490,7 +1597,7 @@ const styles = StyleSheet.create({
     },
     rewardChipXp: { backgroundColor: colors.primary },
     rewardChipGold: { backgroundColor: colors.gold },
-    rewardChipText: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
+    rewardChipText: { fontSize: 12, fontFamily: typography.fonts.bold, color: "#FFFFFF" },
     milestoneRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -1502,7 +1609,7 @@ const styles = StyleSheet.create({
     },
     milestoneText: {
         fontSize: 12,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textWarning,
     },
     streakRow: {
@@ -1510,7 +1617,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 4,
     },
-    streakText: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
+    streakText: { fontSize: 12, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
     resultActions: { gap: 10, marginBottom: 24 },
     redoBtn: {
         backgroundColor: colors.warning,
@@ -1518,7 +1625,7 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         alignItems: "center",
     },
-    redoBtnText: { fontSize: 14, fontWeight: "700", color: colors.textLight },
+    redoBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textLight },
     restartBtn: {
         backgroundColor: colors.primary,
         borderRadius: 30,
@@ -1527,7 +1634,7 @@ const styles = StyleSheet.create({
     },
     restartBtnText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textLight,
     },
     exitBtn: {
@@ -1541,7 +1648,7 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         borderColor: colors.primary,
     },
-    exitBtnText: { fontSize: 14, fontWeight: "700", color: colors.primary },
+    exitBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.primary },
     viewDetailsBtn: {
         backgroundColor: colors.surface,
         borderRadius: 30,
@@ -1552,14 +1659,14 @@ const styles = StyleSheet.create({
     },
     viewDetailsBtnText: {
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.primary,
     },
 
     // Review
     sectionTitle: {
         fontSize: 16,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
         marginBottom: 12,
     },
@@ -1579,7 +1686,7 @@ const styles = StyleSheet.create({
     },
     reviewIndex: {
         fontSize: 12,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPlaceholder,
     },
     reviewBadge: {
@@ -1589,12 +1696,12 @@ const styles = StyleSheet.create({
     },
     badgeCorrect: { backgroundColor: colors.successContainer },
     badgeWrong: { backgroundColor: colors.errorContainer },
-    reviewBadgeText: { fontSize: 11, fontWeight: "800" },
+    reviewBadgeText: { fontSize: 11, fontFamily: typography.fonts.extraBold },
     badgeTextCorrect: { color: colors.textSuccess },
     badgeTextWrong: { color: colors.textError },
     reviewQuestion: {
         fontSize: 14,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
         lineHeight: 20,
     },
@@ -1624,7 +1731,7 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 18,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textPrimary,
         marginBottom: 10,
     },
@@ -1649,7 +1756,7 @@ const styles = StyleSheet.create({
     },
     modalCancelText: {
         fontSize: 15,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSecondary,
     },
     modalConfirmBtn: {
@@ -1661,7 +1768,7 @@ const styles = StyleSheet.create({
     },
     modalConfirmText: {
         fontSize: 15,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textLight,
     },
     optionsList: { gap: 8, marginTop: 8 },
@@ -1680,7 +1787,7 @@ const styles = StyleSheet.create({
         borderColor: colors.error,
         backgroundColor: colors.errorContainer,
     },
-    optText: { fontSize: 14, fontWeight: "600", color: colors.textSecondary },
+    optText: { fontSize: 14, fontFamily: typography.fonts.semiBold, color: colors.textSecondary },
     optTextCorrect: { color: colors.textSuccess },
     optTextWrong: { color: colors.textError },
     fillContainer: {
@@ -1695,8 +1802,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
     },
-    fillLabel: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-    fillValue: { fontSize: 14, fontWeight: "700" },
+    fillLabel: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textMuted },
+    fillValue: { fontSize: 14, fontFamily: typography.fonts.bold },
     textGreen: { color: colors.success },
     textRed: { color: colors.error },
     matchContainer: { gap: 8, marginTop: 8 },
@@ -1712,12 +1819,12 @@ const styles = StyleSheet.create({
     },
     matchCorrect: { borderColor: colors.success },
     matchWrong: { borderColor: colors.error },
-    matchText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary },
-    matchArrow: { fontSize: 14, color: colors.textMuted },
+    matchText: { fontSize: 13, fontFamily: typography.fonts.semiBold, color: colors.textSecondary },
+    matchArrow: { fontSize: 14, fontFamily: typography.fonts.regular, color: colors.textMuted },
     matchCorrectHint: {
         fontSize: 11,
         color: colors.success,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
     },
     explBox: {
         marginTop: 12,
@@ -1728,11 +1835,11 @@ const styles = StyleSheet.create({
     },
     explLabel: {
         fontSize: 12,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textSuccess,
         marginBottom: 4,
     },
-    explText: { fontSize: 13, color: colors.textSuccess, lineHeight: 20 },
+    explText: { fontSize: 13, fontFamily: typography.fonts.regular, color: colors.textSuccess, lineHeight: 20 },
     scoreBadge: {
         backgroundColor: colors.successContainer,
         borderRadius: 5,
@@ -1741,18 +1848,18 @@ const styles = StyleSheet.create({
     },
     scoreBadgeText: {
         fontSize: 13,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
         color: colors.textSuccess,
     },
     possiblePointsText: {
         fontSize: 13,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.textMuted,
         marginBottom: 16,
     },
     diffPointsText: {
         fontSize: 14,
-        fontWeight: "900",
+        fontFamily: typography.fonts.black,
         color: colors.success,
     },
     promptHeader: {
@@ -1771,8 +1878,39 @@ const styles = StyleSheet.create({
     },
     pointPillText: {
         fontSize: 11,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
         color: colors.textSuccess,
+    },
+    helpIconContainer: {
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    tooltipBubble: {
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 8,
+        marginBottom: 12,
+    },
+    tooltipHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    tooltipTitle: {
+        fontSize: 13,
+        fontFamily: typography.fonts.medium,
+        color: colors.primary,
+    },
+    tooltipText: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        lineHeight: 18,
+        fontFamily: typography.fonts.light,
+    },
+    tooltipCloseBtn: {
+        padding: 2,
     },
     feedbackDrawer: {
         position: "absolute",
@@ -1791,7 +1929,7 @@ const styles = StyleSheet.create({
     },
     feedbackDrawerTitle: {
         fontSize: 16,
-        fontWeight: "500",
+        fontFamily: typography.fonts.medium,
         textAlign: "center",
         marginBottom: 8,
     },
@@ -1809,7 +1947,7 @@ const styles = StyleSheet.create({
     },
     feedbackDrawerText: {
         fontSize: 14,
-        fontWeight: "300",
+        fontFamily: typography.fonts.light,
         lineHeight: 20,
     },
     feedbackDrawerTextCorrect: {

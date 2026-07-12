@@ -4,6 +4,8 @@ import { adminService } from "../services/adminService";
 import { prisma } from "@history-app/shared";
 import { aiService } from "../services/aiService";
 import { contentService } from "../services/contentService";
+import fs from "fs";
+import { videoProcessingService, activeTranscodes } from "../services/videoProcessingService";
 import {
     CreateGradeBody,
     UpdateGradeBody,
@@ -279,11 +281,11 @@ export const createNode = async (
     res: Response<AdminNodeResponse>,
 ) => {
     try {
-        const { position, body, sectionId, header, imgUrl } = req.body;
+        const { position, body, sectionId, header, imgUrl, videoId } = req.body;
         if (!body || position === undefined || !sectionId) {
             return res.status(400).json({ error: "body, position, and sectionId are required." });
         }
-        const node = await adminService.createNode({ position, header, body, imgUrl, sectionId });
+        const node = await adminService.createNode({ position, header, body, imgUrl, sectionId, videoId });
         return res.status(201).json(node);
     } catch (err: any) {
         if (err.code === "P2003") {
@@ -375,7 +377,14 @@ export const listVideos = async (req: Request, res: Response) => {
             return res.status(400).json({ error: "Invalid lessonId query parameter." });
         }
         const videos = await adminService.listVideos(lessonId);
-        return res.status(200).json({ videos });
+        
+        // Chèn thêm tiến độ transcode từ in-memory map vào response trả về
+        const videosWithProgress = videos.map(v => ({
+            ...v,
+            transcodeProgress: activeTranscodes.get(v.id) ?? null
+        }));
+
+        return res.status(200).json({ videos: videosWithProgress });
     } catch (err) {
         console.error("List videos error:", err);
         return res.status(500).json({ error: "Failed to list videos." });
@@ -384,9 +393,9 @@ export const listVideos = async (req: Request, res: Response) => {
 
 export const createVideo = async (req: Request<{}, any, CreateVideoBody>, res: Response) => {
     try {
-        const { title, position, lessonId, hlsUrl } = req.body;
-        if (!title || position === undefined || !lessonId || !hlsUrl) {
-            return res.status(400).json({ error: "title, position, lessonId, and hlsUrl are required." });
+        const { title, hlsUrl } = req.body;
+        if (!title || !hlsUrl) {
+            return res.status(400).json({ error: "title and hlsUrl are required." });
         }
         const video = await adminService.createVideo(req.body);
         return res.status(201).json(video);
@@ -396,6 +405,64 @@ export const createVideo = async (req: Request<{}, any, CreateVideoBody>, res: R
         }
         console.error("Create video error:", err);
         return res.status(500).json({ error: "Failed to create video." });
+    }
+};
+
+export const uploadVideo = async (req: Request, res: Response) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: "No video file provided." });
+        }
+
+        const { title, summary } = req.body;
+        const position = req.body.position !== undefined ? Number(req.body.position) : 0;
+        const lessonId = req.body.lessonId !== undefined ? Number(req.body.lessonId) : null;
+
+        if (!title || lessonId === null || Number.isNaN(lessonId)) {
+            if (fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
+            }
+            return res.status(400).json({ error: "title and lessonId are required." });
+        }
+
+        // Tạo bản ghi Video trong DB với trạng thái PROCESSING
+        const video = await prisma.video.create({
+            data: {
+                title,
+                position: Number.isNaN(position) ? 0 : position,
+                summary: summary || null,
+                hlsUrl: "processing", // Sẽ cập nhật sau khi transcode xong
+                lessonId,
+                status: "PROCESSING",
+            },
+        });
+
+        // Chạy FFmpeg và upload R2 ngầm ở background
+        videoProcessingService
+            .processVideoInBackground(video.id, file.path, title)
+            .catch((bgErr) => {
+                console.error(`Background processing trigger failed for video ${video.id}:`, bgErr);
+            });
+
+        return res.status(201).json({
+            id: video.id,
+            title: video.title,
+            position: video.position,
+            summary: video.summary ?? null,
+            hlsUrl: video.hlsUrl,
+            status: video.status,
+            lessonId: video.lessonId,
+        });
+
+    } catch (err: any) {
+        if (req.file && fs.existsSync(req.file.path)) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch {}
+        }
+        console.error("Upload video error:", err);
+        return res.status(500).json({ error: "Failed to upload video." });
     }
 };
 
