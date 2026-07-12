@@ -42,6 +42,8 @@ import {
     CreateRewardRuleBody,
     UpdateRewardRuleBody,
     RewardRuleDto,
+    CreateItemDefinitionBody,
+    UpdateItemDefinitionBody,
 } from "@history-app/shared";
 
 // ─────────────────────────────── GRADE ────────────────────────────────────────
@@ -1011,5 +1013,62 @@ export const deleteRewardRule = async (req: Request<{ id: string }>, res: Respon
         return res.status(500).json({ error: "Failed to delete reward rule." });
     }
 };
+
+// ─────────────────────────────── ITEM DEFINITIONS ──────────────────────────────
+
+export const listItemDefinitions = async (req: Request, res: Response) => {
+    try {
+        const items = await adminService.listItemDefinitions();
+        return res.status(200).json({ items });
+    } catch (err) {
+        console.error("List item definitions error:", err);
+        return res.status(500).json({ error: "Failed to list item definitions." });
+    }
+};
+
+export const createItemDefinition = async (req: Request<{}, any, CreateItemDefinitionBody>, res: Response) => {
+    try {
+        const { name, isConsumable, type } = req.body;
+        if (!name || isConsumable === undefined || !type) {
+            return res.status(400).json({ error: "name, isConsumable, and type are required." });
+        }
+        const item = await adminService.createItemDefinition(req.body);
+        return res.status(201).json(item);
+    } catch (err) {
+        console.error("Create item definition error:", err);
+        return res.status(500).json({ error: "Failed to create item definition." });
+    }
+};
+
+export const updateItemDefinition = async (req: Request<{ id: string }, any, UpdateItemDefinitionBody>, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid item definition ID." });
+        }
+        const item = await adminService.updateItemDefinition(id, req.body);
+        if (!item) return res.status(404).json({ error: "Item definition not found." });
+        return res.status(200).json(item);
+    } catch (err) {
+        console.error("Update item definition error:", err);
+        return res.status(500).json({ error: "Failed to update item definition." });
+    }
+};
+
+export const deleteItemDefinition = async (req: Request<{ id: string }>, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid item definition ID." });
+        }
+        const deleted = await adminService.deleteItemDefinition(id);
+        if (!deleted) return res.status(404).json({ error: "Item definition not found." });
+        return res.status(200).json({ message: "Item definition deleted successfully." });
+    } catch (err) {
+        console.error("Delete item definition error:", err);
+        return res.status(500).json({ error: "Failed to delete item definition." });
+    }
+};
+
 
 

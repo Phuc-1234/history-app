@@ -14,6 +14,7 @@ export interface ProgressConsequence {
     message: string;
     xpGained?: number;
     goldGained?: number;
+    itemsGained?: { name: string; imgUrl: string | null; quantity: number }[];
     payload?: Record<string, any>;
 }
 
