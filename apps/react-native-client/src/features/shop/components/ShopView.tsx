@@ -9,6 +9,7 @@ import {
     View,
     Modal,
     useWindowDimensions,
+    ActivityIndicator,
 } from "react-native";
 import { useShop, ShopItem } from "../hooks/useShop";
 import { useRouter } from "expo-router";
@@ -23,6 +24,7 @@ export const ShopView: React.FC = () => {
         selectedItem,
         setSelectedItem,
         handlePurchase,
+        isLoading,
     } = useShop();
 
     const { width } = useWindowDimensions();
@@ -80,35 +82,41 @@ export const ShopView: React.FC = () => {
                 </View>
 
                 {/* 2-Column Store Products Grid Matrix */}
-                <View style={styles.gridContainer}>
-                    {filteredItems.map((item) => (
-                        <TouchableOpacity
-                            key={item.id}
-                            activeOpacity={0.8}
-                            style={[styles.productCell, { width: itemWidth }]}
-                            onPress={() => setSelectedItem(item)}
-                        >
-                            <View style={styles.thumbnailWrapper}>
-                                <Image
-                                    source={{ uri: item.imageUrl }}
-                                    style={styles.cellImage}
-                                />
-                                <Text style={styles.fallbackBoxIcon}>📦</Text>
-                            </View>
-                            <View style={styles.cellFooter}>
-                                <Text style={styles.cellName} numberOfLines={1}>
-                                    {item.name}
-                                </Text>
-                                <View style={styles.coinCostRow}>
-                                    <Text style={styles.coinMiniIcon}>🪙</Text>
-                                    <Text style={styles.coinCostText}>
-                                        {item.cost.toLocaleString()}
-                                    </Text>
+                {isLoading ? (
+                    <ActivityIndicator size="large" color="#4E3FE0" style={{ marginTop: 24 }} />
+                ) : filteredItems.length === 0 ? (
+                    <Text style={{ textAlign: "center", color: "#666", marginTop: 24 }}>Không tìm thấy vật phẩm nào.</Text>
+                ) : (
+                    <View style={styles.gridContainer}>
+                        {filteredItems.map((item) => (
+                            <TouchableOpacity
+                                key={item.id}
+                                activeOpacity={0.8}
+                                style={[styles.productCell, { width: itemWidth }]}
+                                onPress={() => setSelectedItem(item)}
+                            >
+                                <View style={styles.thumbnailWrapper}>
+                                    <Image
+                                        source={{ uri: item.imageUrl }}
+                                        style={styles.cellImage}
+                                    />
+                                    <Text style={styles.fallbackBoxIcon}>📦</Text>
                                 </View>
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                                <View style={styles.cellFooter}>
+                                    <Text style={styles.cellName} numberOfLines={1}>
+                                        {item.name}
+                                    </Text>
+                                    <View style={styles.coinCostRow}>
+                                        <Text style={styles.coinMiniIcon}>🪙</Text>
+                                        <Text style={styles.coinCostText}>
+                                            {item.cost.toLocaleString()}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </ScrollView>
 
             {/* Dynamic Native Overlay Modal view sheet */}

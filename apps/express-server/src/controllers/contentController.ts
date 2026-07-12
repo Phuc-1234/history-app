@@ -21,7 +21,7 @@ export const getAllGrades = async (
     res: Response<GetGradesResponse>,
 ) => {
     try {
-        const grades = await contentService.getAllGrades();
+        const grades = await contentService.getAllGrades(req.user?.id);
         return res.status(200).json({ grades });
     } catch (err) {
         console.error("Fetch grades error:", err);
@@ -38,7 +38,7 @@ export const getTopicsByGrade = async (
         if (Number.isNaN(gradeId))
             return res.status(400).json({ error: "Invalid gradeId" });
 
-        const topics = await contentService.getTopicsByGrade(gradeId);
+        const topics = await contentService.getTopicsByGrade(gradeId, req.user?.id);
         return res.status(200).json({ topics });
     } catch (err) {
         console.error("Fetch topics error:", err);
@@ -55,7 +55,7 @@ export const getLessonsByTopic = async (
         if (Number.isNaN(topicId))
             return res.status(400).json({ error: "Invalid topicId" });
 
-        const lessons = await contentService.getLessonsByTopic(topicId);
+        const lessons = await contentService.getLessonsByTopic(topicId, req.user?.id);
         return res.status(200).json({ lessons });
     } catch (err) {
         console.error("Fetch lessons error:", err);
@@ -91,7 +91,7 @@ export const getSectionsByLesson = async (
         if (Number.isNaN(lessonId))
             return res.status(400).json({ error: "Invalid lessonId" });
 
-        const sections = await contentService.getSectionsByLesson(lessonId);
+        const sections = await contentService.getSectionsByLesson(lessonId, req.user?.id);
         return res.status(200).json({ sections });
     } catch (err) {
         console.error("Fetch sections error:", err);
@@ -172,7 +172,7 @@ export const getNodesBySection = async (
         if (Number.isNaN(sectionId))
             return res.status(400).json({ error: "Invalid sectionId" });
 
-        const nodes = await contentService.getNodesBySection(sectionId);
+        const nodes = await contentService.getNodesBySection(sectionId, req.user?.id);
         return res.status(200).json({ nodes });
     } catch (err) {
         console.error("Fetch nodes error:", err);

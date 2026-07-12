@@ -8,6 +8,7 @@ import {
     RefreshControl,
     TextInput,
     TouchableOpacity,
+    Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Book } from "lucide-react-native";
@@ -21,12 +22,19 @@ import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import FeedbackModal from "../../../components/FeedbackModal";
 
+import {
+    useGetTopicsByGradeQuery,
+    useGetLessonsByTopicQuery,
+    useGetSectionsByLessonQuery,
+} from "../contentApiSlice";
+import { SlidingTabBar } from "../../../components/SlidingTabBar";
 
 interface LessonMenuProps {
     selectedGrade: number;
     onLessonPress: (id: number) => void;
     onMindmapPress: (topicId: number) => void;
     onTestPress: (scopeType: string, scopeId: number) => void;
+    onPracticePress: (options: { scopeType: string; scopeId: number; questionCount: number; autoPickStrategy: string }) => void;
 }
 
 /** Small progress ring at the end of the card */
@@ -116,27 +124,202 @@ function matchesTopicOrLesson(name: string, position: number, prefix: string, qu
     return false;
 }
 
+function TopicMasteryItem({ topic }: { topic: any }) {
+    const [expanded, setExpanded] = useState(false);
+    const pct = topic.masteryPercentage ?? 0;
+    return (
+        <View style={styles.masteryItemWrapper}>
+            <TouchableOpacity onPress={() => setExpanded(!expanded)} style={styles.masteryItemHeader} activeOpacity={0.7}>
+                <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={16} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={styles.masteryItemText} numberOfLines={2}>
+                    Chủ đề {topic.position}: {topic.name}
+                </Text>
+                <Text style={styles.masteryItemPct}>{pct}%</Text>
+            </TouchableOpacity>
+            {expanded && <LessonMasteryList topicId={topic.id} />}
+        </View>
+    );
+}
+
+function LessonMasteryList({ topicId }: { topicId: number }) {
+    const { data, isLoading } = useGetLessonsByTopicQuery(topicId);
+    if (isLoading) return <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 8 }} />;
+    if (!data?.lessons || data.lessons.length === 0) return null;
+    return (
+        <View style={styles.masterySubList}>
+            {data.lessons.map((lesson) => (
+                <LessonMasteryItem key={lesson.id} lesson={lesson} />
+            ))}
+        </View>
+    );
+}
+
+function LessonMasteryItem({ lesson }: { lesson: any }) {
+    const [expanded, setExpanded] = useState(false);
+    const pct = lesson.masteryPercentage ?? 0;
+    return (
+        <View style={styles.masteryItemWrapper}>
+            <TouchableOpacity onPress={() => setExpanded(!expanded)} style={[styles.masteryItemHeader, { paddingLeft: 12 }]} activeOpacity={0.7}>
+                <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={[styles.masteryItemText, { fontSize: 13, fontFamily: typography.fonts.semiBold }]} numberOfLines={2}>
+                    Bài {lesson.position}: {lesson.name}
+                </Text>
+                <Text style={[styles.masteryItemPct, { fontSize: 13 }]}>{pct}%</Text>
+            </TouchableOpacity>
+            {expanded && <SectionMasteryList lessonId={lesson.id} />}
+        </View>
+    );
+}
+
+function SectionMasteryList({ lessonId }: { lessonId: number }) {
+    const { data, isLoading } = useGetSectionsByLessonQuery(lessonId);
+    if (isLoading) return <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 8 }} />;
+    if (!data?.sections || data.sections.length === 0) return null;
+    return (
+        <View style={styles.masterySubList}>
+            {data.sections.map((section) => (
+                <SectionMasteryItem key={section.id} section={section} />
+            ))}
+        </View>
+    );
+}
+
+function SectionMasteryItem({ section }: { section: any }) {
+    const [expanded, setExpanded] = useState(false);
+    const hasChildren = (section.children && section.children.length > 0) || (section.nodes && section.nodes.length > 0);
+    const pct = section.masteryPercentage ?? 0;
+    return (
+        <View style={styles.masteryItemWrapper}>
+            <TouchableOpacity 
+                onPress={() => hasChildren && setExpanded(!expanded)} 
+                style={[styles.masteryItemHeader, { paddingLeft: 24 }]} 
+                activeOpacity={0.7}
+                disabled={!hasChildren}
+            >
+                {hasChildren ? (
+                    <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                ) : (
+                    <View style={{ width: 16 }} />
+                )}
+                <Text style={[styles.masteryItemText, { fontSize: 12, fontFamily: typography.fonts.regular }]} numberOfLines={2}>
+                    Mục: {section.name}
+                </Text>
+                <Text style={[styles.masteryItemPct, { fontSize: 12 }]}>{pct}%</Text>
+            </TouchableOpacity>
+            {expanded && (
+                <View style={styles.masterySubList}>
+                    {section.children?.map((child: any) => (
+                        <SectionMasteryItem key={child.id} section={child} />
+                    ))}
+                    {section.nodes?.map((node: any) => (
+                        <NodeMasteryItem key={node.id} node={node} />
+                    ))}
+                </View>
+            )}
+        </View>
+    );
+}
+
+function NodeMasteryItem({ node }: { node: any }) {
+    const pct = node.masteryPercentage ?? 0;
+    return (
+        <View style={[styles.masteryItemHeader, { paddingLeft: 36 }]}>
+            <Ionicons name="document-text-outline" size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
+            <Text style={[styles.masteryItemText, { fontSize: 12, fontFamily: typography.fonts.regular, color: colors.textSecondary }]} numberOfLines={2}>
+                Nội dung: {node.header || "Nội dung học"}
+            </Text>
+            <Text style={[styles.masteryItemPct, { fontSize: 12, color: colors.textSecondary }]}>{pct}%</Text>
+        </View>
+    );
+}
+
 export function LessonMenu({
     selectedGrade,
     onLessonPress,
     onMindmapPress,
     onTestPress,
+    onPracticePress,
 }: LessonMenuProps) {
     const router = useRouter();
     const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
     const {
         topics,
         finalTestPassed,
+        gradeProgress,
         loading,
         refetch,
         isFetching,
+        wrongQuestionCount,
+        answeredQuestionCount,
     } = useLessonMenu(selectedGrade);
+
+    const [isMasteryModalVisible, setIsMasteryModalVisible] = useState(false);
+    const { data: topicsMasteryData, isLoading: loadingMastery } = useGetTopicsByGradeQuery(selectedGrade, { skip: !isMasteryModalVisible });
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [collapsedTopics, setCollapsedTopics] = useState<Record<number, boolean>>({});
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
 
+
+    const TABS = [
+        { key: "HOC_PHAN", label: "Học phần" },
+        { key: "LUYEN_TAP", label: "Luyện tập" }
+    ];
+    const [activeTab, setActiveTab] = useState("HOC_PHAN");
+    const [practiceCount, setPracticeCount] = useState(10);
+    const [wrongPracticeCount, setWrongPracticeCount] = useState(10);
+
+    const wrongOptions = React.useMemo(() => {
+        if (wrongQuestionCount <= 10) return [];
+        const opts = [10];
+        if (wrongQuestionCount > 20) opts.push(20);
+        if (wrongQuestionCount > 30) opts.push(30);
+        if (!opts.includes(wrongQuestionCount)) opts.push(wrongQuestionCount);
+        return opts;
+    }, [wrongQuestionCount]);
+
+    const practiceOptions = React.useMemo(() => {
+        const n = answeredQuestionCount;
+        const options: { value: number; label: string }[] = [];
+        let addedAll = false;
+
+        for (const count of [10, 20, 30]) {
+            if (count < n) {
+                options.push({ value: count, label: String(count) });
+            } else if (count === n) {
+                options.push({ value: count, label: `Tất cả (${n})` });
+                addedAll = true;
+            } else {
+                if (!addedAll) {
+                    options.push({ value: n, label: `Tất cả (${n})` });
+                    addedAll = true;
+                }
+            }
+        }
+        return options;
+    }, [answeredQuestionCount]);
+
+    React.useEffect(() => {
+        if (wrongQuestionCount <= 10) {
+            setWrongPracticeCount(wrongQuestionCount);
+        } else {
+            if (!wrongOptions.includes(wrongPracticeCount)) {
+                setWrongPracticeCount(wrongOptions[0] || 10);
+            }
+        }
+    }, [wrongQuestionCount, wrongOptions]);
+
+    React.useEffect(() => {
+        if (answeredQuestionCount <= 10) {
+            setPracticeCount(answeredQuestionCount);
+        } else {
+            const optionValues = practiceOptions.map(o => o.value);
+            if (!optionValues.includes(practiceCount)) {
+                setPracticeCount(optionValues[0] || 10);
+            }
+        }
+    }, [answeredQuestionCount, practiceOptions]);
 
     const toggleTopic = (topicId: number) => {
         setCollapsedTopics((prev) => ({
@@ -177,6 +360,12 @@ export function LessonMenu({
     }, [selectedGrade, searchQuery]);
 
     const overallStats = React.useMemo(() => {
+        if (gradeProgress) {
+            return {
+                completed: gradeProgress.completedNodes,
+                total: gradeProgress.totalNodes,
+            };
+        }
         let total = 0;
         let completed = 0;
         topics.forEach((topic) => {
@@ -189,7 +378,7 @@ export function LessonMenu({
             });
         });
         return { completed, total };
-    }, [topics]);
+    }, [topics, gradeProgress]);
 
     const overallProgress = overallStats.total > 0 ? overallStats.completed / overallStats.total : 0;
     const progressPercentage = Math.round(overallProgress * 100);
@@ -236,19 +425,41 @@ export function LessonMenu({
                                     <Ionicons name="book" size={32} color={themeColor} />
                                 </View>
                                 <View style={styles.gradeProgressRight}>
-                                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                                        <Text style={[styles.gradeTitleText, { flex: 1, marginBottom: 0 }]}>
-                                            Lịch sử lớp {selectedGrade}
-                                        </Text>
-                                        <TouchableOpacity
-                                            onPress={() => setFeedbackModalVisible(true)}
-                                            style={styles.flagButton}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
-                                        </TouchableOpacity>
-                                    </View>
+                                   <View
+    style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    }}
+>
+    <Text style={[styles.gradeTitleText, { flex: 1, marginBottom: 0 }]}>
+        Lớp {selectedGrade}
+    </Text>
 
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <TouchableOpacity
+            style={[styles.masteryBadgeButton, { backgroundColor: themeColor }]}
+            onPress={() => setIsMasteryModalVisible(true)}
+            activeOpacity={0.8}
+        >
+            <Ionicons name="ribbon-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+            onPress={() => setFeedbackModalVisible(true)}
+            style={styles.flagButton}
+            activeOpacity={0.7}
+        >
+            <Ionicons
+                name="flag-outline"
+                size={20}
+                color={colors.textSecondary}
+            />
+        </TouchableOpacity>
+    </View>
+</View>
                                     <View style={styles.topProgressWrapper}>
                                         <View style={styles.topProgressTrack}>
                                             <View
@@ -294,148 +505,290 @@ export function LessonMenu({
                                 </View>
                             </Card>
 
-                            {/* Search Container moved beneath the layout inside ScrollView */}
-                            <View style={styles.searchContainer}>
-                                <TextInput
-                                    style={[
-                                        styles.searchInput,
-                                        isSearchFocused && styles.searchInputFocused
-                                    ]}
-                                    placeholder="Tìm kiếm bài học..."
-                                    placeholderTextColor={colors.textPlaceholder}
-                                    value={searchQuery}
-                                    onChangeText={setSearchQuery}
-                                    underlineColorAndroid="transparent"
-                                    onFocus={() => setIsSearchFocused(true)}
-                                    onBlur={() => setIsSearchFocused(false)}
+                            <View style={{ marginBottom: 16 }}>
+                                <SlidingTabBar
+                                    tabs={TABS}
+                                    activeTab={activeTab}
+                                    onChangeTab={setActiveTab}
                                 />
                             </View>
 
-                            {filteredTopics.map((topic) => {
-                                const isCollapsed = !!collapsedTopics[topic.id];
-
-                                return (
-                                    <View key={topic.id} style={styles.topicWrapper}>
-                                        {/* Interactive collapsible topic header */}
-                                        <TouchableOpacity
-                                            style={styles.topicDivider}
-                                            onPress={() => toggleTopic(topic.id)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Text style={styles.topicDividerText} numberOfLines={2}>
-                                                Chủ đề {topic.position}: {topic.name}
-                                            </Text>
-                                            <Ionicons
-                                                name={isCollapsed ? "chevron-down" : "chevron-up"}
-                                                size={18}
-                                                color={colors.textMuted}
-                                            />
-                                        </TouchableOpacity>
-
-                                        {/* Collapsible content */}
-                                        {!isCollapsed && (
-                                            <View style={styles.lessonList}>
-                                                {topic.lessons.map((lesson) => {
-                                                    const lessonAny = lesson as any;
-                                                    const lessonPct =
-                                                        lessonAny.progress != null &&
-                                                        lessonAny.progress.totalNodes > 0
-                                                            ? lessonAny.progress.completedNodes /
-                                                              lessonAny.progress.totalNodes
-                                                            : 0;
-                                                    const isDone = lessonPct >= 1;
-
-                                                    return (
-                                                        <Card
-                                                            key={lesson.id}
-                                                            variant="grayBorder"
-                                                            style={styles.lessonCard}
-                                                            onPress={() => onLessonPress(lesson.id)}
-                                                        >
-                                                            <View style={styles.cardTextContainer}>
-                                                                <Text style={styles.lessonCardTitle}>
-                                                                    Bài {lesson.position}:{" "}
-                                                                    <Text style={styles.lessonNameText}>{lesson.name}</Text>
-                                                                </Text>
-                                                            </View>
-                                                            <View style={styles.cardRightContainer}>
-                                                                {isDone ? (
-                                                                    <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-                                                                ) : (
-                                                                    <SmallProgressRing pct={lessonPct} />
-                                                                )}
-                                                                {isLoggedIn && lessonAny.progress != null && (
-                                                                    <Text style={styles.lessonProgressTextBelow}>
-                                                                        {lessonAny.progress.completedNodes}/{lessonAny.progress.totalNodes}
-                                                                    </Text>
-                                                                )}
-                                                            </View>
-                                                        </Card>
-                                                    );
-                                                })}
-
-                                                {/* Topic test card */}
-                                                {(() => {
-                                                    const testPassed = !!topic.testPassed;
-                                                    const testIsDone = testPassed;
-
-                                                    return (
-                                                        <Card
-                                                            variant="accent"
-                                                            style={styles.testCard}
-                                                            onPress={() => onTestPress("TOPIC", topic.id)}
-                                                        >
-                                                            <Ionicons name="trophy" size={20} color="#FFFFFF" style={styles.cardLeftIcon} />
-                                                            <View style={styles.cardTextContainer}>
-                                                                <Text style={styles.testCardTitle}>
-                                                                    Kiểm tra Chủ đề {topic.position}
-                                                                </Text>
-                                                            </View>
-                                                            <View style={styles.cardRightContainer}>
-                                                                {testIsDone ? (
-                                                                    <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-                                                                ) : (
-                                                                    <SmallProgressRing pct={0} isAccent={true} />
-                                                                )}
-                                                            </View>
-                                                        </Card>
-                                                    );
-                                                })()}
-                                            </View>
-                                        )}
+                            {activeTab === "HOC_PHAN" ? (
+                                <>
+                                    <View style={styles.searchContainer}>
+                                        <TextInput
+                                            style={[
+                                                styles.searchInput,
+                                                isSearchFocused && styles.searchInputFocused
+                                            ]}
+                                            placeholder="Tìm kiếm bài học..."
+                                            placeholderTextColor={colors.textPlaceholder}
+                                            value={searchQuery}
+                                            onChangeText={setSearchQuery}
+                                            underlineColorAndroid="transparent"
+                                            onFocus={() => setIsSearchFocused(true)}
+                                            onBlur={() => setIsSearchFocused(false)}
+                                        />
                                     </View>
-                                );
-                            })}
 
-                            {/* --- Grade Level Finale Test Section --- */}
-                            {shouldShowFinalTest && (() => {
-                                const finalIsDone = finalTestPassed;
+                                    {filteredTopics.map((topic) => {
+                                        const isCollapsed = !!collapsedTopics[topic.id];
 
-                                return (
-                                    <Card
-                                        variant="accent"
-                                        style={styles.finalExamCard}
-                                        onPress={() => onTestPress("GRADE", selectedGrade)}
-                                    >
-                                        <Ionicons name="ribbon" size={24} color="#FFFFFF" style={styles.cardLeftIcon} />
-                                        <View style={styles.cardTextContainer}>
-                                            <Text style={styles.finalExamCardTitle}>
-                                                Kiểm tra tổng hợp Lớp {selectedGrade}
-                                            </Text>
-                                            <Text style={styles.finalExamCardSubtitle}>
-                                                Đánh giá năng lực toàn diện
-                                            </Text>
+                                        return (
+                                            <View key={topic.id} style={styles.topicWrapper}>
+                                                <TouchableOpacity
+                                                    style={styles.topicDivider}
+                                                    onPress={() => toggleTopic(topic.id)}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Text style={styles.topicDividerText} numberOfLines={2}>
+                                                        Chủ đề {topic.position}: {topic.name}
+                                                    </Text>
+                                                    <Ionicons
+                                                        name={isCollapsed ? "chevron-down" : "chevron-up"}
+                                                        size={18}
+                                                        color={colors.textMuted}
+                                                    />
+                                                </TouchableOpacity>
+
+                                                {!isCollapsed && (
+                                                    <View style={styles.lessonList}>
+                                                        {topic.lessons.map((lesson) => {
+                                                            const lessonAny = lesson as any;
+                                                            const lessonPct =
+                                                                lessonAny.progress != null &&
+                                                                lessonAny.progress.totalNodes > 0
+                                                                    ? lessonAny.progress.completedNodes /
+                                                                      lessonAny.progress.totalNodes
+                                                                    : 0;
+                                                            const isDone = lessonPct >= 1;
+
+                                                            return (
+                                                                <Card
+                                                                    key={lesson.id}
+                                                                    variant="grayBorder"
+                                                                    style={styles.lessonCard}
+                                                                    onPress={() => onLessonPress(lesson.id)}
+                                                                >
+                                                                    <View style={styles.cardTextContainer}>
+                                                                        <Text style={styles.lessonCardTitle}>
+                                                                            Bài {lesson.position}:{" "}
+                                                                            <Text style={styles.lessonNameText}>{lesson.name}</Text>
+                                                                        </Text>
+                                                                    </View>
+                                                                    <View style={styles.cardRightContainer}>
+                                                                        {isDone ? (
+                                                                            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                                                                        ) : (
+                                                                            <SmallProgressRing pct={lessonPct} />
+                                                                        )}
+                                                                        {isLoggedIn && lessonAny.progress != null && (
+                                                                            <Text style={styles.lessonProgressTextBelow}>
+                                                                                {lessonAny.progress.completedNodes}/{lessonAny.progress.totalNodes}
+                                                                            </Text>
+                                                                        )}
+                                                                    </View>
+                                                                </Card>
+                                                            );
+                                                        })}
+
+                                                        {(() => {
+                                                            const testPassed = !!topic.testPassed;
+                                                            const testIsDone = testPassed;
+
+                                                            return (
+                                                                <Card
+                                                                    variant="accent"
+                                                                    style={styles.testCard}
+                                                                    onPress={() => onTestPress("TOPIC", topic.id)}
+                                                                >
+                                                                    <Ionicons name="trophy" size={20} color="#FFFFFF" style={styles.cardLeftIcon} />
+                                                                    <View style={styles.cardTextContainer}>
+                                                                        <Text style={styles.testCardTitle}>
+                                                                            Kiểm tra Chủ đề {topic.position}
+                                                                        </Text>
+                                                                    </View>
+                                                                    <View style={styles.cardRightContainer}>
+                                                                        {testIsDone ? (
+                                                                            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                                                                        ) : (
+                                                                            <SmallProgressRing pct={0} isAccent={true} />
+                                                                        )}
+                                                                    </View>
+                                                                </Card>
+                                                            );
+                                                        })()}
+                                                    </View>
+                                                )}
+                                            </View>
+                                        );
+                                    })}
+
+                                    {shouldShowFinalTest && (() => {
+                                        const finalIsDone = finalTestPassed;
+
+                                        return (
+                                            <Card
+                                                variant="accent"
+                                                style={styles.finalExamCard}
+                                                onPress={() => onTestPress("GRADE", selectedGrade)}
+                                            >
+                                                <Ionicons name="ribbon" size={24} color="#FFFFFF" style={styles.cardLeftIcon} />
+                                                <View style={styles.cardTextContainer}>
+                                                    <Text style={styles.finalExamCardTitle}>
+                                                        Kiểm tra tổng hợp Lớp {selectedGrade}
+                                                    </Text>
+                                                    <Text style={styles.finalExamCardSubtitle}>
+                                                        Đánh giá năng lực toàn diện
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.cardRightContainer}>
+                                                    {finalIsDone ? (
+                                                        <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+                                                    ) : (
+                                                        <SmallProgressRing pct={0} isAccent={true} />
+                                                    )}
+                                                </View>
+                                            </Card>
+                                        );
+                                    })()}
+                                </>
+                            ) : (
+                                <View style={styles.practiceContainer}>
+                                    {/* Làm lại câu sai Card */}
+                                    <Card variant="bordered" style={[styles.practiceCard, { marginBottom: 16 }]}>
+                                        <View style={styles.practiceCardHeader}>
+                                            <Ionicons name="alert-circle-outline" size={24} color={colors.error} />
+                                            <Text style={styles.practiceCardTitle}>Làm lại câu sai</Text>
                                         </View>
-                                        <View style={styles.cardRightContainer}>
-                                            {finalIsDone ? (
-                                                <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-                                            ) : (
-                                                <SmallProgressRing pct={0} isAccent={true} />
-                                            )}
+                                        <Text style={styles.practiceCardDesc}>
+                                            {wrongQuestionCount === 0
+                                                ? "Bạn không có câu hỏi sai nào. Tuyệt vời!"
+                                                : wrongQuestionCount <= 10
+                                                ? `Bạn có ${wrongQuestionCount} câu trả lời sai. Hãy làm lại để khắc phục!`
+                                                : `Bạn có ${wrongQuestionCount} câu trả lời sai. Hãy ôn luyện để sửa đổi và củng cố nhé!`}
+                                        </Text>
+
+                                        {wrongQuestionCount > 10 && (
+                                            <>
+                                                <Text style={styles.practiceOptionLabel}>Số lượng câu hỏi</Text>
+                                                <View style={styles.practiceOptionsRow}>
+                                                    {wrongOptions.map(count => (
+                                                        <TouchableOpacity 
+                                                            key={count} 
+                                                            style={[styles.practiceOptionBtn, wrongPracticeCount === count && styles.practiceOptionBtnActive]}
+                                                            onPress={() => setWrongPracticeCount(count)}
+                                                            activeOpacity={0.7}
+                                                        >
+                                                            <Text style={[styles.practiceOptionText, wrongPracticeCount === count && styles.practiceOptionTextActive]}>
+                                                                {count === wrongQuestionCount ? `Tất cả (${count})` : count}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            </>
+                                        )}
+                                        
+                                        <View style={styles.practiceRewardRow}>
+                                            <Text style={styles.practiceRewardLabel}>Phần thưởng:</Text>
+                                            <View style={styles.practiceRewardBadge}>
+                                                <Ionicons name="flash" size={14} color="#FFF" />
+                                                <Text style={styles.practiceRewardText}>+XP</Text>
+                                            </View>
+                                            <View style={[styles.practiceRewardBadge, { backgroundColor: colors.gold }]}>
+                                                <Ionicons name="cash" size={14} color="#FFF" />
+                                                <Text style={styles.practiceRewardText}>+Vàng</Text>
+                                            </View>
                                         </View>
+
+                                        <TouchableOpacity 
+                                            style={[
+                                                styles.practiceStartBtn,
+                                                wrongQuestionCount === 0 && { backgroundColor: colors.textPlaceholder }
+                                            ]}
+                                            onPress={() => onPracticePress({
+                                                scopeType: "GRADE",
+                                                scopeId: selectedGrade,
+                                                questionCount: wrongPracticeCount,
+                                                autoPickStrategy: "WRONG"
+                                            })}
+                                            disabled={wrongQuestionCount === 0}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Text style={styles.practiceStartBtnText}>Làm lại ngay</Text>
+                                        </TouchableOpacity>
                                     </Card>
-                                );
-                            })()}
+
+                                    {/* Luyện tập cá nhân Card */}
+                                    <Card variant="bordered" style={styles.practiceCard}>
+                                        <View style={styles.practiceCardHeader}>
+                                            <Ionicons name="bar-chart-outline" size={24} color={colors.primary} />
+                                            <Text style={styles.practiceCardTitle}>Luyện tập cá nhân</Text>
+                                        </View>
+                                        <Text style={styles.practiceCardDesc}>
+                                            {answeredQuestionCount === 0
+                                                ? "Bạn không có câu hỏi ôn tập nào. Hãy học và làm bài kiểm tra trước!"
+                                                : "Củng cố kiến thức bằng cách ôn lại các câu hỏi đã làm để tăng cấp độ thành thạo. Ưu tiên các câu hỏi chưa vững."}
+                                        </Text>
+
+                                        {answeredQuestionCount > 0 && (
+                                             answeredQuestionCount < 10 ? (
+                                                 <Text style={[styles.practiceOptionLabel, { marginBottom: 20 }]}>
+                                                     Số lượng câu hỏi:{" "}
+                                                     <Text style={{ color: colors.accent }}>{answeredQuestionCount}</Text>
+                                                 </Text>
+                                             ) : (
+                                                 <>
+                                                     <Text style={styles.practiceOptionLabel}>Số lượng câu hỏi</Text>
+                                                     <View style={styles.practiceOptionsRow}>
+                                                         {practiceOptions.map(opt => (
+                                                             <TouchableOpacity 
+                                                                 key={opt.value} 
+                                                                 style={[styles.practiceOptionBtn, practiceCount === opt.value && styles.practiceOptionBtnActive]}
+                                                                 onPress={() => setPracticeCount(opt.value)}
+                                                                 activeOpacity={0.7}
+                                                             >
+                                                                 <Text style={[styles.practiceOptionText, practiceCount === opt.value && styles.practiceOptionTextActive]}>
+                                                                     {opt.label}
+                                                                 </Text>
+                                                             </TouchableOpacity>
+                                                         ))}
+                                                     </View>
+                                                 </>
+                                             )
+                                         )}
+                                        
+                                        <View style={styles.practiceRewardRow}>
+                                            <Text style={styles.practiceRewardLabel}>Phần thưởng:</Text>
+                                            <View style={styles.practiceRewardBadge}>
+                                                <Ionicons name="flash" size={14} color="#FFF" />
+                                                <Text style={styles.practiceRewardText}>+XP</Text>
+                                            </View>
+                                            <View style={[styles.practiceRewardBadge, { backgroundColor: colors.gold }]}>
+                                                <Ionicons name="cash" size={14} color="#FFF" />
+                                                <Text style={styles.practiceRewardText}>+Vàng</Text>
+                                            </View>
+                                        </View>
+
+                                        <TouchableOpacity 
+                                            style={[
+                                                styles.practiceStartBtn,
+                                                answeredQuestionCount === 0 && { backgroundColor: colors.textPlaceholder }
+                                            ]}
+                                            onPress={() => onPracticePress({
+                                                scopeType: "GRADE",
+                                                scopeId: selectedGrade,
+                                                questionCount: practiceCount,
+                                                autoPickStrategy: "LOW_MASTERY"
+                                            })}
+                                            disabled={answeredQuestionCount === 0}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Text style={styles.practiceStartBtnText}>Bắt đầu luyện tập</Text>
+                                        </TouchableOpacity>
+                                    </Card>
+                                </View>
+                            )}
                         </ScrollView>
                     </>
                 )}
@@ -448,6 +801,40 @@ export function LessonMenu({
                 targetId={selectedGrade}
                 targetTitle={`Khối lớp ${selectedGrade}`}
             />
+
+            <Modal
+                visible={isMasteryModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsMasteryModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Độ thành thạo Lớp {selectedGrade}</Text>
+                        <Text style={styles.modalSubtitle}>Độ thành thạo theo từng Chủ đề, Bài học và Mục kiến thức</Text>
+                        
+                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                            {loadingMastery ? (
+                                <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
+                            ) : topicsMasteryData?.topics && topicsMasteryData.topics.length > 0 ? (
+                                topicsMasteryData.topics.map((topic: any) => (
+                                    <TopicMasteryItem key={topic.id} topic={topic} />
+                                ))
+                            ) : (
+                                <Text style={styles.noMasteryText}>Chưa có dữ liệu thành thạo. Hãy làm bài luyện tập để tích lũy độ thành thạo!</Text>
+                            )}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={[styles.modalCloseButton, { backgroundColor: themeColor }]}
+                            onPress={() => setIsMasteryModalVisible(false)}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.modalCloseButtonText}>Đóng</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScreenWrapper>
     );
 }
@@ -594,12 +981,208 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.bold,
         fontSize: 16,
         color: colors.textPrimary,
+    },
+    gradeHeaderRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
         marginBottom: 8,
     },
     flagButton: {
         padding: 4,
     },
 
+    masteryBadgeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderRadius: 30,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    masteryBadgeButtonText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 11,
+        color: "#FFFFFF",
+        marginLeft: 4,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalContent: {
+        width: "100%",
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    modalTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 18,
+        color: colors.textPrimary,
+        marginBottom: 4,
+        textAlign: "center",
+    },
+    practiceContainer: {
+        width: "100%",
+        paddingBottom: 24,
+    },
+    practiceCard: {
+        padding: 20,
+        marginBottom: 24,
+    },
+    practiceCardHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    practiceCardTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 18,
+        color: colors.textPrimary,
+        marginLeft: 8,
+    },
+    practiceCardDesc: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginBottom: 20,
+        lineHeight: 20,
+    },
+    practiceOptionLabel: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 14,
+        color: colors.textPrimary,
+        marginBottom: 12,
+    },
+    practiceOptionsRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 24,
+    },
+    practiceOptionBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        marginHorizontal: 4,
+        borderRadius: 30, // pill button border radius = 30
+        borderWidth: 1.5,
+        borderColor: colors.borderMedium,
+        alignItems: "center",
+        backgroundColor: colors.surface,
+    },
+    practiceOptionBtnActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    practiceOptionText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 14,
+        color: colors.textSecondary,
+    },
+    practiceOptionTextActive: {
+        color: "#FFFFFF",
+    },
+    practiceRewardRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 24,
+    },
+    practiceRewardLabel: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 14,
+        color: colors.textPrimary,
+        marginRight: 12,
+    },
+    practiceRewardBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.accent,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginRight: 8,
+    },
+    practiceRewardText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 12,
+        color: "#FFFFFF",
+        marginLeft: 4,
+    },
+    practiceStartBtn: {
+        backgroundColor: colors.primary,
+        borderRadius: 30, // pill button border radius = 30
+        paddingVertical: 14,
+        alignItems: "center",
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+    },
+    practiceStartBtnText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 16,
+        color: "#FFFFFF",
+    },
+    modalSubtitle: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginBottom: 16,
+        textAlign: "center",
+    },
+    modalScroll: {
+        maxHeight: 350,
+        marginBottom: 20,
+    },
+    modalCloseButton: {
+        borderRadius: 30,
+        paddingVertical: 12,
+        alignItems: "center",
+    },
+    modalCloseButtonText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: "#FFFFFF",
+    },
+    masteryItemWrapper: {
+        marginVertical: 4,
+        width: "100%",
+    },
+    masteryItemHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 8,
+        paddingRight: 8,
+    },
+    masteryItemText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: colors.textPrimary,
+        flex: 1,
+    },
+    masteryItemPct: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: colors.accent,
+        marginLeft: 8,
+    },
+    masterySubList: {
+        borderLeftWidth: 1,
+        borderLeftColor: colors.borderMedium,
+        marginLeft: 8,
+        paddingLeft: 4,
+    },
+    noMasteryText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: "center",
+        marginVertical: 20,
+    },
     topProgressWrapper: {
         position: "relative",
         height: 28,
@@ -628,8 +1211,9 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: 0,
         bottom: 0,
+        right: 0,
         justifyContent: "center",
-        paddingLeft: 8,
+        alignItems: "center",
     },
     progressNumberTextOutside: {
         fontFamily: typography.fonts.bold,
@@ -648,4 +1232,4 @@ const styles = StyleSheet.create({
         shadowRadius: 2.5,
         elevation: 3,
     },
-});
+});

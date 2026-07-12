@@ -15,9 +15,13 @@ import { useNotification } from "../features/notification";
 import { useFonts } from "expo-font";
 
 // Register background handler for Firebase Cloud Messaging (Android)
-messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-    console.log("Message handled in the background!", remoteMessage);
-});
+try {
+    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+        console.log("Message handled in the background!", remoteMessage);
+    });
+} catch (error) {
+    console.warn("[Firebase Messaging] Failed to register background message handler. Firebase might not be initialized natively:", error);
+}
 
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
 SplashScreen.preventAutoHideAsync();

@@ -18,6 +18,7 @@ export interface LessonSection {
     children: LessonSection[]; // Self-referencing recursive section tree layout [cite: 10]
     nodes: LessonNode[]; // Bound database node contents [cite: 11]
     progress?: { totalNodes: number; completedNodes: number } | null;
+    testPassed?: boolean | null;
 }
 
 export interface LessonSummaryData {
@@ -28,6 +29,8 @@ export interface LessonSummaryData {
     topicId: number; // Linked directly from schema [cite: 3]
     videoId?: string; // Maps cleanly to Video model's UUID String [cite: 4]
     videoUrl?: string; // Maps cleanly to hlsUrl from schema [cite: 5]
+    progress?: { totalNodes: number; completedNodes: number } | null;
+    testPassed?: boolean | null;
 }
 
 export function useLessonSummary(lessonIdStr: string) {
@@ -62,6 +65,8 @@ export function useLessonSummary(lessonIdStr: string) {
         topicId: lessonData.topicId,
         videoId: targetVideo?.id,
         videoUrl: targetVideo?.hlsUrl,
+        progress: (lessonData as any).progress,
+        testPassed: (lessonData as any).testPassed,
     };
 
     // The backend tree assembler already computes the hierarchy recursively inside .sections

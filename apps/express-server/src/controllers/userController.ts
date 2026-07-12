@@ -72,6 +72,8 @@ export const getUserProfile = async (
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                isPro: true,
+                proExpiresAt: true,
                 tier: {
                     select: {
                         name: true,
@@ -104,6 +106,8 @@ export const getUserProfile = async (
             currentStreak: fullProfile.currentStreak,
             tierName: fullProfile.tier.name,
             badgeImgUrl: fullProfile.tier.badgeImgUrl,
+            isPro: fullProfile.isPro ?? false,
+            proExpiresAt: fullProfile.proExpiresAt ? fullProfile.proExpiresAt.toISOString() : null,
         });
     } catch (error) {
         console.error("Express Profile Fetch Controller Crash:", error);
@@ -175,6 +179,8 @@ export const updateUserProfile = async (
                 totalGold: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                isPro: true,
+                proExpiresAt: true,
                 tier: {
                     select: {
                         name: true,
@@ -194,6 +200,8 @@ export const updateUserProfile = async (
             currentStreak: updatedProfile.currentStreak,
             tierName: updatedProfile.tier.name,
             badgeImgUrl: updatedProfile.tier.badgeImgUrl,
+            isPro: updatedProfile.isPro ?? false,
+            proExpiresAt: updatedProfile.proExpiresAt ? updatedProfile.proExpiresAt.toISOString() : null,
         });
     } catch (error: any) {
         console.error("Express Profile Update Controller Crash:", error);

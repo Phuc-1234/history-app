@@ -17,7 +17,6 @@ import {
     Text,
 } from "react-native";
 import Svg, {
-    Path,
     Defs,
     LinearGradient as SvgLinearGradient,
     Stop,
@@ -563,29 +562,6 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
             />
-            <Svg
-                style={StyleSheet.absoluteFill}
-                width="100%"
-                height="100%"
-                pointerEvents="none"
-            >
-                <Path
-                    d="M 0 140 C 120 80, 280 210, 420 130 C 540 70, 700 150, 900 110"
-                    stroke="#DDD6FE"
-                    strokeWidth={2}
-                    fill="none"
-                    opacity={0.42}
-                />
-                <Path
-                    d="M -40 680 C 140 580, 320 760, 520 700 C 700 650, 860 760, 1040 690"
-                    stroke="#BAE6FD"
-                    strokeWidth={2}
-                    fill="none"
-                    opacity={0.36}
-                />
-            </Svg>
-            <View style={styles.bgGlowTop} pointerEvents="none" />
-            <View style={styles.bgGlowBottom} pointerEvents="none" />
 
             {!query && (
                 <View style={styles.stateBox}>
@@ -721,28 +697,6 @@ const styles = StyleSheet.create({
     mapContainer: {
         alignItems: "center",
         justifyContent: "center",
-    },
-    bgGlowTop: {
-        position: "absolute",
-        top: -80,
-        right: -60,
-        width: 280,
-        height: 280,
-        borderRadius: 140,
-        backgroundColor: colors.primaryContainer,
-        opacity: 0.18,
-        pointerEvents: "none",
-    },
-    bgGlowBottom: {
-        position: "absolute",
-        bottom: -60,
-        left: -40,
-        width: 240,
-        height: 240,
-        borderRadius: 120,
-        backgroundColor: colors.secondaryContainer,
-        opacity: 0.15,
-        pointerEvents: "none",
     },
     toolbar: {
         position: "absolute",

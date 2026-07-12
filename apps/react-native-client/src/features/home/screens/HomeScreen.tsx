@@ -149,6 +149,7 @@ export default function HomeScreen() {
     const handleGoToLessons = () => router.push("/(tabs)/2_1_lessons" as never);
     const handleGoToTests = () => router.push("/(tabs)/5_1_national_tests" as never);
     const handleGoToFriends = () => router.push("/(social)/friends" as never);
+    const handleGoToItems = () => router.push("/(tabs)/7_1_item" as never);
 
     return (
         <ScreenWrapper
@@ -263,10 +264,10 @@ export default function HomeScreen() {
                             <Card
                                 style={styles.quickCard}
                                 activeOpacity={0.8}
-                                onPress={handleGoToLeaderboard}
+                                onPress={handleGoToItems}
                             >
-                                <Ionicons name="trophy-outline" size={22} color={colors.secondary} />
-                                <Text style={styles.quickLabel}>BXH</Text>
+                                <Ionicons name="gift-outline" size={22} color={colors.secondary} />
+                                <Text style={styles.quickLabel}>Vật phẩm</Text>
                             </Card>
 
                             <Card

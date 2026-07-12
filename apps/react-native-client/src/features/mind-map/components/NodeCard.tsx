@@ -1,19 +1,16 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { G, Rect, Circle, Text as SvgText, Line } from "react-native-svg";
 import Animated, {
-    Easing,
     interpolate,
     useAnimatedProps,
-    useAnimatedReaction,
     useSharedValue,
     withDelay,
     withSpring,
-    withTiming,
     type SharedValue,
 } from "react-native-reanimated";
 import type { LayoutNode } from "../types";
 import { animationConfig, NODE_CONFIGS } from "../constants";
-import { wrapText } from "../utils/layout";
+import { charsPerLine, wrapText, textStartOffset, FIXED_LETTER_SPACING } from "../utils/layout";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 
@@ -56,7 +53,7 @@ function CollapseIcon({
 }) {
     return (
         <G>
-            <Circle cx={x} cy={y} r={size} fill={color} opacity={0.14} />
+            <Circle cx={x} cy={y} r={size} fill={color} opacity={0.16} />
             <Line
                 x1={x - size * 0.38}
                 y1={y}
@@ -83,13 +80,12 @@ function CollapseIcon({
 
 // Custom memo comparator: layoutTree rebuilds every LayoutNode as a NEW object
 // on each expand/collapse, so the default React.memo (shallow ref compare) would
-// re-render the entire tree every time — the main remaining perf issue for
-// "Expand all". We deep-compare only the fields this card actually reads.
+// re-render the entire tree every time. We deep-compare only the fields this
+// card actually reads.
 function areNodePropsEqual(prev: NodeCardProps, next: NodeCardProps): boolean {
     const a = prev.node;
     const b = next.node;
     if (a === b) return true;
-    // activeNodeId / center are SharedValues (stable refs), animateEntry is a bool.
     if (
         prev.activeNodeId !== next.activeNodeId ||
         prev.center !== next.center ||
@@ -114,7 +110,6 @@ function areNodePropsEqual(prev: NodeCardProps, next: NodeCardProps): boolean {
     ) {
         return false;
     }
-    // childIds: compare by content (order-stable from layoutTree).
     const ca = a.childIds;
     const cb = b.childIds;
     if (ca.length !== cb.length) return false;
@@ -137,19 +132,13 @@ export const NodeCard = React.memo(function NodeCard({
         NODE_CONFIGS[node.depth as keyof typeof NODE_CONFIGS] ||
         NODE_CONFIGS[2];
     const hasChildren = node.childIds.length > 0;
-    const lines = useMemo(() => {
-        const maxCharsPerLine = Math.floor(
-            (node.width - config.paddingH * 2 - (node.depth === 1 ? 28 : 0)) /
-                (config.fontSize * 0.55),
-        );
-        return wrapText(node.label, Math.max(12, maxCharsPerLine));
-    }, [config.fontSize, config.paddingH, node.depth, node.label, node.width]);
+    const lines = useMemo(
+        () => wrapText(node.label, charsPerLine(node.depth, node.width)),
+        [node.depth, node.label, node.width],
+    );
     const lineHeight = config.fontSize + 4;
 
     useEffect(() => {
-        // Run the entry animation only ONCE per node lifecycle (keyed by node.id in the
-        // parent list). Without this guard, toggling any node shifts array indices and
-        // re-triggers the spring on every other node → flicker.
         if (didEnter.current) return;
         didEnter.current = true;
         if (!animateEntry) {
@@ -186,33 +175,10 @@ export const NodeCard = React.memo(function NodeCard({
         };
     });
 
-    // Glow/shadow/border use idle values. The active node is signalled by the
-    // focus scale-pulse + the dimming of unrelated nodes (both on the UI thread),
-    // so we don't need a per-node JS state change (which was the jank cause).
-
+    // ── Depth 0: root ───────────────────────────────────────────────────────
     if (node.depth === 0) {
         return (
             <AnimatedG animatedProps={animatedProps}>
-                <Rect
-                    x={node.x - 7}
-                    y={node.y - 6}
-                    width={node.width + 14}
-                    height={node.height + 14}
-                    rx={config.rx + 8}
-                    ry={config.rx + 8}
-                    fill={colors.primary}
-                    opacity={0.08}
-                />
-                <Rect
-                    x={node.x + 5}
-                    y={node.y + 8}
-                    width={node.width}
-                    height={node.height}
-                    rx={config.rx}
-                    ry={config.rx}
-                    fill="#312E81"
-                    opacity={0.07}
-                />
                 <Rect
                     x={node.x}
                     y={node.y}
@@ -222,21 +188,10 @@ export const NodeCard = React.memo(function NodeCard({
                     ry={config.rx}
                     fill="url(#rootGrad)"
                 />
-                <Rect
-                    x={node.x + 1}
-                    y={node.y + 1}
-                    width={node.width - 2}
-                    height={node.height - 2}
-                    rx={config.rx - 1}
-                    ry={config.rx - 1}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.46)"
-                    strokeWidth={1}
-                />
                 {lines.map((line, li) => (
                     <SvgText
                         key={li}
-                        x={node.x + node.width / 2}
+                        x={node.x + textStartOffset(node.depth)}
                         y={
                             node.y +
                             node.height / 2 -
@@ -244,7 +199,8 @@ export const NodeCard = React.memo(function NodeCard({
                             li * lineHeight +
                             config.fontSize / 3
                         }
-                        textAnchor="middle"
+                        textAnchor="start"
+                        letterSpacing={FIXED_LETTER_SPACING}
                         fill="#FFFFFF"
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
@@ -257,36 +213,17 @@ export const NodeCard = React.memo(function NodeCard({
         );
     }
 
+    // ── Depth 1: branch ─────────────────────────────────────────────────────
     if (node.depth === 1) {
         return (
             <AnimatedG animatedProps={animatedProps}>
                 <Rect
-                    x={node.x - 5}
-                    y={node.y - 5}
-                    width={node.width + 10}
-                    height={node.height + 10}
-                    rx={config.rx + 7}
-                    ry={config.rx + 7}
-                    fill={node.accentColor}
-                    opacity={0.08}
-                />
-                <Rect
-                    x={node.x + 4}
-                    y={node.y + 7}
-                    width={node.width}
-                    height={node.height}
-                    rx={config.rx}
-                    ry={config.rx}
-                    fill="#0F172A"
-                    opacity={0.07}
-                />
-                <Rect
                     x={node.x}
-                    y={node.y + 4}
-                    width={5}
-                    height={node.height - 8}
-                    rx={2.5}
-                    ry={2.5}
+                    y={node.y}
+                    width={4}
+                    height={node.height}
+                    rx={2}
+                    ry={2}
                     fill={node.accentColor}
                 />
                 <Rect
@@ -300,20 +237,10 @@ export const NodeCard = React.memo(function NodeCard({
                     stroke={node.borderColor}
                     strokeWidth={1}
                 />
-                <Rect
-                    x={node.x + 10}
-                    y={node.y + 2}
-                    width={node.width - 20}
-                    height={1.2}
-                    rx={0.6}
-                    ry={0.6}
-                    fill="#FFFFFF"
-                    opacity={0.72}
-                />
                 {lines.map((line, li) => (
                     <SvgText
                         key={li}
-                        x={node.x + 20}
+                        x={node.x + textStartOffset(node.depth)}
                         y={
                             node.y +
                             node.height / 2 -
@@ -322,6 +249,7 @@ export const NodeCard = React.memo(function NodeCard({
                             config.fontSize / 3
                         }
                         textAnchor="start"
+                        letterSpacing={FIXED_LETTER_SPACING}
                         fill={colors.textPrimary}
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
@@ -343,29 +271,10 @@ export const NodeCard = React.memo(function NodeCard({
         );
     }
 
+    // ── Depth 2: leaf ───────────────────────────────────────────────────────
     const lightBg = node.lightBg || colors.surface;
     return (
         <AnimatedG animatedProps={animatedProps}>
-            <Rect
-                x={node.x - 4}
-                y={node.y - 4}
-                width={node.width + 8}
-                height={node.height + 8}
-                rx={config.rx + 6}
-                ry={config.rx + 6}
-                fill={node.accentColor}
-                opacity={0.08}
-            />
-            <Rect
-                x={node.x + 3}
-                y={node.y + 5}
-                width={node.width}
-                height={node.height}
-                rx={config.rx}
-                ry={config.rx}
-                fill="#0F172A"
-                opacity={0.07}
-            />
             <Rect
                 x={node.x}
                 y={node.y}
@@ -376,19 +285,18 @@ export const NodeCard = React.memo(function NodeCard({
                 fill={lightBg}
                 stroke={node.borderColor}
                 strokeWidth={0.9}
-                opacity={0.99}
             />
             <Circle
                 cx={node.x + 12}
                 cy={node.y + node.height / 2}
-                r={3.5}
+                r={3}
                 fill={node.accentColor}
-                opacity={0.52}
+                opacity={0.55}
             />
             {lines.map((line, li) => (
                 <SvgText
                     key={li}
-                    x={node.x + 22}
+                    x={node.x + textStartOffset(node.depth)}
                     y={
                         node.y +
                         node.height / 2 -
@@ -397,6 +305,7 @@ export const NodeCard = React.memo(function NodeCard({
                         config.fontSize / 3
                     }
                     textAnchor="start"
+                    letterSpacing={FIXED_LETTER_SPACING}
                     fill={colors.textSecondary}
                     fontSize={config.fontSize}
                     fontWeight={config.fontWeight}

@@ -39,6 +39,11 @@ import {
     UpdateFlashcardBody,
     AdminFlashcardResponse,
     AdminFlashcardsResponse,
+    CreateRewardRuleBody,
+    UpdateRewardRuleBody,
+    RewardRuleDto,
+    CreateItemDefinitionBody,
+    UpdateItemDefinitionBody,
 } from "@history-app/shared";
 
 // ─────────────────────────────── GRADE ────────────────────────────────────────
@@ -940,4 +945,130 @@ export const deleteScopeTestPresetDefault = async (req: Request, res: Response) 
         return res.status(500).json({ error: "Failed to delete default." });
     }
 };
+
+// ─────────────────────────────── REWARD RULE ───────────────────────────────────
+
+export const listRewardRules = async (req: Request, res: Response) => {
+    try {
+        const rules = await adminService.listRewardRules();
+        return res.status(200).json({ rules });
+    } catch (err) {
+        console.error("List reward rules error:", err);
+        return res.status(500).json({ error: "Failed to list reward rules." });
+    }
+};
+
+export const createRewardRule = async (
+    req: Request<{}, any, CreateRewardRuleBody>,
+    res: Response,
+) => {
+    try {
+        const { triggerType, triggerTimeMin } = req.body;
+        if (!triggerType || triggerTimeMin === undefined) {
+            return res.status(400).json({ error: "triggerType and triggerTimeMin are required." });
+        }
+        const rule = await adminService.createRewardRule(req.body);
+        return res.status(201).json(rule);
+    } catch (err: any) {
+        if (err.code === "P2002") {
+            return res.status(409).json({ error: "A reward rule with this exact trigger configuration already exists." });
+        }
+        console.error("Create reward rule error:", err);
+        return res.status(500).json({ error: "Failed to create reward rule." });
+    }
+};
+
+export const updateRewardRule = async (
+    req: Request<{ id: string }, any, UpdateRewardRuleBody>,
+    res: Response,
+) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid reward rule ID." });
+        }
+        const rule = await adminService.updateRewardRule(id, req.body);
+        if (!rule) return res.status(404).json({ error: "Reward rule not found." });
+        return res.status(200).json(rule);
+    } catch (err: any) {
+        if (err.code === "P2002") {
+            return res.status(409).json({ error: "A reward rule with this exact trigger configuration already exists." });
+        }
+        console.error("Update reward rule error:", err);
+        return res.status(500).json({ error: "Failed to update reward rule." });
+    }
+};
+
+export const deleteRewardRule = async (req: Request<{ id: string }>, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid reward rule ID." });
+        }
+        const deleted = await adminService.deleteRewardRule(id);
+        if (!deleted) return res.status(404).json({ error: "Reward rule not found." });
+        return res.status(200).json({ message: "Reward rule deleted successfully." });
+    } catch (err) {
+        console.error("Delete reward rule error:", err);
+        return res.status(500).json({ error: "Failed to delete reward rule." });
+    }
+};
+
+// ─────────────────────────────── ITEM DEFINITIONS ──────────────────────────────
+
+export const listItemDefinitions = async (req: Request, res: Response) => {
+    try {
+        const items = await adminService.listItemDefinitions();
+        return res.status(200).json({ items });
+    } catch (err) {
+        console.error("List item definitions error:", err);
+        return res.status(500).json({ error: "Failed to list item definitions." });
+    }
+};
+
+export const createItemDefinition = async (req: Request<{}, any, CreateItemDefinitionBody>, res: Response) => {
+    try {
+        const { name, isConsumable, type } = req.body;
+        if (!name || isConsumable === undefined || !type) {
+            return res.status(400).json({ error: "name, isConsumable, and type are required." });
+        }
+        const item = await adminService.createItemDefinition(req.body);
+        return res.status(201).json(item);
+    } catch (err) {
+        console.error("Create item definition error:", err);
+        return res.status(500).json({ error: "Failed to create item definition." });
+    }
+};
+
+export const updateItemDefinition = async (req: Request<{ id: string }, any, UpdateItemDefinitionBody>, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid item definition ID." });
+        }
+        const item = await adminService.updateItemDefinition(id, req.body);
+        if (!item) return res.status(404).json({ error: "Item definition not found." });
+        return res.status(200).json(item);
+    } catch (err) {
+        console.error("Update item definition error:", err);
+        return res.status(500).json({ error: "Failed to update item definition." });
+    }
+};
+
+export const deleteItemDefinition = async (req: Request<{ id: string }>, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid item definition ID." });
+        }
+        const deleted = await adminService.deleteItemDefinition(id);
+        if (!deleted) return res.status(404).json({ error: "Item definition not found." });
+        return res.status(200).json({ message: "Item definition deleted successfully." });
+    } catch (err) {
+        console.error("Delete item definition error:", err);
+        return res.status(500).json({ error: "Failed to delete item definition." });
+    }
+};
+
+
 
