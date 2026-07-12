@@ -39,6 +39,9 @@ import {
     UpdateFlashcardBody,
     AdminFlashcardResponse,
     AdminFlashcardsResponse,
+    CreateRewardRuleBody,
+    UpdateRewardRuleBody,
+    RewardRuleDto,
 } from "@history-app/shared";
 
 // ─────────────────────────────── GRADE ────────────────────────────────────────
@@ -940,4 +943,73 @@ export const deleteScopeTestPresetDefault = async (req: Request, res: Response) 
         return res.status(500).json({ error: "Failed to delete default." });
     }
 };
+
+// ─────────────────────────────── REWARD RULE ───────────────────────────────────
+
+export const listRewardRules = async (req: Request, res: Response) => {
+    try {
+        const rules = await adminService.listRewardRules();
+        return res.status(200).json({ rules });
+    } catch (err) {
+        console.error("List reward rules error:", err);
+        return res.status(500).json({ error: "Failed to list reward rules." });
+    }
+};
+
+export const createRewardRule = async (
+    req: Request<{}, any, CreateRewardRuleBody>,
+    res: Response,
+) => {
+    try {
+        const { triggerType, triggerTimeMin } = req.body;
+        if (!triggerType || triggerTimeMin === undefined) {
+            return res.status(400).json({ error: "triggerType and triggerTimeMin are required." });
+        }
+        const rule = await adminService.createRewardRule(req.body);
+        return res.status(201).json(rule);
+    } catch (err: any) {
+        if (err.code === "P2002") {
+            return res.status(409).json({ error: "A reward rule with this exact trigger configuration already exists." });
+        }
+        console.error("Create reward rule error:", err);
+        return res.status(500).json({ error: "Failed to create reward rule." });
+    }
+};
+
+export const updateRewardRule = async (
+    req: Request<{ id: string }, any, UpdateRewardRuleBody>,
+    res: Response,
+) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid reward rule ID." });
+        }
+        const rule = await adminService.updateRewardRule(id, req.body);
+        if (!rule) return res.status(404).json({ error: "Reward rule not found." });
+        return res.status(200).json(rule);
+    } catch (err: any) {
+        if (err.code === "P2002") {
+            return res.status(409).json({ error: "A reward rule with this exact trigger configuration already exists." });
+        }
+        console.error("Update reward rule error:", err);
+        return res.status(500).json({ error: "Failed to update reward rule." });
+    }
+};
+
+export const deleteRewardRule = async (req: Request<{ id: string }>, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid reward rule ID." });
+        }
+        const deleted = await adminService.deleteRewardRule(id);
+        if (!deleted) return res.status(404).json({ error: "Reward rule not found." });
+        return res.status(200).json({ message: "Reward rule deleted successfully." });
+    } catch (err) {
+        console.error("Delete reward rule error:", err);
+        return res.status(500).json({ error: "Failed to delete reward rule." });
+    }
+};
+
 

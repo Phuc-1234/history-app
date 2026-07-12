@@ -51,6 +51,10 @@ import {
     listScopeTestPresetDefaults,
     setScopeTestPresetDefault,
     deleteScopeTestPresetDefault,
+    listRewardRules,
+    createRewardRule,
+    updateRewardRule,
+    deleteRewardRule,
 } from "../controllers/adminController";
 import { listAllFeedbacks } from "../controllers/feedbackController";
 
@@ -221,5 +225,15 @@ router.get("/scope-test-preset-defaults", listScopeTestPresetDefaults);
 router.post("/scope-test-preset-defaults", setScopeTestPresetDefault);
 // DELETE /api/admin/scope-test-preset-defaults/:scopeType/:purposeType
 router.delete("/scope-test-preset-defaults/:scopeType/:purposeType", deleteScopeTestPresetDefault);
+
+// ─── Reward Rules ────────────────────────────────────────────────────────────
+// GET    /api/admin/reward-rules
+router.get("/reward-rules", listRewardRules);
+// POST   /api/admin/reward-rules
+router.post("/reward-rules", createRewardRule);
+// PATCH  /api/admin/reward-rules/:id
+router.patch("/reward-rules/:id", updateRewardRule);
+// DELETE /api/admin/reward-rules/:id
+router.delete("/reward-rules/:id", deleteRewardRule);
 
 export default router;

@@ -368,6 +368,45 @@ export interface SetScopeTestPresetDefaultBody {
     defaultTestPresetId: string;
 }
 
+// ─── Reward Rule ──────────────────────────────────────────────────────────────
+
+export type RewardTriggerType =
+    | "MANUAL_TEST_COMPLETE"
+    | "AUTO_NODE_TEST_COMPLETE"
+    | "AUTO_SECTION_TEST_COMPLETE"
+    | "AUTO_LESSON_TEST_COMPLETE"
+    | "AUTO_TOPIC_TEST_COMPLETE"
+    | "AUTO_GRADE_TEST_COMPLETE"
+    | "STREAK_REACHED"
+    | "TIER_REACHED";
+
+export interface CreateRewardRuleBody {
+    triggerType: RewardTriggerType;
+    triggerTargetId?: string | null;
+    triggerTimeMin: number;
+    triggerTimeMax?: number | null;
+    xp?: number;
+    gold?: number;
+}
+
+export interface UpdateRewardRuleBody {
+    triggerType?: RewardTriggerType;
+    triggerTargetId?: string | null;
+    triggerTimeMin?: number;
+    triggerTimeMax?: number | null;
+    xp?: number;
+    gold?: number;
+}
+
+export interface RewardRuleDto {
+    id: number;
+    triggerType: RewardTriggerType;
+    triggerTargetId: string | null;
+    triggerTimeMin: number;
+    triggerTimeMax: number | null;
+    xp: number;
+    gold: number;
+}
 export interface AdminFeedbackDto {
     id: string;
     userId: string;
