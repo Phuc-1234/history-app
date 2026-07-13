@@ -28,6 +28,7 @@ interface TopBarProps {
         hideBack?: boolean;
         hideHome?: boolean;
         rightElement?: React.ReactNode;
+        titleColor?: string;
     };
     onOpenStreak?: () => void;
 }
@@ -140,7 +141,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
 
                     <View style={styles.branchTextContainer}>
                         {branchConfig.hierarchy ? (
-                            <Text style={styles.hierarchyText}>
+                            <Text style={[styles.hierarchyText, branchConfig.titleColor && { color: branchConfig.titleColor }]}>
                                 {branchConfig.uppercaseHierarchy ? branchConfig.hierarchy.toUpperCase() : branchConfig.hierarchy}
                             </Text>
                         ) : null}

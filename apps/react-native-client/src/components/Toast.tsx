@@ -84,11 +84,11 @@ export function Toast({ message, visible, duration = 2500, onHide, type = "succe
         iconName = "alert-circle";
         iconColor = "#dc3545";
     } else if (type === "info") {
-        bgColor = "rgba(240, 247, 255, 0.95)"; // Pale blue
-        borderColor = "#d0e3ff";
-        textColor = "#0056b3";
-        iconName = "information-circle";
-        iconColor = "#0056b3";
+        bgColor = "rgba(250, 240, 230, 0.96)"; // Soft warm cream
+        borderColor = "rgba(195, 121, 56, 0.25)"; // Light copper border
+        textColor = colors.primary; // Copper text
+        iconName = "notifications-circle-outline";
+        iconColor = colors.primary;
     }
 
     const topPosition = Math.max(insets.top + 2, 10);
