@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Alert, PermissionsAndroid, Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import { notificationService } from '../services/notificationService';
+import { toastService } from '@/services/toastService';
 
 export function useNotification() {
   // 1. Request notification permissions (required for Android 13+ / API 33+)
@@ -44,9 +45,11 @@ export function useNotification() {
       // 2. Listen to foreground messages (App is open)
       unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
         console.log('Foreground message received:', remoteMessage);
-        Alert.alert(
-          remoteMessage.notification?.title || 'Thông báo mới',
-          remoteMessage.notification?.body || ''
+        
+        // Show beautiful slide-down toast notification instead of basic alert dialog
+        toastService.show(
+          `${remoteMessage.notification?.title || 'Thông báo mới'}: ${remoteMessage.notification?.body || ''}`,
+          "info"
         );
       });
 

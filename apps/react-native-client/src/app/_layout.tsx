@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { Stack } from "expo-router";
@@ -11,6 +11,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GlobalSessionModal } from "../components/GlobalSessionModal";
 import messaging from "@react-native-firebase/messaging";
 import { useNotification } from "../features/notification";
+import { Toast } from "../components/Toast";
+import { toastService, type ToastType } from "../services/toastService";
 
 import { useFonts } from "expo-font";
 
@@ -83,6 +85,7 @@ export default function RootLayout() {
                         />
                     </Stack>
                     <GlobalSessionModal />
+                    <GlobalToastContainer />
                 </PersistGate>
             </Provider>
         </SafeAreaProvider>
@@ -98,5 +101,31 @@ function LoadingFallback() {
         >
             <ActivityIndicator size="large" color="#0000ff" />
         </View>
+    );
+}
+
+function GlobalToastContainer() {
+    const [visible, setVisible] = useState(false);
+    const [message, setMessage] = useState("");
+    const [type, setType] = useState<ToastType>("success");
+    const [duration, setDuration] = useState<number | undefined>(undefined);
+
+    useEffect(() => {
+        return toastService.subscribe((msg, t, dur) => {
+            setMessage(msg);
+            setType(t);
+            setDuration(dur);
+            setVisible(true);
+        });
+    }, []);
+
+    return (
+        <Toast
+            message={message}
+            type={type}
+            visible={visible}
+            duration={duration}
+            onHide={() => setVisible(false)}
+        />
     );
 }

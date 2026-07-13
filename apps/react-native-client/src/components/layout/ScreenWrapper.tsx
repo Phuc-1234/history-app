@@ -33,6 +33,7 @@ export interface BranchConfig {
     hideBack?: boolean;
     hideHome?: boolean;
     rightElement?: React.ReactNode;
+    titleColor?: string;
 }
 
 // ─── Props ──────────────────────────────────────────────────────────────────

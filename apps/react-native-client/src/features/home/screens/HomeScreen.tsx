@@ -174,6 +174,18 @@ export default function HomeScreen() {
                         />
                         <Text style={styles.logoText}>Sắc sử</Text>
                     </View>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                            router.push("/notifications" as never);
+                        }}
+                        style={styles.bellButton}
+                    >
+                        <Image
+                            source={require("../../../../assets/images/bellRinging.png")}
+                            style={styles.bellIcon}
+                        />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Thẻ chào người dùng */}
@@ -348,6 +360,20 @@ const styles = StyleSheet.create({
         fontSize: 22,
         color: colors.textLight,
         letterSpacing: 0.5,
+    },
+    bellButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(124, 86, 86, 0.15)",
+    },
+    bellIcon: {
+        width: 20,
+        height: 20,
+        resizeMode: "contain",
+        tintColor: '#ffffff'
     },
     searchButton: {
         width: 40,
