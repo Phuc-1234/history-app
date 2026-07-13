@@ -20,7 +20,7 @@ import {
     RewardModal,
 } from "../../features/streak";
 import { colors } from "../../theme/colors";
-import HistoricalBackground from "./HistoricalBackground";
+import AppBackground from "./AppBackground";
 
 // ─── Branch Config (matches existing TopBarWrapper/TopBar interface) ────────
 export interface BranchConfig {
@@ -75,7 +75,8 @@ export interface ScreenWrapperProps {
     /** Additional style applied to the content container below the top bar */
     style?: StyleProp<ViewStyle>;
 
-    /** Show historical moving background (default: true) */
+    /** Show moving background (default: true). The specific background is
+     *  chosen per app session — see AppBackground / useAppBackground. */
     showHistoricalBackground?: boolean;
 }
 
@@ -189,7 +190,7 @@ function ScreenWithTopBar({
             />
 
             <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
-                {showHistoricalBackground && <HistoricalBackground />}
+                {showHistoricalBackground && <AppBackground />}
                 <ContentLayer {...contentProps}>
                     {children}
                 </ContentLayer>
@@ -259,7 +260,7 @@ function ScreenWithoutTopBar({
                 />
             )}
             <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
-                {showHistoricalBackground && <HistoricalBackground />}
+                {showHistoricalBackground && <AppBackground />}
                 <ContentLayer {...contentProps}>
                     {children}
                 </ContentLayer>

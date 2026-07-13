@@ -19,7 +19,7 @@ import Button from "../../../components/Button";
 import useAuthForm from "../hooks/useAuthForm";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
-import HistoricalBackground from "../../../components/layout/HistoricalBackground";
+import AppBackground from "../../../components/layout/AppBackground";
 
 export default function LoginForm() {
     const {
@@ -55,8 +55,8 @@ export default function LoginForm() {
                     },
                 ]}
             >
-                {/* Historical Background Motifs */}
-                <HistoricalBackground />
+                {/* Background Motifs (session-randomized) */}
+                <AppBackground />
 
                 {/* Logo Section */}
                 <View style={styles.logoContainer}>
