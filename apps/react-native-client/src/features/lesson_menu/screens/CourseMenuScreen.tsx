@@ -7,10 +7,12 @@ import {
     TextInput,
     ScrollView,
     RefreshControl,
+    Modal,
+    TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
-import { useGetGradeStructureQuery } from "../contentApiSlice";
+import { useGetGradeStructureQuery, useGetGradesQuery } from "../contentApiSlice";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
@@ -180,6 +182,9 @@ export function CourseMenuScreen() {
     const { data: struct11, isLoading: loading11, refetch: refetch11, isFetching: isFetching11 } = useGetGradeStructureQuery(11);
     const { data: struct12, isLoading: loading12, refetch: refetch12, isFetching: isFetching12 } = useGetGradeStructureQuery(12);
 
+    const { data: gradesData, isLoading: loadingGrades } = useGetGradesQuery();
+    const [isMasteryModalVisible, setIsMasteryModalVisible] = useState(false);
+
     const isLoading = loading10 || loading11 || loading12;
     const isFetching = isFetching10 || isFetching11 || isFetching12;
     const [searchQuery, setSearchQuery] = useState("");
@@ -192,7 +197,14 @@ export function CourseMenuScreen() {
     };
 
     const getProgress = (structure: any) => {
-        if (!structure || !structure.topics) return { completed: 0, total: 0 };
+        if (!structure) return { completed: 0, total: 0 };
+        if (structure.progress) {
+            return {
+                completed: structure.progress.completedNodes,
+                total: structure.progress.totalNodes,
+            };
+        }
+        if (!structure.topics) return { completed: 0, total: 0 };
         let total = 0;
         let completed = 0;
         for (const t of structure.topics) {
@@ -220,7 +232,17 @@ export function CourseMenuScreen() {
     return (
         <ScreenWrapper>
             <View style={styles.container}>
-                <Text style={styles.screenHeader}>Học phần</Text>
+                <View style={styles.headerRow}>
+                    <Text style={styles.screenHeader}>Học phần</Text>
+                    <TouchableOpacity
+                        style={styles.masteryBadgeButton}
+                        onPress={() => setIsMasteryModalVisible(true)}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="ribbon-outline" size={16} color="#FFFFFF" />
+                        <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
+                    </TouchableOpacity>
+                </View>
                 <Text style={styles.screenSubtitle}>Chọn học phần để bắt đầu</Text>
 
                 <View style={styles.searchContainer}>
@@ -290,6 +312,58 @@ export function CourseMenuScreen() {
                     )}
                 </ScrollView>
             </View>
+
+            <Modal
+                visible={isMasteryModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsMasteryModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Mức độ thành thạo</Text>
+                        <Text style={styles.modalSubtitle}>Thành thạo dựa trên kết quả trả lời đúng liên tục các câu hỏi</Text>
+                        
+                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                            {loadingGrades ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                gradesData?.grades?.map((g) => {
+                                    const pct = g.masteryPercentage ?? 0;
+                                    let gradeColor = colors.primary;
+                                    if (g.id === 11) gradeColor = colors.secondary;
+                                    if (g.id === 12) gradeColor = colors.success;
+
+                                    return (
+                                        <View key={g.id} style={styles.masteryGradeItem}>
+                                            <View style={styles.masteryGradeHeader}>
+                                                <Text style={styles.masteryGradeText}>Lịch sử Lớp {g.id}</Text>
+                                                <Text style={[styles.masteryGradePct, { color: gradeColor }]}>{pct}%</Text>
+                                            </View>
+                                            <View style={styles.masteryProgressBarTrack}>
+                                                <View
+                                                    style={[
+                                                        styles.masteryProgressBarFill,
+                                                        { width: `${pct}%`, backgroundColor: gradeColor },
+                                                    ]}
+                                                />
+                                            </View>
+                                        </View>
+                                    );
+                                })
+                            )}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={() => setIsMasteryModalVisible(false)}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.modalCloseButtonText}>Đóng</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScreenWrapper>
     );
 }
@@ -414,5 +488,97 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
         fontSize: 14,
         marginTop: 32,
+    },
+    headerRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 4,
+    },
+    masteryBadgeButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.accent,
+        borderRadius: 30,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    masteryBadgeButtonText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 13,
+        color: "#FFFFFF",
+        marginLeft: 4,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalContent: {
+        width: "100%",
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    modalTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 20,
+        color: colors.textPrimary,
+        marginBottom: 4,
+        textAlign: "center",
+    },
+    modalSubtitle: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 13,
+        color: colors.textSecondary,
+        marginBottom: 20,
+        textAlign: "center",
+    },
+    modalScroll: {
+        maxHeight: 300,
+        marginBottom: 20,
+    },
+    masteryGradeItem: {
+        marginBottom: 16,
+    },
+    masteryGradeHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 6,
+    },
+    masteryGradeText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 15,
+        color: colors.textPrimary,
+    },
+    masteryGradePct: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 15,
+    },
+    masteryProgressBarTrack: {
+        height: 8,
+        backgroundColor: colors.borderMedium,
+        borderRadius: 4,
+        overflow: "hidden",
+    },
+    masteryProgressBarFill: {
+        height: "100%",
+        borderRadius: 4,
+    },
+    modalCloseButton: {
+        backgroundColor: colors.primary,
+        borderRadius: 30,
+        paddingVertical: 12,
+        alignItems: "center",
+    },
+    modalCloseButtonText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 15,
+        color: "#FFFFFF",
     },
 });

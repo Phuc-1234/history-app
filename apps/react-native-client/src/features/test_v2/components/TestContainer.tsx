@@ -11,6 +11,7 @@ import {
     Modal,
     Dimensions,
     useWindowDimensions,
+    Image,
 } from "react-native";
 import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -141,11 +142,13 @@ function AnimatedTimerBadge({
 interface TestContainerV2Props {
     params: StartTestV2Request;
     onExit?: () => void;
+    skipIntro?: boolean;
 }
 
 export default function TestContainerV2({
     params,
     onExit,
+    skipIntro,
 }: TestContainerV2Props) {
     const { width } = useWindowDimensions();
     const runner = useTestRunnerV2(params);
@@ -186,6 +189,12 @@ export default function TestContainerV2({
         getAnswerForQuestion,
         getEvalForQuestion,
     } = runner;
+
+    useEffect(() => {
+        if (skipIntro && status === "idle") {
+            actions.start();
+        }
+    }, [skipIntro, status, actions.start]);
 
     const practiceEarned = React.useMemo(() => {
         return Object.values(evaluations).reduce(
@@ -248,6 +257,20 @@ export default function TestContainerV2({
     const [showPracticeConfirm, setShowPracticeConfirm] = useState(false);
     const [isListModalVisible, setIsListModalVisible] = useState(false);
     const [showExplanationTooltip, setShowExplanationTooltip] = useState(false);
+    const [milestoneQueue, setMilestoneQueue] = useState<any[]>([]);
+    const [activeMilestone, setActiveMilestone] = useState<any | null>(null);
+
+    useEffect(() => {
+        if (status === "completed" && result?.consequences) {
+            const milestones = result.consequences.filter(
+                (c) => c.eventType === "STREAK_MILESTONE" || c.eventType === "TIER_GAINED"
+            );
+            if (milestones.length > 0) {
+                setMilestoneQueue(milestones);
+                setActiveMilestone(milestones[0]);
+            }
+        }
+    }, [status, result]);
 
     useEffect(() => {
         setShowExplanationTooltip(false);
@@ -324,6 +347,16 @@ export default function TestContainerV2({
 
     // ── Exam Intro state ──────────────────────────────────────────────
     if (status === "idle") {
+        if (skipIntro) {
+            return (
+                <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
+                    <View style={styles.centerContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Đang tải bài luyện tập...</Text>
+                    </View>
+                </ScreenWrapper>
+            );
+        }
         return (
             <TestIntro
                 title={testInfo?.title}
@@ -340,6 +373,7 @@ export default function TestContainerV2({
                 attemptCount={testInfo?.attemptCount}
                 passCount={testInfo?.passCount}
                 scopeType={params.scopeType}
+                itemsReward={testInfo?.itemsReward}
             />
         );
     }
@@ -411,89 +445,70 @@ export default function TestContainerV2({
                                 {consequences.map((c, i) => {
                                     if (c.eventType === "REWARD_EARNED") {
                                         return (
-                                            <View
-                                                key={i}
-                                                style={styles.rewardRow}
-                                            >
-                                                {(c.xpGained ?? 0) > 0 && (
-                                                    <View
-                                                        style={[
-                                                            styles.rewardChip,
-                                                            styles.rewardChipXp,
-                                                        ]}
-                                                    >
-                                                        <Zap
-                                                            size={13}
-                                                            color="#FFF"
-                                                        />
-                                                        <Text
-                                                            style={
-                                                                styles.rewardChipText
-                                                            }
-                                                        >
-                                                            +{c.xpGained} XP
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                                {(c.goldGained ?? 0) > 0 && (
-                                                    <View
-                                                        style={[
-                                                            styles.rewardChip,
-                                                            styles.rewardChipGold,
-                                                        ]}
-                                                    >
-                                                        <Coins
-                                                            size={13}
-                                                            color="#4A3B00"
-                                                        />
-                                                        <Text
+                                            <View key={i}>
+                                                <View
+                                                    style={styles.rewardRow}
+                                                >
+                                                    {(c.xpGained ?? 0) > 0 && (
+                                                        <View
                                                             style={[
-                                                                styles.rewardChipText,
-                                                                {
-                                                                    color: "#4A3B00",
-                                                                },
+                                                                styles.rewardChip,
+                                                                styles.rewardChipXp,
                                                             ]}
                                                         >
-                                                            +{c.goldGained} vàng
-                                                        </Text>
+                                                            <Zap
+                                                                size={13}
+                                                                color="#FFF"
+                                                            />
+                                                            <Text
+                                                                style={
+                                                                    styles.rewardChipText
+                                                                }
+                                                            >
+                                                                +{c.xpGained} XP
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                    {(c.goldGained ?? 0) > 0 && (
+                                                        <View
+                                                            style={[
+                                                                styles.rewardChip,
+                                                                styles.rewardChipGold,
+                                                            ]}
+                                                        >
+                                                            <Coins
+                                                                size={13}
+                                                                color="#4A3B00"
+                                                            />
+                                                            <Text
+                                                                style={[
+                                                                    styles.rewardChipText,
+                                                                    {
+                                                                        color: "#4A3B00",
+                                                                    },
+                                                                ]}
+                                                            >
+                                                                +{c.goldGained} vàng
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                {c.itemsGained && c.itemsGained.length > 0 && (
+                                                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8, justifyContent: "center" }}>
+                                                        {c.itemsGained.map((item: any, idx: number) => (
+                                                            <View key={idx} style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceVariant, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, gap: 6 }}>
+                                                                {item.imgUrl ? (
+                                                                    <Image source={{ uri: item.imgUrl }} style={{ width: 16, height: 16, resizeMode: "contain" }} />
+                                                                ) : (
+                                                                    <Text style={{ fontSize: 13 }}>📦</Text>
+                                                                )}
+                                                                <Text style={{ fontSize: 12, fontFamily: typography.fonts.medium, color: colors.textPrimary }}>
+                                                                    {item.name} x{item.quantity}
+                                                                </Text>
+                                                            </View>
+                                                        ))}
                                                     </View>
                                                 )}
-                                            </View>
-                                        );
-                                    }
-                                    if (c.eventType === "STREAK_MILESTONE") {
-                                        return (
-                                            <View
-                                                key={i}
-                                                style={styles.milestoneRow}
-                                            >
-                                                <Flame
-                                                    size={14}
-                                                    color={colors.warning}
-                                                />
-                                                <Text
-                                                    style={styles.milestoneText}
-                                                >
-                                                    {c.message}
-                                                </Text>
-                                            </View>
-                                        );
-                                    }
-                                    if (c.eventType === "TIER_GAINED") {
-                                        return (
-                                            <View
-                                                key={i}
-                                                style={styles.milestoneRow}
-                                            >
-                                                <Trophy
-                                                    size={14}
-                                                    color={colors.gold}
-                                                />
-                                                <Text
-                                                    style={styles.milestoneText}
-                                                >
-                                                    {c.message}
-                                                </Text>
                                             </View>
                                         );
                                     }
@@ -554,6 +569,128 @@ export default function TestContainerV2({
                         </TouchableOpacity>
                     </Animated.View>
                 </ScrollView>
+
+                {activeMilestone && (
+                    <Modal
+                        visible={true}
+                        transparent={true}
+                        animationType="fade"
+                        onRequestClose={() => {}}
+                    >
+                        <Pressable style={{
+                            flex: 1,
+                            backgroundColor: "rgba(0, 0, 0, 0.45)",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            padding: 24,
+                        }}>
+                            <Pressable style={{
+                                backgroundColor: colors.surface,
+                                borderRadius: 12,
+                                padding: 24,
+                                width: "100%",
+                                maxWidth: 340,
+                                alignItems: "center",
+                                borderWidth: 1,
+                                borderColor: colors.borderMedium,
+                            }} onPress={(e) => e.stopPropagation()}>
+                                <Mascot
+                                    expression="very-happy"
+                                    width={100}
+                                    height={100}
+                                    style={{ marginBottom: 16 }}
+                                />
+                                <Text style={{
+                                    fontFamily: typography.fonts.bold,
+                                    fontSize: 18,
+                                    color: colors.textDark,
+                                    marginBottom: 10,
+                                    textAlign: "center",
+                                }}>
+                                    {activeMilestone.eventType === "STREAK_MILESTONE" ? "🔥 Chuỗi Ngày Mới!" : "🏆 Hạng Mới!"}
+                                </Text>
+                                <Text style={{
+                                    fontFamily: typography.fonts.medium,
+                                    fontSize: 14,
+                                    color: colors.textSecondary,
+                                    textAlign: "center",
+                                    marginBottom: 16,
+                                    lineHeight: 20,
+                                }}>
+                                    {activeMilestone.message}
+                                </Text>
+
+                                {/* Rewards inside modal */}
+                                <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                                    {(activeMilestone.xpGained ?? 0) > 0 && (
+                                        <View style={[styles.rewardChip, styles.rewardChipXp, { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }]}>
+                                            <Zap size={13} color="#FFF" />
+                                            <Text style={styles.rewardChipText}>+{activeMilestone.xpGained} XP</Text>
+                                        </View>
+                                    )}
+                                    {(activeMilestone.goldGained ?? 0) > 0 && (
+                                        <View style={[styles.rewardChip, styles.rewardChipGold, { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }]}>
+                                            <Coins size={13} color="#4A3B00" />
+                                            <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{activeMilestone.goldGained} vàng</Text>
+                                        </View>
+                                    )}
+                                </View>
+
+                                {activeMilestone.itemsGained && activeMilestone.itemsGained.length > 0 && (
+                                    <View style={{ width: "100%", alignItems: "center", marginBottom: 20 }}>
+                                        <Text style={{ fontSize: 12, fontFamily: typography.fonts.bold, color: colors.textSecondary, marginBottom: 8 }}>
+                                            Vật phẩm nhận được:
+                                            </Text>
+                                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
+                                            {activeMilestone.itemsGained.map((item: any, idx: number) => (
+                                                <View key={idx} style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceVariant, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, gap: 6 }}>
+                                                    {item.imgUrl ? (
+                                                        <Image source={{ uri: item.imgUrl }} style={{ width: 16, height: 16, resizeMode: "contain" }} />
+                                                    ) : (
+                                                        <Text style={{ fontSize: 13 }}>📦</Text>
+                                                    )}
+                                                    <Text style={{ fontSize: 12, fontFamily: typography.fonts.medium, color: colors.textPrimary }}>
+                                                        {item.name} x{item.quantity}
+                                                    </Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+
+                                <View style={{ width: "100%" }}>
+                                    <TouchableOpacity
+                                        style={{
+                                            paddingVertical: 14,
+                                            borderRadius: 12,
+                                            backgroundColor: colors.primary,
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                        }}
+                                        onPress={() => {
+                                            const nextQueue = milestoneQueue.slice(1);
+                                            setMilestoneQueue(nextQueue);
+                                            if (nextQueue.length > 0) {
+                                                setActiveMilestone(nextQueue[0]);
+                                            } else {
+                                                setActiveMilestone(null);
+                                            }
+                                        }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={{
+                                            fontFamily: typography.fonts.bold,
+                                            fontSize: 15,
+                                            color: colors.textLight,
+                                        }}>
+                                            Tuyệt vời
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </Pressable>
+                        </Pressable>
+                    </Modal>
+                )}
             </ScreenWrapper>
         );
     }
@@ -569,8 +706,39 @@ export default function TestContainerV2({
         : false;
     const showFeedback = purposeType === "PRACTICE" && !!evalResult;
 
+    const runningBranchConfig = {
+        ...branchConfig,
+        hideBack: true,
+        hideHome: true,
+        rightElement: (
+            <TouchableOpacity
+                style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 30,
+                    opacity: status === "submitting" ? 0.5 : 1,
+                }}
+                onPress={() => {
+                    if (status === "submitting") return;
+                    if (purposeType === "EXAM") {
+                        setShowSubmitConfirm(true);
+                    } else {
+                        setShowPracticeConfirm(true);
+                    }
+                }}
+                disabled={status === "submitting"}
+                activeOpacity={0.7}
+            >
+                <Text style={{ color: "#FFFFFF", fontFamily: typography.fonts.bold, fontSize: 14 }}>
+                    Nộp bài
+                </Text>
+            </TouchableOpacity>
+        ),
+    };
+
     return (
-        <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
+        <ScreenWrapper branchConfig={runningBranchConfig} showTopBar={false} showHistoricalBackground={false}>
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
@@ -840,17 +1008,6 @@ export default function TestContainerV2({
                                 )}
                             </View>
 
-                            <TouchableOpacity
-                                style={styles.listLink}
-                                onPress={() => setIsListModalVisible(true)}
-                                activeOpacity={0.7}
-                            >
-                                <Grid size={16} color={colors.textMuted} />
-                                <Text style={styles.listLinkText}>
-                                    Xem danh sách {totalCount} câu hỏi
-                                </Text>
-                            </TouchableOpacity>
-
                             <View style={styles.navButtonsRow}>
                                 <TouchableOpacity
                                     style={[
@@ -866,12 +1023,16 @@ export default function TestContainerV2({
                                     </Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={styles.submitBtn}
-                                    onPress={() => setShowSubmitConfirm(true)}
+                                    style={styles.navBtn}
+                                    onPress={() => setIsListModalVisible(true)}
+                                    activeOpacity={0.7}
                                 >
-                                    <Text style={styles.submitBtnText}>
-                                        Nộp bài
-                                    </Text>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                        <Grid size={14} color={colors.textSecondary} />
+                                        <Text style={styles.navBtnText}>
+                                            Danh sách
+                                        </Text>
+                                    </View>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[

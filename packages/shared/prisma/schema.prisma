@@ -165,30 +165,30 @@ model Test {
 }
 
 model Question {
-  id                    Int                     @id @default(autoincrement())
-  type                  QuestionType
-  difficulty            Int                     @default(1)
-  promptText            String                  @map("prompt_text")
-  gradeId               Int?                    @map("grade_id")
-  topicId               Int?                    @map("topic_id")
-  lessonId              Int?                    @map("lesson_id")
-  sectionId             Int?                    @map("section_id")
-  nodeId                Int?                    @map("node_id")
-  document              String?
-  answerDataJson        Json?                   @map("answer_data_json")
-  explanation           String?
-  isActive              Boolean                 @default(true) @map("is_active")
-  scopeId               Int?                    @map("scope_id")
-  scopeType             ScopeType?              @map("scope_type")
-  answers               QuestionAnswer[]
-  grade                 Grade?                  @relation(fields: [gradeId], references: [id])
-  lesson                Lesson?                 @relation(fields: [lessonId], references: [id])
-  node                  Node?                   @relation(fields: [nodeId], references: [id])
-  section               Section?                @relation(fields: [sectionId], references: [id])
-  topic                 Topic?                  @relation(fields: [topicId], references: [id])
-  testQuestions         TestQuestion[]
-  userAnswerLogs        UserAnswerLog[]
-  user_question_mastery user_question_mastery[]
+  id                Int                   @id @default(autoincrement())
+  type              QuestionType
+  difficulty        Int                   @default(1)
+  promptText        String                @map("prompt_text")
+  gradeId           Int?                  @map("grade_id")
+  topicId           Int?                  @map("topic_id")
+  lessonId          Int?                  @map("lesson_id")
+  sectionId         Int?                  @map("section_id")
+  nodeId            Int?                  @map("node_id")
+  document          String?
+  answerDataJson    Json?                 @map("answer_data_json")
+  explanation       String?
+  isActive          Boolean               @default(true) @map("is_active")
+  scopeId           Int?                  @map("scope_id")
+  scopeType         ScopeType?            @map("scope_type")
+  answers           QuestionAnswer[]
+  grade             Grade?                @relation(fields: [gradeId], references: [id])
+  lesson            Lesson?               @relation(fields: [lessonId], references: [id])
+  node              Node?                 @relation(fields: [nodeId], references: [id])
+  section           Section?              @relation(fields: [sectionId], references: [id])
+  topic             Topic?                @relation(fields: [topicId], references: [id])
+  testQuestions     TestQuestion[]
+  userAnswerLogs    UserAnswerLog[]
+  questionMasteries UserQuestionMastery[]
 
   @@map("questions")
 }
@@ -218,39 +218,42 @@ model TestQuestion {
 }
 
 model User {
-  id                     String                  @id @default(uuid())
-  role                   UserRole                @default(STUDENT)
+  id                     String                @id @default(uuid())
+  role                   UserRole              @default(STUDENT)
   name                   String
-  email                  String?                 @unique
-  totalXp                Int                     @default(0) @map("total_xp")
-  totalGold              Int                     @default(0) @map("total_gold")
-  isHidden               Boolean                 @default(false) @map("is_hidden")
-  profileImgUrl          String?                 @map("profile_img_url")
-  currentStreak          Int                     @default(0) @map("current_streak")
-  highestStreak          Int                     @default(0) @map("highest_streak")
-  lastTestPassedAt       DateTime?               @map("last_test_passed_at")
-  currentTierIndex       Int                     @default(1) @map("current_tier_index")
-  isVerified             Boolean                 @default(false) @map("is_verified")
-  isPrivate              Boolean                 @default(false) @map("is_private")
-  allowFollow            Boolean                 @default(true) @map("allow_follow")
-  allowFriendRequest     Boolean                 @default(true) @map("allow_friend_request")
-  is_pro                 Boolean?                @default(false)
-  pro_expires_at         DateTime?               @db.Timestamptz(6)
+  email                  String?               @unique
+  totalXp                Int                   @default(0) @map("total_xp")
+  totalGold              Int                   @default(0) @map("total_gold")
+  isHidden               Boolean               @default(false) @map("is_hidden")
+  profileImgUrl          String?               @map("profile_img_url")
+  currentStreak          Int                   @default(0) @map("current_streak")
+  highestStreak          Int                   @default(0) @map("highest_streak")
+  lastTestPassedAt       DateTime?             @map("last_test_passed_at")
+  currentTierIndex       Int                   @default(1) @map("current_tier_index")
+  isVerified             Boolean               @default(false) @map("is_verified")
+  isPrivate              Boolean               @default(false) @map("is_private")
+  allowFollow            Boolean               @default(true) @map("allow_follow")
+  allowFriendRequest     Boolean               @default(true) @map("allow_friend_request")
+  isPro                  Boolean?              @default(false) @map("is_pro")
+  proExpiresAt           DateTime?             @map("pro_expires_at") @db.Timestamptz(6)
   feedbacks              Feedback[]
-  following              Follow[]                @relation("FollowFollower")
-  followers              Follow[]                @relation("FollowFollowing")
-  receivedFriendRequests FriendRequest[]         @relation("FriendRequestReceiver")
-  sentFriendRequests     FriendRequest[]         @relation("FriendRequestSender")
-  friendshipsAsFriend    Friendship[]            @relation("FriendshipFriend")
-  friendshipsAsUser      Friendship[]            @relation("FriendshipUser")
+  following              Follow[]              @relation("FollowFollower")
+  followers              Follow[]              @relation("FollowFollowing")
+  receivedFriendRequests FriendRequest[]       @relation("FriendRequestReceiver")
+  sentFriendRequests     FriendRequest[]       @relation("FriendRequestSender")
+  friendshipsAsFriend    Friendship[]          @relation("FriendshipFriend")
+  friendshipsAsUser      Friendship[]          @relation("FriendshipUser")
   goldPurchases          GoldPurchase[]
-  subscriptions          subscriptions[]
+  subscriptions          Subscription[]
   userFlashcards         UserFlashcard[]
   nodeProgresses         UserNodeProgress[]
-  user_question_mastery  user_question_mastery[]
+  questionMasteries      UserQuestionMastery[]
   rewardLogs             UserRewardLog[]
   testLogs               UserTestLog[]
-  tier                   Tier                    @relation(fields: [currentTierIndex], references: [index])
+  tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
+  userItems              UserItem[]
+  userActiveEffects      UserActiveEffect[]
+  userEquippedItems      UserEquippedItem[]
 
   @@map("users")
 }
@@ -334,7 +337,7 @@ model UserTestLog {
   scoreAwarded          Float?            @map("score_awarded")
   status                TestStatus?       @map("status")
   timeLimit             Int?              @map("time_limit")
-  auto_pick_strategy    AutoPickStrategy?
+  autoPickStrategy      AutoPickStrategy? @map("auto_pick_strategy")
   answerLogs            UserAnswerLog[]
   rewardLogs            UserRewardLog[]
   generatedFromPreset   TestPreset?       @relation(fields: [generatedFromPresetId], references: [id])
@@ -426,6 +429,7 @@ model RewardRule {
   xp              Int               @default(0)
   gold            Int               @default(0)
   rewardLogs      UserRewardLog[]
+  rewardRuleItems RewardRuleItem[]
 
   @@unique([triggerType, triggerTargetId, triggerTimeMin, triggerTimeMax])
   @@map("reward_rules")
@@ -445,7 +449,7 @@ model UserRewardLog {
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   userTestLog     UserTestLog?      @relation(fields: [userTestLogId], references: [id])
 
-  @@unique([userId, rewardRuleId, triggerTime])
+  @@unique([userId, rewardRuleId, triggerTargetId, triggerTime])
   @@map("user_reward_logs")
 }
 
@@ -462,32 +466,34 @@ model Feedback {
   @@map("feedbacks")
 }
 
-model subscriptions {
-  id                String             @id
-  user_id           String
-  status            SubscriptionStatus @default(PENDING)
-  amount_vnd        Int                @default(2000)
-  provider          PaymentProvider
-  provider_order_id String             @unique
-  provider_trans_id String?
-  auto_renew        Boolean            @default(true)
-  start_date        DateTime?          @db.Timestamptz(6)
-  end_date          DateTime?          @db.Timestamptz(6)
-  created_at        DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime           @default(now()) @db.Timestamptz(6)
-  users             User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+model UserQuestionMastery {
+  userId             String   @map("user_id")
+  questionId         Int      @map("question_id")
+  level              Int      @default(0)
+  consecutiveCorrect Int      @default(0) @map("consecutive_correct")
+  question           Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+  @@map("user_question_mastery")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model user_question_mastery {
-  user_id             String
-  question_id         Int
-  level               Int      @default(0)
-  consecutive_correct Int      @default(0)
-  questions           Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
-  users               User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+model Subscription {
+  id              String             @id @default(uuid())
+  userId          String             @map("user_id")
+  status          SubscriptionStatus @default(PENDING)
+  amountVnd       Int                @default(2000) @map("amount_vnd")
+  provider        PaymentProvider
+  providerOrderId String             @unique @map("provider_order_id")
+  providerTransId String?            @map("provider_trans_id")
+  autoRenew       Boolean            @default(true) @map("auto_renew")
+  startDate       DateTime?          @map("start_date") @db.Timestamptz(6)
+  endDate         DateTime?          @map("end_date") @db.Timestamptz(6)
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([user_id, question_id])
+  @@map("subscriptions")
 }
 
 enum HierachyState {
@@ -521,12 +527,25 @@ enum FriendRequestStatus {
   CANCELLED
 }
 
-enum ItemType {
-  FRAME
-  BOOST_XP_TIME
-  BOOST_GOLD_TIME
-  BOOST_XP_PASS
-  BOOST_GOLD_PASS
+enum ItemDefinitionType {
+  SKIN
+  BOOST
+  BADGE
+}
+
+enum BoostEffectType {
+  XP_MULTIPLIER
+  GOLD_MULTIPLIER
+}
+
+enum EquipmentSlot {
+  AVT_FRAME
+  BACKGROUND
+}
+
+enum EffectStatus {
+  ACTIVE
+  EXPIRED
 }
 
 enum RewardTriggerType {
@@ -587,4 +606,80 @@ enum SubscriptionStatus {
   CANCELLED
   EXPIRED
   FAILED
+}
+
+model ItemDefinition {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  maxStackSize        Int?                 @map("max_stack_size")
+  description         String?
+  shownInStore        Boolean              @default(true) @map("shown_in_store")
+  price               Int                  @default(10)
+  isConsumable        Boolean              @map("is_consumable")
+  type                ItemDefinitionType
+  effectType          BoostEffectType?     @map("effect_type")
+  effectValue         Float?               @map("effect_value")
+  imgUrl              String?              @map("img_url")
+  equipmentSlot       EquipmentSlot?       @map("equipment_slot")
+  durationMinutes     Int?                 @map("duration_minutes")
+  allowEffectStacking Boolean              @default(true) @map("allow_effect_stacking")
+
+  rewardRuleItems     RewardRuleItem[]
+  userItems           UserItem[]
+  userActiveEffects   UserActiveEffect[]
+  userEquippedItems   UserEquippedItem[]
+
+  @@map("item_definitions")
+}
+
+model RewardRuleItem {
+  rewardRuleId     Int            @map("reward_rule_id")
+  itemDefinitionId Int            @map("item_definition_id")
+  quantity         Int            @default(1)
+
+  rewardRule       RewardRule     @relation(fields: [rewardRuleId], references: [id], onDelete: Cascade)
+  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+
+  @@id([rewardRuleId, itemDefinitionId])
+  @@map("reward_rule_items")
+}
+
+model UserItem {
+  userId           String         @map("user_id")
+  itemDefinitionId Int            @map("item_definition_id")
+  quantity         Int            @default(1)
+
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemDefinitionId])
+  @@map("user_items")
+}
+
+model UserActiveEffect {
+  id               String          @id @default(uuid())
+  userId           String          @map("user_id")
+  itemDefinitionId Int             @map("item_definition_id")
+  effectType       BoostEffectType @map("effect_type")
+  effectValue      Float           @map("effect_value")
+  startedAt        DateTime        @default(now()) @map("started_at")
+  expiresAt        DateTime        @map("expires_at")
+  status           EffectStatus    @default(ACTIVE)
+
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+
+  @@map("user_active_effects")
+}
+
+model UserEquippedItem {
+  userId           String         @map("user_id")
+  equipmentSlot    EquipmentSlot  @map("equipment_slot")
+  itemDefinitionId Int            @map("item_definition_id")
+
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, equipmentSlot])
+  @@map("user_equipped_items")
 }

@@ -46,6 +46,7 @@ export const finishTest = async (req: Request, res: Response) => {
             req.params.logId,
             req.user.id,
             req.body.draftAnswerJson ?? [],
+            req.body.seenQuestionIds,
         );
         return res.status(200).json(resp);
     } catch (err: any) {

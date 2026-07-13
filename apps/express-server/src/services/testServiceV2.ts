@@ -110,6 +110,7 @@ function toLogDto(log: any, testTitle?: string | null): UserTestLogV2Dto {
         questionSequenceJson: (log.questionSequenceJson as number[]) ?? [],
         draftAnswerJson: (log.draftAnswerJson as DraftAnswerEntry[]) ?? [],
         testTitle: testTitle ?? log.testTitle ?? null,
+        autoPickStrategy: log.autoPickStrategy ?? null,
         goldEarned: log.goldEarned ?? 0,
         xpEarned: log.xpEarned ?? 0,
     };
@@ -129,7 +130,9 @@ function toQuestionDto(q: any): QuestionV2Dto {
 
 // ─── Scope expansion ────────────────────────────────────────────────────
 
-async function expandScopeToQuestionWhere(
+// ─── Scope expansion ────────────────────────────────────────────────────
+
+export async function expandScopeToQuestionWhere(
     scopeType: string | null | undefined,
     scopeId: number | null | undefined,
 ): Promise<Prisma.QuestionWhereInput> {
@@ -233,78 +236,260 @@ async function getNodeIdsForSections(sectionIds: number[]): Promise<number[]> {
 // ─── Auto-pick question selection ────────────────────────────────────────
 
 async function autoPickQuestions(
-    scopeWhere: Prisma.QuestionWhereInput,
+    userId: string,
+    scopeType: string | null | undefined,
+    scopeId: number | null | undefined,
+    strategy: string | null | undefined,
     questionCount: number | null,
     difficultyRatioJson: any,
 ): Promise<number[]> {
-    // Parse difficulty ratio (default: {1:40, 2:30, 3:20, 4:10})
-    const ratio: Record<number, number> = difficultyRatioJson ?? {
-        1: 40,
-        2: 30,
-        3: 20,
-        4: 10,
-    };
-    const totalRatio = Object.values(ratio).reduce((a, b) => a + b, 0) || 100;
+    const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
 
-    // Fetch all candidate question IDs grouped by difficulty
-    const pools: Record<number, number[]> = { 1: [], 2: [], 3: [], 4: [] };
-    for (let d = 1; d <= 4; d++) {
-        const qs = await prisma.question.findMany({
-            where: { ...scopeWhere, difficulty: d, answerDataJson: { not: Prisma.DbNull } },
+    if (strategy === "LOW_MASTERY") {
+        const allQuestions = await prisma.question.findMany({
+            where: { ...scopeWhere, isActive: true, answerDataJson: { not: Prisma.DbNull } },
             select: { id: true },
         });
-        pools[d] = shuffle(qs.map((q) => q.id));
+        const allQuestionIds = allQuestions.map((q) => q.id);
+
+        const masteryRecords = await prisma.userQuestionMastery.findMany({
+            where: {
+                userId,
+                questionId: { in: allQuestionIds },
+            },
+            select: {
+                questionId: true,
+                level: true,
+            },
+        });
+        const masteryMap = new Map<number, number>(
+            masteryRecords.map((r) => [r.questionId, r.level]),
+        );
+
+        const lowPool = allQuestionIds.filter((id) => masteryMap.has(id) && (masteryMap.get(id) ?? 0) <= 2);
+        const highPool = allQuestionIds.filter((id) => masteryMap.has(id) && (masteryMap.get(id) ?? 0) >= 3);
+
+        const shuffledLow = shuffle(lowPool);
+        const shuffledHigh = shuffle(highPool);
+
+        const totalSeen = lowPool.length + highPool.length;
+        const target = questionCount != null ? Math.min(questionCount, totalSeen) : totalSeen;
+        if (target === 0) return [];
+
+        const targetLow = Math.round(target * 0.8);
+        const targetHigh = target - targetLow;
+
+        const selectedIds: number[] = [];
+
+        if (shuffledLow.length < targetLow) {
+            selectedIds.push(...shuffledLow);
+            const remaining = target - selectedIds.length;
+            selectedIds.push(...shuffledHigh.slice(0, remaining));
+        } else if (shuffledHigh.length < targetHigh) {
+            selectedIds.push(...shuffledHigh);
+            const remaining = target - selectedIds.length;
+            selectedIds.push(...shuffledLow.slice(0, remaining));
+        } else {
+            selectedIds.push(...shuffledLow.slice(0, targetLow));
+            selectedIds.push(...shuffledHigh.slice(0, targetHigh));
+        }
+
+        return shuffle(selectedIds);
     }
 
-    const totalAvailable = Object.values(pools).reduce((a, b) => a + b.length, 0);
+    if (strategy === "WRONG") {
+        const allQuestions = await prisma.question.findMany({
+            where: { ...scopeWhere, isActive: true, answerDataJson: { not: Prisma.DbNull } },
+            select: { id: true },
+        });
+        const allQuestionIds = allQuestions.map((q) => q.id);
 
-    // If questionCount is null, take all
-    if (questionCount == null) {
-        const all = [1, 2, 3, 4].flatMap((d) => pools[d]);
-        return shuffle(all);
+        const masteryRecords = await prisma.userQuestionMastery.findMany({
+            where: {
+                userId,
+                questionId: { in: allQuestionIds },
+            },
+            select: {
+                questionId: true,
+                level: true,
+                consecutiveCorrect: true,
+            },
+        });
+        const masteryMap = new Map<number, { level: number; consecutiveCorrect: number }>(
+            masteryRecords.map((r) => [r.questionId, { level: r.level, consecutiveCorrect: r.consecutiveCorrect }]),
+        );
+
+        const wrongPool = allQuestionIds.filter((id) => {
+            const m = masteryMap.get(id);
+            return m !== undefined && m.consecutiveCorrect === 0;
+        });
+        const fallbackPool = allQuestionIds.filter((id) => {
+            const m = masteryMap.get(id);
+            return m !== undefined && m.consecutiveCorrect >= 1;
+        });
+
+        const shuffledWrong = shuffle(wrongPool);
+        const shuffledFallback = shuffle(fallbackPool);
+
+        const totalSeen = wrongPool.length + fallbackPool.length;
+        const target = questionCount != null ? Math.min(questionCount, totalSeen) : totalSeen;
+        if (target === 0) return [];
+
+        const targetWrong = Math.round(target * 0.8);
+        const targetFallback = target - targetWrong;
+
+        const selectedIds: number[] = [];
+
+        if (shuffledWrong.length < targetWrong) {
+            selectedIds.push(...shuffledWrong);
+            const remaining = target - selectedIds.length;
+            selectedIds.push(...shuffledFallback.slice(0, remaining));
+        } else if (shuffledFallback.length < targetFallback) {
+            selectedIds.push(...shuffledFallback);
+            const remaining = target - selectedIds.length;
+            selectedIds.push(...shuffledWrong.slice(0, remaining));
+        } else {
+            selectedIds.push(...shuffledWrong.slice(0, targetWrong));
+            selectedIds.push(...shuffledFallback.slice(0, targetFallback));
+        }
+
+        return shuffle(selectedIds);
     }
 
-    const target = Math.min(questionCount, totalAvailable);
+    // Default strategy: BALANCED
+    // 1. Get all active questions under the target scope
+    const allQuestionsInScope = await prisma.question.findMany({
+        where: { ...scopeWhere, isActive: true, answerDataJson: { not: Prisma.DbNull } },
+        select: { id: true },
+    });
+    const totalAvailable = allQuestionsInScope.length;
+    const target = questionCount != null ? Math.min(questionCount, totalAvailable) : totalAvailable;
     if (target === 0) return [];
 
-    // Desired count per difficulty
-    const desired: Record<number, number> = {};
-    for (let d = 1; d <= 4; d++) {
-        desired[d] = Math.floor((target * (ratio[d] ?? 0)) / totalRatio);
-    }
-    // Fill remainder
-    let assigned = Object.values(desired).reduce((a, b) => a + b, 0);
-    for (let d = 1; assigned < target && d <= 4; d++) {
-        desired[d]++;
-        assigned++;
+    // 2. Fetch direct scope questions
+    let directQuestions: number[] = [];
+    if (scopeType && scopeId && scopeType !== "NATIONAL") {
+        const qs = await prisma.question.findMany({
+            where: {
+                scopeType: scopeType as any,
+                scopeId: scopeId,
+                isActive: true,
+                answerDataJson: { not: Prisma.DbNull },
+            },
+            select: { id: true },
+        });
+        directQuestions = shuffle(qs.map((q) => q.id));
+    } else {
+        const qs = await prisma.question.findMany({
+            where: { isActive: true, answerDataJson: { not: Prisma.DbNull } },
+            select: { id: true },
+        });
+        directQuestions = shuffle(qs.map((q) => q.id));
     }
 
-    const sequence: number[] = [];
+    if (directQuestions.length >= target) {
+        return directQuestions.slice(0, target);
+    }
 
-    // Take from each difficulty, overflow to neighbors
-    for (const d of [4, 3, 2, 1]) {
-        const want = desired[d] || 0;
-        const take = Math.min(want, pools[d].length);
-        if (take > 0) sequence.push(...pools[d].splice(0, take));
-        let remaining = want - take;
-        let fallback = d - 1;
-        while (remaining > 0 && fallback >= 1) {
-            const t = Math.min(remaining, pools[fallback].length);
-            if (t > 0) {
-                sequence.push(...pools[fallback].splice(0, t));
-                remaining -= t;
-            }
-            fallback--;
+    const selected = [...directQuestions];
+    const remainingTarget = target - selected.length;
+
+    // Find direct child scopes
+    const children: { type: string; id: number }[] = [];
+    if (scopeType === "GRADE" && scopeId) {
+        const topics = await prisma.topic.findMany({
+            where: { gradeId: scopeId },
+            select: { id: true },
+        });
+        topics.forEach((t) => children.push({ type: "TOPIC", id: t.id }));
+    } else if (scopeType === "TOPIC" && scopeId) {
+        const lessons = await prisma.lesson.findMany({
+            where: { topicId: scopeId },
+            select: { id: true },
+        });
+        lessons.forEach((l) => children.push({ type: "LESSON", id: l.id }));
+    } else if (scopeType === "LESSON" && scopeId) {
+        const sections = await prisma.section.findMany({
+            where: { lessonId: scopeId, parentSectionId: null },
+            select: { id: true },
+        });
+        sections.forEach((s) => children.push({ type: "SECTION", id: s.id }));
+    } else if (scopeType === "SECTION" && scopeId) {
+        const sections = await prisma.section.findMany({
+            where: { parentSectionId: scopeId },
+            select: { id: true },
+        });
+        sections.forEach((s) => children.push({ type: "SECTION", id: s.id }));
+        const nodes = await prisma.node.findMany({
+            where: { sectionId: scopeId },
+            select: { id: true },
+        });
+        nodes.forEach((n) => children.push({ type: "NODE", id: n.id }));
+    }
+
+    if (children.length === 0) {
+        return selected;
+    }
+
+    // Build pools for each child
+    const childPools: { type: string; id: number; pool: number[] }[] = [];
+    for (const child of children) {
+        const childWhere = await expandScopeToQuestionWhere(child.type, child.id);
+        const qs = await prisma.question.findMany({
+            where: {
+                ...childWhere,
+                isActive: true,
+                answerDataJson: { not: Prisma.DbNull },
+                id: { notIn: selected.length ? selected : undefined },
+            },
+            select: { id: true },
+        });
+        const pool = shuffle(qs.map((q) => q.id));
+        if (pool.length > 0) {
+            childPools.push({ type: child.type, id: child.id, pool });
         }
     }
 
-    // Fill any remaining slots
-    const leftover = [1, 2, 3, 4].flatMap((d) => pools[d]);
-    while (sequence.length < target && leftover.length > 0) {
-        sequence.push(leftover.shift()!);
+    if (childPools.length === 0) {
+        return selected;
     }
 
-    return shuffle(sequence.slice(0, target));
+    // Compute square-root weights and allocate targets
+    const targets = childPools.map((cp) => {
+        const s = cp.pool.length;
+        const w = Math.sqrt(s);
+        return { cp, w, target: 0 };
+    });
+
+    const sumW = targets.reduce((acc, t) => acc + t.w, 0);
+    if (sumW > 0) {
+        targets.forEach((t) => {
+            t.target = Math.round(remainingTarget * (t.w / sumW));
+        });
+    }
+
+    const allocatedDrawn: number[] = [];
+    for (const t of targets) {
+        const toDraw = Math.min(t.target, t.cp.pool.length);
+        if (toDraw > 0) {
+            const drawn = t.cp.pool.splice(0, toDraw);
+            allocatedDrawn.push(...drawn);
+        }
+    }
+
+    if (allocatedDrawn.length > remainingTarget) {
+        selected.push(...shuffle(allocatedDrawn).slice(0, remainingTarget));
+    } else {
+        selected.push(...allocatedDrawn);
+        const gap = target - selected.length;
+        if (gap > 0) {
+            const leftovers = targets.flatMap((t) => t.cp.pool);
+            const shuffledLeftovers = shuffle(leftovers);
+            selected.push(...shuffledLeftovers.slice(0, gap));
+        }
+    }
+
+    return selected;
 }
 
 // ─── Service class ──────────────────────────────────────────────────────
@@ -377,10 +562,11 @@ export class TestServiceV2 {
         let scopeId = req.scopeId ?? null;
         let purposeType = req.purposeType ?? "PRACTICE";
         let testId: string | null = req.testId ?? null;
+        let test: any = null;
 
         // ── Manual test path ──
         if (testId) {
-            const test = await prisma.test.findUnique({
+            test = await prisma.test.findUnique({
                 where: { id: testId },
                 include: {
                     testQuestions: {
@@ -400,11 +586,10 @@ export class TestServiceV2 {
             scopeType = test.scopeType ?? scopeType;
             scopeId = test.scopeId ?? scopeId;
             if (preset) purposeType = preset.purposeType ?? purposeType;
+        }
 
-            sequence = test.testQuestions.map((tq) => tq.questionId);
-        } else {
-            // ── Auto-pick path ──
-            // Resolve preset
+        // Resolve preset if not already loaded or if we need default fallback
+        if (!preset) {
             if (req.presetId) {
                 preset = await prisma.testPreset.findUnique({ where: { id: req.presetId } });
             }
@@ -423,7 +608,6 @@ export class TestServiceV2 {
             if (!preset && scopeType) {
                 preset = await prisma.testPreset.findFirst({
                     where: {
-                        
                         purposeType: purposeType as any,
                     },
                 });
@@ -437,23 +621,37 @@ export class TestServiceV2 {
                     timeLimit: purposeType === "EXAM" ? 15 : null,
                     difficultyRatioJson: { 1: 40, 2: 30, 3: 20, 4: 10 },
                     purposeType,
-                    
                 };
             }
+        }
 
-            purposeType = preset.purposeType ?? purposeType;
+        purposeType = preset.purposeType ?? purposeType;
 
-            const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
+        // Resolve final parameters (Request overrides -> Test settings -> Preset settings -> Default fallbacks)
+        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (test?.questionNumber ?? preset?.questionCount ?? 10);
+        const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
+        const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
+        const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
+
+        if (testId && test) {
+            sequence = test.testQuestions.map((tq: any) => tq.questionId);
+            if (finalQuestionCount !== null && sequence.length > finalQuestionCount) {
+                sequence = sequence.slice(0, finalQuestionCount);
+            }
+        } else {
             sequence = await autoPickQuestions(
-                scopeWhere,
-                preset.questionCount,
-                preset.difficultyRatioJson,
+                userId,
+                scopeType,
+                scopeId,
+                req.autoPickStrategy ?? "BALANCED",
+                finalQuestionCount,
+                finalDifficultyRatioJson,
             );
 
             if (sequence.length === 0) {
                 throw serviceError("No questions available in this scope", "NO_QUESTIONS");
             }
-        } 
+        }
 
         // Compute attempt number
         const prevCount = testId
@@ -469,8 +667,7 @@ export class TestServiceV2 {
               });
 
         const now = new Date();
-        const timeLimit = preset?.timeLimit ?? null;
-        const expiresAt = timeLimit ? new Date(now.getTime() + timeLimit * 60000) : null;
+        const expiresAt = finalTimeLimit ? new Date(now.getTime() + finalTimeLimit * 60000) : null;
 
         const log = await prisma.userTestLog.create({
             data: {
@@ -487,14 +684,15 @@ export class TestServiceV2 {
                 expiresAt,
                 attemptNumber: prevCount + 1,
                 questionCount: sequence.length,
-                passThreshold: preset?.passThreshold ?? 80,
-                timeLimit,
+                passThreshold: finalPassThreshold,
+                timeLimit: finalTimeLimit,
                 scopeType: scopeType as any,
                 scopeId,
                 questionSequenceJson: sequence,
                 currentQuestionIndex: 0,
                 draftAnswerJson: [],
                 timezoneOffsetMinutes: 0,
+                autoPickStrategy: req.autoPickStrategy ? (req.autoPickStrategy as any) : "BALANCED",
             },
         });
 
@@ -526,6 +724,7 @@ export class TestServiceV2 {
         logId: string,
         userId: string,
         finalDraft: DraftAnswerEntry[],
+        seenQuestionIds?: number[],
     ): Promise<FinishTestV2Response> {
         return await prisma.$transaction(async (tx) => {
             const log = await tx.userTestLog.findUnique({ where: { id: logId } });
@@ -575,7 +774,7 @@ export class TestServiceV2 {
                     ? (totalScoreAwarded / totalMaxScore) * 100 >= (log.passThreshold ?? 80)
                     : false;
 
-            // Create permanent UserAnswerLog entries
+            // Create permanent UserAnswerLog entries & update mastery
             for (const r of scoreResults) {
                 const draft = finalDraft.find((d) => d.questionId === r.questionId);
                 await tx.userAnswerLog.create({
@@ -589,6 +788,68 @@ export class TestServiceV2 {
                         answeredAt: draft?.answeredAt ? new Date(draft.answeredAt) : new Date(),
                     },
                 });
+
+                let isAnswered = false;
+                if (draft) {
+                    if (r.type === "CHOOSE") {
+                        const ans = draft.answerData as any;
+                        isAnswered = Array.isArray(ans?.selectedOptions) && ans.selectedOptions.length > 0;
+                    } else if (r.type === "FILL") {
+                        const ans = draft.answerData as any;
+                        isAnswered = typeof ans?.typedAnswer === "string" && ans.typedAnswer.trim() !== "";
+                    } else if (r.type === "MATCH") {
+                        const ans = draft.answerData as any;
+                        isAnswered = Array.isArray(ans?.pairs) && ans.pairs.length > 0;
+                    }
+                }
+
+                const isSeen = !seenQuestionIds || seenQuestionIds.includes(r.questionId);
+                const shouldUpdateMastery = isSeen || isAnswered;
+
+                if (shouldUpdateMastery) {
+                    const mastery = await tx.userQuestionMastery.findUnique({
+                        where: {
+                            userId_questionId: { userId, questionId: r.questionId },
+                        },
+                    });
+
+                    const currentLevel = mastery?.level ?? 0;
+                    const currentConsecutive = mastery?.consecutiveCorrect ?? 0;
+
+                    let nextLevel = currentLevel;
+                    let nextConsecutive = currentConsecutive;
+
+                    if (r.isCorrect) {
+                        if (currentLevel === 0) {
+                            nextLevel = 1;
+                            nextConsecutive = 1;
+                        } else {
+                            if (currentConsecutive >= 1) {
+                                nextLevel = Math.min(currentLevel + 1, 5);
+                            }
+                            nextConsecutive = currentConsecutive + 1;
+                        }
+                    } else {
+                        nextLevel = Math.max(currentLevel - 1, 0);
+                        nextConsecutive = 0;
+                    }
+
+                    await tx.userQuestionMastery.upsert({
+                        where: {
+                            userId_questionId: { userId, questionId: r.questionId },
+                        },
+                        update: {
+                            level: nextLevel,
+                            consecutiveCorrect: nextConsecutive,
+                        },
+                        create: {
+                            userId,
+                            questionId: r.questionId,
+                            level: nextLevel,
+                            consecutiveCorrect: nextConsecutive,
+                        },
+                    });
+                }
             }
 
             // Update log with scores
@@ -612,8 +873,10 @@ export class TestServiceV2 {
                     log.testId,
                     log.scopeType,
                     log.scopeId,
+                    log.purposeType,
                     logId,
                     tx,
+                    log.autoPickStrategy,
                 );
                 consequences.push(...rewardResult.consequences);
 
@@ -652,6 +915,9 @@ export class TestServiceV2 {
                 answerLogs,
                 consequences,
             };
+        }, {
+            maxWait: 15000,
+            timeout: 30000,
         });
     }
 
@@ -736,12 +1002,11 @@ export class TestServiceV2 {
         let scopeId = req.scopeId ?? null;
         let purposeType = req.purposeType ?? "PRACTICE";
         let testId: string | null = req.testId ?? null;
-        let questionCount = 0;
-        let passThreshold = 80;
+        let test: any = null;
 
         // ── Manual test path ──
         if (testId) {
-            const test = await prisma.test.findUnique({
+            test = await prisma.test.findUnique({
                 where: { id: testId },
                 include: {
                     testQuestions: {
@@ -760,10 +1025,10 @@ export class TestServiceV2 {
             scopeType = test.scopeType ?? scopeType;
             scopeId = test.scopeId ?? scopeId;
             if (preset) purposeType = preset.purposeType ?? purposeType;
-            questionCount = test.testQuestions.length;
-            passThreshold = test.passThreshold ?? preset?.passThreshold ?? 80;
-        } else {
-            // ── Auto-pick path ──
+        }
+
+        // Resolve preset if not already loaded or if we need default fallback
+        if (!preset) {
             if (req.presetId) {
                 preset = await prisma.testPreset.findUnique({ where: { id: req.presetId } });
             }
@@ -796,17 +1061,30 @@ export class TestServiceV2 {
                     purposeType,
                 };
             }
+        }
 
-            purposeType = preset.purposeType ?? purposeType;
+        purposeType = preset.purposeType ?? purposeType;
 
-            const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
+        // Resolve final parameters (Request overrides -> Test settings -> Preset settings -> Default fallbacks)
+        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (test?.questionNumber ?? preset?.questionCount ?? 10);
+        const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
+        const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
+        const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
+
+        let questionCount = 0;
+        if (testId && test) {
+            const sequenceLength = test.testQuestions.length;
+            questionCount = finalQuestionCount !== null && sequenceLength > finalQuestionCount ? finalQuestionCount : sequenceLength;
+        } else {
             const sequence = await autoPickQuestions(
-                scopeWhere,
-                preset.questionCount,
-                preset.difficultyRatioJson,
+                userId,
+                scopeType,
+                scopeId,
+                req.autoPickStrategy ?? "BALANCED",
+                finalQuestionCount,
+                finalDifficultyRatioJson,
             );
             questionCount = sequence.length;
-            passThreshold = preset?.passThreshold ?? 80;
         }
 
         const mockLog = {
@@ -817,7 +1095,6 @@ export class TestServiceV2 {
             generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
         };
         const title = await resolveTestTitle(mockLog);
-        const timeLimit = preset?.timeLimit ?? null;
 
         // Reward preview
         const rewardPreview = await rewardEngine.previewTestReward(
@@ -825,6 +1102,8 @@ export class TestServiceV2 {
             scopeType,
             scopeId,
             userId,
+            purposeType,
+            req.autoPickStrategy,
         );
 
         // Compute attempt count and pass count
@@ -856,16 +1135,17 @@ export class TestServiceV2 {
         return {
             title,
             questionCount,
-            timeLimit,
+            timeLimit: finalTimeLimit,
             scopeType,
             scopeId,
             purposeType,
             goldReward: rewardPreview.gold,
             xpReward: rewardPreview.xp,
             attemptNumber: rewardPreview.attemptNumber,
-            passThreshold,
+            passThreshold: finalPassThreshold,
             attemptCount,
             passCount,
+            itemsReward: rewardPreview.items,
         };
     }
 

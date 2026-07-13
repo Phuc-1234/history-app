@@ -25,6 +25,9 @@ interface TopBarProps {
         onBackPress?: () => void;
         onHomePress?: () => void;
         uppercaseHierarchy?: boolean;
+        hideBack?: boolean;
+        hideHome?: boolean;
+        rightElement?: React.ReactNode;
     };
     onOpenStreak?: () => void;
 }
@@ -125,13 +128,15 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
             {/* --- Optional Branch Bar Layout Block --- */}
             {branchConfig && (
                 <View style={styles.branchBar}>
-                    <TouchableOpacity
-                        onPress={branchConfig.onBackPress}
-                        style={styles.backButton}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
+                    {!branchConfig.hideBack && (
+                        <TouchableOpacity
+                            onPress={branchConfig.onBackPress}
+                            style={styles.backButton}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                        </TouchableOpacity>
+                    )}
 
                     <View style={styles.branchTextContainer}>
                         {branchConfig.hierarchy ? (
@@ -151,13 +156,19 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                         ) : null}
                     </View>
 
-                    <TouchableOpacity
-                        onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/home"))}
-                        style={styles.homeButton}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="home-outline" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
+                    {branchConfig.rightElement ? (
+                        branchConfig.rightElement
+                    ) : (
+                        !branchConfig.hideHome && (
+                            <TouchableOpacity
+                                onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/home"))}
+                                style={styles.homeButton}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="home-outline" size={24} color="#FFFFFF" />
+                            </TouchableOpacity>
+                        )
+                    )}
                 </View>
             )}
         </LinearGradient>

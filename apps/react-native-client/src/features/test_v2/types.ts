@@ -105,6 +105,11 @@ export interface StartTestV2Request {
     scopeId?: number;
     testId?: string;
     presetId?: string;
+    autoPickStrategy?: string;
+    questionCount?: number;
+    passThreshold?: number;
+    timeLimit?: number | null;
+    difficultyRatioJson?: any;
 }
 
 export interface StartTestV2Response {
@@ -115,7 +120,13 @@ export interface StartTestV2Response {
 export interface FinishTestV2Response {
     userTestLog: UserTestLogV2;
     answerLogs: UserAnswerLogV2[];
-    consequences: { eventType: string; message: string; xpGained?: number; goldGained?: number }[];
+    consequences: {
+        eventType: string;
+        message: string;
+        xpGained?: number;
+        goldGained?: number;
+        itemsGained?: { name: string; imgUrl: string | null; quantity: number }[];
+    }[];
 }
 
 export interface ResumableTestV2Response {
@@ -145,6 +156,7 @@ export interface TestInfoV2Response {
     passThreshold: number;
     attemptCount: number;
     passCount: number;
+    itemsReward?: { name: string; imgUrl: string | null; quantity: number }[];
 }
 
 // ─── Local evaluation result ─────────────────────────────────────────────

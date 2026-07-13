@@ -17,54 +17,66 @@ export function useNotification() {
 
   useEffect(() => {
     let isMounted = true;
+    let unsubscribeForeground = () => {};
+    let unsubscribeNotificationOpened = () => {};
+    let unsubscribeTokenRefresh = () => {};
 
     const setupNotification = async () => {
-      const hasPermission = await requestNotificationPermission();
-      if (!hasPermission) {
-        console.log('Notification permission denied');
-        return;
-      }
+      try {
+        const hasPermission = await requestNotificationPermission();
+        if (!hasPermission) {
+          console.log('Notification permission denied');
+          return;
+        }
 
-      const token = await notificationService.getFCMToken();
-      if (token && isMounted) {
-        await notificationService.registerTokenWithBackend(token);
+        const token = await notificationService.getFCMToken();
+        if (token && isMounted) {
+          await notificationService.registerTokenWithBackend(token);
+        }
+      } catch (e) {
+        console.warn('[Firebase setupNotification] failed:', e);
       }
     };
 
     setupNotification();
 
-    // 2. Listen to foreground messages (App is open)
-    const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
-      console.log('Foreground message received:', remoteMessage);
-      Alert.alert(
-        remoteMessage.notification?.title || 'Thông báo mới',
-        remoteMessage.notification?.body || ''
-      );
-    });
-
-    // 3. Listen to background actions (User clicks notification when app is in background)
-    const unsubscribeNotificationOpened = messaging().onNotificationOpenedApp((remoteMessage) => {
-      console.log('User clicked notification (Background state):', remoteMessage);
-      // TODO: Handle navigation here
-    });
-
-    // 4. Listen to app startup from killed state (User clicks notification when app is killed)
-    messaging()
-      .getInitialNotification()
-      .then((remoteMessage) => {
-        if (remoteMessage && isMounted) {
-          console.log('App opened from notification (Killed state):', remoteMessage);
-          // TODO: Handle navigation here
-        }
+    try {
+      // 2. Listen to foreground messages (App is open)
+      unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
+        console.log('Foreground message received:', remoteMessage);
+        Alert.alert(
+          remoteMessage.notification?.title || 'Thông báo mới',
+          remoteMessage.notification?.body || ''
+        );
       });
 
-    // 5. Auto refresh token when Firebase updates it
-    const unsubscribeTokenRefresh = messaging().onTokenRefresh(async (newToken) => {
-      console.log('FCM Token refreshed:', newToken);
-      if (isMounted) {
-        await notificationService.registerTokenWithBackend(newToken);
-      }
-    });
+      // 3. Listen to background actions (User clicks notification when app is in background)
+      unsubscribeNotificationOpened = messaging().onNotificationOpenedApp((remoteMessage) => {
+        console.log('User clicked notification (Background state):', remoteMessage);
+        // TODO: Handle navigation here
+      });
+
+      // 4. Listen to app startup from killed state (User clicks notification when app is killed)
+      messaging()
+        .getInitialNotification()
+        .then((remoteMessage) => {
+          if (remoteMessage && isMounted) {
+            console.log('App opened from notification (Killed state):', remoteMessage);
+            // TODO: Handle navigation here
+          }
+        })
+        .catch(err => console.warn('[Firebase getInitialNotification] failed:', err));
+
+      // 5. Auto refresh token when Firebase updates it
+      unsubscribeTokenRefresh = messaging().onTokenRefresh(async (newToken) => {
+        console.log('FCM Token refreshed:', newToken);
+        if (isMounted) {
+          await notificationService.registerTokenWithBackend(newToken);
+        }
+      });
+    } catch (e) {
+      console.warn('[Firebase messaging listeners] failed to initialize. Firebase is likely not initialized natively:', e);
+    }
 
     return () => {
       isMounted = false;

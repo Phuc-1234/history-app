@@ -8,10 +8,15 @@ export function useLessonMenu(selectedGrade: number) {
     // UI Mappings extracted cleanly from the API DTO structural contract
     const topics: TopicWithContentsDto[] = gradeStructure?.topics ?? [];
     const finalTestPassed = !!gradeStructure?.testPassed;
+    const wrongQuestionCount = (gradeStructure as any)?.wrongQuestionCount ?? 0;
+    const answeredQuestionCount = (gradeStructure as any)?.answeredQuestionCount ?? 0;
 
     return {
         topics,
         finalTestPassed,
+        gradeProgress: (gradeStructure as any)?.progress ?? null,
+        wrongQuestionCount,
+        answeredQuestionCount,
         loading: !gradeStructure,
         error,
         refetch,

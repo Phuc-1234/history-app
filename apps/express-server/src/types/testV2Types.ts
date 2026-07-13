@@ -65,6 +65,11 @@ export interface StartTestV2Request {
     scopeId?: number;
     testId?: string;      // for manual/curated test
     presetId?: string;    // optional preset override
+    autoPickStrategy?: string; // BALANCED, LOW_MASTERY, or WRONG
+    questionCount?: number;
+    passThreshold?: number;
+    timeLimit?: number | null;
+    difficultyRatioJson?: any;
 }
 
 export interface UpdateDraftRequest {
@@ -73,6 +78,7 @@ export interface UpdateDraftRequest {
 
 export interface FinishTestV2Request {
     draftAnswerJson: DraftAnswerEntry[]; // final snapshot from FE
+    seenQuestionIds?: number[];
 }
 
 // ─── API Response DTOs ───────────────────────────────────────────────────
@@ -108,6 +114,7 @@ export interface UserTestLogV2Dto {
     questionSequenceJson: number[];
     draftAnswerJson: DraftAnswerEntry[];
     testTitle?: string | null;
+    autoPickStrategy?: string | null;
     // backward compat
     goldEarned?: number;
     xpEarned?: number;
@@ -160,6 +167,7 @@ export interface TestInfoV2Response {
     passThreshold: number;
     attemptCount: number;
     passCount: number;
+    itemsReward?: { name: string; imgUrl: string | null; quantity: number }[];
 }
 
 export interface NationalTestDto {
