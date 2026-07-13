@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useGetUserInventoryQuery, useActivateItemMutation } from "../services/itemApi";
+import { useGetProfileQuery } from "../../auth/services/authApi";
 import { useAppSelector } from "../../../store/storeHook";
 import { Alert } from "react-native";
 
@@ -19,7 +20,8 @@ export interface InventoryItem {
 }
 
 export function useInventory() {
-    const { data: inventoryData, isLoading } = useGetUserInventoryQuery();
+    const { data: inventoryData, isLoading, isFetching: isFetchingInventory, refetch: refetchInventory } = useGetUserInventoryQuery();
+    const { refetch: refetchProfile } = useGetProfileQuery();
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [activateItem] = useActivateItemMutation();
 
@@ -92,11 +94,24 @@ export function useInventory() {
         }
     };
 
+    const handleRefresh = async () => {
+        try {
+            await Promise.all([
+                refetchInventory().unwrap(),
+                refetchProfile().unwrap(),
+            ]);
+        } catch (e) {
+            console.error("Refresh inventory failed:", e);
+        }
+    };
+
     return {
         inventory,
         selectedItem,
         setSelectedItemId,
         handleUseItem,
         isLoading,
+        handleRefresh,
+        isRefreshing: isFetchingInventory,
     };
 }

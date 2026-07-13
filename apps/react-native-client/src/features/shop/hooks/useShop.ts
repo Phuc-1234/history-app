@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAppSelector } from "../../../store/storeHook";
 import { useGetShopItemsQuery, usePurchaseItemMutation, useGetUserInventoryQuery } from "../../inventory/services/itemApi";
+import { useGetProfileQuery } from "../../auth/services/authApi";
 import { Alert } from "react-native";
 
 export interface ShopItem {
@@ -22,8 +23,9 @@ export function useShop() {
     const profile = useAppSelector((state) => state.auth.profile);
     const userCoins = profile?.totalGold ?? 0;
 
-    const { data: shopData, isLoading } = useGetShopItemsQuery();
-    const { data: inventoryData } = useGetUserInventoryQuery();
+    const { data: shopData, isLoading, isFetching: isFetchingShop, refetch: refetchShop } = useGetShopItemsQuery();
+    const { data: inventoryData, isFetching: isFetchingInventory, refetch: refetchInventory } = useGetUserInventoryQuery();
+    const { refetch: refetchProfile } = useGetProfileQuery();
     const [purchaseItem] = usePurchaseItemMutation();
 
     const shopItems = useMemo<ShopItem[]>(() => {
@@ -68,6 +70,18 @@ export function useShop() {
         }
     };
 
+    const handleRefresh = async () => {
+        try {
+            await Promise.all([
+                refetchShop().unwrap(),
+                refetchInventory().unwrap(),
+                refetchProfile().unwrap(),
+            ]);
+        } catch (e) {
+            console.error("Refresh shop failed:", e);
+        }
+    };
+
     return {
         searchQuery,
         setSearchQuery,
@@ -77,5 +91,7 @@ export function useShop() {
         setSelectedItem,
         handlePurchase,
         isLoading,
+        handleRefresh,
+        isRefreshing: isFetchingShop || isFetchingInventory,
     };
 }

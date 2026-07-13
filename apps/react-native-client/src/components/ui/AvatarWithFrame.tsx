@@ -26,10 +26,12 @@ export default function AvatarWithFrame({
     const hasAvatar = uri && uri.trim() !== "";
     const hasFrame = frameUri && frameUri.trim() !== "";
     
-    // Scale the avatar down slightly if there is a frame to make sure the frame overlaps properly
-    const avatarScale = hasFrame ? 0.82 : 1.0;
-    const avatarSize = size * avatarScale;
+    const avatarSize = size;
     const avatarRadius = avatarSize / 2;
+    
+    // Scale the frame up relative to the avatar size, keeping original scale ratio
+    const frameSize = hasFrame ? size / 0.82 : size;
+    const frameOffset = (size - frameSize) / 2;
 
     return (
         <View style={[styles.container, { width: size, height: size }, style]}>
@@ -71,8 +73,10 @@ export default function AvatarWithFrame({
                     style={[
                         styles.frame,
                         {
-                            width: size,
-                            height: size,
+                            width: frameSize,
+                            height: frameSize,
+                            top: frameOffset,
+                            left: frameOffset,
                         },
                         frameStyle,
                     ]}
@@ -87,6 +91,7 @@ const styles = StyleSheet.create({
         position: "relative",
         alignItems: "center",
         justifyContent: "center",
+        overflow: "visible",
     },
     avatarCircle: {
         backgroundColor: colors.primaryContainer,
@@ -108,8 +113,6 @@ const styles = StyleSheet.create({
     },
     frame: {
         position: "absolute",
-        top: 0,
-        left: 0,
         resizeMode: "contain",
     },
 });

@@ -10,7 +10,9 @@ import {
     Modal,
     useWindowDimensions,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
+import { Coins, Search } from "lucide-react-native";
 import { useShop, ShopItem } from "../hooks/useShop";
 import { useRouter } from "expo-router";
 
@@ -25,6 +27,8 @@ export const ShopView: React.FC = () => {
         setSelectedItem,
         handlePurchase,
         isLoading,
+        handleRefresh,
+        isRefreshing,
     } = useShop();
 
     const { width } = useWindowDimensions();
@@ -39,10 +43,13 @@ export const ShopView: React.FC = () => {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+                }
             >
                 {/* Search Bar Group */}
                 <View style={styles.searchBarRow}>
-                    <Text style={styles.searchIcon}>🔍</Text>
+                    <Search size={18} color="#9A9A9A" style={styles.searchIcon} />
                     <TextInput
                         placeholder="Search"
                         placeholderTextColor="#9A9A9A"
@@ -59,7 +66,7 @@ export const ShopView: React.FC = () => {
                     onPress={() => router.push("/(tabs)/8_2_buy_gold")}
                 >
                     <View style={styles.buyGoldBannerLeft}>
-                        <Text style={styles.buyGoldBannerIcon}>🪙</Text>
+                        <Coins size={28} color="#FF9800" style={styles.buyGoldBannerIcon} />
                         <View>
                             <Text style={styles.buyGoldBannerTitle}>Nạp thêm Gold</Text>
                             <Text style={styles.buyGoldBannerSub}>Mua vật phẩm đặc biệt trong cửa hàng</Text>
@@ -96,11 +103,14 @@ export const ShopView: React.FC = () => {
                                 onPress={() => setSelectedItem(item)}
                             >
                                 <View style={styles.thumbnailWrapper}>
-                                    <Image
-                                        source={{ uri: item.imageUrl }}
-                                        style={[styles.cellImage, item.isOwned && { opacity: 0.5 }]}
-                                    />
-                                    <Text style={styles.fallbackBoxIcon}>📦</Text>
+                                    {item.imageUrl ? (
+                                        <Image
+                                            source={{ uri: item.imageUrl }}
+                                            style={[styles.cellImage, item.isOwned && { opacity: 0.5 }]}
+                                        />
+                                    ) : (
+                                        <Text style={styles.fallbackBoxIcon}>📦</Text>
+                                    )}
                                     {item.isOwned && (
                                         <View style={styles.ownedBadge}>
                                             <Text style={styles.ownedBadgeText}>Đã sở hữu</Text>
@@ -116,7 +126,7 @@ export const ShopView: React.FC = () => {
                                             <Text style={styles.ownedTextLabel}>Đã sở hữu</Text>
                                         ) : (
                                             <>
-                                                <Text style={styles.coinMiniIcon}>🪙</Text>
+                                                <Coins size={14} color="#FF9800" style={styles.coinMiniIcon} />
                                                 <Text style={styles.coinCostText}>
                                                     {item.cost.toLocaleString()}
                                                 </Text>
@@ -168,7 +178,7 @@ export const ShopView: React.FC = () => {
 
                                 {/* Amount Row Label Indicator */}
                                 <View style={styles.modalCostIndicatorRow}>
-                                    <Text style={styles.modalCoinIcon}>🪙</Text>
+                                    <Coins size={18} color="#FF9800" style={styles.modalCoinIcon} />
                                     <Text style={styles.modalCostLabelText}>
                                         {selectedItem.cost.toLocaleString()} xu
                                     </Text>

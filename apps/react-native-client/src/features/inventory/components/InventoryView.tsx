@@ -8,12 +8,13 @@ import {
     View,
     useWindowDimensions,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInventory, InventoryItem } from "../hooks/useInventory";
 
 export const InventoryView: React.FC = () => {
-    const { inventory, selectedItem, setSelectedItemId, handleUseItem, isLoading } =
+    const { inventory, selectedItem, setSelectedItemId, handleUseItem, isLoading, handleRefresh, isRefreshing } =
         useInventory();
     const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
@@ -37,6 +38,9 @@ export const InventoryView: React.FC = () => {
             showsVerticalScrollIndicator={false}
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
+            refreshControl={
+                <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+            }
         >
             {inventory.length === 0 ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 }}>
@@ -118,21 +122,29 @@ export const InventoryView: React.FC = () => {
                                         x{item.quantity}
                                     </Text>
 
-                                    <View
-                                        style={[
-                                            styles.iconCircle,
-                                            { backgroundColor: item.iconBgColor },
-                                        ]}
-                                    >
-                                        <Text
+                                    {item.imageUrl ? (
+                                        <Image
+                                            source={{ uri: item.imageUrl }}
+                                            style={styles.cellImage}
+                                            resizeMode="contain"
+                                        />
+                                    ) : (
+                                        <View
                                             style={[
-                                                styles.emojiIcon,
-                                                { color: item.iconColor },
+                                                styles.iconCircle,
+                                                { backgroundColor: item.iconBgColor },
                                             ]}
                                         >
-                                            {item.icon}
-                                        </Text>
-                                    </View>
+                                            <Text
+                                                style={[
+                                                    styles.emojiIcon,
+                                                    { color: item.iconColor },
+                                                ]}
+                                            >
+                                                {item.icon}
+                                            </Text>
+                                        </View>
+                                    )}
 
                                     <Text style={styles.cellName} numberOfLines={2}>
                                         {item.name}
@@ -255,6 +267,14 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "600",
         color: "#777777",
+    },
+    cellImage: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        marginBottom: 10,
+        marginTop: 6,
+        backgroundColor: "#F5F6F8",
     },
     iconCircle: {
         width: 44,
