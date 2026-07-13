@@ -1239,49 +1239,49 @@ export class AdminService {
     }
 
     async createItemDefinition(data: CreateItemDefinitionBody): Promise<ItemDefinitionDto> {
+        const itemType = data.itemType;
+        const isMul = itemType === "XP_MUL" || itemType === "GOLD_MUL";
+        const isSkin = itemType === "SKIN";
+
         const item = await prisma.itemDefinition.create({
             data: {
                 name: data.name,
-                maxStackSize: data.maxStackSize !== undefined ? data.maxStackSize : null,
                 description: data.description ?? null,
                 shownInStore: data.shownInStore ?? true,
                 price: data.price !== undefined ? Number(data.price) : 10,
-                isConsumable: data.isConsumable,
-                type: data.type as any,
-                effectType: data.effectType ? (data.effectType as any) : null,
-                effectValue: data.effectValue !== undefined ? data.effectValue : null,
+                itemType: itemType as any,
+                effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : null) : null,
                 imgUrl: data.imgUrl ?? null,
-                equipmentSlot: data.equipmentSlot ? (data.equipmentSlot as any) : null,
-                durationMinutes: data.durationMinutes !== undefined ? data.durationMinutes : null,
-                allowEffectStacking: data.allowEffectStacking ?? true,
+                equipmentSlot: isSkin ? (data.equipmentSlot ? (data.equipmentSlot as any) : null) : null,
+                durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : null) : null,
             }
         });
-        return item as ItemDefinitionDto;
+        return item as any as ItemDefinitionDto;
     }
 
     async updateItemDefinition(id: number, data: UpdateItemDefinitionBody): Promise<ItemDefinitionDto | null> {
         const existing = await prisma.itemDefinition.findUnique({ where: { id } });
         if (!existing) return null;
 
+        const itemType = data.itemType !== undefined ? data.itemType : existing.itemType;
+        const isMul = itemType === "XP_MUL" || itemType === "GOLD_MUL";
+        const isSkin = itemType === "SKIN";
+
         const updated = await prisma.itemDefinition.update({
             where: { id },
             data: {
                 ...(data.name !== undefined && { name: data.name }),
-                maxStackSize: data.maxStackSize !== undefined ? data.maxStackSize : existing.maxStackSize,
                 description: data.description !== undefined ? data.description : existing.description,
                 ...(data.shownInStore !== undefined && { shownInStore: data.shownInStore }),
                 ...(data.price !== undefined && { price: Number(data.price) }),
-                ...(data.isConsumable !== undefined && { isConsumable: data.isConsumable }),
-                ...(data.type !== undefined && { type: data.type as any }),
-                effectType: data.effectType !== undefined ? (data.effectType as any) : existing.effectType,
-                effectValue: data.effectValue !== undefined ? data.effectValue : existing.effectValue,
+                itemType: itemType as any,
+                effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : existing.effectValue) : null,
                 imgUrl: data.imgUrl !== undefined ? data.imgUrl : existing.imgUrl,
-                equipmentSlot: data.equipmentSlot !== undefined ? (data.equipmentSlot as any) : existing.equipmentSlot,
-                durationMinutes: data.durationMinutes !== undefined ? data.durationMinutes : existing.durationMinutes,
-                ...(data.allowEffectStacking !== undefined && { allowEffectStacking: data.allowEffectStacking }),
+                equipmentSlot: isSkin ? (data.equipmentSlot !== undefined ? (data.equipmentSlot as any) : existing.equipmentSlot) : null,
+                durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : existing.durationMinutes) : null,
             }
         });
-        return updated as ItemDefinitionDto;
+        return updated as any as ItemDefinitionDto;
     }
 
     async deleteItemDefinition(id: number): Promise<boolean> {

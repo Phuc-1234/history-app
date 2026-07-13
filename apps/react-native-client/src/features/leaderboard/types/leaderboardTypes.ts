@@ -4,6 +4,7 @@ export interface LeaderboardUser {
     id: string;
     name: string;
     avatarUrl: string | null;
+    equippedFrameUrl?: string | null;
     tierName: string;
     currentStreak: number;
     badgeImgUrl: string | null;
@@ -20,6 +21,7 @@ export interface LeaderboardResponse {
         userId: string;
         name: string;
         avatarUrl: string | null;
+        equippedFrameUrl?: string | null;
         totalXp: number;
         currentStreak: number;
     } | null;

@@ -31,6 +31,7 @@ export const RankingView: React.FC = () => {
         activeTab,
         setActiveTab,
         isLoading,
+        isFetching,
         isError,
         refetch,
     } = useLeaderboard();
@@ -74,7 +75,7 @@ export const RankingView: React.FC = () => {
                     scrollEventThrottle={16}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
-                    refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} colors={[colors.primary]} tintColor={colors.primary} />}
+                    refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} colors={[colors.primary]} tintColor={colors.primary} />}
                 >
                     {topUsers.length >= 3 && (
                         <PodiumSection topUsers={topUsers} isSmallDevice={isSmallDevice} showStreak={activeTab === "streak"} />

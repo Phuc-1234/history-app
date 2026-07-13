@@ -1,4 +1,5 @@
 export { Avatar, getInitials } from "./Avatar";
+export { default as AvatarWithFrame } from "./AvatarWithFrame";
 export { PrimaryButton, type PrimaryButtonVariant } from "./PrimaryButton";
 export { StatCard } from "./StatCard";
 export { SegmentTabs } from "./SegmentTabs";

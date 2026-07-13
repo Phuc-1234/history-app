@@ -245,15 +245,15 @@ model User {
   friendshipsAsUser      Friendship[]          @relation("FriendshipUser")
   goldPurchases          GoldPurchase[]
   subscriptions          Subscription[]
+  userActiveEffects      UserActiveEffect[]
+  userEquippedItems      UserEquippedItem[]
   userFlashcards         UserFlashcard[]
+  userItems              UserItem[]
   nodeProgresses         UserNodeProgress[]
   questionMasteries      UserQuestionMastery[]
   rewardLogs             UserRewardLog[]
   testLogs               UserTestLog[]
   tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
-  userItems              UserItem[]
-  userActiveEffects      UserActiveEffect[]
-  userEquippedItems      UserEquippedItem[]
 
   @@map("users")
 }
@@ -428,8 +428,8 @@ model RewardRule {
   triggerTimeMax  Int?              @map("trigger_time_max")
   xp              Int               @default(0)
   gold            Int               @default(0)
-  rewardLogs      UserRewardLog[]
   rewardRuleItems RewardRuleItem[]
+  rewardLogs      UserRewardLog[]
 
   @@unique([triggerType, triggerTargetId, triggerTimeMin, triggerTimeMax])
   @@map("reward_rules")
@@ -458,9 +458,9 @@ model Feedback {
   userId     String   @map("user_id")
   content    String
   type       String
-  targetType String?  @map("target_type")
-  targetId   String?  @map("target_id")
   createdAt  DateTime @default(now()) @map("created_at")
+  targetId   String?  @map("target_id")
+  targetType String?  @map("target_type")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("feedbacks")
@@ -496,6 +496,73 @@ model Subscription {
   @@map("subscriptions")
 }
 
+model ItemDefinition {
+  id                Int                @id @default(autoincrement())
+  name              String
+  description       String?
+  shownInStore      Boolean            @default(true) @map("shown_in_store")
+  price             Int                @default(10)
+  itemType          ItemDefinitionType @map("item_type")
+  effectValue       Float?             @map("effect_value")
+  imgUrl            String?            @map("img_url")
+  equipmentSlot     EquipmentSlot?     @map("equipment_slot")
+  durationMinutes   Int?               @map("duration_minutes")
+  rewardRuleItems   RewardRuleItem[]
+  userActiveEffects UserActiveEffect[]
+  userEquippedItems UserEquippedItem[]
+  userItems         UserItem[]
+
+  @@map("item_definitions")
+}
+
+model RewardRuleItem {
+  rewardRuleId     Int            @map("reward_rule_id")
+  itemDefinitionId Int            @map("item_definition_id")
+  quantity         Int            @default(1)
+  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+  rewardRule       RewardRule     @relation(fields: [rewardRuleId], references: [id], onDelete: Cascade)
+
+  @@id([rewardRuleId, itemDefinitionId])
+  @@map("reward_rule_items")
+}
+
+model UserItem {
+  userId           String         @map("user_id")
+  itemDefinitionId Int            @map("item_definition_id")
+  quantity         Int            @default(1)
+  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemDefinitionId])
+  @@map("user_items")
+}
+
+model UserActiveEffect {
+  id               String             @id @default(uuid())
+  userId           String             @map("user_id")
+  itemDefinitionId Int                @map("item_definition_id")
+  effectValue      Float              @map("effect_value")
+  startedAt        DateTime           @default(now()) @map("started_at")
+  expiresAt        DateTime           @map("expires_at")
+  status           EffectStatus       @default(ACTIVE)
+  itemType         ItemDefinitionType @map("item_type")
+  itemDefinition   ItemDefinition     @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_active_effects")
+}
+
+model UserEquippedItem {
+  userId           String         @map("user_id")
+  equipmentSlot    EquipmentSlot  @map("equipment_slot")
+  itemDefinitionId Int            @map("item_definition_id")
+  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, equipmentSlot])
+  @@map("user_equipped_items")
+}
+
 enum HierachyState {
   PUBLIC
   PRIVATE
@@ -529,13 +596,9 @@ enum FriendRequestStatus {
 
 enum ItemDefinitionType {
   SKIN
-  BOOST
+  XP_MUL
+  GOLD_MUL
   BADGE
-}
-
-enum BoostEffectType {
-  XP_MULTIPLIER
-  GOLD_MULTIPLIER
 }
 
 enum EquipmentSlot {
@@ -606,80 +669,4 @@ enum SubscriptionStatus {
   CANCELLED
   EXPIRED
   FAILED
-}
-
-model ItemDefinition {
-  id                  Int                  @id @default(autoincrement())
-  name                String
-  maxStackSize        Int?                 @map("max_stack_size")
-  description         String?
-  shownInStore        Boolean              @default(true) @map("shown_in_store")
-  price               Int                  @default(10)
-  isConsumable        Boolean              @map("is_consumable")
-  type                ItemDefinitionType
-  effectType          BoostEffectType?     @map("effect_type")
-  effectValue         Float?               @map("effect_value")
-  imgUrl              String?              @map("img_url")
-  equipmentSlot       EquipmentSlot?       @map("equipment_slot")
-  durationMinutes     Int?                 @map("duration_minutes")
-  allowEffectStacking Boolean              @default(true) @map("allow_effect_stacking")
-
-  rewardRuleItems     RewardRuleItem[]
-  userItems           UserItem[]
-  userActiveEffects   UserActiveEffect[]
-  userEquippedItems   UserEquippedItem[]
-
-  @@map("item_definitions")
-}
-
-model RewardRuleItem {
-  rewardRuleId     Int            @map("reward_rule_id")
-  itemDefinitionId Int            @map("item_definition_id")
-  quantity         Int            @default(1)
-
-  rewardRule       RewardRule     @relation(fields: [rewardRuleId], references: [id], onDelete: Cascade)
-  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
-
-  @@id([rewardRuleId, itemDefinitionId])
-  @@map("reward_rule_items")
-}
-
-model UserItem {
-  userId           String         @map("user_id")
-  itemDefinitionId Int            @map("item_definition_id")
-  quantity         Int            @default(1)
-
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
-
-  @@id([userId, itemDefinitionId])
-  @@map("user_items")
-}
-
-model UserActiveEffect {
-  id               String          @id @default(uuid())
-  userId           String          @map("user_id")
-  itemDefinitionId Int             @map("item_definition_id")
-  effectType       BoostEffectType @map("effect_type")
-  effectValue      Float           @map("effect_value")
-  startedAt        DateTime        @default(now()) @map("started_at")
-  expiresAt        DateTime        @map("expires_at")
-  status           EffectStatus    @default(ACTIVE)
-
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
-
-  @@map("user_active_effects")
-}
-
-model UserEquippedItem {
-  userId           String         @map("user_id")
-  equipmentSlot    EquipmentSlot  @map("equipment_slot")
-  itemDefinitionId Int            @map("item_definition_id")
-
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
-
-  @@id([userId, equipmentSlot])
-  @@map("user_equipped_items")
 }

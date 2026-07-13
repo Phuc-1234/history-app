@@ -27,6 +27,10 @@ export class GamificationService {
                 name: true,
                 totalXp: true,
                 tier: { select: { name: true, badgeImgUrl: true } } as any,
+                userEquippedItems: {
+                    where: { equipmentSlot: "AVT_FRAME" },
+                    include: { itemDefinition: true },
+                },
             },
         });
 
@@ -38,6 +42,9 @@ export class GamificationService {
             currentStreak: u.currentStreak ?? 0,
             badgeImgUrl: u.tier?.badgeImgUrl ?? null,
             totalXp: u.totalXp,
+            equippedFrameUrl: u.userEquippedItems.length > 0
+                ? u.userEquippedItems[0].itemDefinition.imgUrl
+                : null,
         }));
 
         return { entries, total, page: pageNum, pageSize };

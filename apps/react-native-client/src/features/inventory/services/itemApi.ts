@@ -3,18 +3,14 @@ import { apiSlice } from "@/services/apiSlice";
 export interface ItemDefinition {
     id: number;
     name: string;
-    maxStackSize: number | null;
     description: string | null;
     shownInStore: boolean;
     price: number;
-    isConsumable: boolean;
-    type: "SKIN" | "BOOST" | "BADGE";
-    effectType: string | null;
+    itemType: "SKIN" | "XP_MUL" | "GOLD_MUL" | "BADGE";
     effectValue: number | null;
     imgUrl: string | null;
     equipmentSlot: string | null;
     durationMinutes: number | null;
-    allowEffectStacking: boolean;
 }
 
 export interface UserInventoryItem {
@@ -60,6 +56,14 @@ export const itemApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ["User"],
         }),
+        activateItem: builder.mutation<{ success: boolean; equipped: boolean; message: string }, { itemDefinitionId: number }>({
+            query: (body) => ({
+                url: "/api/inventory/activate",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["User"],
+        }),
     }),
     overrideExisting: __DEV__,
 });
@@ -68,4 +72,5 @@ export const {
     useGetShopItemsQuery,
     useGetUserInventoryQuery,
     usePurchaseItemMutation,
+    useActivateItemMutation,
 } = itemApi;

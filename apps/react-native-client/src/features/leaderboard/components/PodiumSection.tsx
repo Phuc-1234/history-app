@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import { AvatarWithFrame } from "../../../components/ui";
 
 interface PodiumSectionProps {
     topUsers: DisplayUser[];
@@ -22,21 +23,24 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             {/* 2nd Place */}
             <View style={styles.podiumColumn}>
                 <View style={styles.avatarWrapper}>
-                    <Image
-                        source={{ uri: topUsers[1].avatar }}
-                        style={styles.podiumAvatar}
+                    <AvatarWithFrame
+                        uri={topUsers[1]?.avatar}
+                        frameUri={topUsers[1]?.equippedFrameUrl}
+                        size={isSmallDevice ? 54 : 58}
+                        name={topUsers[1]?.name}
+                        borderWidth={2}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank2Badge]}>
                         <Text style={styles.rankNumberText}>2</Text>
                     </View>
                 </View>
                 <Text style={styles.podiumName} numberOfLines={1}>
-                    {topUsers[1].name}
+                    {topUsers[1]?.name}
                 </Text>
                 <Text style={styles.rank2Xp}>
                     {showStreak
-                        ? `🔥 ${topUsers[1].streak} ngày`
-                        : `${topUsers[1].xp.toLocaleString()} XP`}
+                        ? `🔥 ${topUsers[1]?.streak} ngày`
+                        : `${topUsers[1]?.xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank2Base]} />
             </View>
@@ -45,9 +49,13 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             <View style={[styles.podiumColumn, styles.centerPodiumColumn]}>
                 <Text style={styles.crownIcon}>👑</Text>
                 <View style={styles.avatarWrapper}>
-                    <Image
-                        source={{ uri: topUsers[0].avatar }}
-                        style={[styles.podiumAvatar, styles.rank1Avatar]}
+                    <AvatarWithFrame
+                        uri={topUsers[0]?.avatar}
+                        frameUri={topUsers[0]?.equippedFrameUrl}
+                        size={isSmallDevice ? 68 : 72}
+                        name={topUsers[0]?.name}
+                        borderWidth={3}
+                        avatarStyle={{ borderColor: colors.secondary }}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank1Badge]}>
                         <Text style={styles.rankNumberText}>1</Text>
@@ -57,12 +65,12 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     style={[styles.podiumName, styles.rank1Name]}
                     numberOfLines={1}
                 >
-                    {topUsers[0].name}
+                    {topUsers[0]?.name}
                 </Text>
                 <Text style={styles.rank1Xp}>
                     {showStreak
-                        ? `🔥 ${topUsers[0].streak} ngày`
-                        : `${topUsers[0].xp.toLocaleString()} XP`}
+                        ? `🔥 ${topUsers[0]?.streak} ngày`
+                        : `${topUsers[0]?.xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank1Base]} />
             </View>
@@ -70,21 +78,24 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
             {/* 3rd Place */}
             <View style={styles.podiumColumn}>
                 <View style={styles.avatarWrapper}>
-                    <Image
-                        source={{ uri: topUsers[2].avatar }}
-                        style={styles.podiumAvatar}
+                    <AvatarWithFrame
+                        uri={topUsers[2]?.avatar}
+                        frameUri={topUsers[2]?.equippedFrameUrl}
+                        size={isSmallDevice ? 54 : 58}
+                        name={topUsers[2]?.name}
+                        borderWidth={2}
                     />
                     <View style={[styles.rankNumberBadge, styles.rank3Badge]}>
                         <Text style={styles.rankNumberText}>3</Text>
                     </View>
                 </View>
                 <Text style={styles.podiumName} numberOfLines={1}>
-                    {topUsers[2].name}
+                    {topUsers[2]?.name}
                 </Text>
                 <Text style={styles.rank3Xp}>
                     {showStreak
-                        ? `🔥 ${topUsers[2].streak} ngày`
-                        : `${topUsers[2].xp.toLocaleString()} XP`}
+                        ? `🔥 ${topUsers[2]?.streak} ngày`
+                        : `${topUsers[2]?.xp.toLocaleString()} XP`}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank3Base]} />
             </View>
