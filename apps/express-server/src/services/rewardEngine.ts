@@ -254,8 +254,9 @@ export class RewardEngine {
 
                 const currentQty = existingUserItem ? existingUserItem.quantity : 0;
                 let newQty = currentQty + quantity;
-                if (itemDef.maxStackSize !== null && newQty > itemDef.maxStackSize) {
-                    newQty = itemDef.maxStackSize;
+                const isSingleStack = itemDef.itemType === "SKIN" || itemDef.itemType === "BADGE";
+                if (isSingleStack && newQty > 1) {
+                    newQty = 1;
                 }
 
                 if (existingUserItem) {

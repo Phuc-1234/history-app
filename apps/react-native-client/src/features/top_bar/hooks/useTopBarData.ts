@@ -7,6 +7,7 @@ export interface ProcessedTopBarData {
     isLoggedIn: boolean;
     name: string;
     avatarUri: string;
+    equippedFrameUrl: string | null;
     totalXp: number;
     totalGold: string; // Formatted with toLocaleString() for direct presentation
     currentStreak: number;
@@ -30,6 +31,7 @@ export function useTopBarData() {
     const totalXp = profile?.totalXp ?? 0;
     const totalGold = profile?.totalGold ? profile.totalGold.toLocaleString() : "0";
     const badgeImgUrl = profile?.badgeImgUrl ?? null;
+    const equippedFrameUrl = profile?.equippedFrameUrl ?? null;
 
     const avatarUri = profile?.profileImgUrl
         ? profile.profileImgUrl
@@ -41,6 +43,7 @@ export function useTopBarData() {
         isLoggedIn,
         name,
         avatarUri,
+        equippedFrameUrl,
         totalXp,
         totalGold,
         currentStreak: streakCount,

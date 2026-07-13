@@ -92,25 +92,36 @@ export const ShopView: React.FC = () => {
                             <TouchableOpacity
                                 key={item.id}
                                 activeOpacity={0.8}
-                                style={[styles.productCell, { width: itemWidth }]}
+                                style={[styles.productCell, { width: itemWidth }, item.isOwned && styles.productCellOwned]}
                                 onPress={() => setSelectedItem(item)}
                             >
                                 <View style={styles.thumbnailWrapper}>
                                     <Image
                                         source={{ uri: item.imageUrl }}
-                                        style={styles.cellImage}
+                                        style={[styles.cellImage, item.isOwned && { opacity: 0.5 }]}
                                     />
                                     <Text style={styles.fallbackBoxIcon}>📦</Text>
+                                    {item.isOwned && (
+                                        <View style={styles.ownedBadge}>
+                                            <Text style={styles.ownedBadgeText}>Đã sở hữu</Text>
+                                        </View>
+                                    )}
                                 </View>
                                 <View style={styles.cellFooter}>
                                     <Text style={styles.cellName} numberOfLines={1}>
                                         {item.name}
                                     </Text>
                                     <View style={styles.coinCostRow}>
-                                        <Text style={styles.coinMiniIcon}>🪙</Text>
-                                        <Text style={styles.coinCostText}>
-                                            {item.cost.toLocaleString()}
-                                        </Text>
+                                        {item.isOwned ? (
+                                            <Text style={styles.ownedTextLabel}>Đã sở hữu</Text>
+                                        ) : (
+                                            <>
+                                                <Text style={styles.coinMiniIcon}>🪙</Text>
+                                                <Text style={styles.coinCostText}>
+                                                    {item.cost.toLocaleString()}
+                                                </Text>
+                                            </>
+                                        )}
                                     </View>
                                 </View>
                             </TouchableOpacity>
@@ -165,12 +176,16 @@ export const ShopView: React.FC = () => {
 
                                 {/* Final Checkout Call-To-Action Button */}
                                 <TouchableOpacity
-                                    style={styles.checkoutActionButton}
+                                    style={[
+                                        styles.checkoutActionButton,
+                                        selectedItem.isOwned && styles.disabledCheckoutButton
+                                    ]}
                                     activeOpacity={0.85}
-                                    onPress={() => handlePurchase(selectedItem)}
+                                    onPress={() => !selectedItem.isOwned && handlePurchase(selectedItem)}
+                                    disabled={selectedItem.isOwned}
                                 >
                                     <Text style={styles.checkoutButtonText}>
-                                        Mua ngay 🛒
+                                        {selectedItem.isOwned ? "Đã sở hữu" : "Mua ngay 🛒"}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -433,6 +448,33 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 12,
         overflow: "hidden",
+    },
+    productCellOwned: {
+        borderColor: "#D2CBDC",
+        opacity: 0.85,
+    },
+    ownedBadge: {
+        position: "absolute",
+        bottom: 8,
+        left: 8,
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        zIndex: 3,
+    },
+    ownedBadgeText: {
+        color: "#FFFFFF",
+        fontSize: 10,
+        fontWeight: "700",
+    },
+    ownedTextLabel: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#9C94A6",
+    },
+    disabledCheckoutButton: {
+        backgroundColor: "#A39EB2",
     },
 });
 

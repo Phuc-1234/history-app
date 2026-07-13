@@ -4,6 +4,7 @@ import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
+import { AvatarWithFrame } from "../../../components/ui";
 
 interface RankingListProps {
     rankingList: DisplayUser[];
@@ -23,7 +24,6 @@ export const RankingList: React.FC<RankingListProps> = ({
     return (
         <View style={styles.listContainer}>
             {rankingList.map((item, index) => {
-                const hasAvatar = item.avatar && item.avatar.trim() !== "";
                 const isMe = String(item.id) === String(myUserId);
                 if (String(item.id) === String(myUserId)) {
                     console.log("Dữ liệu của tôi trong rankingList:", item);
@@ -37,18 +37,14 @@ export const RankingList: React.FC<RankingListProps> = ({
                         </Text>
 
                         {/* Avatar */}
-                        {hasAvatar ? (
-                            <Image
-                                source={{ uri: item.avatar }}
-                                style={styles.rowAvatar}
-                            />
-                        ) : (
-                            <View style={[styles.rowDefaultAvatar, isMe && styles.meDefaultAvatar]}>
-                                <Text style={[styles.rowDefaultAvatarText, isMe && styles.meText]}>
-                                    {item.name ? item.name.charAt(0).toUpperCase() : "?"}
-                                </Text>
-                            </View>
-                        )}
+                        <AvatarWithFrame
+                            uri={item.avatar}
+                            frameUri={item.equippedFrameUrl}
+                            size={40}
+                            name={item.name}
+                            borderWidth={1.5}
+                            style={{ marginRight: 14 }}
+                        />
 
                         {/* Tên */}
                         <Text style={[styles.rowName, isMe && styles.meText]} numberOfLines={1}>

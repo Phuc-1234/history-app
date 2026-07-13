@@ -21,6 +21,14 @@ export class HomeService {
                     totalXp: true,
                     profileImgUrl: true,
                     tier: { select: { name: true, badgeImgUrl: true } } as any,
+                    userEquippedItems: {
+                        where: { equipmentSlot: "AVT_FRAME" },
+                        select: {
+                            itemDefinition: {
+                                select: { imgUrl: true }
+                            }
+                        }
+                    }
                 },
             }),
             // 3 bài học đầu tiên của hệ thống
@@ -97,6 +105,7 @@ export class HomeService {
                 name: u.name,
                 totalXp: u.totalXp,
                 avatarUrl: u.profileImgUrl ?? null,
+                equippedFrameUrl: u.userEquippedItems?.[0]?.itemDefinition?.imgUrl ?? null,
                 tierName: (u as any).tier?.name ?? null,
                 badgeImgUrl: (u as any).tier?.badgeImgUrl ?? null,
             })),

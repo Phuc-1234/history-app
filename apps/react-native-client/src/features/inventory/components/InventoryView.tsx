@@ -73,11 +73,18 @@ export const InventoryView: React.FC = () => {
                                     </Text>
                                 </Text>
                                 <TouchableOpacity
-                                    style={styles.useButton}
+                                    style={[
+                                        styles.useButton,
+                                        selectedItem.isEquipped && styles.unequipButton
+                                    ]}
                                     activeOpacity={0.8}
                                     onPress={() => handleUseItem(selectedItem.id)}
                                 >
-                                    <Text style={styles.useButtonText}>Dùng</Text>
+                                    <Text style={styles.useButtonText}>
+                                        {selectedItem.itemType === "SKIN"
+                                            ? (selectedItem.isEquipped ? "Tháo" : "Trang bị")
+                                            : "Sử dụng"}
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -101,6 +108,12 @@ export const InventoryView: React.FC = () => {
                                         isSelected && styles.selectedGridCell,
                                     ]}
                                 >
+                                    {item.isEquipped && (
+                                        <View style={styles.equippedGridBadge}>
+                                            <Text style={styles.equippedGridBadgeText}>Đang dùng</Text>
+                                        </View>
+                                    )}
+
                                     <Text style={styles.badgeCount}>
                                         x{item.quantity}
                                     </Text>
@@ -261,5 +274,23 @@ const styles = StyleSheet.create({
         color: "#3C3C3C",
         textAlign: "center",
         lineHeight: 16,
+    },
+    unequipButton: {
+        backgroundColor: "#FF9800",
+    },
+    equippedGridBadge: {
+        position: "absolute",
+        top: 8,
+        left: 8,
+        backgroundColor: "#58CC02",
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        zIndex: 2,
+    },
+    equippedGridBadgeText: {
+        color: "#FFFFFF",
+        fontSize: 8,
+        fontWeight: "700",
     },
 });

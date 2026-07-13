@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useWindowDimensions } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useGetLeaderboardQuery } from "../services/leaderboardApi";
 import { SortType } from "../types/leaderboardTypes";
 
@@ -9,6 +10,7 @@ export interface DisplayUser {
     xp: number;
     streak: number;
     avatar: string;
+    equippedFrameUrl: string | null;
 }
 
 export function useLeaderboard() {
@@ -20,6 +22,7 @@ export function useLeaderboard() {
     const {
         data: response,
         isLoading,
+        isFetching,
         isError,
         refetch,
     } = useGetLeaderboardQuery({
@@ -27,6 +30,12 @@ export function useLeaderboard() {
         page: 1,
         sort: activeTab as SortType,
     });
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
 
     const displayUsers: DisplayUser[] = useMemo(() => {
         if (!response?.entries) return [];
@@ -40,6 +49,7 @@ export function useLeaderboard() {
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(
                     user.name || "User"
                 )}&background=E8E4F4&color=5856D6&bold=true`,
+            equippedFrameUrl: user.equippedFrameUrl ?? null,
         }));
     }, [response]);
 
@@ -53,6 +63,7 @@ export function useLeaderboard() {
         activeTab,
         setActiveTab,
         isLoading,
+        isFetching,
         isError,
         refetch,
         total: response?.total ?? 0,

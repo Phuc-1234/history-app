@@ -1,10 +1,12 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet, Image } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../../theme/colors";
+import { AvatarWithFrame } from "../../../components/ui";
 
 interface ProfileAvatarProps {
     uri?: string | null;
+    frameUri?: string | null;
     size?: number;
     onEditPress?: () => void;
     showEditButton?: boolean;
@@ -12,44 +14,24 @@ interface ProfileAvatarProps {
 
 export default function ProfileAvatar({
     uri,
+    frameUri,
     size = 120,
     onEditPress,
     showEditButton = true,
 }: ProfileAvatarProps) {
-    const avatarRadius = size / 2;
     const badgeSize = size * 0.3;
     const badgeRadius = badgeSize / 2;
     const iconSize = badgeSize * 0.55;
 
     return (
         <View style={[styles.container, { width: size, height: size }]}>
-            {/* Avatar circle with placeholder icon or image */}
-            <View
-                style={[
-                    styles.avatarCircle,
-                    {
-                        width: size,
-                        height: size,
-                        borderRadius: avatarRadius,
-                    },
-                ]}
-            >
-                {uri && uri.trim() !== "" ? (
-                    <Image
-                        source={{ uri }}
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                        }}
-                    />
-                ) : (
-                    <Ionicons
-                        name="person"
-                        size={size * 0.45}
-                        color={colors.borderDark}
-                    />
-                )}
-            </View>
+            {/* Avatar circle with placeholder icon or image and frame */}
+            <AvatarWithFrame
+                uri={uri}
+                frameUri={frameUri}
+                size={size}
+                borderWidth={2}
+            />
 
             {/* Edit badge */}
             {showEditButton && (

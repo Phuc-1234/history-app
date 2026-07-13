@@ -421,57 +421,44 @@ export interface RewardRuleDto {
 
 // ─── Item Definitions ─────────────────────────────────────────────────────────
 
-export type ItemDefinitionType = "SKIN" | "BOOST" | "BADGE";
-export type BoostEffectType = "XP_MULTIPLIER" | "GOLD_MULTIPLIER";
+export type ItemDefinitionType = "SKIN" | "XP_MUL" | "GOLD_MUL" | "BADGE";
 export type EquipmentSlot = "AVT_FRAME" | "BACKGROUND";
 
 export interface CreateItemDefinitionBody {
     name: string;
-    maxStackSize?: number | null;
     description?: string | null;
     shownInStore?: boolean;
     price?: number;
-    isConsumable: boolean;
-    type: ItemDefinitionType;
-    effectType?: BoostEffectType | null;
+    itemType: ItemDefinitionType;
     effectValue?: number | null;
     imgUrl?: string | null;
     equipmentSlot?: EquipmentSlot | null;
     durationMinutes?: number | null;
-    allowEffectStacking?: boolean;
 }
 
 export interface UpdateItemDefinitionBody {
     name?: string;
-    maxStackSize?: number | null;
     description?: string | null;
     shownInStore?: boolean;
     price?: number;
-    isConsumable?: boolean;
-    type?: ItemDefinitionType;
-    effectType?: BoostEffectType | null;
+    itemType?: ItemDefinitionType;
     effectValue?: number | null;
     imgUrl?: string | null;
     equipmentSlot?: EquipmentSlot | null;
     durationMinutes?: number | null;
-    allowEffectStacking?: boolean;
 }
 
 export interface ItemDefinitionDto {
     id: number;
     name: string;
-    maxStackSize: number | null;
     description: string | null;
     shownInStore: boolean;
     price: number;
-    isConsumable: boolean;
-    type: ItemDefinitionType;
-    effectType: BoostEffectType | null;
+    itemType: ItemDefinitionType;
     effectValue: number | null;
     imgUrl: string | null;
     equipmentSlot: EquipmentSlot | null;
     durationMinutes: number | null;
-    allowEffectStacking: boolean;
 }
 
 export interface AdminFeedbackDto {

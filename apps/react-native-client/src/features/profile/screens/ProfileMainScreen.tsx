@@ -102,6 +102,7 @@ export default function ProfileMainScreen() {
             <View style={styles.avatarSection}>
                 <ProfileAvatar
                     uri={profile?.profileImgUrl}
+                    frameUri={profile?.equippedFrameUrl}
                     size={120}
                     showEditButton={false}
                 />
