@@ -222,6 +222,7 @@ export default function ProfileEditScreen() {
                                 <ProfileAvatar
                                     uri={selectedImageUri || profile?.profileImgUrl}
                                     size={78}
+                                    name={profile?.name}
                                     onEditPress={isUploading ? undefined : handlePickImage}
                                     showEditButton={!isUploading}
                                 />

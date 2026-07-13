@@ -10,6 +10,7 @@ interface ProfileAvatarProps {
     size?: number;
     onEditPress?: () => void;
     showEditButton?: boolean;
+    name?: string;
 }
 
 export default function ProfileAvatar({
@@ -18,6 +19,7 @@ export default function ProfileAvatar({
     size = 120,
     onEditPress,
     showEditButton = true,
+    name = "",
 }: ProfileAvatarProps) {
     const badgeSize = size * 0.3;
     const badgeRadius = badgeSize / 2;
@@ -30,6 +32,7 @@ export default function ProfileAvatar({
                 uri={uri}
                 frameUri={frameUri}
                 size={size}
+                name={name}
                 borderWidth={2}
             />
 

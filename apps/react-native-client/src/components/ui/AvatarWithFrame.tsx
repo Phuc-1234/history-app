@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Image, StyleSheet, Text } from "react-native";
 import { colors } from "@/theme/colors";
+import { getInitials } from "./Avatar";
 
 interface AvatarWithFrameProps {
     uri?: string | null;
@@ -17,7 +18,7 @@ export default function AvatarWithFrame({
     uri,
     frameUri,
     size = 40,
-    name = "?",
+    name = "",
     avatarStyle,
     frameStyle,
     borderWidth = 2,
@@ -30,7 +31,7 @@ export default function AvatarWithFrame({
     const avatarRadius = avatarSize / 2;
     
     // Scale the frame up relative to the avatar size, keeping original scale ratio
-    const frameSize = hasFrame ? size / 0.82 : size;
+    const frameSize = hasFrame ? size / 0.75 : size;
     const frameOffset = (size - frameSize) / 2;
 
     return (
@@ -60,7 +61,7 @@ export default function AvatarWithFrame({
                 ) : (
                     <View style={[styles.fallback, { borderRadius: avatarRadius }]}>
                         <Text style={[styles.fallbackText, { fontSize: avatarSize * 0.4 }]}>
-                            {name ? name.charAt(0).toUpperCase() : "?"}
+                            {getInitials(name)}
                         </Text>
                     </View>
                 )}

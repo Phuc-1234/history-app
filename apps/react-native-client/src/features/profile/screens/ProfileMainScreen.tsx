@@ -104,6 +104,7 @@ export default function ProfileMainScreen() {
                     uri={profile?.profileImgUrl}
                     frameUri={profile?.equippedFrameUrl}
                     size={120}
+                    name={profile?.name}
                     showEditButton={false}
                 />
                 <Text style={styles.userName}>{profile?.name || "Người dùng"}</Text>

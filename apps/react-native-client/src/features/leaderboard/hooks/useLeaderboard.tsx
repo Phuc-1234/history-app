@@ -1,6 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useWindowDimensions } from "react-native";
-import { useFocusEffect } from "expo-router";
 import { useGetLeaderboardQuery } from "../services/leaderboardApi";
 import { SortType } from "../types/leaderboardTypes";
 
@@ -30,12 +29,6 @@ export function useLeaderboard() {
         page: 1,
         sort: activeTab as SortType,
     });
-
-    useFocusEffect(
-        useCallback(() => {
-            refetch();
-        }, [refetch])
-    );
 
     const displayUsers: DisplayUser[] = useMemo(() => {
         if (!response?.entries) return [];
