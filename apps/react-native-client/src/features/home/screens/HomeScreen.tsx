@@ -18,6 +18,7 @@ import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import type { HomeLessonItem } from "../services/homeApi";
 import { PodiumSection } from "../../leaderboard/components/PodiumSection";
+import { AvatarWithFrame } from "../../../components/ui";
 
 
 
@@ -140,6 +141,7 @@ export default function HomeScreen() {
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(
                     u.name || "User"
                 )}&background=E8E4F4&color=5856D6&bold=true`,
+            equippedFrameUrl: u.equippedFrameUrl ?? null,
         }));
     }, [data?.leaderboard]);
 
@@ -188,21 +190,32 @@ export default function HomeScreen() {
 
                 {/* Thẻ chào người dùng */}
                 <Card variant="soft" style={styles.userCard}>
-                    <Text style={styles.greetingText}>
-                        Chào, {profile?.name || "bạn"} 👋
-                    </Text>
-                    <View style={styles.badgeRow}>
-                        <View style={styles.badge}>
-                            <Ionicons name="star" size={15} color={colors.secondary} />
-                            <Text style={styles.badgeText}>
-                                {(profile?.totalXp ?? 0).toLocaleString("vi-VN")} XP
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+                        <AvatarWithFrame
+                            uri={profile?.profileImgUrl}
+                            frameUri={profile?.equippedFrameUrl}
+                            size={56}
+                            name={profile?.name}
+                            borderWidth={2}
+                        />
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.greetingText}>
+                                Chào, {profile?.name || "bạn"} 👋
                             </Text>
-                        </View>
-                        <View style={styles.badge}>
-                            <Ionicons name="stats-chart" size={15} color={colors.primary} />
-                            <Text style={styles.badgeText}>
-                                {profile?.tierName ?? "Chưa có hạng"}
-                            </Text>
+                            <View style={styles.badgeRow}>
+                                <View style={styles.badge}>
+                                    <Ionicons name="star" size={15} color={colors.secondary} />
+                                    <Text style={styles.badgeText}>
+                                        {(profile?.totalXp ?? 0).toLocaleString("vi-VN")} XP
+                                    </Text>
+                                </View>
+                                <View style={styles.badge}>
+                                    <Ionicons name="stats-chart" size={15} color={colors.primary} />
+                                    <Text style={styles.badgeText}>
+                                        {profile?.tierName ?? "Chưa có hạng"}
+                                    </Text>
+                                </View>
+                            </View>
                         </View>
                     </View>
                 </Card>
@@ -378,7 +391,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.medium,
         fontSize: 17,
         color: colors.textPrimary,
-        marginBottom: 12,
+        marginBottom: 6,
     },
     badgeRow: { flexDirection: "row", gap: 10 },
     badge: {

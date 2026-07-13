@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProcessedTopBarData } from "../hooks/useTopBarData";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import { AvatarWithFrame } from "../../../components/ui";
 
 interface TopBarProps {
     data?: ProcessedTopBarData;
@@ -74,7 +75,13 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                 activeOpacity={0.7}
                                 onPress={() => router.push("/(tabs)/10_1_profile")}
                             >
-                                <Image source={{ uri: data.avatarUri }} style={styles.avatar} />
+                                <AvatarWithFrame
+                                    uri={data.avatarUri}
+                                    frameUri={data.equippedFrameUrl}
+                                    size={36}
+                                    name={data.name}
+                                    borderWidth={1.5}
+                                />
                             </TouchableOpacity>
 
                             <View style={styles.statsContainer}>

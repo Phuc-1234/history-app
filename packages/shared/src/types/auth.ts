@@ -99,6 +99,7 @@ export interface UserProfileSummary {
     currentStreak: number;
     tierName: string | null;
     badgeImgUrl: string | null;
+    equippedFrameUrl?: string | null;
     role?: UserRole;
     isPro?: boolean;
     proExpiresAt?: string | null;

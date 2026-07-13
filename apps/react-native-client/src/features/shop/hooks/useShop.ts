@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAppSelector } from "../../../store/storeHook";
-import { useGetShopItemsQuery, usePurchaseItemMutation } from "../../inventory/services/itemApi";
+import { useGetShopItemsQuery, usePurchaseItemMutation, useGetUserInventoryQuery } from "../../inventory/services/itemApi";
+import { useGetProfileQuery } from "../../auth/services/authApi";
 import { Alert } from "react-native";
 
 export interface ShopItem {
@@ -11,6 +12,8 @@ export interface ShopItem {
     cost: number;
     imageUrl: string;
     category: "powerup" | "cosmetic";
+    itemType: "SKIN" | "XP_MUL" | "GOLD_MUL" | "BADGE";
+    isOwned: boolean;
 }
 
 export function useShop() {
@@ -20,11 +23,14 @@ export function useShop() {
     const profile = useAppSelector((state) => state.auth.profile);
     const userCoins = profile?.totalGold ?? 0;
 
-    const { data: shopData, isLoading } = useGetShopItemsQuery();
+    const { data: shopData, isLoading, isFetching: isFetchingShop, refetch: refetchShop } = useGetShopItemsQuery();
+    const { data: inventoryData, isFetching: isFetchingInventory, refetch: refetchInventory } = useGetUserInventoryQuery();
+    const { refetch: refetchProfile } = useGetProfileQuery();
     const [purchaseItem] = usePurchaseItemMutation();
 
     const shopItems = useMemo<ShopItem[]>(() => {
         if (!shopData?.items) return [];
+        const ownedIds = new Set(inventoryData?.inventory?.map((i) => i.itemDefinitionId) ?? []);
         return shopData.items.map((item) => ({
             id: String(item.id),
             dbId: item.id,
@@ -32,9 +38,11 @@ export function useShop() {
             description: item.description ?? "",
             cost: item.price,
             imageUrl: item.imgUrl ?? "https://picsum.photos/id/1021/400/400",
-            category: item.isConsumable ? "powerup" : "cosmetic",
+            category: (item.itemType === "XP_MUL" || item.itemType === "GOLD_MUL") ? "powerup" : "cosmetic",
+            itemType: item.itemType,
+            isOwned: (item.itemType === "SKIN" || item.itemType === "BADGE") && ownedIds.has(item.id),
         }));
-    }, [shopData]);
+    }, [shopData, inventoryData]);
 
     const filteredItems = useMemo(() => {
         return shopItems.filter((item) =>
@@ -43,6 +51,11 @@ export function useShop() {
     }, [shopItems, searchQuery]);
 
     const handlePurchase = async (item: ShopItem) => {
+        if (item.isOwned) {
+            Alert.alert("Lỗi", "Bạn đã sở hữu vật phẩm này.");
+            return;
+        }
+
         if (userCoins < item.cost) {
             Alert.alert("Lỗi", "Bạn không đủ số lượng Vàng để thực hiện giao dịch này.");
             return;
@@ -57,6 +70,18 @@ export function useShop() {
         }
     };
 
+    const handleRefresh = async () => {
+        try {
+            await Promise.all([
+                refetchShop().unwrap(),
+                refetchInventory().unwrap(),
+                refetchProfile().unwrap(),
+            ]);
+        } catch (e) {
+            console.error("Refresh shop failed:", e);
+        }
+    };
+
     return {
         searchQuery,
         setSearchQuery,
@@ -66,5 +91,7 @@ export function useShop() {
         setSelectedItem,
         handlePurchase,
         isLoading,
+        handleRefresh,
+        isRefreshing: isFetchingShop || isFetchingInventory,
     };
 }

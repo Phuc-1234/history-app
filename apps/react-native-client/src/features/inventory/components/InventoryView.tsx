@@ -8,12 +8,13 @@ import {
     View,
     useWindowDimensions,
     ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInventory, InventoryItem } from "../hooks/useInventory";
 
 export const InventoryView: React.FC = () => {
-    const { inventory, selectedItem, setSelectedItemId, handleUseItem, isLoading } =
+    const { inventory, selectedItem, setSelectedItemId, handleUseItem, isLoading, handleRefresh, isRefreshing } =
         useInventory();
     const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
@@ -37,6 +38,9 @@ export const InventoryView: React.FC = () => {
             showsVerticalScrollIndicator={false}
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
+            refreshControl={
+                <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+            }
         >
             {inventory.length === 0 ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 }}>
@@ -73,11 +77,18 @@ export const InventoryView: React.FC = () => {
                                     </Text>
                                 </Text>
                                 <TouchableOpacity
-                                    style={styles.useButton}
+                                    style={[
+                                        styles.useButton,
+                                        selectedItem.isEquipped && styles.unequipButton
+                                    ]}
                                     activeOpacity={0.8}
                                     onPress={() => handleUseItem(selectedItem.id)}
                                 >
-                                    <Text style={styles.useButtonText}>Dùng</Text>
+                                    <Text style={styles.useButtonText}>
+                                        {selectedItem.itemType === "SKIN"
+                                            ? (selectedItem.isEquipped ? "Tháo" : "Trang bị")
+                                            : "Sử dụng"}
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -101,25 +112,39 @@ export const InventoryView: React.FC = () => {
                                         isSelected && styles.selectedGridCell,
                                     ]}
                                 >
+                                    {item.isEquipped && (
+                                        <View style={styles.equippedGridBadge}>
+                                            <Text style={styles.equippedGridBadgeText}>Đang dùng</Text>
+                                        </View>
+                                    )}
+
                                     <Text style={styles.badgeCount}>
                                         x{item.quantity}
                                     </Text>
 
-                                    <View
-                                        style={[
-                                            styles.iconCircle,
-                                            { backgroundColor: item.iconBgColor },
-                                        ]}
-                                    >
-                                        <Text
+                                    {item.imageUrl ? (
+                                        <Image
+                                            source={{ uri: item.imageUrl }}
+                                            style={styles.cellImage}
+                                            resizeMode="contain"
+                                        />
+                                    ) : (
+                                        <View
                                             style={[
-                                                styles.emojiIcon,
-                                                { color: item.iconColor },
+                                                styles.iconCircle,
+                                                { backgroundColor: item.iconBgColor },
                                             ]}
                                         >
-                                            {item.icon}
-                                        </Text>
-                                    </View>
+                                            <Text
+                                                style={[
+                                                    styles.emojiIcon,
+                                                    { color: item.iconColor },
+                                                ]}
+                                            >
+                                                {item.icon}
+                                            </Text>
+                                        </View>
+                                    )}
 
                                     <Text style={styles.cellName} numberOfLines={2}>
                                         {item.name}
@@ -243,6 +268,14 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#777777",
     },
+    cellImage: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        marginBottom: 10,
+        marginTop: 6,
+        backgroundColor: "#F5F6F8",
+    },
     iconCircle: {
         width: 44,
         height: 44,
@@ -261,5 +294,23 @@ const styles = StyleSheet.create({
         color: "#3C3C3C",
         textAlign: "center",
         lineHeight: 16,
+    },
+    unequipButton: {
+        backgroundColor: "#FF9800",
+    },
+    equippedGridBadge: {
+        position: "absolute",
+        top: 8,
+        left: 8,
+        backgroundColor: "#58CC02",
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        zIndex: 2,
+    },
+    equippedGridBadgeText: {
+        color: "#FFFFFF",
+        fontSize: 8,
+        fontWeight: "700",
     },
 });

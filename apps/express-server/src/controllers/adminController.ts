@@ -1028,9 +1028,9 @@ export const listItemDefinitions = async (req: Request, res: Response) => {
 
 export const createItemDefinition = async (req: Request<{}, any, CreateItemDefinitionBody>, res: Response) => {
     try {
-        const { name, isConsumable, type } = req.body;
-        if (!name || isConsumable === undefined || !type) {
-            return res.status(400).json({ error: "name, isConsumable, and type are required." });
+        const { name, itemType } = req.body;
+        if (!name || !itemType) {
+            return res.status(400).json({ error: "name and itemType are required." });
         }
         const item = await adminService.createItemDefinition(req.body);
         return res.status(201).json(item);

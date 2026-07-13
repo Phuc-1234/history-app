@@ -80,6 +80,10 @@ export const getUserProfile = async (
                         badgeImgUrl: true,
                     },
                 },
+                userEquippedItems: {
+                    where: { equipmentSlot: "AVT_FRAME" },
+                    include: { itemDefinition: true },
+                },
             },
         });
 
@@ -95,6 +99,10 @@ export const getUserProfile = async (
             });
         }
 
+        const equippedFrameUrl = fullProfile.userEquippedItems.length > 0
+            ? fullProfile.userEquippedItems[0].itemDefinition.imgUrl
+            : null;
+
         return res.status(200).json({
             isGuest: false,
             id: fullProfile.id,
@@ -106,6 +114,7 @@ export const getUserProfile = async (
             currentStreak: fullProfile.currentStreak,
             tierName: fullProfile.tier.name,
             badgeImgUrl: fullProfile.tier.badgeImgUrl,
+            equippedFrameUrl,
             isPro: fullProfile.isPro ?? false,
             proExpiresAt: fullProfile.proExpiresAt ? fullProfile.proExpiresAt.toISOString() : null,
         });
