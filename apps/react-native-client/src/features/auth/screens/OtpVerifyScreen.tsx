@@ -14,7 +14,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRegisterOtp } from "../hooks/useRegisterOtp";
 import colors from "../../../theme/colors";
-import HistoricalBackground from "../../../components/layout/HistoricalBackground";
+import AppBackground from "../../../components/layout/AppBackground";
 
 const text = {
     headline: "Xác thực tài khoản",
@@ -83,8 +83,8 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                     ]}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Historical Background Motifs */}
-                    <HistoricalBackground />
+                    {/* Background Motifs (session-randomized) */}
+                    <AppBackground />
 
                     {/* Logo Section */}
                     <View style={styles.logoContainer}>

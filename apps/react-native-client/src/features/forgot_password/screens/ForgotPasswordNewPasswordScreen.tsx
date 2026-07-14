@@ -16,7 +16,7 @@ import Input from "../../../components/Input";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import Mascot from "../../../components/Mascot";
-import HistoricalBackground from "../../../components/layout/HistoricalBackground";
+import AppBackground from "../../../components/layout/AppBackground";
 
 const text = {
     cardTitle: "Tạo mật khẩu mới",
@@ -54,8 +54,8 @@ export default function ForgotPasswordNewPasswordScreen() {
                     },
                 ]}
             >
-                {/* Historical Background Motifs */}
-                <HistoricalBackground />
+                {/* Background Motifs (session-randomized) */}
+                <AppBackground />
 
                 {/* Mascot Section */}
                 <View style={styles.mascotContainer}>

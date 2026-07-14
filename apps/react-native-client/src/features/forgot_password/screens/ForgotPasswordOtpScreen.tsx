@@ -16,7 +16,7 @@ import { useForgotPassword } from "../hooks/useForgotPassword";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import Mascot from "../../../components/Mascot";
-import HistoricalBackground from "../../../components/layout/HistoricalBackground";
+import AppBackground from "../../../components/layout/AppBackground";
 
 const text = {
     headline: "Xác thực OTP",
@@ -85,8 +85,8 @@ export default function ForgotPasswordOtpScreen({
                     ]}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Historical Background Motifs */}
-                    <HistoricalBackground />
+                    {/* Background Motifs (session-randomized) */}
+                    <AppBackground />
 
                     {/* Mascot Section */}
                     <View style={styles.mascotContainer}>
