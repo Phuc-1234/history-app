@@ -79,7 +79,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
             query: ({ logId }) => `/api/tests-v2/history/${logId}`,
         }),
         // GET /api/tests-v2/national
-        getNationalTests: builder.query<{ id: string; title: string; summary: string | null; isPro: boolean }[], void>({
+        getNationalTests: builder.query<{ id: string; title: string; summary: string | null; isPro: boolean; imgUrl?: string | null }[], void>({
             query: () => "/api/tests-v2/national",
         }),
     }),

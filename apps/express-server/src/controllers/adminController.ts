@@ -6,6 +6,10 @@ import { aiService } from "../services/aiService";
 import { contentService } from "../services/contentService";
 import fs from "fs";
 import { videoProcessingService, activeTranscodes } from "../services/videoProcessingService";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { r2Client, R2_BUCKET_NAME, R2_PUBLIC_URL } from "../config/r2";
+import crypto from "crypto";
+import path from "path";
 import {
     CreateGradeBody,
     UpdateGradeBody,
@@ -1067,6 +1071,49 @@ export const deleteItemDefinition = async (req: Request<{ id: string }>, res: Re
     } catch (err) {
         console.error("Delete item definition error:", err);
         return res.status(500).json({ error: "Failed to delete item definition." });
+    }
+};
+
+export const uploadImage = async (req: Request, res: Response) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: "No image file provided." });
+        }
+
+        const fileExt = path.extname(file.originalname);
+        const fileName = `${crypto.randomUUID()}${fileExt}`;
+        const s3Key = `images/${fileName}`;
+
+        const fileStream = fs.createReadStream(file.path);
+
+        await r2Client.send(
+            new PutObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: s3Key,
+                Body: fileStream,
+                ContentType: file.mimetype,
+            })
+        );
+
+        if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
+
+        const cleanPublicUrl = R2_PUBLIC_URL.endsWith("/")
+            ? R2_PUBLIC_URL.slice(0, -1)
+            : R2_PUBLIC_URL;
+
+        const imageUrl = `${cleanPublicUrl}/${s3Key}`;
+        return res.status(200).json({ url: imageUrl });
+    } catch (err: any) {
+        if (req.file && fs.existsSync(req.file.path)) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch {}
+        }
+        console.error("Upload image error:", err);
+        return res.status(500).json({ error: "Failed to upload image." });
     }
 };
 
