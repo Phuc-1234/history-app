@@ -11,10 +11,12 @@ import { ScreenWrapper, type BranchConfig } from "@/components/layout/ScreenWrap
 export function ScreenShell({
     title,
     rightLabel: _rightLabel,
+    titleColor,
     children,
 }: {
     title: string;
     rightLabel?: string;
+    titleColor?: string;
     children: React.ReactNode;
 }) {
     const router = useRouter();
@@ -22,6 +24,7 @@ export function ScreenShell({
         hierarchy: title,
         onBackPress: () => router.back(),
         onHomePress: () => router.push("/(tabs)/2_1_lessons"),
+        titleColor,
     };
 
     return (

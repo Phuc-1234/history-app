@@ -22,6 +22,8 @@ import paymentRoutes from "./routes/paymentRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import homeRoutes from "./routes/homeRoutes";
 import subscriptionRoutes from "./routes/subscriptionRoutes";
+import shopRoutes from "./routes/shopRoutes";
+import inventoryRoutes from "./routes/inventoryRoutes";
 import { startDailySubscriptionCron } from "./services/subscriptionCron";
 
 
@@ -57,6 +59,8 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/home", homeRoutes);
+app.use("/api/shop", shopRoutes);
+app.use("/api/inventory", inventoryRoutes);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {

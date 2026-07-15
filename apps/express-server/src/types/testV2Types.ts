@@ -167,6 +167,7 @@ export interface TestInfoV2Response {
     passThreshold: number;
     attemptCount: number;
     passCount: number;
+    itemsReward?: { name: string; imgUrl: string | null; quantity: number }[];
 }
 
 export interface NationalTestDto {

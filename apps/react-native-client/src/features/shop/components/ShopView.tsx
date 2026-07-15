@@ -9,7 +9,10 @@ import {
     View,
     Modal,
     useWindowDimensions,
+    ActivityIndicator,
+    RefreshControl,
 } from "react-native";
+import { Coins, Search } from "lucide-react-native";
 import { useShop, ShopItem } from "../hooks/useShop";
 import { useRouter } from "expo-router";
 
@@ -23,6 +26,9 @@ export const ShopView: React.FC = () => {
         selectedItem,
         setSelectedItem,
         handlePurchase,
+        isLoading,
+        handleRefresh,
+        isRefreshing,
     } = useShop();
 
     const { width } = useWindowDimensions();
@@ -37,10 +43,13 @@ export const ShopView: React.FC = () => {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+                }
             >
                 {/* Search Bar Group */}
                 <View style={styles.searchBarRow}>
-                    <Text style={styles.searchIcon}>🔍</Text>
+                    <Search size={18} color="#9A9A9A" style={styles.searchIcon} />
                     <TextInput
                         placeholder="Search"
                         placeholderTextColor="#9A9A9A"
@@ -57,7 +66,7 @@ export const ShopView: React.FC = () => {
                     onPress={() => router.push("/(tabs)/8_2_buy_gold")}
                 >
                     <View style={styles.buyGoldBannerLeft}>
-                        <Text style={styles.buyGoldBannerIcon}>🪙</Text>
+                        <Coins size={28} color="#FF9800" style={styles.buyGoldBannerIcon} />
                         <View>
                             <Text style={styles.buyGoldBannerTitle}>Nạp thêm Gold</Text>
                             <Text style={styles.buyGoldBannerSub}>Mua vật phẩm đặc biệt trong cửa hàng</Text>
@@ -80,35 +89,55 @@ export const ShopView: React.FC = () => {
                 </View>
 
                 {/* 2-Column Store Products Grid Matrix */}
-                <View style={styles.gridContainer}>
-                    {filteredItems.map((item) => (
-                        <TouchableOpacity
-                            key={item.id}
-                            activeOpacity={0.8}
-                            style={[styles.productCell, { width: itemWidth }]}
-                            onPress={() => setSelectedItem(item)}
-                        >
-                            <View style={styles.thumbnailWrapper}>
-                                <Image
-                                    source={{ uri: item.imageUrl }}
-                                    style={styles.cellImage}
-                                />
-                                <Text style={styles.fallbackBoxIcon}>📦</Text>
-                            </View>
-                            <View style={styles.cellFooter}>
-                                <Text style={styles.cellName} numberOfLines={1}>
-                                    {item.name}
-                                </Text>
-                                <View style={styles.coinCostRow}>
-                                    <Text style={styles.coinMiniIcon}>🪙</Text>
-                                    <Text style={styles.coinCostText}>
-                                        {item.cost.toLocaleString()}
-                                    </Text>
+                {isLoading ? (
+                    <ActivityIndicator size="large" color="#4E3FE0" style={{ marginTop: 24 }} />
+                ) : filteredItems.length === 0 ? (
+                    <Text style={{ textAlign: "center", color: "#666", marginTop: 24 }}>Không tìm thấy vật phẩm nào.</Text>
+                ) : (
+                    <View style={styles.gridContainer}>
+                        {filteredItems.map((item) => (
+                            <TouchableOpacity
+                                key={item.id}
+                                activeOpacity={0.8}
+                                style={[styles.productCell, { width: itemWidth }, item.isOwned && styles.productCellOwned]}
+                                onPress={() => setSelectedItem(item)}
+                            >
+                                <View style={styles.thumbnailWrapper}>
+                                    {item.imageUrl ? (
+                                        <Image
+                                            source={{ uri: item.imageUrl }}
+                                            style={[styles.cellImage, item.isOwned && { opacity: 0.5 }]}
+                                        />
+                                    ) : (
+                                        <Text style={styles.fallbackBoxIcon}>📦</Text>
+                                    )}
+                                    {item.isOwned && (
+                                        <View style={styles.ownedBadge}>
+                                            <Text style={styles.ownedBadgeText}>Đã sở hữu</Text>
+                                        </View>
+                                    )}
                                 </View>
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                                <View style={styles.cellFooter}>
+                                    <Text style={styles.cellName} numberOfLines={1}>
+                                        {item.name}
+                                    </Text>
+                                    <View style={styles.coinCostRow}>
+                                        {item.isOwned ? (
+                                            <Text style={styles.ownedTextLabel}>Đã sở hữu</Text>
+                                        ) : (
+                                            <>
+                                                <Coins size={14} color="#FF9800" style={styles.coinMiniIcon} />
+                                                <Text style={styles.coinCostText}>
+                                                    {item.cost.toLocaleString()}
+                                                </Text>
+                                            </>
+                                        )}
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </ScrollView>
 
             {/* Dynamic Native Overlay Modal view sheet */}
@@ -149,7 +178,7 @@ export const ShopView: React.FC = () => {
 
                                 {/* Amount Row Label Indicator */}
                                 <View style={styles.modalCostIndicatorRow}>
-                                    <Text style={styles.modalCoinIcon}>🪙</Text>
+                                    <Coins size={18} color="#FF9800" style={styles.modalCoinIcon} />
                                     <Text style={styles.modalCostLabelText}>
                                         {selectedItem.cost.toLocaleString()} xu
                                     </Text>
@@ -157,12 +186,16 @@ export const ShopView: React.FC = () => {
 
                                 {/* Final Checkout Call-To-Action Button */}
                                 <TouchableOpacity
-                                    style={styles.checkoutActionButton}
+                                    style={[
+                                        styles.checkoutActionButton,
+                                        selectedItem.isOwned && styles.disabledCheckoutButton
+                                    ]}
                                     activeOpacity={0.85}
-                                    onPress={() => handlePurchase(selectedItem)}
+                                    onPress={() => !selectedItem.isOwned && handlePurchase(selectedItem)}
+                                    disabled={selectedItem.isOwned}
                                 >
                                     <Text style={styles.checkoutButtonText}>
-                                        Mua ngay 🛒
+                                        {selectedItem.isOwned ? "Đã sở hữu" : "Mua ngay 🛒"}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -425,6 +458,33 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 12,
         overflow: "hidden",
+    },
+    productCellOwned: {
+        borderColor: "#D2CBDC",
+        opacity: 0.85,
+    },
+    ownedBadge: {
+        position: "absolute",
+        bottom: 8,
+        left: 8,
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        zIndex: 3,
+    },
+    ownedBadgeText: {
+        color: "#FFFFFF",
+        fontSize: 10,
+        fontWeight: "700",
+    },
+    ownedTextLabel: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#9C94A6",
+    },
+    disabledCheckoutButton: {
+        backgroundColor: "#A39EB2",
     },
 });
 

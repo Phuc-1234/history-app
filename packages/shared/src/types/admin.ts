@@ -368,18 +368,115 @@ export interface SetScopeTestPresetDefaultBody {
     defaultTestPresetId: string;
 }
 
+// ─── Reward Rule ──────────────────────────────────────────────────────────────
+
+export type RewardTriggerType =
+    | "MANUAL_TEST_COMPLETE"
+    | "AUTO_NODE_TEST_COMPLETE"
+    | "AUTO_SECTION_TEST_COMPLETE"
+    | "AUTO_LESSON_TEST_COMPLETE"
+    | "AUTO_TOPIC_TEST_COMPLETE"
+    | "AUTO_GRADE_TEST_COMPLETE"
+    | "AUTO_PERSONAL_PRACTICE_COMPLETE"
+    | "AUTO_WRONG_PRACTICE_COMPLETE"
+    | "STREAK_REACHED"
+    | "TIER_REACHED";
+
+export interface RewardRuleItemDto {
+    itemDefinitionId: number;
+    quantity: number;
+    itemDefinition?: ItemDefinitionDto;
+}
+
+export interface CreateRewardRuleBody {
+    triggerType: RewardTriggerType;
+    triggerTargetId?: string | null;
+    triggerTimeMin: number;
+    triggerTimeMax?: number | null;
+    xp?: number;
+    gold?: number;
+    rewardRuleItems?: { itemDefinitionId: number; quantity: number }[];
+}
+
+export interface UpdateRewardRuleBody {
+    triggerType?: RewardTriggerType;
+    triggerTargetId?: string | null;
+    triggerTimeMin?: number;
+    triggerTimeMax?: number | null;
+    xp?: number;
+    gold?: number;
+    rewardRuleItems?: { itemDefinitionId: number; quantity: number }[];
+}
+
+export interface RewardRuleDto {
+    id: number;
+    triggerType: RewardTriggerType;
+    triggerTargetId: string | null;
+    triggerTimeMin: number;
+    triggerTimeMax: number | null;
+    xp: number;
+    gold: number;
+    rewardRuleItems: RewardRuleItemDto[];
+}
+
+// ─── Item Definitions ─────────────────────────────────────────────────────────
+
+export type ItemDefinitionType = "SKIN" | "XP_MUL" | "GOLD_MUL" | "BADGE";
+export type EquipmentSlot = "AVT_FRAME" | "BACKGROUND";
+
+export interface CreateItemDefinitionBody {
+    name: string;
+    description?: string | null;
+    shownInStore?: boolean;
+    price?: number;
+    itemType: ItemDefinitionType;
+    effectValue?: number | null;
+    imgUrl?: string | null;
+    equipmentSlot?: EquipmentSlot | null;
+    durationMinutes?: number | null;
+}
+
+export interface UpdateItemDefinitionBody {
+    name?: string;
+    description?: string | null;
+    shownInStore?: boolean;
+    price?: number;
+    itemType?: ItemDefinitionType;
+    effectValue?: number | null;
+    imgUrl?: string | null;
+    equipmentSlot?: EquipmentSlot | null;
+    durationMinutes?: number | null;
+}
+
+export interface ItemDefinitionDto {
+    id: number;
+    name: string;
+    description: string | null;
+    shownInStore: boolean;
+    price: number;
+    itemType: ItemDefinitionType;
+    effectValue: number | null;
+    imgUrl: string | null;
+    equipmentSlot: EquipmentSlot | null;
+    durationMinutes: number | null;
+}
+
 export interface AdminFeedbackDto {
     id: string;
     userId: string;
     content: string;
-    type: string; // "BUG" | "FEATURE" | "OTHER"
+    type: string; // "BUG" | "FEATURE" | "OTHER" | "INCORRECT_INFO"
     createdAt: string;
+    targetType?: string | null;
+    targetId?: string | null;
+    targetName?: string | null;
     user: {
         name: string;
         email: string | null;
         profileImgUrl: string | null;
     };
 }
+
 
 
 

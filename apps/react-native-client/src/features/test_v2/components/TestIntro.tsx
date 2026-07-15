@@ -5,7 +5,8 @@ import {
     TouchableOpacity,
     View,
     ActivityIndicator,
-    ScrollView
+    ScrollView,
+    Image
 } from "react-native";
 import { FileText, Clock, Zap, Coins, Trophy, HelpCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -55,6 +56,7 @@ interface Props {
     attemptCount?: number;
     passCount?: number;
     scopeType?: string;
+    itemsReward?: { name: string; imgUrl: string | null; quantity: number }[];
 }
 
 export default function TestIntro({
@@ -73,6 +75,7 @@ export default function TestIntro({
     attemptCount = 0,
     passCount = 0,
     scopeType,
+    itemsReward,
 }: Props) {
     const [showHelpModal, setShowHelpModal] = useState(false);
 
@@ -200,6 +203,29 @@ export default function TestIntro({
                             </Card>
                         )}
                     </View>
+
+                    {/* Item rewards */}
+                    {itemsReward && itemsReward.length > 0 && (
+                        <View style={{ marginTop: 16, width: "100%" }}>
+                            <Text style={{ fontSize: 13, fontFamily: typography.fonts.bold, color: colors.textSecondary, marginBottom: 8, textAlign: "center" }}>
+                                Vật phẩm nhận thêm khi đạt:
+                            </Text>
+                            <View style={{ flexDirection: "row", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+                                {itemsReward.map((item, idx) => (
+                                    <View key={idx} style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceVariant, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, gap: 8 }}>
+                                        {item.imgUrl ? (
+                                            <Image source={{ uri: item.imgUrl }} style={{ width: 20, height: 20, resizeMode: "contain" }} />
+                                        ) : (
+                                            <Text style={{ fontSize: 16 }}>📦</Text>
+                                        )}
+                                        <Text style={{ fontSize: 13, fontFamily: typography.fonts.medium, color: colors.textPrimary }}>
+                                            {item.name} x{item.quantity}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    )}
 
                     <View style={{ flex: 1, minHeight: 15 }} />
                 </View>

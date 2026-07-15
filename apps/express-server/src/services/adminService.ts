@@ -30,6 +30,12 @@ import {
     FlashcardDto,
     CreateFlashcardBody,
     UpdateFlashcardBody,
+    CreateRewardRuleBody,
+    UpdateRewardRuleBody,
+    RewardRuleDto,
+    CreateItemDefinitionBody,
+    UpdateItemDefinitionBody,
+    ItemDefinitionDto,
 } from "@history-app/shared";
 import { supabase } from "../config/supabaseClient";
 import { contentService } from "./contentService";
@@ -1071,7 +1077,221 @@ export class AdminService {
         });
         return true;
     }
+
+    // ─── REWARD RULE ─────────────────────────────────────────────────────────
+
+    async listRewardRules(): Promise<RewardRuleDto[]> {
+        const rules = await prisma.rewardRule.findMany({
+            include: {
+                rewardRuleItems: {
+                    include: {
+                        itemDefinition: true
+                    }
+                }
+            },
+            orderBy: { id: "asc" }
+        });
+        return rules.map(r => ({
+            id: r.id,
+            triggerType: r.triggerType as any,
+            triggerTargetId: r.triggerTargetId,
+            triggerTimeMin: r.triggerTimeMin,
+            triggerTimeMax: r.triggerTimeMax,
+            xp: r.xp,
+            gold: r.gold,
+            rewardRuleItems: r.rewardRuleItems.map(ri => ({
+                itemDefinitionId: ri.itemDefinitionId,
+                quantity: ri.quantity,
+                itemDefinition: ri.itemDefinition as ItemDefinitionDto
+            }))
+        }));
+    }
+
+    async createRewardRule(data: CreateRewardRuleBody): Promise<RewardRuleDto> {
+        const rule = await prisma.$transaction(async (tx) => {
+            const newRule = await tx.rewardRule.create({
+                data: {
+                    triggerType: data.triggerType as any,
+                    triggerTargetId: data.triggerTargetId !== undefined ? data.triggerTargetId : null,
+                    triggerTimeMin: Number(data.triggerTimeMin),
+                    triggerTimeMax: data.triggerTimeMax !== null && data.triggerTimeMax !== undefined ? Number(data.triggerTimeMax) : null,
+                    xp: data.xp !== undefined ? Number(data.xp) : 0,
+                    gold: data.gold !== undefined ? Number(data.gold) : 0,
+                }
+            });
+
+            if (data.rewardRuleItems && data.rewardRuleItems.length > 0) {
+                await tx.rewardRuleItem.createMany({
+                    data: data.rewardRuleItems.map(ri => ({
+                        rewardRuleId: newRule.id,
+                        itemDefinitionId: ri.itemDefinitionId,
+                        quantity: ri.quantity
+                    }))
+                });
+            }
+
+            return newRule;
+        });
+
+        const createdRule = await prisma.rewardRule.findUnique({
+            where: { id: rule.id },
+            include: {
+                rewardRuleItems: {
+                    include: {
+                        itemDefinition: true
+                    }
+                }
+            }
+        });
+
+        if (!createdRule) throw new Error("Failed to retrieve created reward rule");
+
+        return {
+            id: createdRule.id,
+            triggerType: createdRule.triggerType as any,
+            triggerTargetId: createdRule.triggerTargetId,
+            triggerTimeMin: createdRule.triggerTimeMin,
+            triggerTimeMax: createdRule.triggerTimeMax,
+            xp: createdRule.xp,
+            gold: createdRule.gold,
+            rewardRuleItems: createdRule.rewardRuleItems.map(ri => ({
+                itemDefinitionId: ri.itemDefinitionId,
+                quantity: ri.quantity,
+                itemDefinition: ri.itemDefinition as ItemDefinitionDto
+            }))
+        };
+    }
+
+    async updateRewardRule(id: number, data: UpdateRewardRuleBody): Promise<RewardRuleDto | null> {
+        const existing = await prisma.rewardRule.findUnique({ where: { id } });
+        if (!existing) return null;
+
+        await prisma.$transaction(async (tx) => {
+            await tx.rewardRule.update({
+                where: { id },
+                data: {
+                    ...(data.triggerType !== undefined && { triggerType: data.triggerType as any }),
+                    triggerTargetId: data.triggerTargetId !== undefined ? data.triggerTargetId : existing.triggerTargetId,
+                    ...(data.triggerTimeMin !== undefined && { triggerTimeMin: Number(data.triggerTimeMin) }),
+                    triggerTimeMax: data.triggerTimeMax !== undefined ? (data.triggerTimeMax !== null ? Number(data.triggerTimeMax) : null) : existing.triggerTimeMax,
+                    ...(data.xp !== undefined && { xp: Number(data.xp) }),
+                    ...(data.gold !== undefined && { gold: Number(data.gold) }),
+                }
+            });
+
+            if (data.rewardRuleItems !== undefined) {
+                await tx.rewardRuleItem.deleteMany({ where: { rewardRuleId: id } });
+                if (data.rewardRuleItems.length > 0) {
+                    await tx.rewardRuleItem.createMany({
+                        data: data.rewardRuleItems.map(ri => ({
+                            rewardRuleId: id,
+                            itemDefinitionId: ri.itemDefinitionId,
+                            quantity: ri.quantity
+                        }))
+                    });
+                }
+            }
+        });
+
+        const updated = await prisma.rewardRule.findUnique({
+            where: { id },
+            include: {
+                rewardRuleItems: {
+                    include: {
+                        itemDefinition: true
+                    }
+                }
+            }
+        });
+
+        if (!updated) return null;
+
+        return {
+            id: updated.id,
+            triggerType: updated.triggerType as any,
+            triggerTargetId: updated.triggerTargetId,
+            triggerTimeMin: updated.triggerTimeMin,
+            triggerTimeMax: updated.triggerTimeMax,
+            xp: updated.xp,
+            gold: updated.gold,
+            rewardRuleItems: updated.rewardRuleItems.map(ri => ({
+                itemDefinitionId: ri.itemDefinitionId,
+                quantity: ri.quantity,
+                itemDefinition: ri.itemDefinition as ItemDefinitionDto
+            }))
+        };
+    }
+
+    async deleteRewardRule(id: number): Promise<boolean> {
+        const existing = await prisma.rewardRule.findUnique({ where: { id } });
+        if (!existing) return false;
+        await prisma.rewardRule.delete({ where: { id } });
+        return true;
+    }
+
+    // ─── ITEM DEFINITIONS ─────────────────────────────────────────────────────
+
+    async listItemDefinitions(): Promise<ItemDefinitionDto[]> {
+        const items = await prisma.itemDefinition.findMany({
+            orderBy: { id: "asc" }
+        });
+        return items as ItemDefinitionDto[];
+    }
+
+    async createItemDefinition(data: CreateItemDefinitionBody): Promise<ItemDefinitionDto> {
+        const itemType = data.itemType;
+        const isMul = itemType === "XP_MUL" || itemType === "GOLD_MUL";
+        const isSkin = itemType === "SKIN";
+
+        const item = await prisma.itemDefinition.create({
+            data: {
+                name: data.name,
+                description: data.description ?? null,
+                shownInStore: data.shownInStore ?? true,
+                price: data.price !== undefined ? Number(data.price) : 10,
+                itemType: itemType as any,
+                effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : null) : null,
+                imgUrl: data.imgUrl ?? null,
+                equipmentSlot: isSkin ? (data.equipmentSlot ? (data.equipmentSlot as any) : null) : null,
+                durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : null) : null,
+            }
+        });
+        return item as any as ItemDefinitionDto;
+    }
+
+    async updateItemDefinition(id: number, data: UpdateItemDefinitionBody): Promise<ItemDefinitionDto | null> {
+        const existing = await prisma.itemDefinition.findUnique({ where: { id } });
+        if (!existing) return null;
+
+        const itemType = data.itemType !== undefined ? data.itemType : existing.itemType;
+        const isMul = itemType === "XP_MUL" || itemType === "GOLD_MUL";
+        const isSkin = itemType === "SKIN";
+
+        const updated = await prisma.itemDefinition.update({
+            where: { id },
+            data: {
+                ...(data.name !== undefined && { name: data.name }),
+                description: data.description !== undefined ? data.description : existing.description,
+                ...(data.shownInStore !== undefined && { shownInStore: data.shownInStore }),
+                ...(data.price !== undefined && { price: Number(data.price) }),
+                itemType: itemType as any,
+                effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : existing.effectValue) : null,
+                imgUrl: data.imgUrl !== undefined ? data.imgUrl : existing.imgUrl,
+                equipmentSlot: isSkin ? (data.equipmentSlot !== undefined ? (data.equipmentSlot as any) : existing.equipmentSlot) : null,
+                durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : existing.durationMinutes) : null,
+            }
+        });
+        return updated as any as ItemDefinitionDto;
+    }
+
+    async deleteItemDefinition(id: number): Promise<boolean> {
+        const existing = await prisma.itemDefinition.findUnique({ where: { id } });
+        if (!existing) return false;
+        await prisma.itemDefinition.delete({ where: { id } });
+        return true;
+    }
 }
 
 export const adminService = new AdminService();
+
 

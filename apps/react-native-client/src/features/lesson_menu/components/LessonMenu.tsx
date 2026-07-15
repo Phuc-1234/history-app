@@ -20,6 +20,8 @@ import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Card } from "../../../components/Card";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import FeedbackModal from "../../../components/FeedbackModal";
+
 import {
     useGetTopicsByGradeQuery,
     useGetLessonsByTopicQuery,
@@ -78,18 +80,18 @@ function SmallProgressRing({ pct, isAccent }: { pct: number; isAccent?: boolean 
 function matchesSearch(text: string, query: string, isTest: boolean = false): boolean {
     const normText = text.toLowerCase().trim();
     const normQuery = query.toLowerCase().trim();
-    
+
     if (normText.includes(normQuery)) return true;
-    
+
     const testKeywords = ["quiz", "test", "kiểm tra", "đề", "exam"];
-    
+
     if (isTest) {
         const isGeneric = testKeywords.some(k => normQuery === k);
         if (isGeneric) return true;
     }
-    
+
     const queryHasTestKey = testKeywords.some(k => normQuery.includes(k) && (k !== "đề" || !normQuery.includes("chủ đề")));
-    
+
     if (isTest && queryHasTestKey) {
         let cleanQuery = normQuery;
         let cleanText = normText;
@@ -97,15 +99,15 @@ function matchesSearch(text: string, query: string, isTest: boolean = false): bo
             cleanQuery = cleanQuery.replace(k, "").trim();
             cleanText = cleanText.replace(k, "").trim();
         });
-        
+
         cleanQuery = cleanQuery.replace("chủ đề", "").trim();
         cleanText = cleanText.replace("chủ đề", "").trim();
-        
+
         if (cleanQuery && (cleanText.includes(cleanQuery) || cleanQuery.includes(cleanText))) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -114,13 +116,13 @@ function matchesTopicOrLesson(name: string, position: number, prefix: string, qu
     const normName = name.toLowerCase().trim();
     const prefixWithPos = `${prefix} ${position}`.toLowerCase();
     const fullName = `${prefixWithPos}: ${normName}`;
-    
+
     if (fullName.includes(normQuery) || normName.includes(normQuery)) return true;
-    
+
     if (/^\d+$/.test(normQuery) && parseInt(normQuery, 10) === position) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -190,9 +192,9 @@ function SectionMasteryItem({ section }: { section: any }) {
     const pct = section.masteryPercentage ?? 0;
     return (
         <View style={styles.masteryItemWrapper}>
-            <TouchableOpacity 
-                onPress={() => hasChildren && setExpanded(!expanded)} 
-                style={[styles.masteryItemHeader, { paddingLeft: 24 }]} 
+            <TouchableOpacity
+                onPress={() => hasChildren && setExpanded(!expanded)}
+                style={[styles.masteryItemHeader, { paddingLeft: 24 }]}
                 activeOpacity={0.7}
                 disabled={!hasChildren}
             >
@@ -276,6 +278,8 @@ export function LessonMenu({
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [collapsedTopics, setCollapsedTopics] = useState<Record<number, boolean>>({});
+    const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+
 
     const TABS = [
         { key: "HOC_PHAN", label: "Học phần" },
@@ -440,18 +444,40 @@ export function LessonMenu({
                                     <Ionicons name="book" size={32} color={themeColor} />
                                 </View>
                                 <View style={styles.gradeProgressRight}>
-                                    <View style={styles.gradeHeaderRow}>
-                                        <Text style={styles.gradeTitleText}>
+                                    <View
+                                        style={{
+                                            flexDirection: "row",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
+                                            marginBottom: 8,
+                                        }}
+                                    >
+                                        <Text style={[styles.gradeTitleText, { flex: 1, marginBottom: 0 }]}>
                                             Lớp {selectedGrade}
                                         </Text>
-                                        <TouchableOpacity
-                                            style={[styles.masteryBadgeButton, { backgroundColor: themeColor }]}
-                                            onPress={() => setIsMasteryModalVisible(true)}
-                                            activeOpacity={0.8}
-                                        >
-                                            <Ionicons name="ribbon-outline" size={14} color="#FFFFFF" />
-                                            <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
-                                        </TouchableOpacity>
+
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                            <TouchableOpacity
+                                                style={[styles.masteryBadgeButton, { backgroundColor: themeColor }]}
+                                                onPress={() => setIsMasteryModalVisible(true)}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Ionicons name="ribbon-outline" size={14} color="#FFFFFF" />
+                                                <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
+                                            </TouchableOpacity>
+
+                                            <TouchableOpacity
+                                                onPress={() => setFeedbackModalVisible(true)}
+                                                style={styles.flagButton}
+                                                activeOpacity={0.7}
+                                            >
+                                                <Ionicons
+                                                    name="flag-outline"
+                                                    size={20}
+                                                    color={colors.textSecondary}
+                                                />
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
                                     <View style={styles.topProgressWrapper}>
                                         <View style={styles.topProgressTrack}>
@@ -550,9 +576,9 @@ export function LessonMenu({
                                                             const lessonAny = lesson as any;
                                                             const lessonPct =
                                                                 lessonAny.progress != null &&
-                                                                lessonAny.progress.totalNodes > 0
+                                                                    lessonAny.progress.totalNodes > 0
                                                                     ? lessonAny.progress.completedNodes /
-                                                                      lessonAny.progress.totalNodes
+                                                                    lessonAny.progress.totalNodes
                                                                     : 0;
                                                             const isDone = lessonPct >= 1;
                                                             const isLessonPro = !!lesson.isPro;
@@ -700,8 +726,8 @@ export function LessonMenu({
                                             {wrongQuestionCount === 0
                                                 ? "Bạn không có câu hỏi sai nào. Tuyệt vời!"
                                                 : wrongQuestionCount <= 10
-                                                ? `Bạn có ${wrongQuestionCount} câu trả lời sai. Hãy làm lại để khắc phục!`
-                                                : `Bạn có ${wrongQuestionCount} câu trả lời sai. Hãy ôn luyện để sửa đổi và củng cố nhé!`}
+                                                    ? `Bạn có ${wrongQuestionCount} câu trả lời sai. Hãy làm lại để khắc phục!`
+                                                    : `Bạn có ${wrongQuestionCount} câu trả lời sai. Hãy ôn luyện để sửa đổi và củng cố nhé!`}
                                         </Text>
 
                                         {wrongQuestionCount > 10 && (
@@ -709,8 +735,8 @@ export function LessonMenu({
                                                 <Text style={styles.practiceOptionLabel}>Số lượng câu hỏi</Text>
                                                 <View style={styles.practiceOptionsRow}>
                                                     {wrongOptions.map(count => (
-                                                        <TouchableOpacity 
-                                                            key={count} 
+                                                        <TouchableOpacity
+                                                            key={count}
                                                             style={[styles.practiceOptionBtn, wrongPracticeCount === count && styles.practiceOptionBtnActive]}
                                                             onPress={() => setWrongPracticeCount(count)}
                                                             activeOpacity={0.7}
@@ -723,7 +749,7 @@ export function LessonMenu({
                                                 </View>
                                             </>
                                         )}
-                                        
+
                                         <View style={styles.practiceRewardRow}>
                                             <Text style={styles.practiceRewardLabel}>Phần thưởng:</Text>
                                             <View style={styles.practiceRewardBadge}>
@@ -736,7 +762,7 @@ export function LessonMenu({
                                             </View>
                                         </View>
 
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             style={[
                                                 styles.practiceStartBtn,
                                                 wrongQuestionCount === 0 && { backgroundColor: colors.textPlaceholder }
@@ -767,32 +793,32 @@ export function LessonMenu({
                                         </Text>
 
                                         {answeredQuestionCount > 0 && (
-                                             answeredQuestionCount < 10 ? (
-                                                 <Text style={[styles.practiceOptionLabel, { marginBottom: 20 }]}>
-                                                     Số lượng câu hỏi:{" "}
-                                                     <Text style={{ color: colors.accent }}>{answeredQuestionCount}</Text>
-                                                 </Text>
-                                             ) : (
-                                                 <>
-                                                     <Text style={styles.practiceOptionLabel}>Số lượng câu hỏi</Text>
-                                                     <View style={styles.practiceOptionsRow}>
-                                                         {practiceOptions.map(opt => (
-                                                             <TouchableOpacity 
-                                                                 key={opt.value} 
-                                                                 style={[styles.practiceOptionBtn, practiceCount === opt.value && styles.practiceOptionBtnActive]}
-                                                                 onPress={() => setPracticeCount(opt.value)}
-                                                                 activeOpacity={0.7}
-                                                             >
-                                                                 <Text style={[styles.practiceOptionText, practiceCount === opt.value && styles.practiceOptionTextActive]}>
-                                                                     {opt.label}
-                                                                 </Text>
-                                                             </TouchableOpacity>
-                                                         ))}
-                                                     </View>
-                                                 </>
-                                             )
-                                         )}
-                                        
+                                            answeredQuestionCount < 10 ? (
+                                                <Text style={[styles.practiceOptionLabel, { marginBottom: 20 }]}>
+                                                    Số lượng câu hỏi:{" "}
+                                                    <Text style={{ color: colors.accent }}>{answeredQuestionCount}</Text>
+                                                </Text>
+                                            ) : (
+                                                <>
+                                                    <Text style={styles.practiceOptionLabel}>Số lượng câu hỏi</Text>
+                                                    <View style={styles.practiceOptionsRow}>
+                                                        {practiceOptions.map(opt => (
+                                                            <TouchableOpacity
+                                                                key={opt.value}
+                                                                style={[styles.practiceOptionBtn, practiceCount === opt.value && styles.practiceOptionBtnActive]}
+                                                                onPress={() => setPracticeCount(opt.value)}
+                                                                activeOpacity={0.7}
+                                                            >
+                                                                <Text style={[styles.practiceOptionText, practiceCount === opt.value && styles.practiceOptionTextActive]}>
+                                                                    {opt.label}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        ))}
+                                                    </View>
+                                                </>
+                                            )
+                                        )}
+
                                         <View style={styles.practiceRewardRow}>
                                             <Text style={styles.practiceRewardLabel}>Phần thưởng:</Text>
                                             <View style={styles.practiceRewardBadge}>
@@ -805,7 +831,7 @@ export function LessonMenu({
                                             </View>
                                         </View>
 
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             style={[
                                                 styles.practiceStartBtn,
                                                 answeredQuestionCount === 0 && { backgroundColor: colors.textPlaceholder }
@@ -828,6 +854,14 @@ export function LessonMenu({
                     </>
                 )}
             </View>
+            {/* Context Feedback Modal */}
+            <FeedbackModal
+                visible={feedbackModalVisible}
+                onClose={() => setFeedbackModalVisible(false)}
+                targetType="GRADE"
+                targetId={selectedGrade}
+                targetTitle={`Khối lớp ${selectedGrade}`}
+            />
 
             <Modal
                 visible={isMasteryModalVisible}
@@ -839,7 +873,7 @@ export function LessonMenu({
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Độ thành thạo Lớp {selectedGrade}</Text>
                         <Text style={styles.modalSubtitle}>Độ thành thạo theo từng Chủ đề, Bài học và Mục kiến thức</Text>
-                        
+
                         <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
                             {loadingMastery ? (
                                 <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
@@ -872,12 +906,14 @@ export function LessonMenu({
     );
 }
 
+
+
 const styles = StyleSheet.create({
     centerLoader: { flex: 1, justifyContent: "center", alignItems: "center" },
     container: { flex: 1 },
     scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
     topicWrapper: { marginBottom: 24 },
-    
+
     /* Topic Divider */
     topicDivider: {
         flexDirection: "row",
@@ -1019,6 +1055,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 8,
     },
+    flagButton: {
+        padding: 4,
+    },
+
     masteryBadgeButton: {
         flexDirection: "row",
         alignItems: "center",

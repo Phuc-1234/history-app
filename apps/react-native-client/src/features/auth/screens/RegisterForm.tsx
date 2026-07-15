@@ -19,7 +19,7 @@ import useRegisterForm from "../hooks/useRegisterForm";
 import useAuthForm from "../hooks/useAuthForm";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
-import HistoricalBackground from "../../../components/layout/HistoricalBackground";
+import AppBackground from "../../../components/layout/AppBackground";
 
 export default function RegisterForm() {
     const {
@@ -62,8 +62,8 @@ export default function RegisterForm() {
                     },
                 ]}
             >
-                {/* Historical Background Motifs */}
-                <HistoricalBackground />
+                {/* Background Motifs (session-randomized) */}
+                <AppBackground />
 
                 {/* Logo Section */}
                 <View style={styles.logoContainer}>

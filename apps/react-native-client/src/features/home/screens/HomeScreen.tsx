@@ -18,6 +18,7 @@ import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import type { HomeLessonItem } from "../services/homeApi";
 import { PodiumSection } from "../../leaderboard/components/PodiumSection";
+import { AvatarWithFrame } from "../../../components/ui";
 
 
 
@@ -140,6 +141,7 @@ export default function HomeScreen() {
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(
                     u.name || "User"
                 )}&background=E8E4F4&color=5856D6&bold=true`,
+            equippedFrameUrl: u.equippedFrameUrl ?? null,
         }));
     }, [data?.leaderboard]);
 
@@ -149,6 +151,7 @@ export default function HomeScreen() {
     const handleGoToLessons = () => router.push("/(tabs)/2_1_lessons" as never);
     const handleGoToTests = () => router.push("/(tabs)/5_1_national_tests" as never);
     const handleGoToFriends = () => router.push("/(social)/friends" as never);
+    const handleGoToItems = () => router.push("/(tabs)/7_1_item" as never);
 
     return (
         <ScreenWrapper
@@ -171,25 +174,48 @@ export default function HomeScreen() {
                         />
                         <Text style={styles.logoText}>Sắc sử</Text>
                     </View>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                            router.push("/notifications" as never);
+                        }}
+                        style={styles.bellButton}
+                    >
+                        <Image
+                            source={require("../../../../assets/images/bellRinging.png")}
+                            style={styles.bellIcon}
+                        />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Thẻ chào người dùng */}
                 <Card variant="soft" style={styles.userCard}>
-                    <Text style={styles.greetingText}>
-                        Chào, {profile?.name || "bạn"} 👋
-                    </Text>
-                    <View style={styles.badgeRow}>
-                        <View style={styles.badge}>
-                            <Ionicons name="star" size={15} color={colors.secondary} />
-                            <Text style={styles.badgeText}>
-                                {(profile?.totalXp ?? 0).toLocaleString("vi-VN")} XP
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+                        <AvatarWithFrame
+                            uri={profile?.profileImgUrl}
+                            frameUri={profile?.equippedFrameUrl}
+                            size={56}
+                            name={profile?.name}
+                            borderWidth={2}
+                        />
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.greetingText}>
+                                Chào, {profile?.name || "bạn"} 👋
                             </Text>
-                        </View>
-                        <View style={styles.badge}>
-                            <Ionicons name="stats-chart" size={15} color={colors.primary} />
-                            <Text style={styles.badgeText}>
-                                {profile?.tierName ?? "Chưa có hạng"}
-                            </Text>
+                            <View style={styles.badgeRow}>
+                                <View style={styles.badge}>
+                                    <Ionicons name="star" size={15} color={colors.secondary} />
+                                    <Text style={styles.badgeText}>
+                                        {(profile?.totalXp ?? 0).toLocaleString("vi-VN")} XP
+                                    </Text>
+                                </View>
+                                <View style={styles.badge}>
+                                    <Ionicons name="stats-chart" size={15} color={colors.primary} />
+                                    <Text style={styles.badgeText}>
+                                        {profile?.tierName ?? "Chưa có hạng"}
+                                    </Text>
+                                </View>
+                            </View>
                         </View>
                     </View>
                 </Card>
@@ -263,10 +289,10 @@ export default function HomeScreen() {
                             <Card
                                 style={styles.quickCard}
                                 activeOpacity={0.8}
-                                onPress={handleGoToLeaderboard}
+                                onPress={handleGoToItems}
                             >
-                                <Ionicons name="trophy-outline" size={22} color={colors.secondary} />
-                                <Text style={styles.quickLabel}>BXH</Text>
+                                <Ionicons name="gift-outline" size={22} color={colors.secondary} />
+                                <Text style={styles.quickLabel}>Vật phẩm</Text>
                             </Card>
 
                             <Card
@@ -335,6 +361,20 @@ const styles = StyleSheet.create({
         color: colors.textLight,
         letterSpacing: 0.5,
     },
+    bellButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(124, 86, 86, 0.15)",
+    },
+    bellIcon: {
+        width: 20,
+        height: 20,
+        resizeMode: "contain",
+        tintColor: '#ffffff'
+    },
     searchButton: {
         width: 40,
         height: 40,
@@ -351,7 +391,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.medium,
         fontSize: 17,
         color: colors.textPrimary,
-        marginBottom: 12,
+        marginBottom: 6,
     },
     badgeRow: { flexDirection: "row", gap: 10 },
     badge: {

@@ -60,24 +60,26 @@ export class RewardEngine {
                 triggerTargetId: testId,
             };
         }
-        if (purposeType === "PRACTICE") {
-            if (autoPickStrategy === "WRONG") {
-                return {
-                    triggerType: RewardTriggerType.AUTO_WRONG_PRACTICE_COMPLETE,
-                    triggerTargetId: null,
-                };
-            }
+        
+        
+        if (autoPickStrategy === "WRONG") {
             return {
-                triggerType: RewardTriggerType.AUTO_PERSONAL_PRACTICE_COMPLETE,
+                triggerType: RewardTriggerType.AUTO_WRONG_PRACTICE_COMPLETE,
                 triggerTargetId: null,
             };
         }
+        else if (autoPickStrategy === "LOW_MASTERY") return {
+            triggerType: RewardTriggerType.AUTO_PERSONAL_PRACTICE_COMPLETE,
+            triggerTargetId: null,
+        };
         if (scopeType) {
+            
             return {
                 triggerType: scopeToAutoTrigger(scopeType),
                 triggerTargetId: scopeId != null ? String(scopeId) : null,
             };
         }
+        
         return {
             triggerType: RewardTriggerType.MANUAL_TEST_COMPLETE,
             triggerTargetId: null,
@@ -114,7 +116,7 @@ export class RewardEngine {
         triggerTargetId: string | null,
         triggerTime: number,
         tx: TxClient,
-    ): Promise<{ ruleId: number; xp: number; gold: number } | null> {
+    ): Promise<{ ruleId: number; xp: number; gold: number; rewardRuleItems?: any[] } | null> {
         // Try exact match first
         const exactRule = await tx.rewardRule.findFirst({
             where: {
@@ -126,11 +128,23 @@ export class RewardEngine {
                     { triggerTimeMax: null },
                 ],
             },
+            include: {
+                rewardRuleItems: {
+                    include: {
+                        itemDefinition: true,
+                    },
+                },
+            },
             orderBy: { triggerTimeMin: "desc" }, // most specific range first
         });
 
         if (exactRule) {
-            return { ruleId: exactRule.id, xp: exactRule.xp, gold: exactRule.gold };
+            return {
+                ruleId: exactRule.id,
+                xp: exactRule.xp,
+                gold: exactRule.gold,
+                rewardRuleItems: exactRule.rewardRuleItems,
+            };
         }
 
         // Try fallback (triggerTargetId = null)
@@ -145,11 +159,23 @@ export class RewardEngine {
                         { triggerTimeMax: null },
                     ],
                 },
+                include: {
+                    rewardRuleItems: {
+                        include: {
+                            itemDefinition: true,
+                        },
+                    },
+                },
                 orderBy: { triggerTimeMin: "desc" },
             });
 
             if (fallbackRule) {
-                return { ruleId: fallbackRule.id, xp: fallbackRule.xp, gold: fallbackRule.gold };
+                return {
+                    ruleId: fallbackRule.id,
+                    xp: fallbackRule.xp,
+                    gold: fallbackRule.gold,
+                    rewardRuleItems: fallbackRule.rewardRuleItems,
+                };
             }
         }
 
@@ -177,22 +203,24 @@ export class RewardEngine {
         triggerTime: number,
         xp: number,
         gold: number,
+        rewardRuleItems: any[],
         userTestLogId: string | null,
         tx: TxClient,
-    ): Promise<{ xpAwarded: number; goldAwarded: number }> {
+    ): Promise<{ xpAwarded: number; goldAwarded: number; itemsAwarded: { itemDefinitionId: number; name: string; quantity: number; imgUrl: string | null }[] }> {
         // Idempotency check
         const existing = await tx.userRewardLog.findUnique({
             where: {
-                userId_rewardRuleId_triggerTime: {
+                userId_rewardRuleId_triggerTargetId_triggerTime: {
                     userId,
                     rewardRuleId: ruleId,
+                    triggerTargetId: triggerTargetId as any,
                     triggerTime,
                 },
             },
         });
 
         if (existing) {
-            return { xpAwarded: 0, goldAwarded: 0 };
+            return { xpAwarded: 0, goldAwarded: 0, itemsAwarded: [] };
         }
 
         await tx.userRewardLog.create({
@@ -208,7 +236,61 @@ export class RewardEngine {
             },
         });
 
-        return { xpAwarded: xp, goldAwarded: gold };
+        // Grant items
+        const itemsAwarded: { itemDefinitionId: number; name: string; quantity: number; imgUrl: string | null }[] = [];
+        if (rewardRuleItems && rewardRuleItems.length > 0) {
+            for (const rri of rewardRuleItems) {
+                const itemDef = rri.itemDefinition;
+                const quantity = rri.quantity;
+
+                const existingUserItem = await tx.userItem.findUnique({
+                    where: {
+                        userId_itemDefinitionId: {
+                            userId,
+                            itemDefinitionId: itemDef.id,
+                        },
+                    },
+                });
+
+                const currentQty = existingUserItem ? existingUserItem.quantity : 0;
+                let newQty = currentQty + quantity;
+                const isSingleStack = itemDef.itemType === "SKIN" || itemDef.itemType === "BADGE";
+                if (isSingleStack && newQty > 1) {
+                    newQty = 1;
+                }
+
+                if (existingUserItem) {
+                    await tx.userItem.update({
+                        where: {
+                            userId_itemDefinitionId: {
+                                userId,
+                                itemDefinitionId: itemDef.id,
+                            },
+                        },
+                        data: {
+                            quantity: newQty,
+                        },
+                    });
+                } else {
+                    await tx.userItem.create({
+                        data: {
+                            userId,
+                            itemDefinitionId: itemDef.id,
+                            quantity: newQty,
+                        },
+                    });
+                }
+
+                itemsAwarded.push({
+                    itemDefinitionId: itemDef.id,
+                    name: itemDef.name,
+                    quantity,
+                    imgUrl: itemDef.imgUrl,
+                });
+            }
+        }
+
+        return { xpAwarded: xp, goldAwarded: gold, itemsAwarded };
     }
 
     /**
@@ -282,6 +364,7 @@ export class RewardEngine {
                     tierIndex: nextTier.index,
                     tierName: nextTier.name,
                     badgeImgUrl: nextTier.badgeImgUrl,
+                    items: [],
                 },
             });
 
@@ -305,21 +388,27 @@ export class RewardEngine {
                     triggerTime,
                     tierReward.xp,
                     tierReward.gold,
+                    tierReward.rewardRuleItems || [],
                     userTestLogId,
                     tx,
                 );
 
-                if (granted.xpAwarded > 0 || granted.goldAwarded > 0) {
+                if (granted.xpAwarded > 0 || granted.goldAwarded > 0 || granted.itemsAwarded.length > 0) {
                     totalXp += granted.xpAwarded;
                     totalGold += granted.goldAwarded;
 
-                    consequences.push({
-                        eventType: ProgressEventType.REWARD_EARNED,
-                        message: `Phần thưởng danh hiệu: +${granted.xpAwarded} XP, +${granted.goldAwarded} vàng`,
-                        xpGained: granted.xpAwarded,
-                        goldGained: granted.goldAwarded,
-                    });
-
+                    // Update the last tier gained consequence payload to also have items and rewards!
+                    const lastIdx = consequences.length - 1;
+                    if (lastIdx >= 0 && consequences[lastIdx].eventType === ProgressEventType.TIER_GAINED) {
+                        consequences[lastIdx].xpGained = granted.xpAwarded;
+                        consequences[lastIdx].goldGained = granted.goldAwarded;
+                        consequences[lastIdx].itemsGained = granted.itemsAwarded;
+                        consequences[lastIdx].payload = {
+                            ...consequences[lastIdx].payload,
+                            items: granted.itemsAwarded,
+                        };
+                    }
+ 
                     // Apply tier reward XP/gold immediately so cascading tier check works
                     await this.applyXpAndGold(userId, granted.xpAwarded, granted.goldAwarded, tx);
 
@@ -419,11 +508,12 @@ export class RewardEngine {
                 triggerTime,
                 streakReward.xp,
                 streakReward.gold,
+                streakReward.rewardRuleItems || [],
                 userTestLogId,
                 tx,
             );
 
-            if (granted.xpAwarded > 0 || granted.goldAwarded > 0) {
+            if (granted.xpAwarded > 0 || granted.goldAwarded > 0 || granted.itemsAwarded.length > 0) {
                 totalXp += granted.xpAwarded;
                 totalGold += granted.goldAwarded;
 
@@ -432,7 +522,11 @@ export class RewardEngine {
                     message: `Cột mốc chuỗi ${newStreak} ngày: +${granted.xpAwarded} XP, +${granted.goldAwarded} vàng`,
                     xpGained: granted.xpAwarded,
                     goldGained: granted.goldAwarded,
-                    payload: { streakValue: newStreak },
+                    itemsGained: granted.itemsAwarded,
+                    payload: {
+                        streakValue: newStreak,
+                        items: granted.itemsAwarded,
+                    },
                 });
             }
         }
@@ -470,6 +564,7 @@ export class RewardEngine {
 
         let testXp = 0;
         let testGold = 0;
+        let testItems: any[] = [];
 
         if (testReward) {
             const granted = await this.grantReward(
@@ -480,18 +575,21 @@ export class RewardEngine {
                 triggerTime,
                 testReward.xp,
                 testReward.gold,
+                testReward.rewardRuleItems || [],
                 userTestLogId,
                 tx,
             );
             testXp = granted.xpAwarded;
             testGold = granted.goldAwarded;
+            testItems = granted.itemsAwarded;
         } else {
             // Hardcoded fallback for test triggers (no rule found, no ruleId to log)
             testXp = DEFAULT_TEST_REWARD.xp;
             testGold = DEFAULT_TEST_REWARD.gold;
+            testItems = [];
         }
 
-        if (testXp > 0 || testGold > 0) {
+        if (testXp > 0 || testGold > 0 || testItems.length > 0) {
             totalXpGained += testXp;
             totalGoldGained += testGold;
 
@@ -500,6 +598,10 @@ export class RewardEngine {
                 message: `Phần thưởng bài kiểm tra: +${testXp} XP, +${testGold} vàng`,
                 xpGained: testXp,
                 goldGained: testGold,
+                itemsGained: testItems,
+                payload: {
+                    items: testItems,
+                },
             });
         }
 
@@ -572,7 +674,7 @@ export class RewardEngine {
         userId: string,
         purposeType?: string | null,
         autoPickStrategy?: string | null,
-    ): Promise<{ xp: number; gold: number; attemptNumber: number }> {
+    ): Promise<{ xp: number; gold: number; attemptNumber: number; items: { id: number; name: string; imgUrl: string | null; quantity: number }[] }> {
         const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId, purposeType, autoPickStrategy);
 
         // Count previous reward grants for this trigger
@@ -589,12 +691,21 @@ export class RewardEngine {
             return this.resolveReward(triggerType, triggerTargetId, nextTriggerTime, tx);
         });
 
+        const items = (reward?.rewardRuleItems || []).map((ri: any) => ({
+            id: ri.itemDefinition.id,
+            name: ri.itemDefinition.name,
+            imgUrl: ri.itemDefinition.imgUrl,
+            quantity: ri.quantity,
+        }));
+
         return {
             xp: reward?.xp ?? DEFAULT_TEST_REWARD.xp,
             gold: reward?.gold ?? DEFAULT_TEST_REWARD.gold,
             attemptNumber: nextTriggerTime,
+            items,
         };
     }
 }
 
 export const rewardEngine = new RewardEngine();
+

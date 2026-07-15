@@ -1,6 +1,46 @@
 import type { MindMapNode, LayoutNode } from "../types";
 import { NODE_CONFIGS, SAFE_PADDING } from "../constants";
 
+// ─── Single source of truth for text geometry ───────────────────────────────
+// Every measurement (width, height, wrap point) and every render coordinate
+// (text center, icon position) MUST go through these helpers. Before this,
+// measurement used one width formula and rendering used another, so wrapped
+// text was wider than predicted and overlapped the +/- collapse icon.
+
+// Fixed letter-spacing applied to every card's text (see NodeCard). Kept tight
+// (1px) so characters stay naturally close — never the loose, spread-out look
+// that justified text produced on short labels.
+export const FIXED_LETTER_SPACING = 1;
+
+// Effective width of one character, INCLUDING the fixed letter-spacing. SVG
+// adds letterSpacing after every glyph, so a char "costs" its glyph width
+// plus the spacing.
+export function charWidthFor(depth: number): number {
+    const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+    return config.fontSize * 0.55 + FIXED_LETTER_SPACING;
+}
+
+// Total horizontal room consumed by the non-text decorations + padding on a
+// card. This drives the wrap point, so it must match where text actually
+// starts/ends when rendered (textStartOffset + right padding + icon room).
+//   depth 0 (root):   left padding 14 + right padding 14
+//   depth 1 (branch): accent bar 4 + left padding 12 + right icon room 24
+//   depth 2 (leaf):   bullet dot 20 + left padding 8 + right icon room 22
+export function sideRoomFor(depth: number): number {
+    if (depth === 1) return 4 + 12 + 24;
+    if (depth === 2) return 20 + 8 + 22;
+    return 14 + 14;
+}
+
+// X offset from the card's left edge where the text starts (decorations +
+// left padding). Text was hugging the left edge; the extra padding gives it
+// breathing room.
+export function textStartOffset(depth: number): number {
+    if (depth === 1) return 4 + 12; // accent bar + padding
+    if (depth === 2) return 20 + 8; // bullet dot + padding
+    return 14; // root left padding
+}
+
 // ─── Text wrapping ──────────────────────────────────────────────────────────
 
 export function wrapText(text: string, maxCharsPerLine: number): string[] {
@@ -20,30 +60,61 @@ export function wrapText(text: string, maxCharsPerLine: number): string[] {
     return lines;
 }
 
+function lineHeightFor(config: (typeof NODE_CONFIGS)[keyof typeof NODE_CONFIGS]): number {
+    return config.fontSize + 4;
+}
+
+// Number of characters that fit on one line inside a card of `allocatedWidth`.
+// Uses the EFFECTIVE char width (incl. letter-spacing) and subtracts the real
+// side room, so the wrap point matches what the renderer can actually show.
+export function charsPerLine(depth: number, allocatedWidth: number): number {
+    return Math.max(
+        8,
+        Math.floor((allocatedWidth - sideRoomFor(depth)) / charWidthFor(depth)),
+    );
+}
+
+function countLines(label: string, depth: number, allocatedWidth: number): number {
+    return wrapText(label, charsPerLine(depth, allocatedWidth)).length;
+}
+
 // ─── Measure ────────────────────────────────────────────────────────────────
 
+// Natural single-line width of a label — used to derive the per-depth max so
+// all cards at the same depth share one width (visual consistency).
 export function measureNode(label: string, depth: number): { width: number; height: number } {
-    const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
-    const maxCharsPerLine = Math.floor((config.minWidth - config.paddingH) / (config.fontSize * 0.55));
-    const lines = wrapText(label, Math.max(12, maxCharsPerLine));
-    const charWidth = config.fontSize * 0.55;
-    const longestLine = Math.max(...lines.map((l) => l.length * charWidth));
-    const textWidth = longestLine;
-    const width = Math.max(config.minWidth, textWidth + config.paddingH * 2 + (depth === 1 ? 28 : 0));
-    const lineHeight = config.fontSize + 4;
-    const height = Math.max(config.height, lines.length * lineHeight + config.paddingV);
+    const width = Math.max(
+        NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS]?.minWidth ?? NODE_CONFIGS[2].minWidth,
+        label.length * charWidthFor(depth) + sideRoomFor(depth),
+    );
+    const height = measureNodeHeight(label, depth, width);
     return { width, height };
 }
 
-// ─── Max width per depth (equal-width nodes) ────────────────────────────────
+// Real height for a label at a given (already-final) width. Wraps at the
+// actual rendered column so the card hugs its text vertically.
+export function measureNodeHeight(label: string, depth: number, allocatedWidth: number): number {
+    const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+    const lineHeight = lineHeightFor(config);
+    const lines = Math.max(1, countLines(label, depth, allocatedWidth));
+    return Math.max(config.height, lines * lineHeight + config.paddingV);
+}
 
+// ─── Max width per depth (equal-width cards) ────────────────────────────────
+
+// All cards at the same depth share one width = the widest label at that depth,
+// capped at maxWidth so a single long label can't stretch every sibling. Cards
+// stay equal-width (uniform look); short labels are centered (see NodeCard) so
+// the remaining space reads as balanced padding, not a lopsided gap.
 export function measureMaxWidthsPerDepth(tree: MindMapNode): Map<number, number> {
     const maxWidths = new Map<number, number>();
 
     function walk(node: MindMapNode, depth: number) {
         const { width } = measureNode(node.label, depth);
+        const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
+        const clamped = Math.min(width, config.maxWidth);
         const current = maxWidths.get(depth) ?? 0;
-        if (width > current) maxWidths.set(depth, width);
+        if (clamped > current) maxWidths.set(depth, clamped);
         for (const child of node.children) {
             walk(child, depth + 1);
         }
@@ -61,11 +132,13 @@ export function layoutTree(
     startY: number,
     parentId: string | null,
     collapsedSet: Set<string>,
-    maxWidthsPerDepth?: Map<number, number>
+    maxWidthsPerDepth?: Map<number, number>,
 ): { nodes: LayoutNode[]; totalHeight: number } {
     const ownMeasure = measureNode(node.label, depth);
+    // Equal width across a depth: every card uses the per-depth max (capped).
     const width = maxWidthsPerDepth?.get(depth) ?? ownMeasure.width;
-    const height = ownMeasure.height;
+    // Recompute height at the final shared width so the card hugs its text.
+    const height = measureNodeHeight(node.label, depth, width);
     const visibleChildren = collapsedSet.has(node.id) ? [] : node.children;
 
     if (visibleChildren.length === 0) {

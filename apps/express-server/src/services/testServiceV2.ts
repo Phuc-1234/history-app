@@ -1145,6 +1145,7 @@ export class TestServiceV2 {
             passThreshold: finalPassThreshold,
             attemptCount,
             passCount,
+            itemsReward: rewardPreview.items,
         };
     }
 

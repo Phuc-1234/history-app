@@ -102,7 +102,9 @@ export default function ProfileMainScreen() {
             <View style={styles.avatarSection}>
                 <ProfileAvatar
                     uri={profile?.profileImgUrl}
+                    frameUri={profile?.equippedFrameUrl}
                     size={120}
+                    name={profile?.name}
                     showEditButton={false}
                 />
                 <Text style={styles.userName}>{profile?.name || "Người dùng"}</Text>

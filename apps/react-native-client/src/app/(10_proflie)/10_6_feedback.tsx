@@ -16,13 +16,16 @@ import typography from "../../theme/typography";
 import Button from "../../components/Button";
 import { useCreateFeedbackMutation } from "../../features/profile/services/feedbackApi";
 
-type FeedbackType = "BUG" | "FEATURE" | "OTHER";
+import { Toast } from "../../components/Toast";
+
+type FeedbackType = "BUG" | "FEATURE" | "OTHER" | "INCORRECT_INFO";
 
 export default function SendFeedbackScreen() {
     const router = useRouter();
     const [feedbackType, setFeedbackType] = useState<FeedbackType>("BUG");
     const [content, setContent] = useState("");
     const [createFeedback, { isLoading }] = useCreateFeedbackMutation();
+    const [toastVisible, setToastVisible] = useState(false);
 
     const handleSubmit = async () => {
         if (!content.trim()) {
@@ -36,15 +39,11 @@ export default function SendFeedbackScreen() {
                 content: content,
             }).unwrap();
 
-            Alert.alert("Thành công", "Cảm ơn bạn đã gửi góp ý cho chúng tôi!", [
-                {
-                    text: "OK",
-                    onPress: () => {
-                        setContent("");
-                        router.back();
-                    },
-                },
-            ]);
+            setContent("");
+            setToastVisible(true);
+            setTimeout(() => {
+                router.back();
+            }, 1800);
         } catch (error: any) {
             console.error("Lỗi khi gửi góp ý:", error);
             Alert.alert("Lỗi", error?.data?.error || "Gửi góp ý thất bại. Vui lòng thử lại.");
@@ -52,6 +51,13 @@ export default function SendFeedbackScreen() {
     };
 
     const typesList: { key: FeedbackType; label: string; icon: keyof typeof Ionicons.glyphMap; color: string; bgColor: string }[] = [
+        {
+            key: "INCORRECT_INFO",
+            label: "Thông tin sai",
+            icon: "alert-circle-outline",
+            color: colors.error,
+            bgColor: colors.errorContainer,
+        },
         {
             key: "BUG",
             label: "Báo lỗi",
@@ -74,6 +80,7 @@ export default function SendFeedbackScreen() {
             bgColor: colors.infoContainer,
         },
     ];
+
 
     return (
         <ScreenWrapper
@@ -167,6 +174,11 @@ export default function SendFeedbackScreen() {
                     )}
                 </View>
             </View>
+            <Toast
+                visible={toastVisible}
+                message="Cảm ơn bạn đã gửi góp ý cho chúng tôi!"
+                onHide={() => setToastVisible(false)}
+            />
         </ScreenWrapper>
     );
 }
@@ -213,15 +225,16 @@ const styles = StyleSheet.create({
     },
     typeContainer: {
         flexDirection: "row",
+        flexWrap: "wrap",
         justifyContent: "space-between",
         marginBottom: 24,
-        gap: 8,
+        rowGap: 12,
     },
     typeCard: {
-        flex: 1,
+        width: "48.5%",
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: 16,
+        paddingVertical: 14,
         borderRadius: 16,
         borderWidth: 1.5,
         backgroundColor: colors.surface,

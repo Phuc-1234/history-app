@@ -7,6 +7,7 @@ export interface LeaderboardEntry {
     name: string;
     totalXp: number;
     avatarUrl: string | null;
+    equippedFrameUrl?: string | null;
     tierName: string | null;
     badgeImgUrl: string | null;
 }
