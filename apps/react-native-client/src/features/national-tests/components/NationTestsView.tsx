@@ -10,6 +10,7 @@ import {
   TextInput,
   ScrollView,
   RefreshControl,
+  Image,
 } from "react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
@@ -158,8 +159,12 @@ export const NationalTestsView: React.FC = () => {
                   },
                 ]}
               >
-                <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant }]}>
-                  <IconComponent size={28} color={cardBgColor} />
+                <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant, overflow: "hidden" }]}>
+                  {item.imgUrl ? (
+                    <Image source={{ uri: item.imgUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                  ) : (
+                    <IconComponent size={28} color={cardBgColor} />
+                  )}
                   {isTestLocked && (
                     <View style={styles.lockOverlay}>
                       <Ionicons name="lock-closed" size={18} color="#FFFFFF" />

@@ -1165,6 +1165,7 @@ export class TestServiceV2 {
                 title: true,
                 summary: true,
                 isPro: true,
+                imgUrl: true,
             },
         });
     }
