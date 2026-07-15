@@ -9,6 +9,7 @@ import {
     RefreshControl,
     Modal,
     TouchableOpacity,
+    Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
@@ -17,16 +18,24 @@ import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import { Ionicons } from "@expo/vector-icons";
+import { useAppSelector } from "../../../store/storeHook";
+import { PremiumModal } from "../../../components/PremiumModal";
 
 function CourseCard({
     grade,
     completed,
     total,
+    isPro,
+    isUserPro,
+    imgUrl,
     onPress,
 }: {
     grade: number;
     completed: number;
     total: number;
+    isPro: boolean;
+    isUserPro: boolean;
+    imgUrl?: string | null;
     onPress: () => void;
 }) {
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -52,20 +61,38 @@ function CourseCard({
             activeOpacity={0.85}
         >
             {/* Left Image Section */}
-            <View style={[styles.imageContainer, { backgroundColor: colors.surfaceVariant }]}>
-                <Ionicons name="book" size={40} color={themeColor} />
+            <View style={[styles.imageContainer, { backgroundColor: colors.surfaceVariant, overflow: "hidden" }]}>
+                {imgUrl ? (
+                    <Image source={{ uri: imgUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                ) : (
+                    <Ionicons name="book" size={40} color={themeColor} />
+                )}
                 
                 {/* Overlapping Pill Badge */}
                 <View style={[styles.badge, { backgroundColor: themeColor }]}>
                     <Text style={styles.badgeText}>{percentage}%</Text>
                 </View>
+
+                {isPro && !isUserPro && (
+                    <View style={styles.lockOverlay}>
+                        <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
+                    </View>
+                )}
             </View>
 
             {/* Right Details Section */}
             <View style={styles.detailsContainer}>
-                <Text style={styles.courseTitle} numberOfLines={2}>
-                    Lịch sử lớp {grade}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                    <Text style={styles.courseTitle} numberOfLines={2}>
+                        Lịch sử lớp {grade}
+                    </Text>
+                    {isPro && (
+                        <View style={[styles.proBadge, { backgroundColor: isUserPro ? colors.successContainer : colors.secondaryContainer }]}>
+                            <Ionicons name={isUserPro ? "ribbon" : "lock-closed"} size={11} color={isUserPro ? colors.success : colors.secondaryHover} />
+                            <Text style={[styles.proBadgeText, { color: isUserPro ? colors.success : colors.secondaryHover }]}>PRO</Text>
+                        </View>
+                    )}
+                </View>
                 
                 <Text style={styles.courseSubtitle}>
                     {completed}/{total} phần đã học
@@ -177,6 +204,8 @@ function matchesGradeStructure(grade: number, structure: any, query: string): bo
 
 export function CourseMenuScreen() {
     const router = useRouter();
+    const profile = useAppSelector((state) => state.auth.profile);
+    const isUserPro = profile?.isPro === true;
 
     const { data: struct10, isLoading: loading10, refetch: refetch10, isFetching: isFetching10 } = useGetGradeStructureQuery(10);
     const { data: struct11, isLoading: loading11, refetch: refetch11, isFetching: isFetching11 } = useGetGradeStructureQuery(11);
@@ -184,6 +213,9 @@ export function CourseMenuScreen() {
 
     const { data: gradesData, isLoading: loadingGrades } = useGetGradesQuery();
     const [isMasteryModalVisible, setIsMasteryModalVisible] = useState(false);
+
+    const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+    const [lockedFeatureName, setLockedFeatureName] = useState("");
 
     const isLoading = loading10 || loading11 || loading12;
     const isFetching = isFetching10 || isFetching11 || isFetching12;
@@ -222,7 +254,26 @@ export function CourseMenuScreen() {
     const show11 = matchesGradeStructure(11, struct11, searchQuery);
     const show12 = matchesGradeStructure(12, struct12, searchQuery);
 
+    const isGradePro = (gradeId: number) => {
+        const gradeObj = gradesData?.grades?.find((g) => g.id === gradeId);
+        return !!gradeObj?.isPro;
+    };
+
+    const getGradeImgUrl = (gradeId: number) => {
+        const gradeObj = gradesData?.grades?.find((g) => g.id === gradeId);
+        return gradeObj?.imgUrl;
+    };
+
+    const showProModal = (feature: string) => {
+        setLockedFeatureName(feature);
+        setPremiumModalVisible(true);
+    };
+
     const handleCoursePress = (grade: number) => {
+        if (isGradePro(grade) && !isUserPro) {
+            showProModal(`khóa học Lớp ${grade}`);
+            return;
+        }
         router.push({
             pathname: "/(3_4_lessons)/lesson_menu",
             params: { grade: String(grade) },
@@ -284,6 +335,9 @@ export function CourseMenuScreen() {
                                     grade={10}
                                     completed={prog10.completed}
                                     total={prog10.total}
+                                    isPro={isGradePro(10)}
+                                    isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(10)}
                                     onPress={() => handleCoursePress(10)}
                                 />
                             )}
@@ -292,6 +346,9 @@ export function CourseMenuScreen() {
                                     grade={11}
                                     completed={prog11.completed}
                                     total={prog11.total}
+                                    isPro={isGradePro(11)}
+                                    isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(11)}
                                     onPress={() => handleCoursePress(11)}
                                 />
                             )}
@@ -300,6 +357,9 @@ export function CourseMenuScreen() {
                                     grade={12}
                                     completed={prog12.completed}
                                     total={prog12.total}
+                                    isPro={isGradePro(12)}
+                                    isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(12)}
                                     onPress={() => handleCoursePress(12)}
                                 />
                             )}
@@ -364,6 +424,12 @@ export function CourseMenuScreen() {
                     </View>
                 </View>
             </Modal>
+
+            <PremiumModal
+                visible={premiumModalVisible}
+                onClose={() => setPremiumModalVisible(false)}
+                featureName={lockedFeatureName}
+            />
         </ScreenWrapper>
     );
 }
@@ -580,5 +646,28 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.bold,
         fontSize: 15,
         color: "#FFFFFF",
+    },
+    lockOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(43, 29, 18, 0.4)",
+        borderRadius: 8,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    proBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 2,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+    },
+    proBadgeText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 10,
     },
 });

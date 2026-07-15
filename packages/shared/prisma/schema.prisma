@@ -10,6 +10,8 @@ datasource db {
 model Grade {
   id        Int           @id
   state     HierachyState @default(PUBLIC)
+  isPro     Boolean       @default(false) @map("is_pro")
+  imgUrl    String?       @map("img_url")
   questions Question[]
   tests     Test[]
   topics    Topic[]
@@ -36,6 +38,8 @@ model Lesson {
   summary    String?
   position   Int
   topicId    Int         @map("topic_id")
+  isPro      Boolean     @default(false) @map("is_pro")
+  imgUrl     String?     @map("img_url")
   flashcards Flashcard[]
   topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
   mindMap    MindMap?
@@ -139,6 +143,8 @@ model UserFlashcard {
 model Test {
   id             String         @id @default(dbgenerated("gen_random_uuid()"))
   isNationalTest Boolean        @default(false) @map("is_national_test")
+  isPro          Boolean        @default(false) @map("is_pro")
+  imgUrl         String?        @map("img_url")
   gradeId        Int?           @map("grade_id")
   topicId        Int?           @map("topic_id")
   lessonId       Int?           @map("lesson_id")

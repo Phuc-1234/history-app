@@ -588,6 +588,9 @@ export class TestServiceV2 {
             if (preset) purposeType = preset.purposeType ?? purposeType;
         }
 
+        // Enforce PRO-locking checks
+        await this.assertUserCanAccessScope(userId, scopeType, scopeId, testId);
+
         // Resolve preset if not already loaded or if we need default fallback
         if (!preset) {
             if (req.presetId) {
@@ -1027,6 +1030,9 @@ export class TestServiceV2 {
             if (preset) purposeType = preset.purposeType ?? purposeType;
         }
 
+        // Enforce PRO-locking checks
+        await this.assertUserCanAccessScope(userId, scopeType, scopeId, testId);
+
         // Resolve preset if not already loaded or if we need default fallback
         if (!preset) {
             if (req.presetId) {
@@ -1158,6 +1164,8 @@ export class TestServiceV2 {
                 id: true,
                 title: true,
                 summary: true,
+                isPro: true,
+                imgUrl: true,
             },
         });
     }
@@ -1181,6 +1189,136 @@ export class TestServiceV2 {
         // Maintain sequence order
         const qMap = new Map(questions.map((q) => [q.id, q]));
         return ids.map((id) => qMap.get(id)).filter(Boolean).map(toQuestionDto);
+    }
+
+    async assertUserCanAccessScope(
+        userId: string,
+        scopeType: string | null | undefined,
+        scopeId: number | null | undefined,
+        testId?: string | null,
+    ): Promise<void> {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { isPro: true, proExpiresAt: true, role: true },
+        });
+
+        if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
+            return;
+        }
+
+        const isUserPro = user?.isPro === true && (!user.proExpiresAt || new Date(user.proExpiresAt) > new Date());
+
+        // 1. Check Test direct PRO status
+        if (testId) {
+            const test = await prisma.test.findUnique({
+                where: { id: testId },
+                select: { isPro: true, scopeId: true, scopeType: true, gradeId: true, lessonId: true },
+            });
+            if (test) {
+                if (test.isPro && !isUserPro) {
+                    throw serviceError("Đề thi này chỉ dành cho tài khoản PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                }
+                
+                // Get the effective scope from V2 scope or V1 fallbacks
+                let checkScopeType = test.scopeType as string | null | undefined;
+                let checkScopeId = test.scopeId;
+                if (!checkScopeType || !checkScopeId) {
+                    if (test.lessonId) {
+                        checkScopeType = "LESSON";
+                        checkScopeId = test.lessonId;
+                    } else if (test.gradeId) {
+                        checkScopeType = "GRADE";
+                        checkScopeId = test.gradeId;
+                    }
+                }
+
+                if (checkScopeType && checkScopeId) {
+                    if (checkScopeType === "GRADE") {
+                        const grade = await prisma.grade.findUnique({ where: { id: checkScopeId }, select: { isPro: true } });
+                        if (grade?.isPro && !isUserPro) {
+                            throw serviceError("Đề thi thuộc Khối lớp PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                        }
+                    } else if (checkScopeType === "LESSON") {
+                        const lesson = await prisma.lesson.findUnique({
+                            where: { id: checkScopeId },
+                            select: { isPro: true, topic: { select: { grade: { select: { isPro: true } } } } },
+                        });
+                        const lessonIsPro = lesson?.isPro || (lesson as any)?.topic?.grade?.isPro;
+                        if (lessonIsPro && !isUserPro) {
+                            throw serviceError("Đề thi thuộc Bài học PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                        }
+                    } else if (checkScopeType === "TOPIC") {
+                        const topic = await prisma.topic.findUnique({
+                            where: { id: checkScopeId },
+                            select: { grade: { select: { isPro: true } } },
+                        });
+                        if ((topic as any)?.grade?.isPro && !isUserPro) {
+                            throw serviceError("Đề thi thuộc Chủ đề PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                        }
+                    } else if (checkScopeType === "SECTION") {
+                        const section = await prisma.section.findUnique({
+                            where: { id: checkScopeId },
+                            select: { lesson: { select: { isPro: true, topic: { select: { grade: { select: { isPro: true } } } } } } },
+                        });
+                        const sectionIsPro = section?.lesson?.isPro || (section as any)?.lesson?.topic?.grade?.isPro;
+                        if (sectionIsPro && !isUserPro) {
+                            throw serviceError("Đề thi thuộc Phần học PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                        }
+                    } else if (checkScopeType === "NODE") {
+                        const node = await prisma.node.findUnique({
+                            where: { id: checkScopeId },
+                            select: { section: { select: { lesson: { select: { isPro: true, topic: { select: { grade: { select: { isPro: true } } } } } } } } },
+                        });
+                        const nodeIsPro = node?.section?.lesson?.isPro || (node as any)?.section?.lesson?.topic?.grade?.isPro;
+                        if (nodeIsPro && !isUserPro) {
+                            throw serviceError("Đề thi thuộc Nội dung PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Check general Scope direct PRO status
+        if (scopeType && scopeId) {
+            if (scopeType === "GRADE") {
+                const grade = await prisma.grade.findUnique({ where: { id: scopeId }, select: { isPro: true } });
+                if (grade?.isPro && !isUserPro) {
+                    throw serviceError("Khối lớp này chỉ dành cho tài khoản PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                }
+            } else if (scopeType === "LESSON") {
+                const lesson = await prisma.lesson.findUnique({
+                    where: { id: scopeId },
+                    select: { isPro: true, topic: { select: { grade: { select: { isPro: true } } } } },
+                });
+                if ((lesson?.isPro || (lesson as any)?.topic?.grade?.isPro) && !isUserPro) {
+                    throw serviceError("Bài học này chỉ dành cho tài khoản PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                }
+            } else if (scopeType === "TOPIC") {
+                const topic = await prisma.topic.findUnique({
+                    where: { id: scopeId },
+                    select: { grade: { select: { isPro: true } } },
+                });
+                if ((topic as any)?.grade?.isPro && !isUserPro) {
+                    throw serviceError("Chủ đề này thuộc Khối lớp PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                }
+            } else if (scopeType === "SECTION") {
+                const section = await prisma.section.findUnique({
+                    where: { id: scopeId },
+                    select: { lesson: { select: { isPro: true, topic: { select: { grade: { select: { isPro: true } } } } } } },
+                });
+                if ((section?.lesson?.isPro || (section as any)?.lesson?.topic?.grade?.isPro) && !isUserPro) {
+                    throw serviceError("Phần học này chỉ dành cho tài khoản PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                }
+            } else if (scopeType === "NODE") {
+                const node = await prisma.node.findUnique({
+                    where: { id: scopeId },
+                    select: { section: { select: { lesson: { select: { isPro: true, topic: { select: { grade: { select: { isPro: true } } } } } } } } },
+                });
+                if ((node?.section?.lesson?.isPro || (node as any)?.section?.lesson?.topic?.grade?.isPro) && !isUserPro) {
+                    throw serviceError("Nội dung này chỉ dành cho tài khoản PRO. Vui lòng nâng cấp tài khoản để tiếp tục.", "PRO_REQUIRED");
+                }
+            }
+        }
     }
 }
 

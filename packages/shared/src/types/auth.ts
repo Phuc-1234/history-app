@@ -46,6 +46,8 @@ export interface AuthenticatedUserPayload {
     totalXp: number;
     accessToken?: string; // Optional, included in login/register responses
     refreshToken?: string; // Optional, included in login/register responses
+    isPro?: boolean;
+    proExpiresAt?: Date | null;
 }
 // The machine-readable error format for your frontend interceptors
 export type AuthErrorCode = "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_MISSING";

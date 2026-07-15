@@ -4,6 +4,8 @@
 export interface GradeDto {
     id: number;
     state: "PUBLIC" | "PRIVATE";
+    isPro?: boolean;
+    imgUrl?: string | null;
     masteryPercentage?: number | null;
 }
 
@@ -21,6 +23,8 @@ export interface LessonDto {
     summary?: string | null;
     position: number;
     topicId: number;
+    isPro?: boolean;
+    imgUrl?: string | null;
     masteryPercentage?: number | null;
 }
 

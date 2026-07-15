@@ -2,6 +2,11 @@
 import { Request, Response } from "express";
 import { homeService } from "../services/homeService";
 
+import fs from "fs";
+import path from "path";
+
+import { prisma } from "@history-app/shared";
+
 export const getHomeData = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.id ?? null;

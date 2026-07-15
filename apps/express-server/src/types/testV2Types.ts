@@ -174,4 +174,7 @@ export interface NationalTestDto {
     id: string;
     title: string;
     summary: string | null;
+    isPro: boolean;
+    imgUrl?: string | null;
 }
+

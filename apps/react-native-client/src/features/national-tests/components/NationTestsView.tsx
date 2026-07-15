@@ -10,6 +10,7 @@ import {
   TextInput,
   ScrollView,
   RefreshControl,
+  Image,
 } from "react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
@@ -26,6 +27,9 @@ import {
   History,
   School,
 } from "lucide-react-native";
+import { useAppSelector } from "@/store/storeHook";
+import { PremiumModal } from "@/components/PremiumModal";
+import { Ionicons } from "@expo/vector-icons";
 
 const VIBRANT_COLORS = [
   "#E11D48", // Rose
@@ -51,6 +55,17 @@ const CARD_ICONS = [
 
 export const NationalTestsView: React.FC = () => {
   const router = useRouter();
+  const profile = useAppSelector((state) => state.auth.profile);
+  const isUserPro = profile?.isPro === true;
+
+  const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+  const [lockedFeatureName, setLockedFeatureName] = useState("");
+
+  const showProModal = (feature: string) => {
+    setLockedFeatureName(feature);
+    setPremiumModalVisible(true);
+  };
+
   const { data: tests, isLoading, error, refetch, isFetching } = useGetNationalTestsQuery();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -121,27 +136,53 @@ export const NationalTestsView: React.FC = () => {
           filteredTests.map((item, index) => {
             const cardBgColor = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
             const IconComponent = CARD_ICONS[index % CARD_ICONS.length];
+            const isTestLocked = !!item.isPro && !isUserPro;
+
             return (
               <Card
                 key={item.id}
                 activeOpacity={0.8}
-                onPress={() => handleTestPress(item.id)}
+                onPress={() => {
+                  if (isTestLocked) {
+                    showProModal(`đề thi "${item.title}"`);
+                  } else {
+                    handleTestPress(item.id);
+                  }
+                }}
                 style={[
                   styles.testCard,
                   {
                     backgroundColor: colors.surface,
                     borderWidth: 1,
                     borderColor: colors.borderMedium,
+                    opacity: isTestLocked ? 0.85 : 1,
                   },
                 ]}
               >
-                <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant }]}>
-                  <IconComponent size={28} color={cardBgColor} />
+                <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant, overflow: "hidden" }]}>
+                  {item.imgUrl ? (
+                    <Image source={{ uri: item.imgUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                  ) : (
+                    <IconComponent size={28} color={cardBgColor} />
+                  )}
+                  {isTestLocked && (
+                    <View style={styles.lockOverlay}>
+                      <Ionicons name="lock-closed" size={18} color="#FFFFFF" />
+                    </View>
+                  )}
                 </View>
                 <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                    <Text style={styles.cardTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    {!!item.isPro && (
+                      <View style={[styles.proBadge, { backgroundColor: isUserPro ? colors.successContainer : colors.secondaryContainer }]}>
+                        <Ionicons name={isUserPro ? "ribbon" : "lock-closed"} size={10} color={isUserPro ? colors.success : colors.secondaryHover} />
+                        <Text style={[styles.proBadgeText, { color: isUserPro ? colors.success : colors.secondaryHover }]}>PRO</Text>
+                      </View>
+                    )}
+                  </View>
                   {item.summary ? (
                     <Text style={styles.cardSummary} numberOfLines={2}>
                       {item.summary}
@@ -153,6 +194,12 @@ export const NationalTestsView: React.FC = () => {
           })
         )}
       </ScrollView>
+
+      <PremiumModal
+        visible={premiumModalVisible}
+        onClose={() => setPremiumModalVisible(false)}
+        featureName={lockedFeatureName}
+      />
     </ScreenWrapper>
   );
 };
@@ -240,5 +287,28 @@ const styles = StyleSheet.create({
     fontFamily: typography.fonts.regular,
     fontSize: 12,
     color: "#000000",
+  },
+  lockOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(43, 29, 18, 0.4)",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  proBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  proBadgeText: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 10,
   },
 });
