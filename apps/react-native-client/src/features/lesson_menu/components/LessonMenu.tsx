@@ -24,7 +24,9 @@ import {
     useGetTopicsByGradeQuery,
     useGetLessonsByTopicQuery,
     useGetSectionsByLessonQuery,
+    useGetGradesQuery,
 } from "../contentApiSlice";
+import { PremiumModal } from "../../../components/PremiumModal";
 import { SlidingTabBar } from "../../../components/SlidingTabBar";
 
 interface LessonMenuProps {
@@ -239,7 +241,24 @@ export function LessonMenu({
     onPracticePress,
 }: LessonMenuProps) {
     const router = useRouter();
-    const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
+    const profile = useAppSelector((state) => state.auth.profile);
+    const isUserPro = profile?.isPro === true;
+    const isLoggedIn = !!profile;
+
+    const { data: gradesData } = useGetGradesQuery();
+    const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+    const [lockedFeatureName, setLockedFeatureName] = useState("");
+
+    const isGradePro = React.useMemo(() => {
+        const gradeObj = gradesData?.grades?.find((g) => g.id === selectedGrade);
+        return !!gradeObj?.isPro;
+    }, [gradesData, selectedGrade]);
+
+    const showProModal = (feature: string) => {
+        setLockedFeatureName(feature);
+        setPremiumModalVisible(true);
+    };
+
     const {
         topics,
         finalTestPassed,
@@ -536,27 +555,47 @@ export function LessonMenu({
                                                                       lessonAny.progress.totalNodes
                                                                     : 0;
                                                             const isDone = lessonPct >= 1;
+                                                            const isLessonPro = !!lesson.isPro;
+                                                            const isLessonLocked = (isLessonPro || isGradePro) && !isUserPro;
+
+                                                            const handlePress = () => {
+                                                                if (isLessonLocked) {
+                                                                    showProModal(`bài học "${lesson.name}"`);
+                                                                } else {
+                                                                    onLessonPress(lesson.id);
+                                                                }
+                                                            };
 
                                                             return (
                                                                 <Card
                                                                     key={lesson.id}
                                                                     variant="grayBorder"
-                                                                    style={styles.lessonCard}
-                                                                    onPress={() => onLessonPress(lesson.id)}
+                                                                    style={[styles.lessonCard, isLessonLocked && { opacity: 0.85 }]}
+                                                                    onPress={handlePress}
                                                                 >
                                                                     <View style={styles.cardTextContainer}>
-                                                                        <Text style={styles.lessonCardTitle}>
-                                                                            Bài {lesson.position}:{" "}
-                                                                            <Text style={styles.lessonNameText}>{lesson.name}</Text>
-                                                                        </Text>
+                                                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                                                                            <Text style={styles.lessonCardTitle}>
+                                                                                Bài {lesson.position}:{" "}
+                                                                                <Text style={styles.lessonNameText}>{lesson.name}</Text>
+                                                                            </Text>
+                                                                            {isLessonPro && (
+                                                                                <View style={[styles.proBadge, { backgroundColor: isUserPro ? colors.successContainer : colors.secondaryContainer }]}>
+                                                                                    <Ionicons name={isUserPro ? "ribbon" : "lock-closed"} size={10} color={isUserPro ? colors.success : colors.secondaryHover} />
+                                                                                    <Text style={[styles.proBadgeText, { color: isUserPro ? colors.success : colors.secondaryHover }]}>PRO</Text>
+                                                                                </View>
+                                                                            )}
+                                                                        </View>
                                                                     </View>
                                                                     <View style={styles.cardRightContainer}>
-                                                                        {isDone ? (
+                                                                        {isLessonLocked ? (
+                                                                            <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+                                                                        ) : isDone ? (
                                                                             <Ionicons name="checkmark-circle" size={24} color={colors.success} />
                                                                         ) : (
                                                                             <SmallProgressRing pct={lessonPct} />
                                                                         )}
-                                                                        {isLoggedIn && lessonAny.progress != null && (
+                                                                        {isLoggedIn && lessonAny.progress != null && !isLessonLocked && (
                                                                             <Text style={styles.lessonProgressTextBelow}>
                                                                                 {lessonAny.progress.completedNodes}/{lessonAny.progress.totalNodes}
                                                                             </Text>
@@ -569,21 +608,32 @@ export function LessonMenu({
                                                         {(() => {
                                                             const testPassed = !!topic.testPassed;
                                                             const testIsDone = testPassed;
+                                                            const isTopicTestLocked = isGradePro && !isUserPro;
+
+                                                            const handlePress = () => {
+                                                                if (isTopicTestLocked) {
+                                                                    showProModal("bài kiểm tra chủ đề");
+                                                                } else {
+                                                                    onTestPress("TOPIC", topic.id);
+                                                                }
+                                                            };
 
                                                             return (
                                                                 <Card
-                                                                    variant="accent"
-                                                                    style={styles.testCard}
-                                                                    onPress={() => onTestPress("TOPIC", topic.id)}
+                                                                    variant={isTopicTestLocked ? "grayBorder" : "accent"}
+                                                                    style={[styles.testCard, isTopicTestLocked && { backgroundColor: colors.surfaceVariant, borderColor: colors.borderMedium }]}
+                                                                    onPress={handlePress}
                                                                 >
-                                                                    <Ionicons name="trophy" size={20} color="#FFFFFF" style={styles.cardLeftIcon} />
+                                                                    <Ionicons name={isTopicTestLocked ? "lock-closed" : "trophy"} size={20} color={isTopicTestLocked ? colors.textMuted : "#FFFFFF"} style={styles.cardLeftIcon} />
                                                                     <View style={styles.cardTextContainer}>
-                                                                        <Text style={styles.testCardTitle}>
+                                                                        <Text style={[styles.testCardTitle, isTopicTestLocked && { color: colors.textPrimary }]}>
                                                                             Kiểm tra Chủ đề {topic.position}
                                                                         </Text>
                                                                     </View>
                                                                     <View style={styles.cardRightContainer}>
-                                                                        {testIsDone ? (
+                                                                        {isTopicTestLocked ? (
+                                                                            <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+                                                                        ) : testIsDone ? (
                                                                             <Ionicons name="checkmark-circle" size={24} color={colors.success} />
                                                                         ) : (
                                                                             <SmallProgressRing pct={0} isAccent={true} />
@@ -600,24 +650,35 @@ export function LessonMenu({
 
                                     {shouldShowFinalTest && (() => {
                                         const finalIsDone = finalTestPassed;
+                                        const isFinalTestLocked = isGradePro && !isUserPro;
+
+                                        const handlePress = () => {
+                                            if (isFinalTestLocked) {
+                                                showProModal(`bài kiểm tra tổng hợp Lớp ${selectedGrade}`);
+                                            } else {
+                                                onTestPress("GRADE", selectedGrade);
+                                            }
+                                        };
 
                                         return (
                                             <Card
-                                                variant="accent"
-                                                style={styles.finalExamCard}
-                                                onPress={() => onTestPress("GRADE", selectedGrade)}
+                                                variant={isFinalTestLocked ? "grayBorder" : "accent"}
+                                                style={[styles.finalExamCard, isFinalTestLocked && { backgroundColor: colors.surfaceVariant, borderColor: colors.borderMedium }]}
+                                                onPress={handlePress}
                                             >
-                                                <Ionicons name="ribbon" size={24} color="#FFFFFF" style={styles.cardLeftIcon} />
+                                                <Ionicons name={isFinalTestLocked ? "lock-closed" : "ribbon"} size={24} color={isFinalTestLocked ? colors.textMuted : "#FFFFFF"} style={styles.cardLeftIcon} />
                                                 <View style={styles.cardTextContainer}>
-                                                    <Text style={styles.finalExamCardTitle}>
+                                                    <Text style={[styles.finalExamCardTitle, isFinalTestLocked && { color: colors.textPrimary }]}>
                                                         Kiểm tra tổng hợp Lớp {selectedGrade}
                                                     </Text>
-                                                    <Text style={styles.finalExamCardSubtitle}>
+                                                    <Text style={[styles.finalExamCardSubtitle, isFinalTestLocked && { color: colors.textSecondary }]}>
                                                         Đánh giá năng lực toàn diện
                                                     </Text>
                                                 </View>
                                                 <View style={styles.cardRightContainer}>
-                                                    {finalIsDone ? (
+                                                    {isFinalTestLocked ? (
+                                                        <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+                                                    ) : finalIsDone ? (
                                                         <Ionicons name="checkmark-circle" size={24} color={colors.success} />
                                                     ) : (
                                                         <SmallProgressRing pct={0} isAccent={true} />
@@ -801,6 +862,12 @@ export function LessonMenu({
                     </View>
                 </View>
             </Modal>
+
+            <PremiumModal
+                visible={premiumModalVisible}
+                onClose={() => setPremiumModalVisible(false)}
+                featureName={lockedFeatureName}
+            />
         </ScreenWrapper>
     );
 }
@@ -1192,4 +1259,16 @@ const styles = StyleSheet.create({
         shadowRadius: 2.5,
         elevation: 3,
     },
-});
+    proBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 2,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+    },
+    proBadgeText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 10,
+    },
+});
