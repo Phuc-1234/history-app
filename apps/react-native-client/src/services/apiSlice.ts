@@ -229,7 +229,7 @@ export const apiSlice = createApi({
   // Tag types are used for automatic caching and invalidation later
   baseQuery: baseQueryWithReauth,
 
-  tagTypes: ['User', 'History', 'Feedback'],
+  tagTypes: ['User', 'History', 'Feedback', 'Notification'],
 
   endpoints: () => ({}),
 });

@@ -1,84 +1,107 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, AppState, AppStateStatus } from "react-native";
+import { useNavigation } from "expo-router";
 import { ScreenShell, EmptyState, UserCard, SegmentTabs } from "@/components/ui";
 import {
     useGetIncomingFriendRequestsQuery,
     useAcceptFriendRequestMutation,
     useRejectFriendRequestMutation,
 } from "@/features/social/services/socialApi";
+import {
+    useGetNotificationsQuery,
+    useMarkNotificationAsReadMutation,
+    useMarkAllNotificationsAsReadMutation,
+} from "../services/notificationApi";
 import { toViewUser } from "@/features/social/utils/socialView";
 import { colors } from "@/theme/colors";
 import { typography } from "@/theme/typography";
 import type { SystemNotification } from "../types";
 import { NotificationItem } from "../components/NotificationItem";
 
-const INITIAL_SYSTEM_NOTIFICATIONS: SystemNotification[] = [
-    {
-        id: "sys-1",
-        type: "push",
-        title: "Đến giờ ôn tập rồi! 🕒",
-        body: "Hãy luyện tập 5 câu hỏi hôm nay để tiếp tục duy trì chuỗi Streak học tập của bạn nhé.",
-        timestamp: "10 phút trước",
-        isRead: false,
-    },
-    {
-        id: "sys-2",
-        type: "reward",
-        title: "Phần thưởng hàng ngày 🎁",
-        body: "Bạn nhận được 50 XP và 10 Vàng từ việc hoàn thành Nhiệm vụ hàng ngày.",
-        timestamp: "1 giờ trước",
-        isRead: false,
-    },
-    {
-        id: "sys-3",
-        type: "achievement",
-        title: "Thăng hạng thành công! 🏆",
-        body: "Chúc mừng bạn đã leo lên Hạng Bạc trong bảng xếp hạng tuần này.",
-        timestamp: "5 giờ trước",
-        isRead: true,
-    },
-    {
-        id: "sys-4",
-        type: "system",
-        title: "Chào mừng bạn đến với Sắc sử! 🎉",
-        body: "Cảm ơn bạn đã lựa chọn Sắc sử để cùng khám phá những trang sử hào hùng của dân tộc Việt Nam.",
-        timestamp: "1 ngày trước",
-        isRead: true,
-    },
-    {
-        id: "sys-5",
-        type: "system",
-        title: "Bài học Lớp 12 mới cập nhật 📚",
-        body: "Chủ đề 'Việt Nam từ năm 1945 đến năm 1954' đã được cập nhật thêm các câu hỏi trắc nghiệm mới.",
-        timestamp: "2 ngày trước",
-        isRead: true,
-    }
-];
-
 type Tab = "Tất cả" | "Lời mời" | "Hệ thống";
+
+function formatRelativeTime(dateString: string): string {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Vừa xong";
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays === 1) return "Hôm qua";
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+
+    return date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+}
 
 export function NotificationsScreen() {
     const [activeTab, setActiveTab] = useState<Tab>("Tất cả");
-    const [systemNotis, setSystemNotis] = useState<SystemNotification[]>(INITIAL_SYSTEM_NOTIFICATIONS);
+    const navigation = useNavigation();
 
     // Queries & Mutations for real friend requests
     const { data: incomingData, isLoading: isLoadingRequests, isError: isErrorRequests, refetch: refetchRequests } = useGetIncomingFriendRequestsQuery();
     const [acceptRequest] = useAcceptFriendRequestMutation();
     const [rejectRequest] = useRejectFriendRequestMutation();
 
+    // Queries & Mutations for DB notifications
+    const { data: notificationData, isLoading: isLoadingNotis, isError: isErrorNotis, refetch: refetchNotis } = useGetNotificationsQuery();
+    const [markAsRead] = useMarkNotificationAsReadMutation();
+    const [markAllAsRead] = useMarkAllNotificationsAsReadMutation();
+
+    useEffect(() => {
+        // Refetch queries when screen comes into focus
+        const unsubscribeFocus = navigation.addListener("focus", () => {
+            refetchRequests();
+            refetchNotis();
+        });
+
+        // Refetch queries when app returns from background to foreground
+        const handleAppStateChange = (nextAppState: AppStateStatus) => {
+            if (nextAppState === "active") {
+                refetchRequests();
+                refetchNotis();
+            }
+        };
+
+        const appStateSubscription = AppState.addEventListener("change", handleAppStateChange);
+
+        return () => {
+            unsubscribeFocus();
+            appStateSubscription.remove();
+        };
+    }, [navigation, refetchRequests, refetchNotis]);
+
     const friendRequests = incomingData?.requests ?? [];
+    
+    // Map DB notifications to include calculated timestamp
+    const systemNotis: SystemNotification[] = (notificationData?.notifications ?? []).map(noti => ({
+        ...noti,
+        timestamp: formatRelativeTime(noti.createdAt)
+    }));
 
-    const handleMarkAsRead = (id: string) => {
-        setSystemNotis(prev =>
-            prev.map(noti => (noti.id === id ? { ...noti, isRead: true } : noti))
-        );
+    const handleMarkAsRead = async (id: string) => {
+        try {
+            await markAsRead(id).unwrap();
+        } catch (error) {
+            console.error("Failed to mark notification as read:", error);
+        }
     };
 
-    const handleMarkAllAsRead = () => {
-        setSystemNotis(prev => prev.map(noti => ({ ...noti, isRead: true })));
+    const handleMarkAllAsRead = async () => {
+        try {
+            await markAllAsRead().unwrap();
+        } catch (error) {
+            console.error("Failed to mark all notifications as read:", error);
+        }
     };
 
-    // Filter system notifications based on active tab
     const hasUnreadSystem = systemNotis.some(n => !n.isRead);
 
     // Rendering Helpers
@@ -136,6 +159,9 @@ export function NotificationsScreen() {
         );
     };
 
+    const isLoading = isLoadingRequests || isLoadingNotis;
+    const isError = isErrorRequests || isErrorNotis;
+
     return (
         <ScreenShell title="Thông báo" titleColor="#FFFFFF">
             <View style={styles.container}>
@@ -151,13 +177,13 @@ export function NotificationsScreen() {
                     contentContainerStyle={styles.content}
                     showsVerticalScrollIndicator={false}
                 >
-                    {isLoadingRequests && (
+                    {isLoading && (
                         <View style={styles.loader}>
                             <ActivityIndicator size="small" color={colors.primary} />
                         </View>
                     )}
 
-                    {!isLoadingRequests && (
+                    {!isLoading && (
                         <>
                             {activeTab === "Tất cả" && (
                                 <>
@@ -187,10 +213,17 @@ export function NotificationsScreen() {
 
                             {activeTab === "Hệ thống" && (
                                 <>
-                                    {systemNotis.length === 0 && (
+                                    {isErrorNotis && (
+                                        <EmptyState
+                                            title="Không tải được thông báo hệ thống."
+                                            actionLabel="Tải lại"
+                                            onAction={refetchNotis}
+                                        />
+                                    )}
+                                    {!isErrorNotis && systemNotis.length === 0 && (
                                         <EmptyState title="Không có thông báo hệ thống nào." />
                                     )}
-                                    {systemNotis.length > 0 && renderSystemNotifications()}
+                                    {!isErrorNotis && systemNotis.length > 0 && renderSystemNotifications()}
                                 </>
                             )}
                         </>

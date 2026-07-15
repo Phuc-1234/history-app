@@ -3,7 +3,10 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import * as path from 'path';
 import * as fs from 'fs';
+import { requireStudent } from "../middlewares/authMiddleware";
+import { prisma } from "@history-app/shared";
 
+const db = prisma as any;
 const router = Router();
 
 // In-memory store for registered FCM tokens (for testing purposes)
@@ -127,6 +130,70 @@ router.post('/send-test', async (req: Request, res: Response) => {
       error: 'Failed to send notification',
       details: error.message,
     });
+  }
+});
+
+/**
+ * API: GET /api/notifications
+ * Fetch all notifications for the logged in student
+ */
+router.get('/', requireStudent, async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  try {
+    const notifications = await db.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return res.status(200).json({ notifications });
+  } catch (error: any) {
+    console.error('[Notification] Error fetching notifications:', error);
+    return res.status(500).json({ error: 'Failed to fetch notifications', details: error.message });
+  }
+});
+
+/**
+ * API: PUT /api/notifications/read-all
+ * Mark all notifications for the user as read
+ */
+router.put('/read-all', requireStudent, async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  try {
+    await db.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+    return res.status(200).json({ message: 'All notifications marked as read' });
+  } catch (error: any) {
+    console.error('[Notification] Error marking all as read:', error);
+    return res.status(500).json({ error: 'Failed to mark all as read', details: error.message });
+  }
+});
+
+/**
+ * API: PUT /api/notifications/:id/read
+ * Mark a specific notification as read
+ */
+router.put('/:id/read', requireStudent, async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { id } = req.params;
+  try {
+    const notification = await db.notification.findFirst({
+      where: { id, userId },
+    });
+
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    await db.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
+
+    return res.status(200).json({ message: 'Notification marked as read' });
+  } catch (error: any) {
+    console.error('[Notification] Error marking notification as read:', error);
+    return res.status(500).json({ error: 'Failed to mark notification as read', details: error.message });
   }
 });
 

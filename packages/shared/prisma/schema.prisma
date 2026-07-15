@@ -259,6 +259,7 @@ model User {
   questionMasteries      UserQuestionMastery[]
   rewardLogs             UserRewardLog[]
   testLogs               UserTestLog[]
+  notifications          Notification[]
   tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
 
   @@map("users")
@@ -675,4 +676,19 @@ enum SubscriptionStatus {
   CANCELLED
   EXPIRED
   FAILED
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String   // e.g., "FRIEND_REQUEST", "FRIEND_ACCEPT", "SYSTEM"
+  title     String
+  body      String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }

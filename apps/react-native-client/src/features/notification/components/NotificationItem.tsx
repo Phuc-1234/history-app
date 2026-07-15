@@ -16,10 +16,10 @@ export function NotificationItem({
     let iconBgColor = colors.primaryContainer;
     let iconColor = colors.primary;
 
-    if (notification.type === "push") {
+    if (notification.type === "push" || notification.type === "FRIEND_REQUEST" || notification.type === "FRIEND_ACCEPT") {
         iconName = "notifications-circle-outline";
-        iconBgColor = "#EBF5F0";
-        iconColor = colors.success;
+        iconBgColor = colors.primaryContainer;
+        iconColor = colors.primary;
     } else if (notification.type === "reward") {
         iconName = "gift-outline";
         iconBgColor = "#FFF9EE";
