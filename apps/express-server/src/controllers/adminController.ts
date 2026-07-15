@@ -53,11 +53,11 @@ export const createGrade = async (
     res: Response<AdminGradeResponse>,
 ) => {
     try {
-        const { id, state } = req.body;
+        const { id, state, isPro } = req.body;
         if (id === undefined || typeof id !== "number") {
             return res.status(400).json({ error: "id (number) is required." });
         }
-        const grade = await adminService.createGrade({ id, state });
+        const grade = await adminService.createGrade({ id, state, isPro });
         return res.status(201).json(grade);
     } catch (err: any) {
         if (err.code === "P2002") {
@@ -165,11 +165,11 @@ export const createLesson = async (
     res: Response<AdminLessonResponse>,
 ) => {
     try {
-        const { name, position, topicId, summary } = req.body;
+        const { name, position, topicId, summary, isPro } = req.body;
         if (!name || position === undefined || !topicId) {
             return res.status(400).json({ error: "name, position, and topicId are required." });
         }
-        const lesson = await adminService.createLesson({ name, summary, position, topicId });
+        const lesson = await adminService.createLesson({ name, summary, position, topicId, isPro });
         return res.status(201).json(lesson);
     } catch (err: any) {
         if (err.code === "P2003") {

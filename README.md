@@ -454,3 +454,7 @@ Khi code được merge vào nhánh `dev` và deploy lên Render:
 ## Giấy phép
 
 Dự án riêng tư. Tất cả quyền được bảo lưu.
+
+## Mở db
+cd packages/shared
+npx prisma studio

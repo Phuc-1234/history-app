@@ -70,7 +70,8 @@ const extractUserProfileFromToken = async (
                                 role: true,
                                 totalGold: true,
                                 totalXp: true,
-                                
+                                isPro: true,
+                                proExpiresAt: true,
                             },
                         });
 

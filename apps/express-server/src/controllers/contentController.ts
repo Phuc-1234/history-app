@@ -74,6 +74,15 @@ export const getGradeStructure = async (
         }
 
         const userId = req.user?.id ?? null;
+        
+        const hasAccess = await contentService.checkProAccess(userId, "GRADE", gradeId);
+        if (!hasAccess) {
+            return res.status(403).json({
+                error: "Nội dung này yêu cầu tài khoản PRO. Vui lòng nâng cấp để tiếp tục.",
+                code: "PRO_REQUIRED",
+            });
+        }
+
         const gradeStructure = await contentService.getGradeStructure(gradeId, userId);
         return res.status(200).json(gradeStructure);
     } catch (err) {
@@ -112,6 +121,15 @@ export const getLessonTree = async (
         }
 
         const userId = req.user?.id ?? null;
+
+        const hasAccess = await contentService.checkProAccess(userId, "LESSON", lessonId);
+        if (!hasAccess) {
+            return res.status(403).json({
+                error: "Nội dung này yêu cầu tài khoản PRO. Vui lòng nâng cấp để tiếp tục.",
+                code: "PRO_REQUIRED",
+            });
+        }
+
         const tree = await contentService.getLessonTree(lessonId, userId);
         if (!tree) {
             return res.status(404).json({ error: "Lesson not found." });
@@ -192,6 +210,15 @@ export const getNodeDetail = async (
             return res.status(400).json({ error: "Invalid nodeId" });
 
         const userId = req.user?.id ?? null;
+
+        const hasAccess = await contentService.checkProAccess(userId, "NODE", nodeId);
+        if (!hasAccess) {
+            return res.status(403).json({
+                error: "Nội dung này yêu cầu tài khoản PRO. Vui lòng nâng cấp để tiếp tục.",
+                code: "PRO_REQUIRED",
+            });
+        }
+
         const detail = await contentService.getNodeDetail(nodeId, userId);
         if (!detail) {
             return res.status(404).json({ error: "Node not found." });
@@ -214,6 +241,15 @@ export const finishStudyNode = async (
             return res.status(400).json({ error: "Invalid nodeId" });
 
         const userId = req.user!.id;
+
+        const hasAccess = await contentService.checkProAccess(userId, "NODE", nodeId);
+        if (!hasAccess) {
+            return res.status(403).json({
+                error: "Nội dung này yêu cầu tài khoản PRO. Vui lòng nâng cấp để tiếp tục.",
+                code: "PRO_REQUIRED",
+            });
+        }
+
         const consequences = await progressEngine.finishStudy(nodeId, userId);
 
         return res.status(200).json({ consequences });
