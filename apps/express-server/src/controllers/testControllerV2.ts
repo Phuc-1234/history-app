@@ -23,6 +23,7 @@ export const startTest = async (req: Request, res: Response) => {
         if (err?.code === "NOT_FOUND") return res.status(404).json({ error: err.message });
         if (err?.code === "ACTIVE_TEST_EXISTS") return res.status(409).json({ error: err.message });
         if (err?.code === "NO_QUESTIONS") return res.status(404).json({ error: err.message });
+        if (err?.code === "PRO_REQUIRED") return res.status(403).json({ error: err.message });
         return res.status(500).json({ error: "Failed to start test" });
     }
 };
@@ -108,6 +109,7 @@ export const getTestInfo = async (req: Request, res: Response) => {
     } catch (err: any) {
         console.error("getTestInfo error:", err?.message ?? err);
         if (err?.code === "NOT_FOUND") return res.status(404).json({ error: err.message });
+        if (err?.code === "PRO_REQUIRED") return res.status(403).json({ error: err.message });
         return res.status(500).json({ error: "Failed to get test info" });
     }
 };

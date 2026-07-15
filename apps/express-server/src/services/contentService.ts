@@ -63,12 +63,13 @@ export class ContentService {
 
     async getAllGrades(userId?: string | null): Promise<GradeDto[]> {
         const grades = await prisma.grade.findMany({
-            select: { id: true, state: true },
+            select: { id: true, state: true, isPro: true },
         });
         return Promise.all(
             grades.map(async (g) => ({
                 id: g.id,
                 state: g.state,
+                isPro: g.isPro,
                 masteryPercentage: userId ? await this.getMasteryPercentage(userId, "GRADE", g.id) : null,
             }))
         );
@@ -99,6 +100,7 @@ export class ContentService {
                 summary: true,
                 position: true,
                 topicId: true,
+                isPro: true,
             },
         });
         return Promise.all(
@@ -108,6 +110,7 @@ export class ContentService {
                 summary: l.summary ?? null,
                 position: l.position,
                 topicId: l.topicId,
+                isPro: l.isPro,
                 masteryPercentage: userId ? await this.getMasteryPercentage(userId, "LESSON", l.id) : null,
             }))
         );
@@ -201,6 +204,7 @@ export class ContentService {
                     summary: true,
                     position: true,
                     topicId: true,
+                    isPro: true,
                     videos: {
                         select: {
                             id: true,
@@ -391,6 +395,7 @@ export class ContentService {
             summary: lessonData.summary ?? null,
             position: lessonData.position,
             topicId: lessonData.topicId,
+            isPro: lessonData.isPro,
             videos: lessonData.videos,
             sections: roots,
             progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
@@ -732,6 +737,7 @@ export class ContentService {
                             summary: lesson.summary ?? null,
                             position: lesson.position,
                             topicId: lesson.topicId,
+                            isPro: lesson.isPro,
                             progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },
                             testPassed: userId ? lessonTestPassed : null,
                             masteryPercentage: lessonMastery,
@@ -862,6 +868,77 @@ export class ContentService {
             isStudied,
             isCompleted,
         };
+    }
+
+    /**
+     * Helper to verify if the user can access a PRO-locked Grade, Lesson, or Node.
+     * Admins and Super Admins always have access.
+     */
+    async checkProAccess(
+        userId: string | null,
+        scopeType: "GRADE" | "LESSON" | "NODE",
+        scopeId: number,
+    ): Promise<boolean> {
+        let isUserPro = false;
+        if (userId) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { isPro: true, proExpiresAt: true, role: true },
+            });
+            if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
+                return true;
+            }
+            isUserPro = user?.isPro === true && (!user.proExpiresAt || new Date(user.proExpiresAt) > new Date());
+        }
+
+        if (scopeType === "GRADE") {
+            const grade = await prisma.grade.findUnique({
+                where: { id: scopeId },
+                select: { isPro: true },
+            });
+            if (grade?.isPro && !isUserPro) {
+                return false;
+            }
+        } else if (scopeType === "LESSON") {
+            const lesson = await prisma.lesson.findUnique({
+                where: { id: scopeId },
+                select: { isPro: true, topic: { select: { grade: { select: { isPro: true } } } } },
+            });
+            const lessonIsPro = lesson?.isPro || (lesson as any)?.topic?.grade?.isPro;
+            if (lessonIsPro && !isUserPro) {
+                return false;
+            }
+        } else if (scopeType === "NODE") {
+            const node = await prisma.node.findUnique({
+                where: { id: scopeId },
+                select: {
+                    section: {
+                        select: {
+                            lesson: {
+                                select: {
+                                    isPro: true,
+                                    topic: {
+                                        select: {
+                                            grade: {
+                                                select: {
+                                                    isPro: true,
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            const nodeIsPro = (node as any)?.section?.lesson?.isPro || (node as any)?.section?.lesson?.topic?.grade?.isPro;
+            if (nodeIsPro && !isUserPro) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
