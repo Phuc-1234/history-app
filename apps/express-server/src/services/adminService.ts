@@ -50,9 +50,10 @@ export class AdminService {
                 id: data.id,
                 state: data.state ?? "PRIVATE",
                 isPro: data.isPro ?? false,
+                imgUrl: data.imgUrl ?? null,
             },
         });
-        return { id: grade.id, state: grade.state, isPro: grade.isPro };
+        return { id: grade.id, state: grade.state, isPro: grade.isPro, imgUrl: grade.imgUrl };
     }
 
     async updateGrade(id: number, data: UpdateGradeBody): Promise<GradeDto | null> {
@@ -64,9 +65,10 @@ export class AdminService {
             data: {
                 ...(data.state !== undefined && { state: data.state }),
                 ...(data.isPro !== undefined && { isPro: data.isPro }),
+                ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
             },
         });
-        return { id: grade.id, state: grade.state, isPro: grade.isPro };
+        return { id: grade.id, state: grade.state, isPro: grade.isPro, imgUrl: grade.imgUrl };
     }
 
     async deleteGrade(id: number): Promise<boolean> {
@@ -120,6 +122,7 @@ export class AdminService {
                 position: data.position,
                 topicId: data.topicId,
                 isPro: data.isPro ?? false,
+                imgUrl: data.imgUrl ?? null,
             },
         });
         return {
@@ -129,6 +132,7 @@ export class AdminService {
             position: lesson.position,
             topicId: lesson.topicId,
             isPro: lesson.isPro,
+            imgUrl: lesson.imgUrl,
         };
     }
 
@@ -144,6 +148,7 @@ export class AdminService {
                 ...(data.position !== undefined && { position: data.position }),
                 ...(data.topicId !== undefined && { topicId: data.topicId }),
                 ...(data.isPro !== undefined && { isPro: data.isPro }),
+                ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
             },
         });
         return {
@@ -153,6 +158,7 @@ export class AdminService {
             position: lesson.position,
             topicId: lesson.topicId,
             isPro: lesson.isPro,
+            imgUrl: lesson.imgUrl,
         };
     }
 
@@ -666,6 +672,7 @@ export class AdminService {
             isManual: (t as any).isManual ?? false,
             isNationalTest: t.isNationalTest,
             isPro: t.isPro,
+            imgUrl: t.imgUrl ?? null,
             questionNumber: t.questionNumber,
             timeLimit: t.timeLimit,
             xpReward: t.xpReward,
@@ -690,6 +697,7 @@ export class AdminService {
                     scopeType: data.scopeType ? (data.scopeType as any) : null,
                     isNationalTest: data.isNationalTest,
                     isPro: data.isPro ?? false,
+                    imgUrl: data.imgUrl ?? null,
                     questionNumber: data.questionNumber ?? 10,
                     timeLimit: data.timeLimit ?? null,
                     xpReward: data.xpReward ?? 0,
@@ -730,6 +738,7 @@ export class AdminService {
             isManual: (test as any).isManual ?? false,
             isNationalTest: test.isNationalTest,
             isPro: test.isPro,
+            imgUrl: test.imgUrl ?? null,
             questionNumber: test.questionNumber,
             timeLimit: test.timeLimit,
             xpReward: test.xpReward,
@@ -758,6 +767,7 @@ export class AdminService {
                     ...(data.scopeType !== undefined && { scopeType: data.scopeType ? (data.scopeType as any) : null }),
                     ...(data.isNationalTest !== undefined && { isNationalTest: data.isNationalTest }),
                     ...(data.isPro !== undefined && { isPro: data.isPro }),
+                    ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
                     ...(data.questionNumber !== undefined && { questionNumber: data.questionNumber }),
                     ...(data.timeLimit !== undefined && { timeLimit: data.timeLimit }),
                     ...(data.xpReward !== undefined && { xpReward: data.xpReward }),
@@ -802,6 +812,7 @@ export class AdminService {
             isManual: (updated as any).isManual ?? false,
             isNationalTest: updated.isNationalTest,
             isPro: updated.isPro,
+            imgUrl: updated.imgUrl ?? null,
             questionNumber: updated.questionNumber,
             timeLimit: updated.timeLimit,
             xpReward: updated.xpReward,

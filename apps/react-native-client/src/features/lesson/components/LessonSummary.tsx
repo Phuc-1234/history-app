@@ -72,7 +72,7 @@ export function LessonSummary({
                 {/* Replace with your image asset later */}
                 <ImageBackground
                     source={{
-                        uri: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500",
+                        uri: data.imgUrl || "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500",
                     }}
                     style={styles.bannerBg}
                     imageStyle={{ borderRadius: 12 }}
@@ -261,6 +261,7 @@ const styles = StyleSheet.create({
         ...typography.bodyMedium,
         color: colors.textSecondary,
         lineHeight: 22,
+        textAlign: "justify",
     },
 
     /* Feature Navigation Grid Matrix */

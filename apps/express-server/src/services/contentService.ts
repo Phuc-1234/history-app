@@ -63,13 +63,14 @@ export class ContentService {
 
     async getAllGrades(userId?: string | null): Promise<GradeDto[]> {
         const grades = await prisma.grade.findMany({
-            select: { id: true, state: true, isPro: true },
+            select: { id: true, state: true, isPro: true, imgUrl: true },
         });
         return Promise.all(
             grades.map(async (g) => ({
                 id: g.id,
                 state: g.state,
                 isPro: g.isPro,
+                imgUrl: g.imgUrl,
                 masteryPercentage: userId ? await this.getMasteryPercentage(userId, "GRADE", g.id) : null,
             }))
         );
@@ -101,6 +102,7 @@ export class ContentService {
                 position: true,
                 topicId: true,
                 isPro: true,
+                imgUrl: true,
             },
         });
         return Promise.all(
@@ -111,6 +113,7 @@ export class ContentService {
                 position: l.position,
                 topicId: l.topicId,
                 isPro: l.isPro,
+                imgUrl: l.imgUrl,
                 masteryPercentage: userId ? await this.getMasteryPercentage(userId, "LESSON", l.id) : null,
             }))
         );
@@ -205,6 +208,7 @@ export class ContentService {
                     position: true,
                     topicId: true,
                     isPro: true,
+                    imgUrl: true,
                     videos: {
                         select: {
                             id: true,
@@ -396,6 +400,7 @@ export class ContentService {
             position: lessonData.position,
             topicId: lessonData.topicId,
             isPro: lessonData.isPro,
+            imgUrl: lessonData.imgUrl,
             videos: lessonData.videos,
             sections: roots,
             progress: { totalNodes: lessonTotal, completedNodes: lessonCompleted },

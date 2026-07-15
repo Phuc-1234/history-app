@@ -9,11 +9,13 @@ export interface CreateGradeBody {
     id: number; // Grade id is manually specified (e.g. 10, 11, 12)
     state?: "PUBLIC" | "PRIVATE";
     isPro?: boolean;
+    imgUrl?: string | null;
 }
 
 export interface UpdateGradeBody {
     state?: "PUBLIC" | "PRIVATE";
     isPro?: boolean;
+    imgUrl?: string | null;
 }
 
 export type AdminGradeResponse = GradeDto | { error: string };
@@ -42,6 +44,7 @@ export interface CreateLessonBody {
     position: number;
     topicId: number;
     isPro?: boolean;
+    imgUrl?: string | null;
 }
 
 export interface UpdateLessonBody {
@@ -50,6 +53,7 @@ export interface UpdateLessonBody {
     position?: number;
     topicId?: number;
     isPro?: boolean;
+    imgUrl?: string | null;
 }
 
 export type AdminLessonResponse = LessonDto | { error: string };
@@ -242,6 +246,7 @@ export interface CreateTestBody {
     scopeType?: "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | "NATIONAL" | null;
     isNationalTest: boolean;
     isPro?: boolean;
+    imgUrl?: string | null;
     questionIds?: number[];
     // Backup
     isManual?: boolean;
@@ -264,6 +269,7 @@ export interface UpdateTestBody {
     scopeType?: "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | "NATIONAL" | null;
     isNationalTest?: boolean;
     isPro?: boolean;
+    imgUrl?: string | null;
     questionIds?: number[];
     // Backup
     isManual?: boolean;
@@ -287,6 +293,7 @@ export interface AdminTestDto {
     scopeType: string | null;
     isNationalTest: boolean;
     isPro: boolean;
+    imgUrl: string | null;
     questionIds: number[];
     // Backup
     isManual: boolean;

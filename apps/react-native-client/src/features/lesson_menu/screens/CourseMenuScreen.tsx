@@ -9,6 +9,7 @@ import {
     RefreshControl,
     Modal,
     TouchableOpacity,
+    Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
@@ -26,6 +27,7 @@ function CourseCard({
     total,
     isPro,
     isUserPro,
+    imgUrl,
     onPress,
 }: {
     grade: number;
@@ -33,6 +35,7 @@ function CourseCard({
     total: number;
     isPro: boolean;
     isUserPro: boolean;
+    imgUrl?: string | null;
     onPress: () => void;
 }) {
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -58,8 +61,12 @@ function CourseCard({
             activeOpacity={0.85}
         >
             {/* Left Image Section */}
-            <View style={[styles.imageContainer, { backgroundColor: colors.surfaceVariant }]}>
-                <Ionicons name="book" size={40} color={themeColor} />
+            <View style={[styles.imageContainer, { backgroundColor: colors.surfaceVariant, overflow: "hidden" }]}>
+                {imgUrl ? (
+                    <Image source={{ uri: imgUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                ) : (
+                    <Ionicons name="book" size={40} color={themeColor} />
+                )}
                 
                 {/* Overlapping Pill Badge */}
                 <View style={[styles.badge, { backgroundColor: themeColor }]}>
@@ -252,6 +259,11 @@ export function CourseMenuScreen() {
         return !!gradeObj?.isPro;
     };
 
+    const getGradeImgUrl = (gradeId: number) => {
+        const gradeObj = gradesData?.grades?.find((g) => g.id === gradeId);
+        return gradeObj?.imgUrl;
+    };
+
     const showProModal = (feature: string) => {
         setLockedFeatureName(feature);
         setPremiumModalVisible(true);
@@ -325,6 +337,7 @@ export function CourseMenuScreen() {
                                     total={prog10.total}
                                     isPro={isGradePro(10)}
                                     isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(10)}
                                     onPress={() => handleCoursePress(10)}
                                 />
                             )}
@@ -335,6 +348,7 @@ export function CourseMenuScreen() {
                                     total={prog11.total}
                                     isPro={isGradePro(11)}
                                     isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(11)}
                                     onPress={() => handleCoursePress(11)}
                                 />
                             )}
@@ -345,6 +359,7 @@ export function CourseMenuScreen() {
                                     total={prog12.total}
                                     isPro={isGradePro(12)}
                                     isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(12)}
                                     onPress={() => handleCoursePress(12)}
                                 />
                             )}

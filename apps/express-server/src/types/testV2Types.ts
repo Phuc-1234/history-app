@@ -175,5 +175,6 @@ export interface NationalTestDto {
     title: string;
     summary: string | null;
     isPro: boolean;
+    imgUrl?: string | null;
 }
 
