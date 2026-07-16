@@ -20,6 +20,7 @@ import useAuthForm from "../hooks/useAuthForm";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import AppBackground from "../../../components/layout/AppBackground";
+import { CustomModal } from "../../../components/Modal";
 
 export default function LoginForm() {
     const {
@@ -35,6 +36,10 @@ export default function LoginForm() {
         enterAsGuest,
         handleGoogleLogin,
         handleFacebookLogin,
+        errorModalVisible,
+        errorModalTitle,
+        errorModalMessage,
+        closeErrorModal,
     } = useAuthForm();
 
     const insets = useSafeAreaInsets();
@@ -194,6 +199,15 @@ export default function LoginForm() {
                     </View>
                 </View>
             </ScrollView>
+            <CustomModal
+                visible={errorModalVisible}
+                title={errorModalTitle}
+                message={errorModalMessage}
+                confirmText="Đóng"
+                onConfirm={closeErrorModal}
+                showMascot={true}
+                mascotExpression="confused"
+            />
         </KeyboardAvoidingView>
     );
 }

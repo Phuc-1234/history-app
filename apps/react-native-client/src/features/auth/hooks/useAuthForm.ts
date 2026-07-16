@@ -8,9 +8,10 @@ import {
 } from "../services/authApi";
 import { useAppDispatch } from "@/store/storeHook"; // Standard typed useDispatch hook
 import { setProfile } from "@/features/auth/store/authSlice";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { useLoading } from "@/features/loading";
 
 // Configure Google Sign-In client options
 console.log(
@@ -27,6 +28,8 @@ GoogleSignin.configure({
 export function useAuthForm() {
     const router = useRouter();
     const dispatch = useAppDispatch();
+    const { showLoading, isLoading: isGlobalLoading } = useLoading();
+    
     const [login, { isLoading }] = useLoginMutation();
     const [googleVerify, { isLoading: isGoogleLoading }] =
         useGoogleVerifyMutation();
@@ -39,6 +42,21 @@ export function useAuthForm() {
     const [emailError, setEmailError] = useState("");
     const [passwordError, setPasswordError] = useState("");
 
+    // Custom Error Modal State
+    const [errorModalVisible, setErrorModalVisible] = useState(false);
+    const [errorModalTitle, setErrorModalTitle] = useState("");
+    const [errorModalMessage, setErrorModalMessage] = useState("");
+
+    const showErrorModal = useCallback((title: string, message: string) => {
+        setErrorModalTitle(title);
+        setErrorModalMessage(message);
+        setErrorModalVisible(true);
+    }, []);
+
+    const closeErrorModal = useCallback(() => {
+        setErrorModalVisible(false);
+    }, []);
+
     const navigateToRegister = useCallback(() => {
         router.push("/(1_auth)/1_2_register");
     }, [router]);
@@ -49,7 +67,7 @@ export function useAuthForm() {
 
     const submitAndEnterApp = useCallback(async () => {
         if (!email || !password) {
-            Alert.alert(
+            showErrorModal(
                 "Thiếu thông tin",
                 "Vui lòng nhập đầy đủ email và mật khẩu.",
             );
@@ -73,7 +91,7 @@ export function useAuthForm() {
 
             // 2. Handle Explicit Error status (if backend returns errors as 200 status codes)
             if (response.status === "error") {
-                Alert.alert("Lỗi đăng nhập", response.error);
+                showErrorModal("Lỗi đăng nhập", response.error);
                 return;
             }
             // 3. Handle Clean Success Destination Routing
@@ -97,6 +115,7 @@ export function useAuthForm() {
                     ["refresh_token", response.session.refreshToken],
                 ]);
                 dispatch(setProfile(response.profile));
+                showLoading();
                 router.replace("/(tabs)/home");
                 return;
             }
@@ -118,9 +137,9 @@ export function useAuthForm() {
             const errorMessage =
                 error?.data?.error ||
                 "Tài khoản hoặc mật khẩu không chính xác.";
-            Alert.alert("Đăng nhập thất bại", errorMessage);
+            showErrorModal("Đăng nhập thất bại", errorMessage);
         }
-    }, [email, password, login, router, dispatch]);
+    }, [email, password, login, router, dispatch, showErrorModal, showLoading]);
 
     const handleLoginSubmit = useCallback(async () => {
         const cleanEmail = email.trim();
@@ -163,7 +182,7 @@ export function useAuthForm() {
             }
 
             if (response.status === "error") {
-                Alert.alert("Lỗi đăng nhập", response.error);
+                showErrorModal("Lỗi đăng nhập", response.error);
                 return;
             }
 
@@ -181,6 +200,7 @@ export function useAuthForm() {
                     ["refresh_token", response.session.refreshToken],
                 ]);
                 dispatch(setProfile(response.profile));
+                showLoading();
                 router.replace("/(tabs)/home");
             }
         } catch (error: any) {
@@ -196,9 +216,9 @@ export function useAuthForm() {
                 return;
             }
             const errorMessage = error?.data?.error || "Tài khoản hoặc mật khẩu không chính xác.";
-            Alert.alert("Đăng nhập thất bại", errorMessage);
+            showErrorModal("Đăng nhập thất bại", errorMessage);
         }
-    }, [email, password, login, router, dispatch]);
+    }, [email, password, login, router, dispatch, showErrorModal, showLoading]);
 
     const handleGoogleLogin = useCallback(async () => {
         try {
@@ -209,14 +229,14 @@ export function useAuthForm() {
             }
             const idToken = userInfo.data.idToken;
             if (!idToken) {
-                Alert.alert("Lỗi", "Không lấy được Google ID Token.");
+                showErrorModal("Lỗi", "Không lấy được Google ID Token.");
                 return;
             }
 
             const response = await googleVerify({ idToken }).unwrap();
 
             if (response.status === "error") {
-                Alert.alert("Lỗi đăng nhập", response.error);
+                showErrorModal("Lỗi đăng nhập", response.error);
                 return;
             }
 
@@ -240,18 +260,19 @@ export function useAuthForm() {
                     ["refresh_token", response.session.refreshToken],
                 ]);
                 dispatch(setProfile(response.profile));
+                showLoading();
                 router.replace("/(tabs)/home");
             }
         } catch (error: any) {
             console.error("Google Sign-in attempt failure:", error);
             if (error.code !== "SIGN_IN_CANCELLED") {
-                Alert.alert(
+                showErrorModal(
                     "Đăng nhập Google thất bại",
                     error.message || "Đã xảy ra lỗi.",
                 );
             }
         }
-    }, [googleVerify, router, dispatch]);
+    }, [googleVerify, router, dispatch, showErrorModal, showLoading]);
 
     const handleFacebookLogin = useCallback(async () => {
         try {
@@ -269,7 +290,7 @@ export function useAuthForm() {
 
             const data = await AccessToken.getCurrentAccessToken();
             if (!data) {
-                Alert.alert("Lỗi", "Không lấy được Facebook Access Token.");
+                showErrorModal("Lỗi", "Không lấy được Facebook Access Token.");
                 return;
             }
 
@@ -277,7 +298,7 @@ export function useAuthForm() {
             const response = await facebookVerify({ accessToken }).unwrap();
 
             if (response.status === "error") {
-                Alert.alert("Lỗi đăng nhập", response.error);
+                showErrorModal("Lỗi đăng nhập", response.error);
                 return;
             }
 
@@ -301,20 +322,22 @@ export function useAuthForm() {
                     ["refresh_token", response.session.refreshToken],
                 ]);
                 dispatch(setProfile(response.profile));
+                showLoading();
                 router.replace("/(tabs)/home");
             }
         } catch (error: any) {
             console.error("Facebook Sign-in attempt failure:", error);
-            Alert.alert(
+            showErrorModal(
                 "Đăng nhập Facebook thất bại",
                 error.message || "Đã xảy ra lỗi.",
             );
         }
-    }, [facebookVerify, router, dispatch]);
+    }, [facebookVerify, router, dispatch, showErrorModal, showLoading]);
 
     const enterAsGuest = useCallback(() => {
+        showLoading();
         router.replace("/(tabs)/home");
-    }, [router]);
+    }, [router, showLoading]);
 
     return {
         email,
@@ -325,7 +348,7 @@ export function useAuthForm() {
         setEmailError,
         passwordError,
         setPasswordError,
-        isLoading: isLoading || isGoogleLoading || isFacebookLoading,
+        isLoading: isLoading || isGoogleLoading || isFacebookLoading || isGlobalLoading,
         isGoogleLoading,
         isFacebookLoading,
         handleGoogleLogin,
@@ -335,6 +358,10 @@ export function useAuthForm() {
         submitAndEnterApp,
         handleLoginSubmit,
         enterAsGuest,
+        errorModalVisible,
+        errorModalTitle,
+        errorModalMessage,
+        closeErrorModal,
     };
 }
 

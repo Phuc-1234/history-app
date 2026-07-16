@@ -20,6 +20,7 @@ import {
     useFinishTestV2Mutation,
 } from "../services/testApi";
 import { evaluateQuestion, isSingleChoice } from "../services/scoreEngine";
+import { useLoading } from "../../loading";
 
 export type TestRunnerStatus = "idle" | "loading" | "running" | "submitting" | "completed";
 
@@ -63,6 +64,7 @@ export interface TestRunnerV2State {
         restart: () => Promise<void>;
         redoWrong: () => void;
         confirmAnswer: () => void;
+        clearError: () => void;
     };
 
     // Utilities
@@ -72,6 +74,7 @@ export interface TestRunnerV2State {
 }
 
 export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
+    const { showLoading, hideLoading } = useLoading();
     const [startTestMut] = useStartTestV2Mutation();
     const [updateDraftMut] = useUpdateDraftMutation();
     const [finishTestMut] = useFinishTestV2Mutation();
@@ -152,6 +155,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         try {
             setStatus("loading");
             setError(null);
+            showLoading();
             const resp = await startTestMut(params).unwrap();
             setSession(resp.userTestLog);
             setQuestions(resp.questions);
@@ -172,8 +176,10 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
             console.error("Failed to start test:", err);
             setError(err?.data?.error ?? err?.message ?? "Không thể bắt đầu bài kiểm tra");
             setStatus("idle");
+        } finally {
+            hideLoading();
         }
-    }, [params, startTestMut]);
+    }, [params, startTestMut, showLoading, hideLoading]);
 
     // ── Resume from existing session ─────────────────────────────────
     const resumeSession = useCallback((log: UserTestLogV2, qs: QuestionV2[]) => {
@@ -352,6 +358,10 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
     };
 
+    const clearError = useCallback(() => {
+        setError(null);
+    }, []);
+
     const startRef = useRef(handleStart);
     const answerChooseRef = useRef(answerChoose);
     const answerFillRef = useRef(answerFill);
@@ -363,6 +373,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
     const handleRestartRef = useRef(handleRestart);
     const redoWrongRef = useRef(redoWrong);
     const confirmAnswerRef = useRef(confirmAnswer);
+    const clearErrorRef = useRef(clearError);
 
     useEffect(() => { startRef.current = handleStart; }, [handleStart]);
     useEffect(() => { answerChooseRef.current = answerChoose; }, [answerChoose]);
@@ -375,6 +386,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
     useEffect(() => { handleRestartRef.current = handleRestart; }, [handleRestart]);
     useEffect(() => { redoWrongRef.current = redoWrong; }, [redoWrong]);
     useEffect(() => { confirmAnswerRef.current = confirmAnswer; }, [confirmAnswer]);
+    useEffect(() => { clearErrorRef.current = clearError; }, [clearError]);
 
     const actions = useMemo(() => ({
         start: () => startRef.current(),
@@ -388,6 +400,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         restart: () => handleRestartRef.current(),
         redoWrong: () => redoWrongRef.current(),
         confirmAnswer: () => confirmAnswerRef.current(),
+        clearError: () => clearErrorRef.current(),
     }), []);
 
     return {
