@@ -1,8 +1,9 @@
 export interface SystemNotification {
     id: string;
-    type: "system" | "push" | "reward" | "achievement";
+    type: string; // "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "SYSTEM" | "push" etc.
     title: string;
     body: string;
-    timestamp: string;
     isRead: boolean;
+    createdAt: string;
+    timestamp?: string;
 }

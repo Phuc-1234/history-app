@@ -197,6 +197,25 @@ export class SocialService {
                 include: { receiver: { select: userSelect } },
             });
 
+        // Create notification for the receiver
+        try {
+            const sender = await db.user.findUnique({
+                where: { id: senderId },
+                select: { name: true },
+            });
+            const senderName = sender?.name || "Một người dùng";
+            await db.notification.create({
+                data: {
+                    userId: receiverId,
+                    type: "FRIEND_REQUEST",
+                    title: "Lời mời kết bạn mới",
+                    body: `${senderName} đã gửi cho bạn một lời mời kết bạn.`,
+                },
+            });
+        } catch (error) {
+            console.error("Failed to create FRIEND_REQUEST notification:", error);
+        }
+
         return requestDto(request);
     }
 
@@ -219,6 +238,12 @@ export class SocialService {
 
         const pair = normalizeFriendPair(request.senderId, request.receiverId);
 
+        const receiver = await db.user.findUnique({
+            where: { id: currentUserId },
+            select: { name: true },
+        });
+        const receiverName = receiver?.name || "Một người dùng";
+
         await db.$transaction([
             db.friendship.upsert({
                 where: { userId_friendId: pair },
@@ -228,6 +253,14 @@ export class SocialService {
             db.friendRequest.update({
                 where: { id: requestId },
                 data: { status: "ACCEPTED" },
+            }),
+            db.notification.create({
+                data: {
+                    userId: request.senderId,
+                    type: "FRIEND_ACCEPT",
+                    title: "Chấp nhận lời mời kết bạn",
+                    body: `${receiverName} đã chấp nhận lời mời kết bạn của bạn.`,
+                },
             }),
         ]);
 
