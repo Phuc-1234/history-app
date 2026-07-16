@@ -5,6 +5,7 @@ import {
     Text,
     View,
     Animated,
+    Easing,
 } from "react-native";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
@@ -40,16 +41,14 @@ interface SpecialLoadingProps {
 
 export default function SpecialLoading({ visible }: SpecialLoadingProps) {
     const [localVisible, setLocalVisible] = useState(false);
-    const [animStyle, setAnimStyle] = useState<"mascots" | "trong_dong">("mascots");
-    const [selectedMascots, setSelectedMascots] = useState<any[]>([]);
-    const [currentMascotIdx, setCurrentMascotIdx] = useState(0);
+    const [currentMascot, setCurrentMascot] = useState(MASCOTS[0]);
     const [tip, setTip] = useState("");
 
     // Animation values
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-    const rotateAnim = useRef(new Animated.Value(0)).current;
     const progressAnim = useRef(new Animated.Value(0)).current;
     const shineAnim = useRef(new Animated.Value(0)).current;
+    const mascotOpacity = useRef(new Animated.Value(1)).current;
+    const vibrateAnim = useRef(new Animated.Value(0)).current;
 
     const progressTimingRef = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -57,20 +56,16 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
         if (visible) {
             setLocalVisible(true);
 
-            // 1. Choose animation style randomly
-            const chosenStyle = Math.random() < 0.5 ? "mascots" : "trong_dong";
-            setAnimStyle(chosenStyle);
+            // 1. Select a random initial mascot
+            const randomInitial = MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
+            setCurrentMascot(randomInitial);
+            mascotOpacity.setValue(1);
 
-            // 2. Select 3 unique random mascots if mascots is selected
-            const shuffled = [...MASCOTS].sort(() => 0.5 - Math.random());
-            setSelectedMascots(shuffled.slice(0, 3));
-            setCurrentMascotIdx(0);
-
-            // 3. Choose a random tip
+            // 2. Choose a random tip
             const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)];
             setTip(randomTip);
 
-            // 4. Start progress animation (fake progress: 0 to 95% over 6 seconds - 2x faster than 12s)
+            // 3. Start progress animation (fake progress: 0 to 95% over 6 seconds - 2x faster than 12s)
             progressAnim.setValue(0);
             if (progressTimingRef.current) progressTimingRef.current.stop();
             progressTimingRef.current = Animated.timing(progressAnim, {
@@ -100,7 +95,7 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
     useEffect(() => {
         if (!localVisible) return;
 
-        // 5. Start shine animation looping
+        // 4. Start shine animation looping
         shineAnim.setValue(0);
         const shineLoop = Animated.loop(
             Animated.timing(shineAnim, {
@@ -111,59 +106,54 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
         );
         shineLoop.start();
 
-        // 6. Scale loop for breathing mascot
-        scaleAnim.setValue(1);
+        // 5. Start mascot vibration (scale loop)
+        vibrateAnim.setValue(0);
         const scaleLoop = Animated.loop(
-            Animated.sequence([
-                Animated.timing(scaleAnim, {
-                    toValue: 1.06,
-                    duration: 1500,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(scaleAnim, {
-                    toValue: 0.94,
-                    duration: 1500,
-                    useNativeDriver: true,
-                }),
-            ])
-        );
-        scaleLoop.start();
-
-        // 7. Rotation loop for trong_dong
-        rotateAnim.setValue(0);
-        const rotateLoop = Animated.loop(
-            Animated.timing(rotateAnim, {
+            Animated.timing(vibrateAnim, {
                 toValue: 1,
-                duration: 10000, // 10 seconds per rotation
+                duration: 1700,
+                easing: Easing.linear,
                 useNativeDriver: true,
             })
         );
-        rotateLoop.start();
+        scaleLoop.start();
 
         return () => {
             shineLoop.stop();
             scaleLoop.stop();
-            rotateLoop.stop();
         };
-    }, [localVisible, shineAnim, scaleAnim, rotateAnim]);
+    }, [localVisible, shineAnim, vibrateAnim]);
 
-    // Mascot switching every 3 seconds
+    // Mascot switching every 2.25 seconds with smooth fade transition
     useEffect(() => {
-        if (!localVisible || animStyle !== "mascots") return;
+        if (!localVisible) return;
 
         const interval = setInterval(() => {
-            setCurrentMascotIdx((prev) => (prev + 1) % 3);
-        }, 3000);
+            // Fade out (200ms)
+            Animated.timing(mascotOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                // Switch mascot source to a random one (excluding the current one to ensure it changes)
+                setCurrentMascot((prev: any) => {
+                    const available = MASCOTS.filter((m) => m !== prev);
+                    return available[Math.floor(Math.random() * available.length)];
+                });
+
+                // Fade in (200ms)
+                Animated.timing(mascotOpacity, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                }).start();
+            });
+        }, 2250);
 
         return () => clearInterval(interval);
-    }, [localVisible, animStyle]);
+    }, [localVisible]);
 
     if (!localVisible) return null;
-
-    const spin = rotateAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: ["0deg", "360deg"],
-    });
 
     const shineLeft = shineAnim.interpolate({
         inputRange: [0, 1],
@@ -173,6 +163,11 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
     const progressWidth = progressAnim.interpolate({
         inputRange: [0, 1],
         outputRange: ["0%", "100%"],
+    });
+
+    const scaleAnim = vibrateAnim.interpolate({
+        inputRange: [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1],
+        outputRange: [1, 1.021, 1.03, 1.021, 1, 0.979, 0.97, 0.979, 1],
     });
 
     return (
@@ -186,25 +181,17 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
                 <View style={styles.content}>
                     {/* 1. Animation Area */}
                     <View style={styles.animationContainer}>
-                        {animStyle === "mascots" && selectedMascots.length > 0 ? (
-                            <Animated.Image
-                                source={selectedMascots[currentMascotIdx]}
-                                style={[
-                                    styles.mascotImage,
-                                    { transform: [{ scale: scaleAnim }] },
-                                ]}
-                                resizeMode="contain"
-                            />
-                        ) : (
-                            <Animated.Image
-                                source={require("../../../../assets/images/trong_dong.png")}
-                                style={[
-                                    styles.trongDongImage,
-                                    { transform: [{ rotate: spin }] },
-                                ]}
-                                resizeMode="contain"
-                            />
-                        )}
+                        <Animated.Image
+                            source={currentMascot}
+                            style={[
+                                styles.mascotImage,
+                                {
+                                    opacity: mascotOpacity,
+                                    transform: [{ scale: scaleAnim }],
+                                },
+                            ]}
+                            resizeMode="contain"
+                        />
                     </View>
 
                     {/* 2. Loading Bar */}
