@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // ─── DEBUG / TESTING OVERRIDE ──────────────────────────────────────────────
 // Force a specific background on every screen (bypasses random pick + cache).
 // Set back to `null` to restore normal session-random behaviour.
-const FORCE_BACKGROUND: AppBackgroundType | null = null;
+const FORCE_BACKGROUND: AppBackgroundType | null = "rotatingDrum";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 export type AppBackgroundType =
