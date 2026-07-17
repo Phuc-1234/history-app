@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { ScrollView } from "react-native";
+import { RefreshControl, ScrollView } from "react-native";
 import { EmptyState, ScreenShell, SegmentTabs, UserCard } from "@/components/ui";
+import { colors } from "@/theme/colors";
 import {
     useAcceptFriendRequestMutation,
     useCancelFriendRequestMutation,
@@ -26,7 +27,21 @@ export function FriendRequestsScreen() {
 
     return (
         <ScreenShell title="Lời mời kết bạn">
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={activeQuery.isFetching}
+                        onRefresh={() => {
+                            incomingQuery.refetch();
+                            outgoingQuery.refetch();
+                        }}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
                 <SegmentTabs
                     tabs={["Đã nhận", "Đã gửi"]}
                     active={activeTab}
