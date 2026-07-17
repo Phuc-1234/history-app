@@ -67,10 +67,12 @@ export function searchActions(user: ViewUser): {
     follow: CardAction;
     friend: CardAction;
 } {
-    // Button 1: Theo dõi — outline style
+    // Button 1: Theo dõi — chỉ chữ (theo chuẩn Twitter/Instagram), đổi variant
+    // để báo trạng thái. Trước đây dùng icon "eye-outline" gây nhầm với nút
+    // "Xem hồ sơ" ở màn hình khác.
     const follow: CardAction = user.isFollowing
-        ? { label: "Đang theo dõi", icon: "checkmark", variant: "outline" }
-        : { label: "Theo dõi", icon: "eye-outline", variant: "outline" };
+        ? { label: "Đang theo dõi", variant: "soft" }
+        : { label: "Theo dõi", variant: "outline" };
 
     // Button 2: Kết bạn — filled style
     const friend: CardAction =
