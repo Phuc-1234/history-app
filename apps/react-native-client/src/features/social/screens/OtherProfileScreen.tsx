@@ -155,7 +155,8 @@ export function OtherProfileScreen() {
                     <View style={styles.actionRow}>
                         <PrimaryButton
                             label={actions.follow.label}
-                            variant={following ? "soft" : "outline"}
+                            icon={following ? "checkmark" : "eye-outline"}
+                            variant="outline"
                             onPress={handleFollow}
                         />
                         <PrimaryButton
