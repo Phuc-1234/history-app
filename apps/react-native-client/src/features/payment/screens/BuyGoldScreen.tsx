@@ -17,6 +17,7 @@ import {
 import { usePayment } from "../hooks/usePayment";
 import { PaymentProvider } from "../api/paymentApi";
 import { API_BASE_URL } from "../../../services/config";
+import { Ionicons } from "@expo/vector-icons";
 
 // ─── Gold packages ────────────────────────────────────────────────────────────
 
@@ -47,9 +48,9 @@ function getProviderSubLabel(provider: PaymentProvider) {
     return "Ngân hàng";
 }
 
-function getProviderIcon(provider: PaymentProvider) {
-    if (provider === "ZALOPAY") return "💙";
-    return "🏦";
+function getProviderIconName(provider: PaymentProvider) {
+    if (provider === "ZALOPAY") return "wallet-outline";
+    return "business-outline";
 }
 
 function getProviderColor(provider: PaymentProvider) {
@@ -121,9 +122,6 @@ export const BuyGoldScreen: React.FC = () => {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <View style={styles.headerIconBg}>
-                        <Text style={styles.headerEmoji}>💰</Text>
-                    </View>
                     <Text style={styles.headerTitle}>Mua Gold</Text>
                     <Text style={styles.headerSub}>
                         1 Gold = 2.000đ · Thanh toán an toàn qua ZaloPay hoặc Ngân hàng VietQR
@@ -149,7 +147,6 @@ export const BuyGoldScreen: React.FC = () => {
                                     <Text style={styles.popularBadgeText}>Phổ biến</Text>
                                 </View>
                             )}
-                            <Text style={styles.packageGoldIcon}>🥇</Text>
                             <Text style={styles.packageGoldLabel}>{pkg.label}</Text>
                             <Text style={styles.packagePrice}>
                                 {pkg.priceVnd.toLocaleString("vi-VN")}đ
@@ -174,7 +171,7 @@ export const BuyGoldScreen: React.FC = () => {
                                 onPress={() => setSelectedProvider(provider)}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.providerIcon}>{getProviderIcon(provider)}</Text>
+                                <Ionicons name={getProviderIconName(provider)} size={24} color={color} style={{ marginBottom: 6 }} />
                                 <Text
                                     style={[
                                         styles.providerLabel,
@@ -266,7 +263,12 @@ export const BuyGoldScreen: React.FC = () => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
-                        <Text style={styles.modalEmoji}>{isSuccess ? "🎉" : "❌"}</Text>
+                        <Ionicons 
+                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"} 
+                            size={56} 
+                            color={isSuccess ? "#22A45D" : "#E4002B"} 
+                            style={{ marginBottom: 12 }} 
+                        />
                         <Text style={styles.modalTitle}>
                             {isSuccess ? "Thanh toán thành công!" : "Thanh toán thất bại"}
                         </Text>
@@ -274,7 +276,7 @@ export const BuyGoldScreen: React.FC = () => {
                             {isSuccess
                                 ? `Bạn đã nhận được ${
                                       state.phase === "success" ? state.result.goldAmount : ""
-                                  } Gold 🥇`
+                                  } Gold`
                                 : (state.phase === "failed" ? state.error : "")}
                         </Text>
                         <TouchableOpacity style={styles.modalButton} onPress={reset}>
@@ -304,8 +306,9 @@ export const BuyGoldScreen: React.FC = () => {
                         >
                             {/* Header */}
                             <View style={styles.qrHeader}>
-                                <View style={styles.qrBankBadge}>
-                                    <Text style={styles.qrBankBadgeText}>🏦 MB Bank</Text>
+                                <View style={[styles.qrBankBadge, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
+                                    <Ionicons name="business-outline" size={14} color="#E4002B" />
+                                    <Text style={styles.qrBankBadgeText}>MB Bank</Text>
                                 </View>
                                 <Text style={styles.qrTitle}>Quét mã VietQR</Text>
                                 <Text style={styles.qrSubtitle}>
@@ -370,9 +373,12 @@ export const BuyGoldScreen: React.FC = () => {
                                             <Text style={styles.transferContentValue} numberOfLines={2}>{state.providerOrderId}</Text>
                                             <Text style={styles.copyIcon}>⎘</Text>
                                         </TouchableOpacity>
-                                        <Text style={styles.transferContentHint}>
-                                            ⚠️ Nhập đúng nội dung để hệ thống xác nhận tự động
-                                        </Text>
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 }}>
+                                            <Ionicons name="warning-outline" size={12} color="#F5A623" />
+                                            <Text style={[styles.transferContentHint, { marginTop: 0 }]}>
+                                                Nhập đúng nội dung để hệ thống xác nhận tự động
+                                            </Text>
+                                        </View>
                                     </View>
 
                                     {/* Simulate button */}
@@ -384,9 +390,12 @@ export const BuyGoldScreen: React.FC = () => {
                                         {isSimulating ? (
                                             <ActivityIndicator color="#FFFFFF" size="small" />
                                         ) : (
-                                            <Text style={styles.simulateButtonText}>
-                                                🧪 Mô phỏng chuyển khoản
-                                            </Text>
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                                <Ionicons name="flask-outline" size={16} color="#FFFFFF" />
+                                                <Text style={styles.simulateButtonText}>
+                                                    Mô phỏng chuyển khoản
+                                                </Text>
+                                            </View>
                                         )}
                                     </TouchableOpacity>
 
@@ -420,19 +429,9 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
 
-    // Header
     header: {
         alignItems: "center",
         marginBottom: 28,
-    },
-    headerIconBg: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: "#EEF0FF",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 12,
     },
     headerEmoji: {
         fontSize: 36,

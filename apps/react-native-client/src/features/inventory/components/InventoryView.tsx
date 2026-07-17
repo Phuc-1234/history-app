@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInventory, InventoryItem } from "../hooks/useInventory";
+import { Ionicons } from "@expo/vector-icons";
 
 export const InventoryView: React.FC = () => {
     const { inventory, selectedItem, setSelectedItemId, handleUseItem, isLoading, handleRefresh, isRefreshing } =
@@ -44,7 +45,7 @@ export const InventoryView: React.FC = () => {
         >
             {inventory.length === 0 ? (
                 <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 }}>
-                    <Text style={{ fontSize: 36, marginBottom: 12 }}>🎒</Text>
+                    <Ionicons name="briefcase-outline" size={48} color="#666" style={{ marginBottom: 12 }} />
                     <Text style={{ fontSize: 16, fontWeight: "600", color: "#666" }}>Túi đồ trống</Text>
                     <Text style={{ fontSize: 14, color: "#888", textAlign: "center", marginTop: 4, paddingHorizontal: 24 }}>
                         Hãy hoàn thành các bài học hoặc ghé cửa hàng để nhận vật phẩm!
@@ -135,14 +136,11 @@ export const InventoryView: React.FC = () => {
                                                 { backgroundColor: item.iconBgColor },
                                             ]}
                                         >
-                                            <Text
-                                                style={[
-                                                    styles.emojiIcon,
-                                                    { color: item.iconColor },
-                                                ]}
-                                            >
-                                                {item.icon}
-                                            </Text>
+                                            <Ionicons
+                                                name={item.icon as any}
+                                                size={24}
+                                                color={item.iconColor}
+                                            />
                                         </View>
                                     )}
 

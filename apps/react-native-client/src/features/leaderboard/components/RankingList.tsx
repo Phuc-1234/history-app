@@ -5,6 +5,7 @@ import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import { AvatarWithFrame } from "../../../components/ui";
+import { Ionicons } from "@expo/vector-icons";
 
 interface RankingListProps {
     rankingList: DisplayUser[];
@@ -53,9 +54,14 @@ export const RankingList: React.FC<RankingListProps> = ({
 
                         {/* XP hoặc Chuỗi */}
                         <Text style={[styles.rowXp, isMe && styles.meText]}>
-                            {showStreak
-                                ? `🔥 ${item.streak} ngày`
-                                : `${item.xp.toLocaleString()} XP`}
+                            {showStreak ? (
+                                <>
+                                    <Ionicons name="flame" size={14} color="#EA580C" />
+                                    <Text> {item.streak} ngày</Text>
+                                </>
+                            ) : (
+                                `${item.xp.toLocaleString()} XP`
+                            )}
                         </Text>
                     </Card>
                 );

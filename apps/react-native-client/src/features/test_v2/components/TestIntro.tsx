@@ -8,7 +8,7 @@ import {
     ScrollView,
     Image
 } from "react-native";
-import { FileText, Clock, Zap, Coins, Trophy, HelpCircle } from "lucide-react-native";
+import { FileText, Clock, Zap, Coins, Trophy, HelpCircle, Package } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { CustomModal } from "../../../components/Modal";
 import Card from "../../../components/Card";
@@ -216,7 +216,7 @@ export default function TestIntro({
                                         {item.imgUrl ? (
                                             <Image source={{ uri: item.imgUrl }} style={{ width: 20, height: 20, resizeMode: "contain" }} />
                                         ) : (
-                                            <Text style={{ fontSize: 16 }}>📦</Text>
+                                            <Package size={16} color={colors.textPrimary} />
                                         )}
                                         <Text style={{ fontSize: 13, fontFamily: typography.fonts.medium, color: colors.textPrimary }}>
                                             {item.name} x{item.quantity}

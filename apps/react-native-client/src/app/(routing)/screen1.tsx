@@ -70,7 +70,7 @@ export default function OnboardingScreen1() {
   );
 }
 
-// 📦 TOÀN BỘ CSS ĐÃ ĐƯỢC DUỖI THẲNG THEO CHIỀU DỌC ĐÚNG Ý HỒNG NÈ:
+// TOÀN BỘ CSS ĐÃ ĐƯỢC DUỖI THẲNG THEO CHIỀU DỌC ĐÚNG Ý HỒNG NÈ:
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -126,7 +126,7 @@ export default function StreakCelebrationModal({
                     >
                         <Text style={styles.streakTitle}>CHUỖI {currentStreak} NGÀY!</Text>
                         
-                        <Text style={styles.congratsText}>Bạn đang bùng cháy cực hạn! 🔥</Text>
+                        <Text style={styles.congratsText}>Bạn đang bùng cháy cực hạn!</Text>
                         
                         <Text style={styles.descText}>
                             Tuyệt vời! Bạn đã tích cực duy trì việc học tập liên tục để bảo vệ ngọn lửa tri thức ngày hôm nay.

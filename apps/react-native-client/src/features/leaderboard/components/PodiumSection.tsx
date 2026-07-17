@@ -4,6 +4,7 @@ import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { AvatarWithFrame } from "../../../components/ui";
+import { Ionicons } from "@expo/vector-icons";
 
 interface PodiumSectionProps {
     topUsers: DisplayUser[];
@@ -38,16 +39,21 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[1]?.name}
                 </Text>
                 <Text style={styles.rank2Xp}>
-                    {showStreak
-                        ? `🔥 ${topUsers[1]?.streak} ngày`
-                        : `${topUsers[1]?.xp.toLocaleString()} XP`}
+                    {showStreak ? (
+                        <>
+                            <Ionicons name="flame" size={12} color="#EA580C" />
+                            <Text> {topUsers[1]?.streak} ngày</Text>
+                        </>
+                    ) : (
+                        `${topUsers[1]?.xp.toLocaleString()} XP`
+                    )}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank2Base]} />
             </View>
 
             {/* 1st Place */}
             <View style={[styles.podiumColumn, styles.centerPodiumColumn]}>
-                <Text style={styles.crownIcon}>👑</Text>
+                <Ionicons name="trophy" size={isSmallDevice ? 20 : 24} color={colors.secondary} style={{ marginBottom: -2, zIndex: 3 }} />
                 <View style={styles.avatarWrapper}>
                     <AvatarWithFrame
                         uri={topUsers[0]?.avatar}
@@ -68,9 +74,14 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[0]?.name}
                 </Text>
                 <Text style={styles.rank1Xp}>
-                    {showStreak
-                        ? `🔥 ${topUsers[0]?.streak} ngày`
-                        : `${topUsers[0]?.xp.toLocaleString()} XP`}
+                    {showStreak ? (
+                        <>
+                            <Ionicons name="flame" size={14} color="#EA580C" />
+                            <Text> {topUsers[0]?.streak} ngày</Text>
+                        </>
+                    ) : (
+                        `${topUsers[0]?.xp.toLocaleString()} XP`
+                    )}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank1Base]} />
             </View>
@@ -93,9 +104,14 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     {topUsers[2]?.name}
                 </Text>
                 <Text style={styles.rank3Xp}>
-                    {showStreak
-                        ? `🔥 ${topUsers[2]?.streak} ngày`
-                        : `${topUsers[2]?.xp.toLocaleString()} XP`}
+                    {showStreak ? (
+                        <>
+                            <Ionicons name="flame" size={12} color="#EA580C" />
+                            <Text> {topUsers[2]?.streak} ngày</Text>
+                        </>
+                    ) : (
+                        `${topUsers[2]?.xp.toLocaleString()} XP`
+                    )}
                 </Text>
                 <View style={[styles.podiumBase, styles.rank3Base]} />
             </View>

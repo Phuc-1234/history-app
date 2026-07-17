@@ -35,7 +35,7 @@ export const API_BASE_URL = getApiUrl();
 // Big bold terminal alert warning about fallback unencrypted web tokens
 if (Platform.OS === "web") {
     console.log("\n" + "=".repeat(60));
-    console.warn("🚨 SECURITY ALERT: WEB DEV DETECTED 🚨");
+    console.warn("[SECURITY ALERT] WEB DEV DETECTED");
     console.warn(
         "Tokens are currently being redirected to ASYNC STORAGE (localStorage).",
     );

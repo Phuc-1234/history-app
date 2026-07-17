@@ -19,6 +19,7 @@ import { API_BASE_URL } from "../../../services/config";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import { Ionicons } from "@expo/vector-icons";
 
 const PAYMENT_PROVIDERS: PaymentProvider[] = ["ZALOPAY", "SEPAY"];
 
@@ -32,9 +33,9 @@ function getProviderSubLabel(provider: PaymentProvider) {
     return "Ngân hàng";
 }
 
-function getProviderIcon(provider: PaymentProvider) {
-    if (provider === "ZALOPAY") return "💙";
-    return "🏦";
+function getProviderIconName(provider: PaymentProvider) {
+    if (provider === "ZALOPAY") return "wallet-outline";
+    return "business-outline";
 }
 
 function getProviderColor(provider: PaymentProvider) {
@@ -125,19 +126,11 @@ export const SubscriptionScreen: React.FC = () => {
     };
 
     const renderActiveSubscription = () => {
-        // User is Pro
         const expiresStr = formatDate(profile?.proExpiresAt);
-        // We will default autoRenew state based on status (if cancelled, autoRenew is false)
-        // Wait, if profile doesn't have autoRenew directly, we check if proExpiresAt is set
-        // In backend, cancelSubscription sets status to CANCELLED and autoRenew to false.
-        // We can check if it's already cancelled or not. Let's look at profile. Since profile schema didn't contain autoRenew,
-        // wait, does user need to fetch subscription info or just show expiration?
-        // Actually, we can fetch active subscription status or display the date.
-        // For convenience, we can display: "Gói Pro đang kích hoạt đến: DD/MM/YYYY".
         return (
             <View style={styles.activeContainer}>
                 <View style={styles.proCrownCard}>
-                    <Text style={styles.crownEmoji}>👑</Text>
+                    <Ionicons name="ribbon-outline" size={64} color={colors.secondary} style={{ marginBottom: 16 }} />
                     <Text style={styles.proCardTitle}>Bạn là Thành Viên Pro</Text>
                     <Text style={styles.proCardSubtitle}>
                         Bạn đang tận hưởng toàn bộ đặc quyền cao cấp của HistoryApp.
@@ -178,7 +171,6 @@ export const SubscriptionScreen: React.FC = () => {
             backgroundColor={colors.background}
             style={styles.safe}
         >
-            {/* Back button header */}
             <View style={styles.backHeader}>
                 <TouchableOpacity
                     style={styles.backButton}
@@ -198,10 +190,9 @@ export const SubscriptionScreen: React.FC = () => {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Header */}
                     <View style={styles.header}>
                         <View style={styles.headerIconBg}>
-                            <Text style={styles.headerEmoji}>👑</Text>
+                            <Ionicons name="ribbon-outline" size={36} color={colors.secondary} />
                         </View>
                         <Text style={styles.headerTitle}>Gói Premium Pro</Text>
                         <Text style={styles.headerSub}>
@@ -209,31 +200,30 @@ export const SubscriptionScreen: React.FC = () => {
                         </Text>
                     </View>
 
-                    {/* Features list */}
                     <View style={styles.featuresContainer}>
                         <View style={styles.featureItem}>
-                            <Text style={styles.featureIcon}>🚫</Text>
+                            <Ionicons name="ban-outline" size={24} color={colors.error} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
                                 <Text style={styles.featureTitle}>Không quảng cáo</Text>
                                 <Text style={styles.featureDesc}>Học tập mượt mà, không bị gián đoạn quảng cáo.</Text>
                             </View>
                         </View>
                         <View style={styles.featureItem}>
-                            <Text style={styles.featureIcon}>⚡</Text>
+                            <Ionicons name="flash-outline" size={24} color={colors.warning} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
                                 <Text style={styles.featureTitle}>Nhân đôi kinh nghiệm (X2 XP)</Text>
                                 <Text style={styles.featureDesc}>Tăng tốc thăng hạng giải đấu nhanh gấp đôi.</Text>
                             </View>
                         </View>
                         <View style={styles.featureItem}>
-                            <Text style={styles.featureIcon}>🥇</Text>
+                            <Ionicons name="trophy-outline" size={24} color={colors.secondary} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
                                 <Text style={styles.featureTitle}>Nhân đôi Gold thưởng</Text>
                                 <Text style={styles.featureDesc}>Nhận thêm nhiều Gold hơn khi vượt qua bài thi.</Text>
                             </View>
                         </View>
                         <View style={styles.featureItem}>
-                            <Text style={styles.featureIcon}>🔑</Text>
+                            <Ionicons name="key-outline" size={24} color={colors.primary} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
                                 <Text style={styles.featureTitle}>Mở khóa Video lịch sử</Text>
                                 <Text style={styles.featureDesc}>Xem không giới hạn kho nội dung bài giảng độc quyền.</Text>
@@ -241,13 +231,11 @@ export const SubscriptionScreen: React.FC = () => {
                         </View>
                     </View>
 
-                    {/* Price tag */}
                     <View style={styles.priceContainer}>
                         <Text style={styles.pricePeriod}>Gói tháng</Text>
                         <Text style={styles.priceAmount}>2.000đ<Text style={styles.priceUnit}>/tháng</Text></Text>
                     </View>
 
-                    {/* Provider Selector */}
                     <Text style={styles.sectionLabel}>Phương thức thanh toán</Text>
                     <View style={styles.providerRow}>
                         {PAYMENT_PROVIDERS.map((provider) => {
@@ -263,7 +251,7 @@ export const SubscriptionScreen: React.FC = () => {
                                     onPress={() => setSelectedProvider(provider)}
                                     activeOpacity={0.8}
                                 >
-                                    <Text style={styles.providerIcon}>{getProviderIcon(provider)}</Text>
+                                    <Ionicons name={getProviderIconName(provider)} size={24} color={color} style={{ marginBottom: 6 }} />
                                     <Text
                                         style={[
                                             styles.providerLabel,
@@ -333,13 +321,18 @@ export const SubscriptionScreen: React.FC = () => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
-                        <Text style={styles.modalEmoji}>{isSuccess ? "🎉" : "❌"}</Text>
+                        <Ionicons 
+                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"} 
+                            size={56} 
+                            color={isSuccess ? colors.success : colors.error} 
+                            style={{ marginBottom: 12 }} 
+                        />
                         <Text style={styles.modalTitle}>
                             {isSuccess ? "Đăng ký thành công!" : "Đăng ký thất bại"}
                         </Text>
                         <Text style={styles.modalSub}>
                             {isSuccess
-                                ? "Tài khoản của bạn đã được nâng cấp lên gói Premium Pro 👑."
+                                ? "Tài khoản của bạn đã được nâng cấp lên gói Premium Pro."
                                 : (state.phase === "failed" ? state.error : "")}
                         </Text>
                         <TouchableOpacity style={styles.modalButton} onPress={reset}>
@@ -367,8 +360,9 @@ export const SubscriptionScreen: React.FC = () => {
                             contentContainerStyle={styles.qrScrollContent}
                         >
                             <View style={styles.qrHeader}>
-                                <View style={styles.qrBankBadge}>
-                                    <Text style={styles.qrBankBadgeText}>🏦 MB Bank</Text>
+                                <View style={[styles.qrBankBadge, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
+                                    <Ionicons name="business-outline" size={14} color={colors.vietqr} />
+                                    <Text style={styles.qrBankBadgeText}>MB Bank</Text>
                                 </View>
                                 <Text style={styles.qrTitle}>Quét mã VietQR</Text>
                                 <Text style={styles.qrSubtitle}>
@@ -426,9 +420,12 @@ export const SubscriptionScreen: React.FC = () => {
                                             <Text style={styles.transferContentValue} numberOfLines={2}>{state.providerOrderId}</Text>
                                             <Text style={styles.copyIcon}>⎘</Text>
                                         </TouchableOpacity>
-                                        <Text style={styles.transferContentHint}>
-                                            ⚠️ Nhập đúng nội dung để hệ thống tự động kích hoạt gói Pro
-                                        </Text>
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 }}>
+                                            <Ionicons name="warning-outline" size={12} color={colors.textWarning} />
+                                            <Text style={[styles.transferContentHint, { marginTop: 0 }]}>
+                                                Nhập đúng nội dung để hệ thống tự động kích hoạt gói Pro
+                                            </Text>
+                                        </View>
                                     </View>
 
                                     <TouchableOpacity
@@ -439,9 +436,12 @@ export const SubscriptionScreen: React.FC = () => {
                                         {isSimulating ? (
                                             <ActivityIndicator color={colors.textLight} size="small" />
                                         ) : (
-                                            <Text style={styles.simulateButtonText}>
-                                                🧪 Mô phỏng chuyển khoản gói Pro
-                                            </Text>
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                                <Ionicons name="flask-outline" size={16} color={colors.textLight} />
+                                                <Text style={styles.simulateButtonText}>
+                                                    Mô phỏng chuyển khoản gói Pro
+                                                </Text>
+                                            </View>
                                         )}
                                     </TouchableOpacity>
 

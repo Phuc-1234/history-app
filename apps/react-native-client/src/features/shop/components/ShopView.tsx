@@ -12,7 +12,7 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from "react-native";
-import { Coins, Search } from "lucide-react-native";
+import { Coins, Search, ArrowUpDown, Package, ShoppingCart } from "lucide-react-native";
 import { useShop, ShopItem } from "../hooks/useShop";
 import { useRouter } from "expo-router";
 
@@ -82,9 +82,10 @@ export const ShopView: React.FC = () => {
                         style={styles.filterButton}
                         activeOpacity={0.7}
                     >
-                        <Text style={styles.filterButtonText}>
-                            ⏳ Sort filter
-                        </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                            <ArrowUpDown size={14} color="#5C5665" />
+                            <Text style={styles.filterButtonText}>Sắp xếp</Text>
+                        </View>
                     </TouchableOpacity>
                 </View>
 
@@ -109,7 +110,7 @@ export const ShopView: React.FC = () => {
                                             style={[styles.cellImage, item.isOwned && { opacity: 0.5 }]}
                                         />
                                     ) : (
-                                        <Text style={styles.fallbackBoxIcon}>📦</Text>
+                                        <Package size={36} color="#AEA9B5" />
                                     )}
                                     {item.isOwned && (
                                         <View style={styles.ownedBadge}>
@@ -194,9 +195,14 @@ export const ShopView: React.FC = () => {
                                     onPress={() => !selectedItem.isOwned && handlePurchase(selectedItem)}
                                     disabled={selectedItem.isOwned}
                                 >
-                                    <Text style={styles.checkoutButtonText}>
-                                        {selectedItem.isOwned ? "Đã sở hữu" : "Mua ngay 🛒"}
-                                    </Text>
+                                    {selectedItem.isOwned ? (
+                                        <Text style={styles.checkoutButtonText}>Đã sở hữu</Text>
+                                    ) : (
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                            <ShoppingCart size={16} color="#FFFFFF" />
+                                            <Text style={styles.checkoutButtonText}>Mua ngay</Text>
+                                        </View>
+                                    )}
                                 </TouchableOpacity>
                             </View>
                         </View>

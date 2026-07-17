@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { FlashcardCard } from "../components/FlashcardCard";
 import { FlashcardControls } from "../components/FlashcardControls";
@@ -153,7 +154,7 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
     if (isError) {
         return (
             <View style={styles.centerContainer}>
-                <Text style={styles.errorIcon}>⚠️</Text>
+                <Ionicons name="warning-outline" size={48} color="#FF9800" style={{ marginBottom: 16 }} />
                 <Text style={styles.errorTitle}>Không thể tải dữ liệu</Text>
                 <Text style={styles.errorText}>
                     Vui lòng kiểm tra kết nối mạng và thử lại.
@@ -166,7 +167,7 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
     if (!flashcards || flashcards.length === 0) {
         return (
             <View style={styles.centerContainer}>
-                <Text style={styles.emptyIcon}>📭</Text>
+                <Ionicons name="mail-open-outline" size={48} color="#9C94A6" style={{ marginBottom: 16 }} />
                 <Text style={styles.emptyTitle}>Chưa có thẻ lật</Text>
                 <Text style={styles.emptyText}>
                     Bài học này chưa có thẻ lật nào. Hãy thử bài học khác nhé!
