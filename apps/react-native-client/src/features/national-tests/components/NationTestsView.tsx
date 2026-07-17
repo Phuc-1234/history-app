@@ -10,6 +10,7 @@ import {
   TextInput,
   ScrollView,
   RefreshControl,
+  Image,
 } from "react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
@@ -26,6 +27,9 @@ import {
   History,
   School,
 } from "lucide-react-native";
+import { useAppSelector } from "@/store/storeHook";
+import { PremiumModal } from "@/components/PremiumModal";
+import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "@/store/storeHook";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Ionicons } from "@expo/vector-icons";
@@ -65,6 +69,17 @@ export const NationalTestsView: React.FC = () => {
     setPremiumModalVisible(true);
   };
 
+  const profile = useAppSelector((state) => state.auth.profile);
+  const isUserPro = profile?.isPro === true;
+
+  const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+  const [lockedFeatureName, setLockedFeatureName] = useState("");
+
+  const showProModal = (feature: string) => {
+    setLockedFeatureName(feature);
+    setPremiumModalVisible(true);
+  };
+
   const { data: tests, isLoading, error, refetch, isFetching } = useGetNationalTestsQuery();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -84,7 +99,7 @@ export const NationalTestsView: React.FC = () => {
   return (
     <ScreenWrapper>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Đề thi Quốc gia</Text>
       </View>
@@ -137,10 +152,19 @@ export const NationalTestsView: React.FC = () => {
             const IconComponent = CARD_ICONS[index % CARD_ICONS.length];
             const isTestLocked = !!item.isPro && !isUserPro;
 
+            const isTestLocked = !!item.isPro && !isUserPro;
+
             return (
               <Card
                 key={item.id}
                 activeOpacity={0.8}
+                onPress={() => {
+                  if (isTestLocked) {
+                    showProModal(`đề thi "${item.title}"`);
+                  } else {
+                    handleTestPress(item.id);
+                  }
+                }}
                 onPress={() => {
                   if (isTestLocked) {
                     showProModal(`đề thi "${item.title}"`);
@@ -154,6 +178,7 @@ export const NationalTestsView: React.FC = () => {
                     backgroundColor: colors.surface,
                     borderWidth: 1,
                     borderColor: colors.borderMedium,
+                    opacity: isTestLocked ? 0.85 : 1,
                     opacity: isTestLocked ? 0.85 : 1,
                   },
                 ]}
@@ -178,6 +203,17 @@ export const NationalTestsView: React.FC = () => {
                       </View>
                     )}
                   </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                    <Text style={styles.cardTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    {!!item.isPro && (
+                      <View style={[styles.proBadge, { backgroundColor: isUserPro ? colors.successContainer : colors.secondaryContainer }]}>
+                        <Ionicons name={isUserPro ? "ribbon" : "lock-closed"} size={10} color={isUserPro ? colors.success : colors.secondaryHover} />
+                        <Text style={[styles.proBadgeText, { color: isUserPro ? colors.success : colors.secondaryHover }]}>PRO</Text>
+                      </View>
+                    )}
+                  </View>
                   {item.summary ? (
                     <Text style={styles.cardSummary} numberOfLines={2}>
                       {item.summary}
@@ -189,6 +225,12 @@ export const NationalTestsView: React.FC = () => {
           })
         )}
       </ScrollView>
+
+      <PremiumModal
+        visible={premiumModalVisible}
+        onClose={() => setPremiumModalVisible(false)}
+        featureName={lockedFeatureName}
+      />
 
       <PremiumModal
         visible={premiumModalVisible}
@@ -282,6 +324,29 @@ const styles = StyleSheet.create({
     fontFamily: typography.fonts.regular,
     fontSize: 12,
     color: "#000000",
+  },
+  lockOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(43, 29, 18, 0.4)",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  proBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  proBadgeText: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 10,
   },
   lockOverlay: {
     position: "absolute",

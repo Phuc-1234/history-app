@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { StyleSheet, View, Animated, Easing, Image } from "react-native";
 import { colors } from "../../theme/colors";
 
-const TRONG_DONG_IMG = require("../../../assets/images/trong_dong.png");
+const TRONG_DONG_IMG = require("../../../assets/images/trongdong_dongson.png");
 
 export default function HistoricalBackground() {
     // Animation drivers
@@ -62,6 +62,8 @@ export default function HistoricalBackground() {
         </View>
     );
 }
+
+
 
 const styles = StyleSheet.create({
     trongDongTopLeft: {

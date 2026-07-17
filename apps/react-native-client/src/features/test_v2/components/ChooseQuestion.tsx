@@ -382,6 +382,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
         flex: 1,
+        textAlign: "justify",
     },
     textSelected: { color: colors.textLight },
     textSelectedMultiple: { color: colors.textLight },

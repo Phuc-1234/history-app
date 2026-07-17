@@ -334,10 +334,12 @@ const tagsStyles = {
         color: colors.textSecondary,
         fontSize: 16,
         lineHeight: 26,
+        textAlign: "justify" as const,
     },
     p: {
         marginTop: 0,
         marginBottom: 12,
+        textAlign: "justify" as const,
     },
     a: {
         color: colors.primary,
@@ -348,6 +350,7 @@ const tagsStyles = {
         color: colors.textSecondary,
         fontSize: 15,
         lineHeight: 22,
+        textAlign: "justify" as const,
     },
     strong: {
         fontFamily: typography.fonts.bold,

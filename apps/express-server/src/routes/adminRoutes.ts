@@ -26,6 +26,7 @@ import {
     listVideos,
     createVideo,
     uploadVideo,
+    uploadImage,
     updateVideo,
     deleteVideo,
     listQuestions,
@@ -152,6 +153,9 @@ router.post("/videos", createVideo);
 
 // POST   /api/admin/videos/upload
 router.post("/videos/upload", upload.single("video"), uploadVideo);
+
+// POST   /api/admin/images/upload
+router.post("/images/upload", upload.single("image"), uploadImage);
 
 // PATCH  /api/admin/videos/:videoId
 router.patch("/videos/:videoId", updateVideo);

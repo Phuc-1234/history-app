@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     buyGoldBannerIcon: {
-        fontSize: 28,
+        
     },
     buyGoldBannerTitle: {
         fontSize: 15,

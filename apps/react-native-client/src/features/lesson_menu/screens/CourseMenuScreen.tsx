@@ -9,6 +9,7 @@ import {
     RefreshControl,
     Modal,
     TouchableOpacity,
+    Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
@@ -26,6 +27,7 @@ function CourseCard({
     total,
     isPro,
     isUserPro,
+    imgUrl,
     onPress,
 }: {
     grade: number;
@@ -33,6 +35,7 @@ function CourseCard({
     total: number;
     isPro: boolean;
     isUserPro: boolean;
+    imgUrl?: string | null;
     onPress: () => void;
 }) {
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -58,9 +61,13 @@ function CourseCard({
             activeOpacity={0.85}
         >
             {/* Left Image Section */}
-            <View style={[styles.imageContainer, { backgroundColor: colors.surfaceVariant }]}>
-                <Ionicons name="book" size={40} color={themeColor} />
-                
+            <View style={[styles.imageContainer, { backgroundColor: colors.surfaceVariant, overflow: "hidden" }]}>
+                {imgUrl ? (
+                    <Image source={{ uri: imgUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                ) : (
+                    <Ionicons name="book" size={40} color={themeColor} />
+                )}
+
                 {/* Overlapping Pill Badge */}
                 <View style={[styles.badge, { backgroundColor: themeColor }]}>
                     <Text style={styles.badgeText}>{percentage}%</Text>
@@ -86,7 +93,7 @@ function CourseCard({
                         </View>
                     )}
                 </View>
-                
+
                 <Text style={styles.courseSubtitle}>
                     {completed}/{total} phần đã học
                 </Text>
@@ -115,18 +122,18 @@ function CourseCard({
 function matchesSearch(text: string, query: string, isTest: boolean = false): boolean {
     const normText = text.toLowerCase().trim();
     const normQuery = query.toLowerCase().trim();
-    
+
     if (normText.includes(normQuery)) return true;
-    
+
     const testKeywords = ["quiz", "test", "kiểm tra", "đề", "exam"];
-    
+
     if (isTest) {
         const isGeneric = testKeywords.some(k => normQuery === k);
         if (isGeneric) return true;
     }
-    
+
     const queryHasTestKey = testKeywords.some(k => normQuery.includes(k) && (k !== "đề" || !normQuery.includes("chủ đề")));
-    
+
     if (isTest && queryHasTestKey) {
         let cleanQuery = normQuery;
         let cleanText = normText;
@@ -134,15 +141,15 @@ function matchesSearch(text: string, query: string, isTest: boolean = false): bo
             cleanQuery = cleanQuery.replace(k, "").trim();
             cleanText = cleanText.replace(k, "").trim();
         });
-        
+
         cleanQuery = cleanQuery.replace("chủ đề", "").trim();
         cleanText = cleanText.replace("chủ đề", "").trim();
-        
+
         if (cleanQuery && (cleanText.includes(cleanQuery) || cleanQuery.includes(cleanText))) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -151,25 +158,25 @@ function matchesTopicOrLesson(name: string, position: number, prefix: string, qu
     const normName = name.toLowerCase().trim();
     const prefixWithPos = `${prefix} ${position}`.toLowerCase();
     const fullName = `${prefixWithPos}: ${normName}`;
-    
+
     if (fullName.includes(normQuery) || normName.includes(normQuery)) return true;
-    
+
     if (/^\d+$/.test(normQuery) && parseInt(normQuery, 10) === position) {
         return true;
     }
-    
+
     return false;
 }
 
 function matchesGradeStructure(grade: number, structure: any, query: string): boolean {
     const q = query.trim().toLowerCase();
     if (!q) return true;
-    
+
     const gradeTitle = `sách giáo khoa lớp ${grade}`.toLowerCase();
     if (gradeTitle.includes(q) || String(grade).includes(q)) return true;
-    
+
     if (!structure || !structure.topics) return false;
-    
+
     for (const topic of structure.topics) {
         if (matchesTopicOrLesson(topic.name, topic.position, "chủ đề", query)) {
             return true;
@@ -186,12 +193,12 @@ function matchesGradeStructure(grade: number, structure: any, query: string): bo
             return true;
         }
     }
-    
+
     const finalTestTitle = `Kiểm tra Lớp ${grade}`;
     if (matchesSearch(finalTestTitle, query, true)) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -250,6 +257,11 @@ export function CourseMenuScreen() {
     const isGradePro = (gradeId: number) => {
         const gradeObj = gradesData?.grades?.find((g) => g.id === gradeId);
         return !!gradeObj?.isPro;
+    };
+
+    const getGradeImgUrl = (gradeId: number) => {
+        const gradeObj = gradesData?.grades?.find((g) => g.id === gradeId);
+        return gradeObj?.imgUrl;
     };
 
     const showProModal = (feature: string) => {
@@ -325,6 +337,7 @@ export function CourseMenuScreen() {
                                     total={prog10.total}
                                     isPro={isGradePro(10)}
                                     isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(10)}
                                     onPress={() => handleCoursePress(10)}
                                 />
                             )}
@@ -335,6 +348,7 @@ export function CourseMenuScreen() {
                                     total={prog11.total}
                                     isPro={isGradePro(11)}
                                     isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(11)}
                                     onPress={() => handleCoursePress(11)}
                                 />
                             )}
@@ -345,6 +359,7 @@ export function CourseMenuScreen() {
                                     total={prog12.total}
                                     isPro={isGradePro(12)}
                                     isUserPro={isUserPro}
+                                    imgUrl={getGradeImgUrl(12)}
                                     onPress={() => handleCoursePress(12)}
                                 />
                             )}
@@ -368,7 +383,7 @@ export function CourseMenuScreen() {
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Mức độ thành thạo</Text>
                         <Text style={styles.modalSubtitle}>Thành thạo dựa trên kết quả trả lời đúng liên tục các câu hỏi</Text>
-                        
+
                         <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
                             {loadingGrades ? (
                                 <ActivityIndicator size="small" color={colors.primary} />

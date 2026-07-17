@@ -29,6 +29,7 @@ export interface LessonSummaryData {
     topicId: number; // Linked directly from schema [cite: 3]
     videoId?: string; // Maps cleanly to Video model's UUID String [cite: 4]
     videoUrl?: string; // Maps cleanly to hlsUrl from schema [cite: 5]
+    imgUrl?: string | null;
     progress?: { totalNodes: number; completedNodes: number } | null;
     testPassed?: boolean | null;
 }
@@ -65,6 +66,7 @@ export function useLessonSummary(lessonIdStr: string) {
         topicId: lessonData.topicId,
         videoId: targetVideo?.id,
         videoUrl: targetVideo?.hlsUrl,
+        imgUrl: lessonData.imgUrl,
         progress: (lessonData as any).progress,
         testPassed: (lessonData as any).testPassed,
     };

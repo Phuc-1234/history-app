@@ -3,6 +3,7 @@ import { StyleSheet, View, TouchableOpacity } from "react-native";
 import Video, { VideoRef } from "react-native-video";
 import { useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ScreenOrientation from "expo-screen-orientation";
 
 import VideoError from "./VideoError";
 import VideoLoading from "./VideoLoading";
@@ -41,18 +42,32 @@ export default function VideoPlayer({
     return () => {
       unsubscribeFocus();
       unsubscribeBlur();
+      // Ensure orientation is reset when component unmounts
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT).catch((err) => {
+        console.log("Failed to reset orientation on unmount:", err);
+      });
     };
   }, [navigation]);
 
-  const handlePlayPress = () => {
+  const handlePlayPress = async () => {
     setIsUserPlaying(true);
     setIsFullscreen(true);
+    try {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    } catch (err) {
+      console.log("Failed to lock orientation to landscape:", err);
+    }
     videoRef.current?.presentFullscreenPlayer();
   };
 
-  const handleFullscreenDismiss = () => {
+  const handleFullscreenDismiss = async () => {
     setIsFullscreen(false);
     setIsUserPlaying(false);
+    try {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
+    } catch (err) {
+      console.log("Failed to reset orientation to default:", err);
+    }
   };
 
   return (
