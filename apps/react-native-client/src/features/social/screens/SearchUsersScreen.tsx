@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, Text, TextInput, View } from "react-native";
+import { RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { EmptyState, ScreenShell, SegmentTabs } from "@/components/ui";
 import { colors } from "@/theme/colors";
@@ -33,7 +33,18 @@ export function SearchUsersScreen() {
 
     return (
         <ScreenShell title="Tìm bạn">
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isFetching}
+                        onRefresh={refetch}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
                 <View style={styles.searchBox}>
                     <Ionicons name="search" size={18} color={colors.textMuted} />
                     <TextInput

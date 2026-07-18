@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
     EmptyState,
@@ -103,7 +103,26 @@ export function FriendsAndFollowScreen() {
 
     return (
         <ScreenShell title="Bạn bè & Theo dõi">
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={
+                            friendsQuery.isFetching ||
+                            followersQuery.isFetching ||
+                            followingQuery.isFetching
+                        }
+                        onRefresh={() => {
+                            friendsQuery.refetch();
+                            followersQuery.refetch();
+                            followingQuery.refetch();
+                        }}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
                 <View style={styles.summaryGrid}>
                     <StatCard
                         value={friendsQuery.isFetching ? "--" : String(friends.length)}
