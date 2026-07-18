@@ -31,20 +31,20 @@ export function useInventory() {
         if (!inventoryData?.inventory) return [];
         return inventoryData.inventory.map((ui) => {
             const def = ui.itemDefinition;
-            let icon = "📦";
+            let icon = "cube-outline";
             let iconBgColor = "#E3F2FD";
             let iconColor = "#1E88E5";
 
             if (def.itemType === "XP_MUL" || def.itemType === "GOLD_MUL") {
-                icon = "⚡";
+                icon = "flash-outline";
                 iconBgColor = "#FFECC7";
                 iconColor = "#FF9F00";
             } else if (def.itemType === "SKIN") {
-                icon = "🛡️";
+                icon = "shield-outline";
                 iconBgColor = "#FFEBEE";
                 iconColor = "#E53935";
             } else if (def.itemType === "BADGE") {
-                icon = "🏅";
+                icon = "ribbon-outline";
                 iconBgColor = "#EDE7F6";
                 iconColor = "#5E35B1";
             }

@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 // FIXME: Replace this with your computer's actual local Wi-Fi IP address
 // (Open cmd, type 'ipconfig', and look for 'IPv4 Address')
-const LOCAL_COMPUTER_IP = "192.168.3.28";
+const LOCAL_COMPUTER_IP = "192.168.35.104";
 
 const LOCAL_URL = Platform.select({
     web: "http://localhost:5000",
@@ -35,7 +35,7 @@ export const API_BASE_URL = getApiUrl();
 // Big bold terminal alert warning about fallback unencrypted web tokens
 if (Platform.OS === "web") {
     console.log("\n" + "=".repeat(60));
-    console.warn("🚨 SECURITY ALERT: WEB DEV DETECTED 🚨");
+    console.warn("[SECURITY ALERT] WEB DEV DETECTED");
     console.warn(
         "Tokens are currently being redirected to ASYNC STORAGE (localStorage).",
     );

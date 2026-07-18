@@ -67,14 +67,15 @@ export default function StreakModal({
 
                     {/* Header */}
                     <View style={styles.header}>
-                        <View>
-                            <Text style={styles.headerTitle}>
-                                Chuỗi học tập 🔥
-                            </Text>
-                            <Text style={styles.headerSubtitle}>
-                                Duy trì ngọn lửa học tập để rinh quà khủng
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                            <Flame size={20} color="#EA580C" />
+                            <Text style={[styles.headerTitle, { marginBottom: 0 }]}>
+                                Chuỗi học tập
                             </Text>
                         </View>
+                        <Text style={styles.headerSubtitle}>
+                            Duy trì ngọn lửa học tập để rinh quà khủng
+                        </Text>
                         <TouchableOpacity
                             onPress={onClose}
                             style={styles.closeButton}

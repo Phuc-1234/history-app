@@ -85,7 +85,7 @@ export const NationalTestsView: React.FC = () => {
   return (
     <ScreenWrapper>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Đề thi Quốc gia</Text>
       </View>
@@ -137,7 +137,7 @@ export const NationalTestsView: React.FC = () => {
             const cardBgColor = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
             const IconComponent = CARD_ICONS[index % CARD_ICONS.length];
             const isTestLocked = !!item.isPro && !isUserPro;
-
+            
             return (
               <Card
                 key={item.id}
@@ -159,7 +159,7 @@ export const NationalTestsView: React.FC = () => {
                   },
                 ]}
               >
-                <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant, overflow: "hidden" }]}>
+                 <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant, overflow: "hidden" }]}>
                   {item.imgUrl ? (
                     <Image source={{ uri: item.imgUrl }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                   ) : (

@@ -16,6 +16,7 @@ import { RankingList } from "./RankingList";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { SlidingTabBar } from "../../../components/SlidingTabBar";
+import { Ionicons } from "@expo/vector-icons";
 
 export const RankingView: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth.profile);
@@ -100,7 +101,14 @@ export const RankingView: React.FC = () => {
                         {meInList.name}
                     </Text>
                     <Text style={styles.xpText}>
-                        {activeTab === "xp" ? `${meInList.xp ?? 0} XP` : `🔥 ${meInList.streak ?? 0}`}
+                        {activeTab === "xp" ? (
+                            `${meInList.xp ?? 0} XP`
+                        ) : (
+                            <>
+                                <Ionicons name="flame" size={16} color="#FFD700" />
+                                <Text> {meInList.streak ?? 0}</Text>
+                            </>
+                        )}
                     </Text>
                 </View>
             )}

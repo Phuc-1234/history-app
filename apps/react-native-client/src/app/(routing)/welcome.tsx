@@ -91,7 +91,7 @@ export default function WelcomeScreen() {
   );
 }
 
-// 📦 STYLE ĐÃ ĐƯỢC DUỖI DỌC TOÀN BỘ RẤT GỌN GÀNG ĐÂY NÈ HỒNG:
+// STYLE ĐÃ ĐƯỢC DUỖI DỌC TOÀN BỘ RẤT GỌN GÀNG ĐÂY NÈ HỒNG:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
