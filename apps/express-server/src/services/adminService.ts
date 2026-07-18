@@ -65,6 +65,7 @@ export class AdminService {
             data: {
                 ...(data.state !== undefined && { state: data.state }),
                 ...(data.isPro !== undefined && { isPro: data.isPro }),
+                ...(data.imgUrl !== undefined && { imgUrl: data.imgUrl }),
             },
         });
         return { id: grade.id, state: grade.state, isPro: grade.isPro, imgUrl: grade.imgUrl };
