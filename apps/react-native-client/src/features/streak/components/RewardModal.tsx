@@ -106,7 +106,7 @@ export default function RewardModal({
                     </Animated.View>
 
                     {/* Celebration Typography */}
-                    <Text style={styles.title}>Chúc mừng! 🎉</Text>
+                    <Text style={styles.title}>Chúc mừng!</Text>
                     <Text style={styles.subtitle}>
                         Bạn đã đạt mốc chuỗi học tập xuất sắc và nhận được các phần quà danh giá sau:
                     </Text>

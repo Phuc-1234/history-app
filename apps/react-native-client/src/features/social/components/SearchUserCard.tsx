@@ -72,7 +72,12 @@ export function SearchUserCard({
                 </Text>
             </View>
             <View style={styles.searchButtonRow}>
-                <SearchActionButton action={actions.follow} type="outline" onPress={handleFollow} />
+                <SearchActionButton
+                    action={actions.follow}
+                    type="outline"
+                    onPress={handleFollow}
+                    showLabel
+                />
                 <SearchActionButton action={actions.friend} onPress={onFriend} type="filled" />
             </View>
         </TouchableOpacity>

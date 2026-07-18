@@ -34,6 +34,7 @@ export type CardActionVariant =
 
 export interface CardAction {
     label: string;
-    icon: keyof typeof Ionicons.glyphMap;
+    /** Optional — nếu bỏ qua, nút chỉ hiển thị chữ (theo chuẩn Twitter/Instagram). */
+    icon?: keyof typeof Ionicons.glyphMap;
     variant: CardActionVariant;
 }

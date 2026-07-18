@@ -13,7 +13,7 @@ import {
     useWindowDimensions,
     Image,
 } from "react-native";
-import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag } from "lucide-react-native";
+import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
@@ -505,7 +505,7 @@ export default function TestContainerV2({
                                                                 {item.imgUrl ? (
                                                                     <Image source={{ uri: item.imgUrl }} style={{ width: 16, height: 16, resizeMode: "contain" }} />
                                                                 ) : (
-                                                                    <Text style={{ fontSize: 13 }}>📦</Text>
+                                                                    <Package size={13} color={colors.textPrimary} />
                                                                 )}
                                                                 <Text style={{ fontSize: 12, fontFamily: typography.fonts.medium, color: colors.textPrimary }}>
                                                                     {item.name} x{item.quantity}
@@ -605,15 +605,21 @@ export default function TestContainerV2({
                                     height={100}
                                     style={{ marginBottom: 16 }}
                                 />
-                                <Text style={{
-                                    fontFamily: typography.fonts.bold,
-                                    fontSize: 18,
-                                    color: colors.textDark,
-                                    marginBottom: 10,
-                                    textAlign: "center",
-                                }}>
-                                    {activeMilestone.eventType === "STREAK_MILESTONE" ? "🔥 Chuỗi Ngày Mới!" : "🏆 Hạng Mới!"}
-                                </Text>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                                    {activeMilestone.eventType === "STREAK_MILESTONE" ? (
+                                        <Flame size={20} color={colors.warning} />
+                                    ) : (
+                                        <Trophy size={20} color={colors.secondary} />
+                                    )}
+                                    <Text style={{
+                                        fontFamily: typography.fonts.bold,
+                                        fontSize: 18,
+                                        color: colors.textDark,
+                                        textAlign: "center",
+                                    }}>
+                                        {activeMilestone.eventType === "STREAK_MILESTONE" ? "Chuỗi Ngày Mới!" : "Hạng Mới!"}
+                                    </Text>
+                                </View>
                                 <Text style={{
                                     fontFamily: typography.fonts.medium,
                                     fontSize: 14,
@@ -652,7 +658,7 @@ export default function TestContainerV2({
                                                     {item.imgUrl ? (
                                                         <Image source={{ uri: item.imgUrl }} style={{ width: 16, height: 16, resizeMode: "contain" }} />
                                                     ) : (
-                                                        <Text style={{ fontSize: 13 }}>📦</Text>
+                                                        <Package size={13} color={colors.textPrimary} />
                                                     )}
                                                     <Text style={{ fontSize: 12, fontFamily: typography.fonts.medium, color: colors.textPrimary }}>
                                                         {item.name} x{item.quantity}

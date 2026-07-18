@@ -8,6 +8,24 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import VideoError from "./VideoError";
 import VideoLoading from "./VideoLoading";
 
+/**
+ * Wrap an toàn cho ScreenOrientation.lockAsync.
+ *
+ * Lý do: `expo-screen-orientation` là native module — nếu app chạy bằng Expo Go
+ * hoặc build cũ chưa link native module, lời gọi sẽ throw
+ * "Cannot find native module 'ExpoScreenOrientation'" và crash toàn màn video.
+ * Bọc try-catch + check NativeModules để fallback êm.
+ */
+async function safeLockOrientation(
+  lock: ScreenOrientation.OrientationLock,
+): Promise<void> {
+  try {
+    await ScreenOrientation.lockAsync(lock);
+  } catch (err) {
+    console.log("[VideoPlayer] ScreenOrientation không khả dụng:", err);
+  }
+}
+
 interface VideoPlayerProps {
   videoId:  string;
   videoUrl: string;
@@ -43,31 +61,21 @@ export default function VideoPlayer({
       unsubscribeFocus();
       unsubscribeBlur();
       // Ensure orientation is reset when component unmounts
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT).catch((err) => {
-        console.log("Failed to reset orientation on unmount:", err);
-      });
+      safeLockOrientation(ScreenOrientation.OrientationLock.DEFAULT);
     };
   }, [navigation]);
 
   const handlePlayPress = async () => {
     setIsUserPlaying(true);
     setIsFullscreen(true);
-    try {
-      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-    } catch (err) {
-      console.log("Failed to lock orientation to landscape:", err);
-    }
+    await safeLockOrientation(ScreenOrientation.OrientationLock.LANDSCAPE);
     videoRef.current?.presentFullscreenPlayer();
   };
 
   const handleFullscreenDismiss = async () => {
     setIsFullscreen(false);
     setIsUserPlaying(false);
-    try {
-      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
-    } catch (err) {
-      console.log("Failed to reset orientation to default:", err);
-    }
+    await safeLockOrientation(ScreenOrientation.OrientationLock.DEFAULT);
   };
 
   return (

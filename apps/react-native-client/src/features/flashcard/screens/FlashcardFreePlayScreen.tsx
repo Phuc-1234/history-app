@@ -134,7 +134,7 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
     if (isError) {
         return (
             <View style={styles.centerContainer}>
-                <Text style={styles.errorIcon}>⚠️</Text>
+                <Ionicons name="warning-outline" size={48} color="#FF9800" style={{ marginBottom: 16 }} />
                 <Text style={styles.errorTitle}>Không thể tải dữ liệu</Text>
                 <Text style={styles.errorText}>
                     Vui lòng kiểm tra kết nối mạng và thử lại.
@@ -147,7 +147,7 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
     if (!cards || cards.length === 0) {
         return (
             <View style={styles.centerContainer}>
-                <Text style={styles.emptyIcon}>📭</Text>
+                <Ionicons name="mail-open-outline" size={48} color="#9C94A6" style={{ marginBottom: 16 }} />
                 <Text style={styles.emptyTitle}>Chưa có thẻ lật</Text>
                 <Text style={styles.emptyText}>
                     Bài học này chưa có thẻ lật nào. Hãy thử bài học khác nhé!

@@ -123,7 +123,7 @@ export default function ProfileMainScreen() {
                             end={{ x: 1, y: 1 }}
                             style={styles.proBadge}
                         >
-                            <Text style={styles.proBadgeText}>Người dùng Pro 👑</Text>
+                            <Text style={styles.proBadgeText}>Người dùng Pro</Text>
                         </LinearGradient>
                     </View>
                 )}
@@ -132,13 +132,13 @@ export default function ProfileMainScreen() {
 
             <View style={styles.menuSection}>
                 <Text style={styles.sectionHeader}>Gói dịch vụ</Text>
-                <View style={styles.menuContainer}>
+                <Card variant="soft" style={styles.menuContainer}>
                     <ProfileMenuItem
                         icon="gift-outline"
-                        label={profile?.isPro ? "Quản lý gói Pro 👑" : "Đăng ký gói Pro ✨"}
+                        label={profile?.isPro ? "Quản lý gói Pro" : "Đăng ký gói Pro"}
                         onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
                     />
-                </View>
+                </Card>
 
                 <Text style={styles.sectionHeader}>Quản lý tài khoản</Text>
                 <Card variant="soft" style={styles.menuContainer}>

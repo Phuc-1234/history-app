@@ -70,7 +70,7 @@ export default function OnboardingScreen2() {
   );
 }
 
-// 📦 STYLE ĐÃ ĐƯỢC DUỖI DỌC TOÀN BỘ THEO Ý HỒNG:
+// STYLE ĐÃ ĐƯỢC DUỖI DỌC TOÀN BỘ THEO Ý HỒNG:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
