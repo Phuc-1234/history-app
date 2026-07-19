@@ -78,43 +78,46 @@ export default function StreakDrawerModal({
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
                     >
-                        {/* Current Streak Hero Card */}
-                        <LinearGradient
-                            colors={["#FF9500", "#c37938"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.heroCard}
-                        >
-                            <View style={styles.heroHeader}>
-                                <View style={styles.heroBadgeBox}>
-                                    <Flame size={32} color="#FFFFFF" />
-                                </View>
-                                <View style={styles.heroTextContent}>
-                                    <View style={styles.heroTitleRow}>
-                                        <Text style={styles.heroStreakCount}>{activeStreak}</Text>
-                                        <Text style={styles.heroStreakUnit}>Ngày liên tục</Text>
+                        {/* Current Streak Info */}
+                        <View style={styles.heroSection}>
+                            {/* Main Row Wrapper (Brand Orange BG) */}
+                            <LinearGradient
+                                colors={["#FF9500", "#e08400"]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.heroMainRowWrapper}
+                            >
+                                <View style={styles.heroHeader}>
+                                    <View style={styles.heroBadgeBox}>
+                                        <Flame size={32} color="#FFFFFF" />
                                     </View>
-                                    <View style={styles.highestTag}>
-                                        <Trophy size={12} color="#FFFFFF" />
-                                        <Text style={styles.highestTagText}>
-                                            Kỷ lục: {highestStreak} ngày
-                                        </Text>
+                                    <View style={styles.heroTextContent}>
+                                        <View style={styles.heroTitleRow}>
+                                            <Text style={styles.heroStreakCount}>{activeStreak}</Text>
+                                            <Text style={styles.heroStreakUnit}>Ngày liên tục</Text>
+                                        </View>
+                                        <View style={styles.highestTag}>
+                                            <Trophy size={12} color="#FFFFFF" />
+                                            <Text style={styles.highestTagText}>
+                                                Kỷ lục: {highestStreak} ngày
+                                            </Text>
+                                        </View>
                                     </View>
                                 </View>
-                            </View>
+                            </LinearGradient>
 
                             {/* Today Status Alert Box */}
                             <View style={styles.statusBox}>
                                 {hasCompletedToday ? (
                                     <View style={styles.statusRow}>
-                                        <CheckCircle2 size={18} color="#FFFFFF" />
+                                        <CheckCircle2 size={18} color={colors.success} />
                                         <Text style={styles.statusText}>
                                             Tuyệt vời! Bạn đã hoàn thành bài học hôm nay.
                                         </Text>
                                     </View>
                                 ) : (
                                     <View style={styles.statusRow}>
-                                        <Flame size={18} color="#FFFFFF" />
+                                        <Flame size={18} color="#FF9500" />
                                         <Text style={styles.statusText}>
                                             Hôm nay chưa học! Hãy hoàn thành 1 bài tập để giữ chuỗi!
                                         </Text>
@@ -125,7 +128,7 @@ export default function StreakDrawerModal({
                             {/* Weekly Tracker Row */}
                             <View style={styles.weeklyTrackerContainer}>
                                 <View style={styles.weeklyTitleRow}>
-                                    <Calendar size={13} color="rgba(255, 255, 255, 0.9)" />
+                                    <Calendar size={13} color={colors.textSecondary} />
                                     <Text style={styles.weeklyTitle}>Tuần này</Text>
                                 </View>
                                 <View style={styles.daysRow}>
@@ -144,7 +147,7 @@ export default function StreakDrawerModal({
                                                     ]}
                                                 >
                                                     {isCompleted ? (
-                                                        <Flame size={14} color="#FF9500" />
+                                                        <Flame size={14} color="#FFFFFF" />
                                                     ) : (
                                                         <Text
                                                             style={[
@@ -169,7 +172,7 @@ export default function StreakDrawerModal({
                                     })}
                                 </View>
                             </View>
-                        </LinearGradient>
+                        </View>
 
                         {/* Milestones Section Header */}
                         <View style={styles.sectionHeader}>
@@ -349,16 +352,18 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 24,
     },
-    heroCard: {
-        borderRadius: 12, // container border radius = 12
-        padding: 18,
+    heroSection: {
         marginBottom: 20,
+        gap: 14,
+    },
+    heroMainRowWrapper: {
+        borderRadius: 12, // container border radius = 12
+        padding: 16,
     },
     heroHeader: {
         flexDirection: "row",
         alignItems: "center",
         gap: 14,
-        marginBottom: 14,
     },
     heroBadgeBox: {
         width: 56,
@@ -405,11 +410,10 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
     },
     statusBox: {
-        backgroundColor: "rgba(255, 255, 255, 0.18)",
+        backgroundColor: colors.surfaceVariant,
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 10,
-        marginBottom: 14,
     },
     statusRow: {
         flexDirection: "row",
@@ -419,12 +423,14 @@ const styles = StyleSheet.create({
     statusText: {
         fontFamily: typography.fonts.medium,
         fontSize: 12,
-        color: "#FFFFFF",
+        color: colors.textPrimary,
         flex: 1,
     },
     weeklyTrackerContainer: {
-        backgroundColor: "rgba(0, 0, 0, 0.12)",
+        backgroundColor: colors.surface,
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
         padding: 12,
     },
     weeklyTitleRow: {
@@ -436,7 +442,7 @@ const styles = StyleSheet.create({
     weeklyTitle: {
         fontFamily: typography.fonts.semiBold,
         fontSize: 12,
-        color: "rgba(255, 255, 255, 0.95)",
+        color: colors.textPrimary,
     },
     daysRow: {
         flexDirection: "row",
@@ -450,35 +456,35 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30,
         borderRadius: 15,
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        backgroundColor: colors.surfaceVariant,
         alignItems: "center",
         justifyContent: "center",
     },
     dayCircleCompleted: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#FF9500",
     },
     dayCircleTodayPending: {
         borderWidth: 2,
-        borderColor: "#FFFFFF",
+        borderColor: "#FF9500",
         backgroundColor: "transparent",
     },
     dayCircleText: {
         fontFamily: typography.fonts.medium,
         fontSize: 11,
-        color: "rgba(255, 255, 255, 0.8)",
+        color: colors.textMuted,
     },
     dayCircleTextToday: {
         fontFamily: typography.fonts.bold,
-        color: "#FFFFFF",
+        color: "#FF9500",
     },
     dayLabel: {
         fontFamily: typography.fonts.medium,
         fontSize: 11,
-        color: "rgba(255, 255, 255, 0.8)",
+        color: colors.textMuted,
     },
     dayLabelToday: {
         fontFamily: typography.fonts.bold,
-        color: "#FFFFFF",
+        color: colors.textPrimary,
     },
     sectionHeader: {
         marginBottom: 12,

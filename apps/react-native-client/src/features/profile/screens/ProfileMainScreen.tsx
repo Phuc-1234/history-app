@@ -135,11 +135,11 @@ export default function ProfileMainScreen() {
 
 
             <View style={styles.menuSection}>
-                {/* Quick action square buttons */}
+                {/* Quick action buttons */}
                 <View style={styles.quickGrid}>
                     {/* Pro button — shiny gradient */}
                     <TouchableOpacity
-                        style={styles.squareButtonWrapper}
+                        style={styles.proButtonWrapper}
                         onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
                         activeOpacity={0.82}
                     >
@@ -156,71 +156,62 @@ export default function ProfileMainScreen() {
                                 end={{ x: 1, y: 1 }}
                                 style={styles.proShimmer}
                             />
-                            <Ionicons name="star" size={26} color="#fff" />
+                            <Ionicons name="star" size={22} color="#fff" />
                             <Text style={styles.squareLabelPro}>
                                 {profile?.isPro ? "Gói Pro" : "Đăng ký Pro"}
                             </Text>
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* Test history */}
-                    <TouchableOpacity
-                        style={styles.squareButtonWrapper}
-                        onPress={handleViewHistory}
-                        activeOpacity={0.82}
-                    >
-                        <View
-                            
-                            style={styles.squareButton}
+                    {/* Row 1: Test history & Friends */}
+                    <View style={styles.gridRow}>
+                        <TouchableOpacity
+                            style={styles.squareButtonWrapper}
+                            onPress={handleViewHistory}
+                            activeOpacity={0.82}
                         >
-                            <Ionicons name="document-text-outline" size={26} color={colors.primary} />
-                        <Text style={styles.squareLabel}>Lịch sử làm bài</Text>
-                        </View>
-                        
-                    </TouchableOpacity>
+                            <View style={styles.squareButton}>
+                                <Ionicons name="document-text-outline" size={26} color={colors.primary} />
+                                <Text style={styles.squareLabel}>Lịch sử làm bài</Text>
+                            </View>
+                        </TouchableOpacity>
 
-                    {/* Friends */}
-                    <TouchableOpacity
-                        style={styles.squareButtonWrapper}
-                        onPress={handleOpenFriends}
-                        activeOpacity={0.82}
-                    >
-                        <View
-                            
-                            style={styles.squareButton}
+                        <TouchableOpacity
+                            style={styles.squareButtonWrapper}
+                            onPress={handleOpenFriends}
+                            activeOpacity={0.82}
                         >
-                            
-                        <Ionicons name="people-outline" size={26} color={colors.primary} />
-                        <Text style={styles.squareLabel}>Bạn bè & theo dõi</Text>
-                        </View>
-                    </TouchableOpacity>
+                            <View style={styles.squareButton}>
+                                <Ionicons name="people-outline" size={26} color={colors.primary} />
+                                <Text style={styles.squareLabel}>Bạn bè & theo dõi</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
 
-                    {/* Vật phẩm */}
-                    <TouchableOpacity
-                        style={styles.squareButtonWrapper}
-                        onPress={handleOpenItems}
-                        activeOpacity={0.82}
-                    >
-                        <View style={styles.squareButton}>
-                            <Ionicons name="gift-outline" size={26} color={colors.primary} />
-                            <Text style={styles.squareLabel}>Vật phẩm</Text>
-                        </View>
-                    </TouchableOpacity>
-
-                    {/* Feedback */}
-                    <TouchableOpacity
-                        style={styles.squareButtonWrapper}
-                        onPress={handleSendFeedback}
-                        activeOpacity={0.82}
-                    >
-                        <View
-                            
-                            style={styles.squareButton}
+                    {/* Row 2: Vật phẩm & Feedback */}
+                    <View style={styles.gridRow}>
+                        <TouchableOpacity
+                            style={styles.squareButtonWrapper}
+                            onPress={handleOpenItems}
+                            activeOpacity={0.82}
                         >
-                            <Ionicons name="chatbubble-ellipses-outline" size={26} color={colors.primary} />
-                            <Text style={styles.squareLabel}>Góp ý</Text>
-                        </View>
-                    </TouchableOpacity>
+                            <View style={styles.squareButton}>
+                                <Ionicons name="gift-outline" size={26} color={colors.primary} />
+                                <Text style={styles.squareLabel}>Vật phẩm</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.squareButtonWrapper}
+                            onPress={handleSendFeedback}
+                            activeOpacity={0.82}
+                        >
+                            <View style={styles.squareButton}>
+                                <Ionicons name="chatbubble-ellipses-outline" size={26} color={colors.primary} />
+                                <Text style={styles.squareLabel}>Góp ý</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <Text style={styles.sectionHeader}>Quản lý tài khoản</Text>
@@ -364,31 +355,38 @@ const styles = StyleSheet.create({
     },
     // Quick grid
     quickGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
         gap: 10,
         marginBottom: 4,
     },
+    gridRow: {
+        flexDirection: "row",
+        gap: 10,
+    },
     squareButtonWrapper: {
-        width: "47.5%",
+        flex: 1,
         aspectRatio: 2.1,
         borderRadius: 12,
         overflow: "hidden",
-        
+    },
+    proButtonWrapper: {
+        width: "100%",
+        height: 50,
+        borderRadius: 12,
+        overflow: "hidden",
     },
     squareButton: {
-        backgroundColor: colors.surfaceVariant,
+        backgroundColor: colors.primaryContainer,
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
         flex: 1
-        
     },
     squareButtonPro: {
         flex: 1,
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
+        gap: 8,
         overflow: "hidden",
     },
     proShimmer: {
@@ -404,11 +402,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: colors.textPrimary,
         textAlign: "center",
-        
     },
     squareLabelPro: {
-        fontFamily: typography.fonts.semiBold,
-        fontSize: 12,
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
         color: "#fff",
         textAlign: "center",
     },

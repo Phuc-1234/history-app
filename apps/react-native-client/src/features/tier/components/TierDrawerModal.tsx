@@ -96,34 +96,37 @@ export default function TierDrawerModal({
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
                     >
-                        {/* Current Tier & Progress Card */}
-                        <LinearGradient
-                            colors={["#c37938", "#a66228"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.heroCard}
-                        >
-                            <View style={styles.heroHeader}>
-                                <View style={styles.heroBadgeBox}>
-                                    {currentTier?.badgeImgUrl ? (
-                                        <Image
-                                            source={{ uri: currentTier.badgeImgUrl }}
-                                            style={styles.badgeImg}
-                                        />
-                                    ) : (
-                                        <Sparkles size={28} color="#FFFFFF" />
-                                    )}
+                        {/* Current Tier & Progress */}
+                        <View style={styles.heroSection}>
+                            {/* Main Row Wrapper (Brand Orange BG) */}
+                            <LinearGradient
+                                colors={["#FF9500", "#e08400"]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.heroMainRowWrapper}
+                            >
+                                <View style={styles.heroHeader}>
+                                    <View style={styles.heroBadgeBox}>
+                                        {currentTier?.badgeImgUrl ? (
+                                            <Image
+                                                source={{ uri: currentTier.badgeImgUrl }}
+                                                style={styles.badgeImg}
+                                            />
+                                        ) : (
+                                            <Sparkles size={28} color="#FFFFFF" />
+                                        )}
+                                    </View>
+                                    <View style={styles.heroTextContent}>
+                                        <Text style={styles.heroTierLabel}>Danh hiệu hiện tại</Text>
+                                        <Text style={styles.heroTierName}>
+                                            {currentTier?.name ?? `Tier ${currentTierIndex}`}
+                                        </Text>
+                                        <Text style={styles.heroXpText}>
+                                            {totalXp.toLocaleString()} XP đã tích lũy
+                                        </Text>
+                                    </View>
                                 </View>
-                                <View style={styles.heroTextContent}>
-                                    <Text style={styles.heroTierLabel}>Danh hiệu hiện tại</Text>
-                                    <Text style={styles.heroTierName}>
-                                        {currentTier?.name ?? `Tier ${currentTierIndex}`}
-                                    </Text>
-                                    <Text style={styles.heroXpText}>
-                                        {totalXp.toLocaleString()} XP đã tích lũy
-                                    </Text>
-                                </View>
-                            </View>
+                            </LinearGradient>
 
                             {/* Progress Section */}
                             <View style={styles.progressSection}>
@@ -155,7 +158,7 @@ export default function TierDrawerModal({
                                     </Text>
                                 )}
                             </View>
-                        </LinearGradient>
+                        </View>
 
                         {/* List Section Title */}
                         <View style={styles.sectionHeader}>
@@ -349,16 +352,18 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 24,
     },
-    heroCard: {
-        borderRadius: 12, // container border radius = 12
-        padding: 18,
+    heroSection: {
         marginBottom: 20,
+        gap: 14,
+    },
+    heroMainRowWrapper: {
+        borderRadius: 12, // container border radius = 12
+        padding: 16,
     },
     heroHeader: {
         flexDirection: "row",
         alignItems: "center",
         gap: 14,
-        marginBottom: 16,
     },
     heroBadgeBox: {
         width: 52,
@@ -397,8 +402,10 @@ const styles = StyleSheet.create({
         color: "rgba(255, 255, 255, 0.95)",
     },
     progressSection: {
-        backgroundColor: "rgba(255, 255, 255, 0.15)",
+        backgroundColor: colors.surface,
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
         padding: 12,
     },
     progressInfoRow: {
@@ -410,33 +417,33 @@ const styles = StyleSheet.create({
     progressLabelText: {
         fontFamily: typography.fonts.medium,
         fontSize: 12,
-        color: "#FFFFFF",
+        color: colors.textPrimary,
     },
     progressPercentText: {
         fontFamily: typography.fonts.bold,
         fontSize: 12,
-        color: "#FFFFFF",
+        color: colors.primary,
     },
     progressBarTrack: {
         height: 8,
-        backgroundColor: "rgba(0, 0, 0, 0.15)",
+        backgroundColor: colors.surfaceVariant,
         borderRadius: 4,
         overflow: "hidden",
         marginBottom: 8,
     },
     progressBarFill: {
         height: "100%",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.primary,
         borderRadius: 4,
     },
     xpRemainingText: {
         fontFamily: typography.fonts.medium,
         fontSize: 11,
-        color: "rgba(255, 255, 255, 0.9)",
+        color: colors.textSecondary,
     },
     xpHighlightText: {
         fontFamily: typography.fonts.bold,
-        color: "#FFFFFF",
+        color: colors.primary,
     },
     sectionHeader: {
         marginBottom: 12,

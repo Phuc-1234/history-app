@@ -308,7 +308,6 @@ export default function TestContainerV2({
                 : "THỬ THÁCH",
         title: displayTitle,
         onBackPress: handleBack,
-        onHomePress: handleBack,
     };
 
     // ── Auth check ───────────────────────────────────────────────────

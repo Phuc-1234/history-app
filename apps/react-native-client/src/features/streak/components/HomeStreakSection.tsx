@@ -1,0 +1,287 @@
+import React from "react";
+import {
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Flame, CheckCircle2, Trophy, Calendar, ChevronRight } from "lucide-react-native";
+import { colors } from "../../../theme/colors";
+import typography from "../../../theme/typography";
+import { useGetStreakInfoQuery } from "../services/streakApi";
+
+interface HomeStreakSectionProps {
+    currentStreak?: number;
+    onPress?: () => void;
+}
+
+const WEEK_DAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+
+export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSectionProps) {
+    const { data: streakData, isLoading } = useGetStreakInfoQuery();
+
+    const activeStreak = streakData?.currentStreak ?? currentStreak;
+    const highestStreak = streakData?.highestStreak ?? activeStreak;
+    const hasCompletedToday = streakData?.hasCompletedToday ?? false;
+
+    // Calculate current day index (0 = Monday, ..., 6 = Sunday)
+    const todayIndex = (new Date().getDay() + 6) % 7;
+
+    return (
+        <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onPress}
+            style={styles.cardContainer}
+        >
+            {/* Header / Main Stats Row */}
+            <View style={styles.topRow}>
+                <View style={styles.streakInfoLeft}>
+                    <View style={styles.flameIconBox}>
+                        <Flame size={22} color="#FF9500" />
+                    </View>
+                    <View style={styles.streakTextCol}>
+                        <View style={styles.streakTitleRow}>
+                            <Text style={styles.streakCountText}>{activeStreak}</Text>
+                            <Text style={styles.streakUnitText}>ngày liên tục</Text>
+                        </View>
+                        <View style={styles.recordBadge}>
+                            <Trophy size={10} color={colors.warning} />
+                            <Text style={styles.recordText}>Kỷ lục: {highestStreak} ngày</Text>
+                        </View>
+                    </View>
+                </View>
+
+                <View style={styles.arrowBox}>
+                    <ChevronRight size={18} color={colors.textMuted} />
+                </View>
+            </View>
+
+            {/* Reminder / Congrat Box */}
+            <View style={[styles.statusBanner, hasCompletedToday ? styles.statusSuccess : styles.statusWarning]}>
+                {isLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                ) : hasCompletedToday ? (
+                    <View style={styles.statusRow}>
+                        <CheckCircle2 size={16} color={colors.success} />
+                        <Text style={styles.statusText} numberOfLines={1}>
+                            Tuyệt vời! Bạn đã học tập hôm nay.
+                        </Text>
+                    </View>
+                ) : (
+                    <View style={styles.statusRow}>
+                        <Flame size={16} color="#FF9500" />
+                        <Text style={styles.statusText} numberOfLines={1}>
+                            Chưa học hôm nay! Học ngay để giữ chuỗi.
+                        </Text>
+                    </View>
+                )}
+            </View>
+
+            {/* Weekly Calendar Tracker */}
+            <View style={styles.calendarBlock}>
+                <View style={styles.calendarTitleRow}>
+                    <Calendar size={12} color={colors.textMuted} />
+                    <Text style={styles.calendarTitle}>Tiến trình tuần</Text>
+                </View>
+                <View style={styles.daysRow}>
+                    {WEEK_DAYS.map((dayLabel, idx) => {
+                        const isToday = idx === todayIndex;
+                        const isPast = idx < todayIndex;
+                        const isCompleted = isToday
+                            ? hasCompletedToday
+                            : isPast && activeStreak > (todayIndex - idx);
+
+                        return (
+                            <View key={dayLabel} style={styles.dayCol}>
+                                <View
+                                    style={[
+                                        styles.dayCircle,
+                                        isCompleted && styles.dayCircleCompleted,
+                                        isToday && !hasCompletedToday && styles.dayCircleTodayPending,
+                                    ]}
+                                >
+                                    {isCompleted ? (
+                                        <Flame size={13} color="#FFFFFF" />
+                                    ) : (
+                                        <Text
+                                            style={[
+                                                styles.dayCircleText,
+                                                isToday && styles.dayCircleTextToday,
+                                            ]}
+                                        >
+                                            {idx + 1}
+                                        </Text>
+                                    )}
+                                </View>
+                                <Text
+                                    style={[
+                                        styles.dayLabel,
+                                        isToday && styles.dayLabelToday,
+                                    ]}
+                                >
+                                    {dayLabel}
+                                </Text>
+                            </View>
+                        );
+                    })}
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+const styles = StyleSheet.create({
+    cardContainer: {
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: colors.borderMedium,
+        padding: 14,
+        marginBottom: 20,
+        gap: 12,
+    },
+    topRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    streakInfoLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    flameIconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: "#FFF2E0",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: "#FFE0B2",
+    },
+    streakTextCol: {
+        justifyContent: "center",
+    },
+    streakTitleRow: {
+        flexDirection: "row",
+        alignItems: "baseline",
+        gap: 4,
+    },
+    streakCountText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 22,
+        color: colors.textPrimary,
+    },
+    streakUnitText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 13,
+        color: colors.textPrimary,
+    },
+    recordBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.surfaceVariant,
+        borderRadius: 30,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        gap: 4,
+        alignSelf: "flex-start",
+        marginTop: 2,
+    },
+    recordText: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 10,
+        color: colors.textMuted,
+    },
+    arrowBox: {
+        width: 32,
+        height: 32,
+        borderRadius: 30,
+        backgroundColor: colors.surfaceVariant,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    statusBanner: {
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    statusSuccess: {
+        backgroundColor: colors.successContainer ?? "#E8F5E9",
+    },
+    statusWarning: {
+        backgroundColor: "#FFF4E5",
+    },
+    statusRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    statusText: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 12,
+        color: colors.textPrimary,
+        flex: 1,
+    },
+    calendarBlock: {
+        backgroundColor: colors.surfaceVariant,
+        borderRadius: 12,
+        padding: 10,
+    },
+    calendarTitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        marginBottom: 8,
+    },
+    calendarTitle: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 11,
+        color: colors.textMuted,
+    },
+    daysRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    dayCol: {
+        alignItems: "center",
+        gap: 4,
+    },
+    dayCircle: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: colors.surface,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    dayCircleCompleted: {
+        backgroundColor: "#FF9500",
+    },
+    dayCircleTodayPending: {
+        borderWidth: 2,
+        borderColor: "#FF9500",
+        backgroundColor: "transparent",
+    },
+    dayCircleText: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 10,
+        color: colors.textMuted,
+    },
+    dayCircleTextToday: {
+        fontFamily: typography.fonts.bold,
+        color: "#FF9500",
+    },
+    dayLabel: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 10,
+        color: colors.textMuted,
+    },
+    dayLabelToday: {
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
+    },
+});

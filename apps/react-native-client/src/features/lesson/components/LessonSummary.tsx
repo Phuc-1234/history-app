@@ -273,11 +273,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     gridButton: {
+        flex: 1,
         flexDirection: "row",
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
-        borderRadius: 30,
+        backgroundColor: colors.primary,
+        borderWidth: 2,
+        borderColor: colors.accent,
+        borderRadius: 12,
         paddingVertical: 8,
         paddingHorizontal: 16,
         alignItems: "center",
@@ -285,16 +286,17 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     iconWrapper: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: 30,
+        height: 30,
+    backgroundColor: colors.accent,
+        borderRadius: 15,
         justifyContent: "center",
         alignItems: "center",
     },
     gridButtonText: {
         ...typography.caption,
         fontFamily: typography.fonts.bold,
-        color: colors.textPrimary,
+        color: colors.textLight,
     },
 
     /* Tree List Wrapper */

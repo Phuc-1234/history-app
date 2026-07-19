@@ -9,7 +9,7 @@ export class HomeService {
      */
     async getHomeData(userId?: string | null) {
         // Chạy song song để tăng performance
-        const [top3Users, recentLessons] = await Promise.all([
+        const [top3Users, allLessons] = await Promise.all([
             // Top 3 BXH theo XP
             prisma.user.findMany({
                 where: { isVerified: true },
@@ -31,10 +31,9 @@ export class HomeService {
                     }
                 },
             }),
-            // 3 bài học đầu tiên của hệ thống
+            // Tất cả bài học kèm topic, grade và sections -> nodes
             prisma.lesson.findMany({
                 orderBy: [{ topicId: "asc" }, { position: "asc" }],
-                take: 3,
                 select: {
                     id: true,
                     name: true,
@@ -44,59 +43,93 @@ export class HomeService {
                     topic: {
                         select: {
                             name: true,
-                            grade: { select: { id: true } },
+                            position: true,
+                            gradeId: true,
+                        },
+                    },
+                    sections: {
+                        select: {
+                            nodes: {
+                                select: { id: true },
+                            },
                         },
                     },
                 },
             }),
         ]);
 
-        // Tiến độ bài học của user (nếu đã đăng nhập)
-        let lessonProgressMap: Record<number, { completedNodes: number; totalNodes: number }> = {};
+        // Gom danh sách node IDs theo bài học
+        const allNodeIds: number[] = [];
+        const lessonNodeMap = new Map<number, number[]>();
 
-        if (userId) {
-            const lessonIds = recentLessons.map((l) => l.id);
+        for (const l of allLessons) {
+            const nodeIds: number[] = [];
+            for (const sec of l.sections) {
+                for (const node of sec.nodes) {
+                    nodeIds.push(node.id);
+                    allNodeIds.push(node.id);
+                }
+            }
+            lessonNodeMap.set(l.id, nodeIds);
+        }
 
-            // Lấy tất cả section IDs của các bài học này
-            const sections = await prisma.section.findMany({
-                where: { lessonId: { in: lessonIds } },
-                select: { id: true, lessonId: true },
-            });
-
-            const sectionIds = sections.map((s) => s.id);
-            const sectionToLesson: Record<number, number> = {};
-            for (const s of sections) sectionToLesson[s.id] = s.lessonId;
-
-            // Tổng số node
-            const allNodes = await prisma.node.findMany({
-                where: { sectionId: { in: sectionIds } },
-                select: { id: true, sectionId: true },
-            });
-
-            // Node đã hoàn thành
+        // Lấy node đã hoàn thành của user (nếu đã đăng nhập)
+        const completedNodeSet = new Set<number>();
+        if (userId && allNodeIds.length > 0) {
             const completedNodes = await prisma.userNodeProgress.findMany({
                 where: {
                     userId,
-                    nodeId: { in: allNodes.map((n) => n.id) },
+                    nodeId: { in: allNodeIds },
                     nodeCompletedAt: { not: null },
                 },
                 select: { nodeId: true },
             });
-            const completedSet = new Set(completedNodes.map((c) => c.nodeId));
-
-            // Tính tổng và đã xong theo lesson
-            for (const node of allNodes) {
-                const lessonId = sectionToLesson[node.sectionId];
-                if (!lessonId) continue;
-                if (!lessonProgressMap[lessonId]) {
-                    lessonProgressMap[lessonId] = { completedNodes: 0, totalNodes: 0 };
-                }
-                lessonProgressMap[lessonId].totalNodes += 1;
-                if (completedSet.has(node.id)) {
-                    lessonProgressMap[lessonId].completedNodes += 1;
-                }
+            for (const c of completedNodes) {
+                completedNodeSet.add(c.nodeId);
             }
         }
+
+        // Tính tiến độ của từng bài học
+        const lessonProgressList = allLessons.map((l) => {
+            const nodeIds = lessonNodeMap.get(l.id) ?? [];
+            const totalNodes = nodeIds.length;
+            const completedNodes = nodeIds.filter((id) => completedNodeSet.has(id)).length;
+            const percentage = totalNodes > 0 ? completedNodes / totalNodes : 0;
+            return {
+                lesson: l,
+                totalNodes,
+                completedNodes,
+                percentage,
+            };
+        });
+
+        // Lọc các bài học chưa hoàn thành 100% (completedNodes < totalNodes)
+        let eligibleLessons = lessonProgressList.filter(
+            (item) => item.totalNodes === 0 || item.completedNodes < item.totalNodes
+        );
+
+        if (eligibleLessons.length === 0) {
+            eligibleLessons = lessonProgressList;
+        }
+
+        // Sắp xếp theo % hoàn thành giảm dần (ưu tiên bài học đang học dở có % cao nhất)
+        eligibleLessons.sort((a, b) => {
+            if (b.percentage !== a.percentage) {
+                return b.percentage - a.percentage;
+            }
+            if (b.completedNodes !== a.completedNodes) {
+                return b.completedNodes - a.completedNodes;
+            }
+            if (a.lesson.topic.gradeId !== b.lesson.topic.gradeId) {
+                return a.lesson.topic.gradeId - b.lesson.topic.gradeId;
+            }
+            if (a.lesson.topic.position !== b.lesson.topic.position) {
+                return a.lesson.topic.position - b.lesson.topic.position;
+            }
+            return a.lesson.position - b.lesson.position;
+        });
+
+        const selectedLessons = eligibleLessons.slice(0, 3);
 
         return {
             leaderboard: top3Users.map((u, idx) => ({
@@ -109,13 +142,16 @@ export class HomeService {
                 tierName: (u as any).tier?.name ?? null,
                 badgeImgUrl: (u as any).tier?.badgeImgUrl ?? null,
             })),
-            lessons: recentLessons.map((l) => ({
-                id: l.id,
-                name: l.name,
-                summary: l.summary ?? null,
-                topicName: (l as any).topic?.name ?? null,
-                gradeId: (l as any).topic?.grade?.id ?? null,
-                progress: lessonProgressMap[l.id] ?? { completedNodes: 0, totalNodes: 0 },
+            lessons: selectedLessons.map((item) => ({
+                id: item.lesson.id,
+                name: item.lesson.name,
+                summary: item.lesson.summary ?? null,
+                topicName: item.lesson.topic?.name ?? null,
+                gradeId: item.lesson.topic?.gradeId ?? null,
+                progress: {
+                    completedNodes: item.completedNodes,
+                    totalNodes: item.totalNodes,
+                },
             })),
         };
     }

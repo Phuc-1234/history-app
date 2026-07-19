@@ -1,5 +1,5 @@
 import { useAppSelector } from "../../../store/storeHook"; // Adjust path according to your structure
-import { useStreakDrawer } from "../../streak";
+import { useStreakDrawer, useGetStreakInfoQuery } from "../../streak";
 import { useTierDrawer } from "../../tier";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
@@ -13,6 +13,7 @@ export interface ProcessedTopBarData {
     currentTierIndex: number;
     totalGold: string; // Formatted with toLocaleString() for direct presentation
     currentStreak: number;
+    hasCompletedToday: boolean;
     badgeImgUrl: string | null;
     xpMultiplier: number;
     goldMultiplier: number;
@@ -25,10 +26,12 @@ export function useTopBarData() {
     // 1. Fetch live data context straight from Redux State
     const profile = useAppSelector((state) => state.auth.profile);
     const { data: activeEffectsData } = useGetUserActiveEffectsQuery(undefined, { skip: !profile });
+    const { data: streakData } = useGetStreakInfoQuery(undefined, { skip: !profile });
 
     // 2. Encapsulate streak drawer state
     const streakCount = profile ? profile.currentStreak : 0;
     const streakManager = useStreakDrawer();
+    const hasCompletedToday = streakData?.hasCompletedToday ?? false;
 
     // 3. Encapsulate tier drawer state
     const tierManager = useTierDrawer();
@@ -57,6 +60,7 @@ export function useTopBarData() {
         currentTierIndex,
         totalGold,
         currentStreak: streakCount,
+        hasCompletedToday,
         badgeImgUrl,
         xpMultiplier: activeEffectsData?.xpMultiplier ?? 1.0,
         goldMultiplier: activeEffectsData?.goldMultiplier ?? 1.0,

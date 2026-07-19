@@ -154,7 +154,11 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                     activeOpacity={0.7}
                                     onPress={onOpenStreak}
                                 >
-                                    <Ionicons name="flame" size={20} color="#FFFFFF" />
+                                    <Ionicons
+                                        name="flame"
+                                        size={20}
+                                        color={data.hasCompletedToday ? "#FF4500" : "#FFFFFF"}
+                                    />
                                     <Text style={styles.chipText}>
                                         {data.currentStreak}
                                     </Text>

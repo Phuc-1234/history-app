@@ -159,7 +159,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         { id: "tests", label: "Luyện đề", icon: "clipboard-outline", activeIcon: "clipboard", route: "/(tabs)/5_1_national_tests" },
         { id: "leaderboard", label: "Bảng xếp hạng", icon: "stats-chart-outline", activeIcon: "stats-chart", route: "/(tabs)/9_1_leaderboard" },
         { id: "profile", label: "Hồ sơ cá nhân", icon: "person-outline", activeIcon: "person", route: "/(tabs)/10_1_profile" },
-        { id: "items", label: "Cửa hàng", icon: "cart-outline", activeIcon: "cart", route: "/(tabs)/7_1_item" },
+        { id: "items", label: "Vật phẩm", icon: "cart-outline", activeIcon: "gift", route: "/(tabs)/7_1_item" },
         { id: "buy_gold", label: "Nạp vàng", icon: "cash-outline", activeIcon: "cash", route: "/(tabs)/8_2_buy_gold" },
         { id: "notifications", label: "Thông báo", icon: "notifications-outline", activeIcon: "notifications", route: "/notifications" },
         { id: "friends", label: "Bạn bè", icon: "people-outline", activeIcon: "people", route: "/(social)/friends" },
