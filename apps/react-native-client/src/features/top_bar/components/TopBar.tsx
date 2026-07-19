@@ -6,6 +6,7 @@ import {
     View,
     Image,
     TouchableOpacity,
+    Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -153,13 +154,15 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
             {branchConfig && (
                 <View style={styles.branchBar}>
                     {!branchConfig.hideBack && (
-                        <TouchableOpacity
+                        <Pressable
                             onPress={branchConfig.onBackPress}
-                            style={styles.backButton}
-                            activeOpacity={0.7}
+                            style={({ pressed }) => [
+                                styles.backButton,
+                                pressed && styles.buttonPressed
+                            ]}
                         >
                             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
 
                     <View style={styles.branchTextContainer}>
@@ -184,13 +187,15 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                         branchConfig.rightElement
                     ) : (
                         !branchConfig.hideHome && (
-                            <TouchableOpacity
+                            <Pressable
                                 onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/home"))}
-                                style={styles.homeButton}
-                                activeOpacity={0.7}
+                                style={({ pressed }) => [
+                                    styles.homeButton,
+                                    pressed && styles.buttonPressed
+                                ]}
                             >
                                 <Ionicons name="home-outline" size={24} color="#FFFFFF" />
-                            </TouchableOpacity>
+                            </Pressable>
                         )
                     )}
                 </View>
@@ -296,10 +301,25 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     backButton: {
-        marginRight: 12,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: -8,
+        marginRight: 4,
     },
     homeButton: {
-        marginLeft: 12,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: 4,
+        marginRight: -8,
+    },
+    buttonPressed: {
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
     },
     branchTextContainer: {
         flex: 1,
