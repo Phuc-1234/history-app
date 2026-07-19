@@ -149,7 +149,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="2_1_lessons"
                 options={{
-                    title: "Bài học",
+                    title: "Học phần",
                     tabBarIcon: ({ focused, color }) => (
                         <TabBarIcon
                             focused={focused}
@@ -164,7 +164,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="5_1_national_tests"
                 options={{
-                    title: "Luyện đề",
+                    title: "Đề THPT",
                     tabBarIcon: ({ focused, color }) => (
                         <TabBarIcon
                             focused={focused}

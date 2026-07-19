@@ -136,7 +136,8 @@ export async function expandScopeToQuestionWhere(
     scopeType: string | null | undefined,
     scopeId: number | null | undefined,
 ): Promise<Prisma.QuestionWhereInput> {
-    if (!scopeType || scopeType === "NATIONAL") return { isActive: true };
+    if (!scopeType) return { isActive: true };
+    if (scopeType === "NATIONAL") return { scopeType: "NATIONAL" as any, isActive: true };
 
     const conditions: Prisma.QuestionWhereInput[] = [];
 
@@ -633,8 +634,8 @@ export class TestServiceV2 {
 
         purposeType = preset.purposeType ?? purposeType;
 
-        // Resolve final parameters (Request overrides -> Test settings -> Preset settings -> Default fallbacks)
-        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (test?.questionNumber ?? preset?.questionCount ?? 10);
+        // Resolve final parameters (Request overrides -> Preset settings -> Default fallbacks)
+        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (preset?.questionCount ?? 10);
         const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
         const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
         const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
@@ -1075,8 +1076,8 @@ export class TestServiceV2 {
 
         purposeType = preset.purposeType ?? purposeType;
 
-        // Resolve final parameters (Request overrides -> Test settings -> Preset settings -> Default fallbacks)
-        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (test?.questionNumber ?? preset?.questionCount ?? 10);
+        // Resolve final parameters (Request overrides -> Preset settings -> Default fallbacks)
+        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (preset?.questionCount ?? 10);
         const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
         const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
         const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
@@ -1326,7 +1327,34 @@ export class TestServiceV2 {
         }
     }
 
+    async getPracticeStats(userId: string, scopeType?: string, scopeId?: number) {
+        const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
 
+        const wrongQuestionCount = await prisma.userQuestionMastery.count({
+            where: {
+                userId,
+                consecutiveCorrect: 0,
+                question: {
+                    ...scopeWhere,
+                    isActive: true,
+                    answerDataJson: { not: Prisma.DbNull }
+                }
+            }
+        });
+
+        const answeredQuestionCount = await prisma.userQuestionMastery.count({
+            where: {
+                userId,
+                question: {
+                    ...scopeWhere,
+                    isActive: true,
+                    answerDataJson: { not: Prisma.DbNull }
+                }
+            }
+        });
+
+        return { wrongQuestionCount, answeredQuestionCount };
+    }
 }
 
 export const testServiceV2 = new TestServiceV2();

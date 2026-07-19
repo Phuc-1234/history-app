@@ -123,3 +123,19 @@ export const getNationalTests = async (req: Request, res: Response) => {
         return res.status(500).json({ error: "Failed to get national tests" });
     }
 };
+
+export const getPracticeStats = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const { scopeType, scopeId } = req.query as any;
+        const resp = await testServiceV2.getPracticeStats(
+            req.user.id,
+            scopeType,
+            scopeId ? Number(scopeId) : undefined,
+        );
+        return res.status(200).json(resp);
+    } catch (err: any) {
+        console.error("getPracticeStats error:", err?.message ?? err);
+        return res.status(500).json({ error: "Failed to get practice stats" });
+    }
+};

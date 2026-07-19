@@ -16,7 +16,7 @@ import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
 import typography from "@/theme/typography";
 import { Card } from "@/components/Card";
-import { useGetNationalTestsQuery } from "@/features/test_v2/services/testApi";
+import { useGetNationalTestsQuery, useLazyGetTestInfoQuery } from "@/features/test_v2/services/testApi";
 import {
   BookOpen,
   FileText,
@@ -29,6 +29,8 @@ import {
 } from "lucide-react-native";
 import { useAppSelector } from "@/store/storeHook";
 import { PremiumModal } from "@/components/PremiumModal";
+import { SlidingTabBar } from "@/components/SlidingTabBar";
+import { PracticeSection, PracticeOptions } from "@/features/practice";
 import { Ionicons } from "@expo/vector-icons";
 
 const VIBRANT_COLORS = [
@@ -60,6 +62,9 @@ export const NationalTestsView: React.FC = () => {
 
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
   const [lockedFeatureName, setLockedFeatureName] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("DE_THI");
+
+  const [getTestInfo] = useLazyGetTestInfoQuery();
 
   const showProModal = (feature: string) => {
     setLockedFeatureName(feature);
@@ -77,6 +82,20 @@ export const NationalTestsView: React.FC = () => {
     });
   };
 
+  const handlePracticePress = (options: PracticeOptions) => {
+    router.push({
+      pathname: "/(6_tests)/6_2_ques_choose",
+      params: {
+        scopeType: options.scopeType,
+        ...(options.scopeId != null ? { scopeId: String(options.scopeId) } : {}),
+        purposeType: "PRACTICE",
+        questionCount: String(options.questionCount),
+        autoPickStrategy: options.autoPickStrategy,
+        skipIntro: "true",
+      },
+    });
+  };
+
   const filteredTests = tests?.filter((item) =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (item.summary && item.summary.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -87,37 +106,63 @@ export const NationalTestsView: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Đề thi Quốc gia</Text>
+        <Text style={styles.headerTitle}>
+          {activeTab === "LUYEN_TAP" ? "Luyện tập đề THPT" : "Đề thi Quốc gia"}
+        </Text>
       </View>
 
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={[
-            styles.searchInput,
-            isSearchFocused && styles.searchInputFocused
+      <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+        <SlidingTabBar
+          tabs={[
+            { key: "DE_THI", label: "Đề thi" },
+            { key: "LUYEN_TAP", label: "Luyện tập" },
           ]}
-          placeholder="Tìm kiếm đề thi..."
-          placeholderTextColor={colors.textPlaceholder}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          underlineColorAndroid="transparent"
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
+          activeTab={activeTab}
+          onChangeTab={(key: string) => setActiveTab(key)}
         />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching && !isLoading}
-            onRefresh={refetch}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
+      {activeTab === "LUYEN_TAP" ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: 16 }]}
+        >
+          <PracticeSection
+            scopeType="NATIONAL"
+            onPracticePress={handlePracticePress}
+            isActiveTab={activeTab === "LUYEN_TAP"}
           />
-        }
-      >
+        </ScrollView>
+      ) : (
+        <>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={[
+                styles.searchInput,
+                isSearchFocused && styles.searchInputFocused
+              ]}
+              placeholder="Tìm kiếm đề thi..."
+              placeholderTextColor={colors.textPlaceholder}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              underlineColorAndroid="transparent"
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+            />
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isFetching && !isLoading}
+                onRefresh={refetch}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+              />
+            }
+          >
         {isLoading ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -143,6 +188,15 @@ export const NationalTestsView: React.FC = () => {
                 key={item.id}
                 activeOpacity={0.8}
                 onPress={() => {
+                  getTestInfo({ testId: item.id, purposeType: "EXAM" })
+                    .unwrap()
+                    .then((res) => {
+                      console.log("Test info response:", res);
+                    })
+                    .catch((err) => {
+                      console.error("Error fetching test info:", err);
+                    });
+
                   if (isTestLocked) {
                     showProModal(`đề thi "${item.title}"`);
                   } else {
@@ -194,8 +248,10 @@ export const NationalTestsView: React.FC = () => {
           })
         )}
       </ScrollView>
+    </>
+  )}
 
-      <PremiumModal
+  <PremiumModal
         visible={premiumModalVisible}
         onClose={() => setPremiumModalVisible(false)}
         featureName={lockedFeatureName}
