@@ -542,19 +542,21 @@ export default function TestContainerV2({
                             <Text style={styles.restartBtnText}>Làm lại</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.viewDetailsBtn}
-                            onPress={() => {
-                                router.push({
-                                    pathname: "/(10_proflie)/10_5_test_detail",
-                                    params: { logId: String(userTestLog.id) },
-                                });
-                            }}
-                        >
-                            <Text style={styles.viewDetailsBtnText}>
-                                Xem chi tiết bài làm
-                            </Text>
-                        </TouchableOpacity>
+                        {userTestLog.isPassed && (
+                            <TouchableOpacity
+                                style={styles.viewDetailsBtn}
+                                onPress={() => {
+                                    router.push({
+                                        pathname: "/(10_proflie)/10_5_test_detail",
+                                        params: { logId: String(userTestLog.id) },
+                                    });
+                                }}
+                            >
+                                <Text style={styles.viewDetailsBtnText}>
+                                    Xem chi tiết bài làm
+                                </Text>
+                            </TouchableOpacity>
+                        )}
 
                         <TouchableOpacity
                             style={styles.exitBtn}
@@ -823,7 +825,14 @@ export default function TestContainerV2({
                                         renderers={renderers}
                                     />
                                 </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                <View style={{ flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                                    <TouchableOpacity
+                                        onPress={() => setFeedbackModalVisible(true)}
+                                        style={{ padding: 4 }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Flag size={18} color={colors.textSecondary} />
+                                    </TouchableOpacity>
                                     <View style={[styles.pointPill, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
                                         <Text style={styles.pointPillText}>
                                             {(() => {
@@ -854,13 +863,6 @@ export default function TestContainerV2({
                                                 </TouchableOpacity>
                                             )}
                                     </View>
-                                    <TouchableOpacity
-                                        onPress={() => setFeedbackModalVisible(true)}
-                                        style={{ padding: 6 }}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Flag size={18} color={colors.textSecondary} />
-                                    </TouchableOpacity>
                                 </View>
                             </View>
 
@@ -1000,35 +1002,57 @@ export default function TestContainerV2({
                     {purposeType === "EXAM" ? (
                         <View style={{ width: "100%" }}>
                             {/* Indicators representing all questions under options */}
-                            <View style={styles.blockIndicatorsRow}>
-                                {Array.from(
-                                    { length: totalCount },
-                                    (_, idx) => {
-                                        const q = questions[idx];
-                                        const isActive = idx === currentIndex;
-                                        const isAnswered = q
-                                            ? isQuestionAnswered(q.id)
-                                            : false;
+                            {(() => {
+                                const ITEM_WIDTH = 15;
+                                const GAP = 5;
+                                const maxItemsPerRow = Math.max(
+                                    1,
+                                    Math.floor((width - 32 + GAP) / (ITEM_WIDTH + GAP)),
+                                );
+                                const indicatorsContainerWidth =
+                                    totalCount > 0
+                                        ? Math.min(totalCount, maxItemsPerRow) *
+                                              (ITEM_WIDTH + GAP) -
+                                          GAP
+                                        : 0;
 
-                                        return (
-                                            <TouchableOpacity
-                                                key={idx}
-                                                style={[
-                                                    styles.blockIndicator,
-                                                    isAnswered &&
-                                                        styles.blockIndicatorAnswered,
-                                                    isActive &&
-                                                        styles.blockIndicatorActive,
-                                                ]}
-                                                onPress={() =>
-                                                    actions.jumpTo(idx)
-                                                }
-                                                activeOpacity={0.7}
-                                            />
-                                        );
-                                    },
-                                )}
-                            </View>
+                                return (
+                                    <View
+                                        style={[
+                                            styles.blockIndicatorsRow,
+                                            { maxWidth: indicatorsContainerWidth },
+                                        ]}
+                                    >
+                                        {Array.from(
+                                            { length: totalCount },
+                                            (_, idx) => {
+                                                const q = questions[idx];
+                                                const isActive = idx === currentIndex;
+                                                const isAnswered = q
+                                                    ? isQuestionAnswered(q.id)
+                                                    : false;
+
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={idx}
+                                                        style={[
+                                                            styles.blockIndicator,
+                                                            isAnswered &&
+                                                                styles.blockIndicatorAnswered,
+                                                            isActive &&
+                                                                styles.blockIndicatorActive,
+                                                        ]}
+                                                        onPress={() =>
+                                                            actions.jumpTo(idx)
+                                                        }
+                                                        activeOpacity={0.7}
+                                                    />
+                                                );
+                                            },
+                                        )}
+                                    </View>
+                                );
+                            })()}
 
                             <View style={styles.navButtonsRow}>
                                 <TouchableOpacity
@@ -1603,7 +1627,8 @@ const styles = StyleSheet.create({
     blockIndicatorsRow: {
         flexDirection: "row",
         flexWrap: "wrap",
-        justifyContent: "center",
+        justifyContent: "flex-start",
+        alignSelf: "center",
         gap: 5,
         marginTop: 4,
         marginBottom: 12,
@@ -1619,7 +1644,6 @@ const styles = StyleSheet.create({
     },
     blockIndicatorActive: {
         backgroundColor: colors.primary,
-        width: 28,
     },
     navButtonsRow: {
         flexDirection: "row",

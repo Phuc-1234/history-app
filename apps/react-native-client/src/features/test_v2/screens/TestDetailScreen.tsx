@@ -8,7 +8,7 @@ import {
     useWindowDimensions,
     TouchableOpacity,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
 import { useGetAttemptDetailQuery } from "../services/testApi";
 import { formatScore } from "../services/scoreEngine";
@@ -26,6 +26,7 @@ import { Check, X } from "lucide-react-native";
 import typography from "@/theme/typography";
 
 export default function TestDetailScreen() {
+    const router = useRouter();
     const { width } = useWindowDimensions();
     const { logId } = useLocalSearchParams<{ logId: string }>();
     const { data, isLoading, error } = useGetAttemptDetailQuery(
@@ -52,6 +53,31 @@ export default function TestDetailScreen() {
     }
 
     const { userTestLog, answerLogs } = data;
+
+    if (!userTestLog.isPassed) {
+        return (
+            <View style={styles.center}>
+                <Mascot expression="sad" width={100} height={100} />
+                <Text style={[styles.errorText, { marginTop: 16, textAlign: "center" }]}>
+                    Không thể xem chi tiết lượt làm bài chưa đạt.
+                </Text>
+                <TouchableOpacity
+                    style={{
+                        marginTop: 20,
+                        paddingHorizontal: 20,
+                        paddingVertical: 12,
+                        backgroundColor: colors.primary,
+                        borderRadius: 12,
+                    }}
+                    onPress={() => router.back()}
+                >
+                    <Text style={{ color: colors.textLight, fontFamily: typography.fonts.bold }}>
+                        Quay lại
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
     const scoreDisplay =
         userTestLog.maxScore > 0
             ? formatScore(
@@ -391,8 +417,16 @@ function FillReview({
     return (
         <View style={styles.fillContainer}>
             <View style={styles.fillRow}>
+                <Text style={styles.fillLabel}>Bạn nhập:</Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={styles.fillLabel}>Bạn nhập:</Text>
+                    <Text
+                        style={[
+                            styles.fillValue,
+                            isCorrect ? styles.textGreen : styles.textRed,
+                        ]}
+                    >
+                        {userAnswer?.typedAnswer || "(Bỏ trống)"}
+                    </Text>
                     <View style={[
                         styles.pointsBadge,
                         isCorrect ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
@@ -402,14 +436,6 @@ function FillReview({
                         </Text>
                     </View>
                 </View>
-                <Text
-                    style={[
-                        styles.fillValue,
-                        isCorrect ? styles.textGreen : styles.textRed,
-                    ]}
-                >
-                    {userAnswer?.typedAnswer || "(Bỏ trống)"}
-                </Text>
             </View>
             <View style={styles.fillRow}>
                 <Text style={styles.fillLabel}>Đáp án chấp nhận:</Text>
@@ -482,14 +508,16 @@ function MatchReview({
                             >
                                 →
                             </Text>
-                            <Text
-                                style={[
-                                    styles.matchReviewRightText,
-                                    styles.textLight,
-                                ]}
-                            >
-                                {userPair?.right ?? "(Chưa ghép)"}
-                            </Text>
+                            {userPair?.right ? (
+                                <Text
+                                    style={[
+                                        styles.matchReviewRightText,
+                                        styles.textLight,
+                                    ]}
+                                >
+                                    {userPair.right}
+                                </Text>
+                            ) : null}
                             <View
                                 style={[
                                     styles.reviewBadge,
@@ -524,7 +552,7 @@ function MatchReview({
                         {!isPairCorrect && (
                             <View style={styles.matchReviewCorrectHintRow}>
                                 <Text style={styles.matchReviewHintLabel}>
-                                    Đáp án chính xác:{" "}
+                                    Đáp án chính xác:
                                 </Text>
                                 <Text style={styles.matchReviewHintValue}>
                                     {pair.right}
@@ -974,8 +1002,9 @@ const styles = StyleSheet.create({
     matchReviewArrow: { fontSize: 14, fontFamily: typography.fonts.regular, color: colors.textMuted },
     matchReviewRightText: { fontSize: 13, fontFamily: typography.fonts.bold },
     matchReviewCorrectHintRow: {
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 2,
         borderTopWidth: 1,
         borderTopColor: "rgba(255, 255, 255, 0.3)",
         paddingTop: 6,
