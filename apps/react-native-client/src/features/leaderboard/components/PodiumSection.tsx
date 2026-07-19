@@ -1,120 +1,189 @@
 import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { AvatarWithFrame } from "../../../components/ui";
 import { Ionicons } from "@expo/vector-icons";
+import { UserSocialBadges } from "./UserSocialBadges";
 
 interface PodiumSectionProps {
     topUsers: DisplayUser[];
     isSmallDevice: boolean;
     showStreak?: boolean;
+    onUserPress?: (userId: string) => void;
+    myUserId?: string | number;
 }
 
 export const PodiumSection: React.FC<PodiumSectionProps> = ({
     topUsers,
     isSmallDevice,
     showStreak = false,
+    onUserPress,
+    myUserId,
 }) => {
     const styles = createStyles(isSmallDevice);
+
+    const user1 = topUsers[0];
+    const user2 = topUsers[1];
+    const user3 = topUsers[2];
+
+    const isMe1 = user1 && String(user1.id) === String(myUserId);
+    const isMe2 = user2 && String(user2.id) === String(myUserId);
+    const isMe3 = user3 && String(user3.id) === String(myUserId);
 
     return (
         <View style={styles.podiumSection}>
             {/* 2nd Place */}
-            <View style={styles.podiumColumn}>
-                <View style={styles.avatarWrapper}>
-                    <AvatarWithFrame
-                        uri={topUsers[1]?.avatar}
-                        frameUri={topUsers[1]?.equippedFrameUrl}
-                        size={isSmallDevice ? 54 : 58}
-                        name={topUsers[1]?.name}
-                        borderWidth={2}
-                    />
-                    <View style={[styles.rankNumberBadge, styles.rank2Badge]}>
-                        <Text style={styles.rankNumberText}>2</Text>
+            {user2 ? (
+                <TouchableOpacity
+                    style={styles.podiumColumn}
+                    onPress={() => onUserPress?.(user2.id)}
+                    activeOpacity={0.8}
+                >
+                    <View style={styles.avatarWrapper}>
+                        <AvatarWithFrame
+                            uri={user2.avatar}
+                            frameUri={user2.equippedFrameUrl}
+                            size={isSmallDevice ? 54 : 58}
+                            name={user2.name}
+                            borderWidth={2}
+                        />
+                        <View style={[styles.rankNumberBadge, styles.rank2Badge]}>
+                            <Text style={styles.rankNumberText}>{user2.rank || 2}</Text>
+                        </View>
                     </View>
-                </View>
-                <Text style={styles.podiumName} numberOfLines={1}>
-                    {topUsers[1]?.name}
-                </Text>
-                <Text style={styles.rank2Xp}>
-                    {showStreak ? (
-                        <>
-                            <Ionicons name="flame" size={12} color="#EA580C" />
-                            <Text> {topUsers[1]?.streak} ngày</Text>
-                        </>
-                    ) : (
-                        `${topUsers[1]?.xp.toLocaleString()} XP`
+                    <Text style={[styles.podiumName, isMe2 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
+                        {user2.name}
+                    </Text>
+                    {isMe2 && (
+                        <View style={[styles.meTag, { marginTop: 4 }]}>
+                            <Text style={styles.meTagText}>Tôi</Text>
+                        </View>
                     )}
-                </Text>
-                <View style={[styles.podiumBase, styles.rank2Base]} />
-            </View>
+                    <UserSocialBadges
+                        isFriend={user2.isFriend}
+                        isFollowing={user2.isFollowing}
+                        style={styles.centerBadges}
+                    />
+                    <Text style={styles.rank2Xp}>
+                        {showStreak ? (
+                            <>
+                                <Ionicons name="flame" size={12} color="#EA580C" />
+                                <Text> {user2.streak} ngày</Text>
+                            </>
+                        ) : (
+                            `${user2.xp.toLocaleString()} XP`
+                        )}
+                    </Text>
+                    <View style={[styles.podiumBase, styles.rank2Base]} />
+                </TouchableOpacity>
+            ) : (
+                <View style={styles.podiumColumn} />
+            )}
 
             {/* 1st Place */}
-            <View style={[styles.podiumColumn, styles.centerPodiumColumn]}>
-                <Ionicons name="trophy" size={isSmallDevice ? 20 : 24} color={colors.secondary} style={{ marginBottom: -2, zIndex: 3 }} />
-                <View style={styles.avatarWrapper}>
-                    <AvatarWithFrame
-                        uri={topUsers[0]?.avatar}
-                        frameUri={topUsers[0]?.equippedFrameUrl}
-                        size={isSmallDevice ? 68 : 72}
-                        name={topUsers[0]?.name}
-                        borderWidth={3}
-                        avatarStyle={{ borderColor: colors.secondary }}
-                    />
-                    <View style={[styles.rankNumberBadge, styles.rank1Badge]}>
-                        <Text style={styles.rankNumberText}>1</Text>
-                    </View>
-                </View>
-                <Text
-                    style={[styles.podiumName, styles.rank1Name]}
-                    numberOfLines={1}
+            {user1 ? (
+                <TouchableOpacity
+                    style={[styles.podiumColumn, styles.centerPodiumColumn]}
+                    onPress={() => onUserPress?.(user1.id)}
+                    activeOpacity={0.8}
                 >
-                    {topUsers[0]?.name}
-                </Text>
-                <Text style={styles.rank1Xp}>
-                    {showStreak ? (
-                        <>
-                            <Ionicons name="flame" size={14} color="#EA580C" />
-                            <Text> {topUsers[0]?.streak} ngày</Text>
-                        </>
-                    ) : (
-                        `${topUsers[0]?.xp.toLocaleString()} XP`
+                    <Ionicons
+                        name="trophy"
+                        size={isSmallDevice ? 20 : 24}
+                        color={colors.secondary}
+                        style={{ marginBottom: -2, zIndex: 3 }}
+                    />
+                    <View style={styles.avatarWrapper}>
+                        <AvatarWithFrame
+                            uri={user1.avatar}
+                            frameUri={user1.equippedFrameUrl}
+                            size={isSmallDevice ? 68 : 72}
+                            name={user1.name}
+                            borderWidth={3}
+                            avatarStyle={{ borderColor: colors.secondary }}
+                        />
+                        <View style={[styles.rankNumberBadge, styles.rank1Badge]}>
+                            <Text style={styles.rankNumberText}>{user1.rank || 1}</Text>
+                        </View>
+                    </View>
+                    <Text style={[styles.podiumName, styles.rank1Name, isMe1 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
+                        {user1.name}
+                    </Text>
+                    {isMe1 && (
+                        <View style={[styles.meTag, { marginTop: 4 }]}>
+                            <Text style={styles.meTagText}>Tôi</Text>
+                        </View>
                     )}
-                </Text>
-                <View style={[styles.podiumBase, styles.rank1Base]} />
-            </View>
+                    <UserSocialBadges
+                        isFriend={user1.isFriend}
+                        isFollowing={user1.isFollowing}
+                        style={styles.centerBadges}
+                    />
+                    <Text style={styles.rank1Xp}>
+                        {showStreak ? (
+                            <>
+                                <Ionicons name="flame" size={14} color="#EA580C" />
+                                <Text> {user1.streak} ngày</Text>
+                            </>
+                        ) : (
+                            `${user1.xp.toLocaleString()} XP`
+                        )}
+                    </Text>
+                    <View style={[styles.podiumBase, styles.rank1Base]} />
+                </TouchableOpacity>
+            ) : (
+                <View style={[styles.podiumColumn, styles.centerPodiumColumn]} />
+            )}
 
             {/* 3rd Place */}
-            <View style={styles.podiumColumn}>
-                <View style={styles.avatarWrapper}>
-                    <AvatarWithFrame
-                        uri={topUsers[2]?.avatar}
-                        frameUri={topUsers[2]?.equippedFrameUrl}
-                        size={isSmallDevice ? 54 : 58}
-                        name={topUsers[2]?.name}
-                        borderWidth={2}
-                    />
-                    <View style={[styles.rankNumberBadge, styles.rank3Badge]}>
-                        <Text style={styles.rankNumberText}>3</Text>
+            {user3 ? (
+                <TouchableOpacity
+                    style={styles.podiumColumn}
+                    onPress={() => onUserPress?.(user3.id)}
+                    activeOpacity={0.8}
+                >
+                    <View style={styles.avatarWrapper}>
+                        <AvatarWithFrame
+                            uri={user3.avatar}
+                            frameUri={user3.equippedFrameUrl}
+                            size={isSmallDevice ? 54 : 58}
+                            name={user3.name}
+                            borderWidth={2}
+                        />
+                        <View style={[styles.rankNumberBadge, styles.rank3Badge]}>
+                            <Text style={styles.rankNumberText}>{user3.rank || 3}</Text>
+                        </View>
                     </View>
-                </View>
-                <Text style={styles.podiumName} numberOfLines={1}>
-                    {topUsers[2]?.name}
-                </Text>
-                <Text style={styles.rank3Xp}>
-                    {showStreak ? (
-                        <>
-                            <Ionicons name="flame" size={12} color="#EA580C" />
-                            <Text> {topUsers[2]?.streak} ngày</Text>
-                        </>
-                    ) : (
-                        `${topUsers[2]?.xp.toLocaleString()} XP`
+                    <Text style={[styles.podiumName, isMe3 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
+                        {user3.name}
+                    </Text>
+                    {isMe3 && (
+                        <View style={[styles.meTag, { marginTop: 4 }]}>
+                            <Text style={styles.meTagText}>Tôi</Text>
+                        </View>
                     )}
-                </Text>
-                <View style={[styles.podiumBase, styles.rank3Base]} />
-            </View>
+                    <UserSocialBadges
+                        isFriend={user3.isFriend}
+                        isFollowing={user3.isFollowing}
+                        style={styles.centerBadges}
+                    />
+                    <Text style={styles.rank3Xp}>
+                        {showStreak ? (
+                            <>
+                                <Ionicons name="flame" size={12} color="#EA580C" />
+                                <Text> {user3.streak} ngày</Text>
+                            </>
+                        ) : (
+                            `${user3.xp.toLocaleString()} XP`
+                        )}
+                    </Text>
+                    <View style={[styles.podiumBase, styles.rank3Base]} />
+                </TouchableOpacity>
+            ) : (
+                <View style={styles.podiumColumn} />
+            )}
         </View>
     );
 };
@@ -133,6 +202,11 @@ const createStyles = (isSmallDevice: boolean) =>
             justifyContent: "flex-end",
         },
         centerPodiumColumn: { marginHorizontal: 6 },
+        centerBadges: {
+            justifyContent: "center",
+            marginTop: 2,
+            marginBottom: 2,
+        },
         crownIcon: {
             fontSize: isSmallDevice ? 20 : 22,
             marginBottom: -2,
@@ -231,4 +305,16 @@ const createStyles = (isSmallDevice: boolean) =>
             height: isSmallDevice ? 46 : 50,
             backgroundColor: colors.primary,
         },
+        meTag: {
+            backgroundColor: "#EA580C",
+            paddingHorizontal: 6,
+            paddingVertical: 1,
+            borderRadius: 12,
+        },
+        meTagText: {
+            fontFamily: typography.fonts.bold,
+            fontSize: 9,
+            color: "#FFFFFF",
+        },
     });
+

@@ -10,8 +10,14 @@ export class GamificationService {
 
         const orderBy =
             sort === "streak"
-                ? { currentStreak: "desc" as const }
-                : { totalXp: "desc" as const };
+                ? [
+                      { currentStreak: "desc" as const },
+                      { totalXp: "desc" as const },
+                  ]
+                : [
+                      { totalXp: "desc" as const },
+                      { currentStreak: "desc" as const },
+                  ];
 
         const users = await prisma.user.findMany({
             where: {
@@ -57,22 +63,38 @@ export class GamificationService {
         if (sort === "streak") {
             const user = await prisma.user.findUnique({
                 where: { id: userId },
-                select: { currentStreak: true } as any,
+                select: { currentStreak: true, totalXp: true } as any,
             });
             if (!user) return null;
             const higher = await prisma.user.count({
-                where: { currentStreak: { gt: (user as any).currentStreak } },
+                where: {
+                    OR: [
+                        { currentStreak: { gt: (user as any).currentStreak } },
+                        {
+                            currentStreak: (user as any).currentStreak,
+                            totalXp: { gt: (user as any).totalXp },
+                        },
+                    ],
+                },
             });
             return higher + 1;
         }
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { totalXp: true } as any,
+            select: { totalXp: true, currentStreak: true } as any,
         });
         if (!user) return null;
         const higher = await prisma.user.count({
-            where: { totalXp: { gt: (user as any).totalXp } },
+            where: {
+                OR: [
+                    { totalXp: { gt: (user as any).totalXp } },
+                    {
+                        totalXp: (user as any).totalXp,
+                        currentStreak: { gt: (user as any).currentStreak },
+                    },
+                ],
+            },
         });
         return higher + 1;
     }

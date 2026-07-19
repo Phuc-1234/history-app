@@ -39,7 +39,6 @@ import { getScaleLimits, MOBILE_BREAKPOINT } from "../constants";
 import type { MindMapNode, LayoutNode } from "../types";
 import { useGetMindMapQuery, type MindMapQuery } from "../mindMapApi";
 import { colors } from "../../../theme/colors";
-import { typography } from "../../../theme/typography";
 import {
     layoutTree,
     applyHorizontalPositions,
@@ -734,12 +733,14 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     stateTitle: {
-        ...typography.bodyLargeBold,
+        fontSize: 16,
+        fontWeight: "700",
         color: colors.textPrimary,
         textAlign: "center",
     },
     stateText: {
-        ...typography.bodyMedium,
+        fontSize: 14,
+        fontWeight: "400",
         color: colors.textMuted,
         textAlign: "center",
         lineHeight: 20,
