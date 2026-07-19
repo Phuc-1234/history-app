@@ -108,9 +108,12 @@ const lessonStyles = StyleSheet.create({
     },
 });
 
+import { useLoading } from "@/features/loading";
+
 // ─── Main HomeScreen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
     const router = useRouter();
+    const { hideLoading } = useLoading();
 
     // Đảm bảo profile luôn mới nhất
     const { refetch: refetchProfile, isFetching: isFetchingProfile, isLoading: isLoadingProfile } = useGetProfileQuery();
@@ -120,6 +123,12 @@ export default function HomeScreen() {
     const { data, isLoading, error, refetch: refetchHome } = useGetHomeDataQuery(undefined, {
         skip: isLoadingProfile,
     });
+
+    React.useEffect(() => {
+        if (!isLoadingProfile && !isLoading) {
+            hideLoading();
+        }
+    }, [isLoadingProfile, isLoading, hideLoading]);
 
     const handleRefresh = React.useCallback(() => {
         refetchProfile();

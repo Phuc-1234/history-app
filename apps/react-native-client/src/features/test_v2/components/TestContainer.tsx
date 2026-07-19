@@ -328,68 +328,73 @@ export default function TestContainerV2({
         );
     }
 
-    // ── Error state ──────────────────────────────────────────────────
-    if (status === "idle" && error) {
-        return (
-            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
-                <View style={styles.centerContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity
-                        style={styles.retryBtn}
-                        onPress={actions.start}
-                    >
-                        <Text style={styles.retryBtnText}>Thử lại</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScreenWrapper>
-        );
-    }
-
     // ── Exam Intro state ──────────────────────────────────────────────
     if (status === "idle") {
         if (skipIntro) {
             return (
-                <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
-                    <View style={styles.centerContainer}>
-                        <ActivityIndicator size="large" color={colors.primary} />
-                        <Text style={styles.loadingText}>Đang tải bài luyện tập...</Text>
-                    </View>
-                </ScreenWrapper>
+                <>
+                    <CustomModal
+                        visible={status === "idle" && !!error}
+                        title="Lỗi bắt đầu"
+                        message={error || ""}
+                        confirmText="Thử lại"
+                        cancelText="Hủy"
+                        onConfirm={() => {
+                            actions.clearError();
+                            actions.start();
+                        }}
+                        onCancel={() => {
+                            actions.clearError();
+                            handleBack();
+                        }}
+                        showMascot={true}
+                        mascotExpression="sad"
+                    />
+                </>
             );
         }
         return (
-            <TestIntro
-                title={testInfo?.title}
-                questionCount={testInfo?.questionCount}
-                timeLimit={testInfo?.timeLimit}
-                loading={isInfoLoading}
-                onStart={actions.start}
-                onBack={handleBack}
-                purposeType={params.purposeType}
-                xpReward={testInfo?.xpReward}
-                goldReward={testInfo?.goldReward}
-                attemptNumber={testInfo?.attemptNumber}
-                passThreshold={testInfo?.passThreshold}
-                attemptCount={testInfo?.attemptCount}
-                passCount={testInfo?.passCount}
-                scopeType={params.scopeType}
-                itemsReward={testInfo?.itemsReward}
-            />
+            <>
+                <TestIntro
+                    title={testInfo?.title}
+                    questionCount={testInfo?.questionCount}
+                    timeLimit={testInfo?.timeLimit}
+                    loading={isInfoLoading}
+                    onStart={actions.start}
+                    onBack={handleBack}
+                    purposeType={params.purposeType}
+                    xpReward={testInfo?.xpReward}
+                    goldReward={testInfo?.goldReward}
+                    attemptNumber={testInfo?.attemptNumber}
+                    passThreshold={testInfo?.passThreshold}
+                    attemptCount={testInfo?.attemptCount}
+                    passCount={testInfo?.passCount}
+                    scopeType={params.scopeType}
+                    itemsReward={testInfo?.itemsReward}
+                />
+                <CustomModal
+                    visible={status === "idle" && !!error}
+                    title="Lỗi bắt đầu"
+                    message={error || ""}
+                    confirmText="Thử lại"
+                    cancelText="Hủy"
+                    onConfirm={() => {
+                        actions.clearError();
+                        actions.start();
+                    }}
+                    onCancel={() => {
+                        actions.clearError();
+                    }}
+                    showMascot={true}
+                    mascotExpression="sad"
+                />
+            </>
         );
     }
 
     // ── Loading state ────────────────────────────────────────────────
     if (status === "loading") {
-        return (
-            <ScreenWrapper branchConfig={branchConfig} showTopBar={false} showHistoricalBackground={false}>
-                <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.loadingText}>
-                        Đang tải bài kiểm tra...
-                    </Text>
-                </View>
-            </ScreenWrapper>
-        );
+        return null;
     }
 
     // ── Completed state ──────────────────────────────────────────────
