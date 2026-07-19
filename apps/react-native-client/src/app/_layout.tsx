@@ -17,6 +17,7 @@ import { toastService, type ToastType } from "../services/toastService";
 import { useFonts } from "expo-font";
 
 import { LoadingProvider } from "../features/loading";
+import { SideDrawerProvider } from "../components/layout/SideDrawerContext";
 
 // Register background handler for Firebase Cloud Messaging (Android)
 try {
@@ -73,22 +74,24 @@ export default function RootLayout() {
                 {/* 2. Delay rendering UI until local storage token/states are rehydrated */}
                 <PersistGate loading={<LoadingFallback />} persistor={persistor}>
                     <LoadingProvider>
-                        {/* 3. Expo Router Native Navigation Container */}
-                        <Stack
-                            screenOptions={{
-                                // This completely turns off the default native route headers
-                                // across ALL app stack contexts, tabs, and nested screens globally.
-                                headerShown: false,
-                            }}
-                        >
-                            <Stack.Screen name="(tabs)" />
-                            <Stack.Screen
-                                name="modal"
-                                options={{ presentation: "modal" }}
-                            />
-                        </Stack>
-                        <GlobalSessionModal />
-                        <GlobalToastContainer />
+                        <SideDrawerProvider>
+                            {/* 3. Expo Router Native Navigation Container */}
+                            <Stack
+                                screenOptions={{
+                                    // This completely turns off the default native route headers
+                                    // across ALL app stack contexts, tabs, and nested screens globally.
+                                    headerShown: false,
+                                }}
+                            >
+                                <Stack.Screen name="(tabs)" />
+                                <Stack.Screen
+                                    name="modal"
+                                    options={{ presentation: "modal" }}
+                                />
+                            </Stack>
+                            <GlobalSessionModal />
+                            <GlobalToastContainer />
+                        </SideDrawerProvider>
                     </LoadingProvider>
                 </PersistGate>
             </Provider>

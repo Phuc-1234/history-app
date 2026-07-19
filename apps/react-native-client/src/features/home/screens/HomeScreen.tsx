@@ -19,6 +19,7 @@ import { Card } from "../../../components/Card";
 import type { HomeLessonItem } from "../services/homeApi";
 import { PodiumSection } from "../../leaderboard/components/PodiumSection";
 import { AvatarWithFrame } from "../../../components/ui";
+import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
 
 
 
@@ -114,6 +115,7 @@ import { useLoading } from "@/features/loading";
 export default function HomeScreen() {
     const router = useRouter();
     const { hideLoading } = useLoading();
+    const { openDrawer } = useSideDrawer();
 
     // Đảm bảo profile luôn mới nhất
     const { refetch: refetchProfile, isFetching: isFetchingProfile, isLoading: isLoadingProfile } = useGetProfileQuery();
@@ -177,10 +179,13 @@ export default function HomeScreen() {
             <View style={styles.headerBlock}>
                 <View style={styles.headerRow}>
                     <View style={styles.logoContainer}>
-                        <Image
-                            source={require("../../../../assets/images/logo-main.png")}
-                            style={styles.logoImage}
-                        />
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={openDrawer}
+                            style={styles.menuButton}
+                        >
+                            <Ionicons name="menu" size={26} color="#FFFFFF" />
+                        </TouchableOpacity>
                         <Text style={styles.logoText}>Sắc sử</Text>
                     </View>
                     <TouchableOpacity
@@ -209,7 +214,7 @@ export default function HomeScreen() {
                         />
                         <View style={{ flex: 1 }}>
                             <Text style={styles.greetingText}>
-                                Chào, {profile?.name || "bạn"} 👋
+                                Chào, {profile?.name || "bạn"}!
                             </Text>
                             <View style={styles.badgeRow}>
                                 <View style={styles.badge}>
@@ -359,10 +364,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 8,
     },
-    logoImage: {
-        width: 28,
-        height: 28,
-        resizeMode: "contain",
+    menuButton: {
+        justifyContent: "center",
+        alignItems: "center",
     },
     logoText: {
         fontFamily: typography.fonts.medium,

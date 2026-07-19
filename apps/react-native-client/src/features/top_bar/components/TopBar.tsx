@@ -15,6 +15,7 @@ import { ProcessedTopBarData } from "../hooks/useTopBarData";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { AvatarWithFrame } from "../../../components/ui";
+import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
 
 interface TopBarProps {
     data?: ProcessedTopBarData;
@@ -37,6 +38,7 @@ interface TopBarProps {
 export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }: TopBarProps) {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { openDrawer } = useSideDrawer();
 
     return (
         <LinearGradient
@@ -49,6 +51,13 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                     {!data.isLoggedIn ? (
                         /* Anonymous UI View state */
                         <View style={styles.notLoggedInContainer}>
+                            <TouchableOpacity
+                                style={styles.menuButton}
+                                activeOpacity={0.7}
+                                onPress={openDrawer}
+                            >
+                                <Ionicons name="menu" size={26} color="#FFFFFF" />
+                            </TouchableOpacity>
                             <View style={styles.promptTextContainer}>
                                 <Ionicons
                                     name="person-circle-outline"
@@ -70,6 +79,13 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                     ) : (
                         /* Authenticated State UI View */
                         <>
+                            <TouchableOpacity
+                                style={styles.menuButton}
+                                activeOpacity={0.7}
+                                onPress={openDrawer}
+                            >
+                                <Ionicons name="menu" size={26} color="#FFFFFF" />
+                            </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.userSection}
                                 activeOpacity={0.7}
@@ -194,6 +210,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 16,
+    },
+    menuButton: {
+        marginRight: 12,
+        justifyContent: "center",
+        alignItems: "center",
     },
     purpleBarWithBranch: {
     },
