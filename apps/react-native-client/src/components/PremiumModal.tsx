@@ -64,15 +64,19 @@ export function PremiumModal({
                     <View style={styles.benefitsContainer}>
                         <View style={styles.benefitItem}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                            <Text style={styles.benefitText}>Học toàn bộ Khối lớp 10, 11, 12</Text>
+                            <Text style={styles.benefitText}>Mở khoá toàn bộ bài học</Text>
                         </View>
                         <View style={styles.benefitItem}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                            <Text style={styles.benefitText}>Xem Sơ đồ tư duy tóm tắt thông minh</Text>
+                            <Text style={styles.benefitText}>Mở khoá toàn bộ đề thpt</Text>
                         </View>
                         <View style={styles.benefitItem}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                            <Text style={styles.benefitText}>Luyện đề thi thử Quốc gia không giới hạn</Text>
+                            <Text style={styles.benefitText}>Mở khoá thẻ lật</Text>
+                        </View>
+                        <View style={styles.benefitItem}>
+                            <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                            <Text style={styles.benefitText}>Mở khoá mind map</Text>
                         </View>
                     </View>
 

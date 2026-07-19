@@ -202,31 +202,31 @@ export const SubscriptionScreen: React.FC = () => {
 
                     <View style={styles.featuresContainer}>
                         <View style={styles.featureItem}>
-                            <Ionicons name="ban-outline" size={24} color={colors.error} style={{ marginRight: 14 }} />
+                            <Ionicons name="book-outline" size={24} color={colors.primary} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Không quảng cáo</Text>
-                                <Text style={styles.featureDesc}>Học tập mượt mà, không bị gián đoạn quảng cáo.</Text>
+                                <Text style={styles.featureTitle}>Mở khoá toàn bộ bài học</Text>
+                                <Text style={styles.featureDesc}>Học toàn bộ bài học các khối lớp 10, 11, 12.</Text>
                             </View>
                         </View>
                         <View style={styles.featureItem}>
-                            <Ionicons name="flash-outline" size={24} color={colors.warning} style={{ marginRight: 14 }} />
+                            <Ionicons name="document-text-outline" size={24} color={colors.secondary} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Nhân đôi kinh nghiệm (X2 XP)</Text>
-                                <Text style={styles.featureDesc}>Tăng tốc thăng hạng giải đấu nhanh gấp đôi.</Text>
+                                <Text style={styles.featureTitle}>Mở khoá toàn bộ đề thpt</Text>
+                                <Text style={styles.featureDesc}>Luyện thi THPT Quốc gia không giới hạn.</Text>
                             </View>
                         </View>
                         <View style={styles.featureItem}>
-                            <Ionicons name="trophy-outline" size={24} color={colors.secondary} style={{ marginRight: 14 }} />
+                            <Ionicons name="albums-outline" size={24} color={colors.warning} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Nhân đôi Gold thưởng</Text>
-                                <Text style={styles.featureDesc}>Nhận thêm nhiều Gold hơn khi vượt qua bài thi.</Text>
+                                <Text style={styles.featureTitle}>Mở khoá thẻ lật</Text>
+                                <Text style={styles.featureDesc}>Ghi nhớ kiến thức nhanh chóng với flashcard.</Text>
                             </View>
                         </View>
                         <View style={styles.featureItem}>
-                            <Ionicons name="key-outline" size={24} color={colors.primary} style={{ marginRight: 14 }} />
+                            <Ionicons name="git-network-outline" size={24} color={colors.success} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Mở khóa Video lịch sử</Text>
-                                <Text style={styles.featureDesc}>Xem không giới hạn kho nội dung bài giảng độc quyền.</Text>
+                                <Text style={styles.featureTitle}>Mở khoá mind map</Text>
+                                <Text style={styles.featureDesc}>Hệ thống hoá kiến thức bằng sơ đồ tư duy trực quan.</Text>
                             </View>
                         </View>
                     </View>

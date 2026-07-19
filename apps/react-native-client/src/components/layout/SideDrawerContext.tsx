@@ -10,6 +10,7 @@ import {
     Platform,
     PanResponder,
     Image,
+    ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useSegments } from "expo-router";
@@ -127,6 +128,13 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         if (segments.includes("5_1_national_tests")) return "tests";
         if (segments.includes("9_1_leaderboard")) return "leaderboard";
         if (segments.includes("10_1_profile")) return "profile";
+        if (segments.includes("7_1_item")) return "items";
+        if (segments.includes("8_2_buy_gold")) return "buy_gold";
+        if (segments.includes("notifications")) return "notifications";
+        if (segments.includes("friends")) return "friends";
+        if (segments.includes("10_4_test_history")) return "test_history";
+        if (segments.includes("10_6_feedback")) return "feedback";
+        if (segments.includes("10_8_subscription")) return "subscription";
         return "";
     })();
 
@@ -151,6 +159,13 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         { id: "tests", label: "Luyện đề", icon: "clipboard-outline", activeIcon: "clipboard", route: "/(tabs)/5_1_national_tests" },
         { id: "leaderboard", label: "Bảng xếp hạng", icon: "stats-chart-outline", activeIcon: "stats-chart", route: "/(tabs)/9_1_leaderboard" },
         { id: "profile", label: "Hồ sơ cá nhân", icon: "person-outline", activeIcon: "person", route: "/(tabs)/10_1_profile" },
+        { id: "items", label: "Cửa hàng", icon: "cart-outline", activeIcon: "cart", route: "/(tabs)/7_1_item" },
+        { id: "buy_gold", label: "Nạp vàng", icon: "cash-outline", activeIcon: "cash", route: "/(tabs)/8_2_buy_gold" },
+        { id: "notifications", label: "Thông báo", icon: "notifications-outline", activeIcon: "notifications", route: "/notifications" },
+        { id: "friends", label: "Bạn bè", icon: "people-outline", activeIcon: "people", route: "/(social)/friends" },
+        { id: "test_history", label: "Lịch sử làm bài", icon: "time-outline", activeIcon: "time", route: "/(10_proflie)/10_4_test_history" },
+        { id: "feedback", label: "Gửi góp ý", icon: "chatbubble-ellipses-outline", activeIcon: "chatbubble-ellipses", route: "/(10_proflie)/10_6_feedback" },
+        { id: "subscription", label: "Đăng ký gói", icon: "card-outline", activeIcon: "card", route: "/(10_proflie)/10_8_subscription" },
     ];
 
     const isDrawerAvailable = segments.includes("(tabs)");
@@ -281,7 +296,11 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                         </View>
 
                         {/* Drawer Tabs */}
-                        <View style={styles.tabsContainer}>
+                        <ScrollView
+                            style={styles.tabsScrollView}
+                            contentContainerStyle={styles.tabsContainer}
+                            showsVerticalScrollIndicator={false}
+                        >
                             {tabsConfig.map((tab) => {
                                 const isActive = activeTab === tab.id;
                                 return (
@@ -311,7 +330,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                     </TouchableOpacity>
                                 );
                             })}
-                        </View>
+                        </ScrollView>
                     </Animated.View>
                 </View>
             )}
@@ -440,9 +459,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#FFFFFF",
     },
-    tabsContainer: {
+    tabsScrollView: {
         flex: 1,
+    },
+    tabsContainer: {
         gap: 8,
+        paddingBottom: 20,
     },
     tabItem: {
         flexDirection: "row",
