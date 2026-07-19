@@ -12,8 +12,11 @@ import {
     Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useInventory, InventoryItem } from "../hooks/useInventory";
+import { useInventory } from "../hooks/useInventory";
 import { Ionicons } from "@expo/vector-icons";
+import { Package } from "lucide-react-native";
+import colors from "../../../theme/colors";
+import typography from "../../../theme/typography";
 
 export const InventoryView: React.FC = () => {
     const {
@@ -31,7 +34,6 @@ export const InventoryView: React.FC = () => {
     const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
 
-    // Grid spacing math
     const paddingHorizontal = 20;
     const gap = 12;
     const gridWidth = width - paddingHorizontal * 2 - insets.left - insets.right;
@@ -39,8 +41,8 @@ export const InventoryView: React.FC = () => {
 
     if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FAF8F5" }}>
-                <ActivityIndicator size="large" color="#58CC02" />
+            <View style={styles.loadingWrapper}>
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
@@ -51,14 +53,19 @@ export const InventoryView: React.FC = () => {
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             refreshControl={
-                <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+                <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={handleRefresh}
+                    colors={[colors.primary]}
+                    tintColor={colors.primary}
+                />
             }
         >
             {inventory.length === 0 ? (
-                <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 }}>
-                    <Ionicons name="briefcase-outline" size={48} color="#666" style={{ marginBottom: 12 }} />
-                    <Text style={{ fontSize: 16, fontWeight: "600", color: "#666" }}>Túi đồ trống</Text>
-                    <Text style={{ fontSize: 14, color: "#888", textAlign: "center", marginTop: 4, paddingHorizontal: 24 }}>
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="briefcase-outline" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
+                    <Text style={styles.emptyTitle}>Túi đồ trống</Text>
+                    <Text style={styles.emptySubtitle}>
                         Hãy hoàn thành các bài học hoặc ghé cửa hàng để nhận vật phẩm!
                     </Text>
                 </View>
@@ -67,10 +74,16 @@ export const InventoryView: React.FC = () => {
                     {/* 1. Featured Item Preview Card */}
                     {selectedItem && (
                         <View style={styles.featuredCard}>
-                            <Image
-                                source={{ uri: selectedItem.imageUrl }}
-                                style={styles.featuredImage}
-                            />
+                            {selectedItem.imageUrl ? (
+                                <Image
+                                    source={{ uri: selectedItem.imageUrl }}
+                                    style={styles.featuredImage}
+                                />
+                            ) : (
+                                <View style={[styles.featuredImage, styles.iconFallbackCircle]}>
+                                    <Package size={40} color={colors.textMuted} />
+                                </View>
+                            )}
                             <View style={styles.featuredInfo}>
                                 <Text style={styles.featuredName}>
                                     {selectedItem.name}
@@ -149,17 +162,8 @@ export const InventoryView: React.FC = () => {
                                             resizeMode="contain"
                                         />
                                     ) : (
-                                        <View
-                                            style={[
-                                                styles.iconCircle,
-                                                { backgroundColor: item.iconBgColor },
-                                            ]}
-                                        >
-                                            <Ionicons
-                                                name={item.icon as any}
-                                                size={24}
-                                                color={item.iconColor}
-                                            />
+                                        <View style={styles.cellIconWrapper}>
+                                            <Package size={28} color={colors.textMuted} />
                                         </View>
                                     )}
 
@@ -182,15 +186,15 @@ export const InventoryView: React.FC = () => {
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
-                        <Ionicons name="warning-outline" size={44} color="#FF9800" style={{ marginBottom: 12 }} />
+                        <Ionicons name="warning-outline" size={44} color={colors.warning} style={{ marginBottom: 12 }} />
                         <Text style={styles.modalTitle}>Thay thế hiệu ứng?</Text>
                         <Text style={styles.modalDesc}>
                             Bạn đang có hiệu ứng{" "}
-                            <Text style={{ fontWeight: "700", color: "#1F1F1F" }}>
+                            <Text style={styles.modalHighlightText}>
                                 {conflictModalData?.activeItemName}
                             </Text>{" "}
                             đang hoạt động. Việc kích hoạt{" "}
-                            <Text style={{ fontWeight: "700", color: "#1F1F1F" }}>
+                            <Text style={styles.modalHighlightText}>
                                 {conflictModalData?.itemName}
                             </Text>{" "}
                             sẽ hủy hiệu ứng hiện tại và bạn sẽ mất nó vĩnh viễn.
@@ -219,31 +223,60 @@ export const InventoryView: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+    loadingWrapper: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.background,
+    },
     scrollView: {
         flex: 1,
-        backgroundColor: "#FAF8F5",
+        backgroundColor: colors.background,
     },
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 20,
         paddingBottom: 32,
-        backgroundColor: "#FAF8F5",
+        backgroundColor: colors.background,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 40,
+    },
+    emptyTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 16,
+        color: colors.textSecondary,
+    },
+    emptySubtitle: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 14,
+        color: colors.textMuted,
+        textAlign: "center",
+        marginTop: 4,
+        paddingHorizontal: 24,
     },
     featuredCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 12, // Container border radius = 12
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 16,
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: "#EAEAEA",
+        borderColor: colors.borderMedium,
         marginBottom: 28,
     },
     featuredImage: {
         width: 100,
         height: 100,
         borderRadius: 12,
-        backgroundColor: "#F0F0F0",
+        backgroundColor: colors.surfaceVariant,
+    },
+    iconFallbackCircle: {
+        alignItems: "center",
+        justifyContent: "center",
     },
     featuredInfo: {
         flex: 1,
@@ -251,45 +284,47 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     featuredName: {
+        fontFamily: typography.fonts.bold,
         fontSize: 18,
-        fontWeight: "700",
-        color: "#1F1F1F",
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     featuredDescription: {
+        fontFamily: typography.fonts.regular,
         fontSize: 13,
-        color: "#666666",
+        color: colors.textSecondary,
         lineHeight: 18,
         marginBottom: 6,
     },
     featuredQuantity: {
+        fontFamily: typography.fonts.regular,
         fontSize: 13,
-        color: "#444444",
+        color: colors.textSecondary,
         marginBottom: 8,
     },
     boldQty: {
-        fontWeight: "700",
-        color: "#1F1F1F",
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
     },
     useButton: {
-        backgroundColor: "#58CC02",
-        borderRadius: 30, // Pill button border radius = 30
+        backgroundColor: colors.primary,
+        borderRadius: 30,
         paddingVertical: 8,
         paddingHorizontal: 20,
         alignSelf: "flex-start",
     },
     activatedButton: {
-        backgroundColor: "#9E9E9E",
+        backgroundColor: colors.textMuted,
     },
     useButtonText: {
-        color: "#FFFFFF",
+        fontFamily: typography.fonts.bold,
+        color: colors.textLight,
         fontSize: 13,
-        fontWeight: "700",
     },
     sectionTitle: {
+        fontFamily: typography.fonts.bold,
         fontSize: 16,
-        fontWeight: "700",
-        color: "#2C2C2C",
+        color: colors.textPrimary,
         marginBottom: 16,
     },
     gridContainer: {
@@ -298,27 +333,27 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     gridCell: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 12, // Container border radius = 12
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 12,
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: 2,
-        borderColor: "#E5E5E5",
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
         height: 124,
         position: "relative",
     },
     selectedGridCell: {
-        borderColor: "#58CC02",
-        backgroundColor: "#F7FFF0",
+        borderColor: colors.primary,
+        backgroundColor: colors.primaryContainer,
     },
     badgeCount: {
         position: "absolute",
         top: 8,
         right: 10,
+        fontFamily: typography.fonts.semiBold,
         fontSize: 12,
-        fontWeight: "600",
-        color: "#777777",
+        color: colors.textMuted,
     },
     cellImage: {
         width: 44,
@@ -326,21 +361,22 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 10,
         marginTop: 6,
-        backgroundColor: "#F5F6F8",
+        backgroundColor: colors.surfaceVariant,
     },
-    iconCircle: {
+    cellIconWrapper: {
         width: 44,
         height: 44,
         borderRadius: 22,
+        backgroundColor: colors.surfaceVariant,
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 10,
         marginTop: 6,
     },
     cellName: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 13,
-        fontWeight: "600",
-        color: "#3C3C3C",
+        color: colors.textPrimary,
         textAlign: "center",
         lineHeight: 16,
     },
@@ -348,44 +384,51 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: 6,
         left: 6,
-        backgroundColor: "#58CC02",
+        backgroundColor: colors.primary,
         paddingHorizontal: 6,
         paddingVertical: 2,
-        borderRadius: 30, // Pill badge
+        borderRadius: 30,
         zIndex: 2,
     },
     equippedGridBadgeText: {
-        color: "#FFFFFF",
+        fontFamily: typography.fonts.bold,
+        color: colors.textLight,
         fontSize: 8,
-        fontWeight: "700",
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)",
+        backgroundColor: "rgba(0, 0, 0, 0.45)",
         justifyContent: "center",
         alignItems: "center",
         padding: 20,
     },
     modalContainer: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 12, // Container border radius = 12
+        backgroundColor: colors.surface,
+        borderRadius: 12,
         padding: 24,
         width: "100%",
         maxWidth: 340,
         alignItems: "center",
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
     },
     modalTitle: {
+        fontFamily: typography.fonts.bold,
         fontSize: 18,
-        fontWeight: "700",
-        color: "#1F1F1F",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     modalDesc: {
+        fontFamily: typography.fonts.regular,
         fontSize: 14,
-        color: "#666666",
+        color: colors.textSecondary,
         textAlign: "center",
         lineHeight: 20,
         marginBottom: 20,
+    },
+    modalHighlightText: {
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
     },
     modalActions: {
         flexDirection: "row",
@@ -395,26 +438,27 @@ const styles = StyleSheet.create({
     cancelBtn: {
         flex: 1,
         paddingVertical: 12,
-        borderRadius: 30, // Pill button border radius = 30
-        borderWidth: 1.5,
-        borderColor: "#E5E5E5",
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        backgroundColor: colors.surfaceVariant,
         alignItems: "center",
     },
     cancelBtnText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 14,
-        fontWeight: "700",
-        color: "#666666",
+        color: colors.textSecondary,
     },
     confirmBtn: {
         flex: 1,
         paddingVertical: 12,
-        borderRadius: 30, // Pill button border radius = 30
-        backgroundColor: "#E53935",
+        borderRadius: 30,
+        backgroundColor: colors.error,
         alignItems: "center",
     },
     confirmBtnText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 14,
-        fontWeight: "700",
-        color: "#FFFFFF",
+        color: colors.textLight,
     },
 });

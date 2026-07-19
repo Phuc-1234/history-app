@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useAppSelector } from "../../../store/storeHook";
 import { useGetShopItemsQuery, usePurchaseItemMutation, useGetUserInventoryQuery } from "../../inventory/services/itemApi";
 import { useGetProfileQuery } from "../../auth/services/authApi";
-import { Alert } from "react-native";
 
 export interface ShopItem {
     id: string;
@@ -16,9 +15,17 @@ export interface ShopItem {
     isOwned: boolean;
 }
 
+export interface PurchaseModalState {
+    visible: boolean;
+    title: string;
+    message: string;
+    isSuccess: boolean;
+}
+
 export function useShop() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
+    const [purchaseModal, setPurchaseModal] = useState<PurchaseModalState | null>(null);
 
     const profile = useAppSelector((state) => state.auth.profile);
     const userCoins = profile?.totalGold ?? 0;
@@ -37,7 +44,7 @@ export function useShop() {
             name: item.name,
             description: item.description ?? "",
             cost: item.price,
-            imageUrl: item.shopImgUrl ?? item.imgUrl ?? "https://picsum.photos/id/1021/400/400",
+            imageUrl: item.shopImgUrl ?? item.imgUrl ?? "",
             category: (item.itemType === "XP_MUL" || item.itemType === "GOLD_MUL") ? "powerup" : "cosmetic",
             itemType: item.itemType,
             isOwned: (item.itemType === "SKIN" || item.itemType === "BADGE") && ownedIds.has(item.id),
@@ -52,22 +59,46 @@ export function useShop() {
 
     const handlePurchase = async (item: ShopItem) => {
         if (item.isOwned) {
-            Alert.alert("Lỗi", "Bạn đã sở hữu vật phẩm này.");
+            setPurchaseModal({
+                visible: true,
+                title: "Thông báo",
+                message: "Bạn đã sở hữu vật phẩm này.",
+                isSuccess: false,
+            });
             return;
         }
 
         if (userCoins < item.cost) {
-            Alert.alert("Lỗi", "Bạn không đủ số lượng Vàng để thực hiện giao dịch này.");
+            setPurchaseModal({
+                visible: true,
+                title: "Không đủ Vàng",
+                message: "Bạn không đủ số lượng Vàng để thực hiện giao dịch này.",
+                isSuccess: false,
+            });
             return;
         }
 
         try {
             await purchaseItem({ itemDefinitionId: item.dbId, quantity: 1 }).unwrap();
-            Alert.alert("Thành công", `Mua thành công: ${item.name}!`);
             setSelectedItem(null);
+            setPurchaseModal({
+                visible: true,
+                title: "Mua thành công!",
+                message: `Bạn đã mua thành công vật phẩm "${item.name}".`,
+                isSuccess: true,
+            });
         } catch (err: any) {
-            Alert.alert("Lỗi", err?.data?.error ?? err?.message ?? "Không thể mua vật phẩm.");
+            setPurchaseModal({
+                visible: true,
+                title: "Lỗi mua hàng",
+                message: err?.data?.error ?? err?.message ?? "Không thể mua vật phẩm.",
+                isSuccess: false,
+            });
         }
+    };
+
+    const closePurchaseModal = () => {
+        setPurchaseModal(null);
     };
 
     const handleRefresh = async () => {
@@ -90,6 +121,8 @@ export function useShop() {
         selectedItem,
         setSelectedItem,
         handlePurchase,
+        purchaseModal,
+        closePurchaseModal,
         isLoading,
         handleRefresh,
         isRefreshing: isFetchingShop || isFetchingInventory,
