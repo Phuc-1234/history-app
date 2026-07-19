@@ -1,5 +1,20 @@
 import messaging from '@react-native-firebase/messaging';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../../services/config';
+
+const ACCESS_TOKEN_KEY = 'access_token';
+
+const getAccessToken = async (): Promise<string | null> => {
+  if (Platform.OS === 'web') {
+    try {
+      return localStorage.getItem(ACCESS_TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  }
+  return await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+};
 
 /**
  * Service to handle notification logic
@@ -24,11 +39,18 @@ export const notificationService = {
    */
   async registerTokenWithBackend(token: string): Promise<boolean> {
     try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        console.log('[FCM] No access token found in storage, skipping registration.');
+        return false;
+      }
+
       console.log('Registering token with backend:', token);
       const response = await fetch(`${API_BASE_URL}/api/notifications/register-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ token }),
       });

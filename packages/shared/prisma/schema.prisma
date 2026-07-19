@@ -260,6 +260,7 @@ model User {
   rewardLogs             UserRewardLog[]
   testLogs               UserTestLog[]
   notifications          Notification[]
+  fcmTokens              FcmToken[]
   tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
 
   @@map("users")
@@ -693,3 +694,17 @@ model Notification {
 
   @@map("notifications")
 }
+
+model FcmToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("fcm_tokens")
+}
+
