@@ -490,8 +490,36 @@ export interface AdminFeedbackDto {
         profileImgUrl: string | null;
     };
 }
+// ─── Tier ────────────────────────────────────────────────────────────────────
 
+export interface CreateTierBody {
+    index: number;
+    name: string;
+    badgeImgUrl?: string | null;
+    description?: string | null;
+    xpThreshold: number;
+    xpReward?: number;
+    goldReward?: number;
+    rewardRuleItems?: { itemDefinitionId: number; quantity: number }[];
+}
 
+export interface UpdateTierBody {
+    name?: string;
+    badgeImgUrl?: string | null;
+    description?: string | null;
+    xpThreshold?: number;
+    xpReward?: number;
+    goldReward?: number;
+    rewardRuleItems?: { itemDefinitionId: number; quantity: number }[];
+}
 
+export interface AdminTierDto {
+    index: number;
+    name: string;
+    badgeImgUrl: string | null;
+    description: string | null;
+    xpThreshold: number;
+    rewardRule?: RewardRuleDto | null;
+}
 
 
