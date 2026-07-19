@@ -12,6 +12,7 @@ import {
     Dimensions,
     useWindowDimensions,
     Image,
+    Platform,
 } from "react-native";
 import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -1311,19 +1312,19 @@ const promptTagsStyles = {
         fontSize: 16,
         fontFamily: typography.fonts.bold,
         lineHeight: 24,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     p: {
         marginTop: 0,
         marginBottom: 8,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     li: {
         color: colors.textPrimary,
         fontSize: 15,
         fontFamily: typography.fonts.regular,
         lineHeight: 22,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     ...commonTagsStyles,
 };
@@ -1334,19 +1335,19 @@ const docTagsStyles = {
         fontSize: 14,
         fontFamily: typography.fonts.regular,
         lineHeight: 22,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     p: {
         marginTop: 0,
         marginBottom: 8,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     li: {
         color: colors.textSecondary,
         fontSize: 13,
         fontFamily: typography.fonts.regular,
         lineHeight: 20,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     ...commonTagsStyles,
 };
@@ -1867,7 +1868,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
         lineHeight: 20,
-        textAlign: "justify",
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     modalOverlay: {
         position: "absolute",
@@ -1951,7 +1952,7 @@ const styles = StyleSheet.create({
         borderColor: colors.error,
         backgroundColor: colors.errorContainer,
     },
-    optText: { fontSize: 14, fontFamily: typography.fonts.semiBold, color: colors.textSecondary, textAlign: "justify" },
+    optText: { fontSize: 14, fontFamily: typography.fonts.semiBold, color: colors.textSecondary, textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left" },
     optTextCorrect: { color: colors.textSuccess },
     optTextWrong: { color: colors.textError },
     fillContainer: {
@@ -2003,7 +2004,7 @@ const styles = StyleSheet.create({
         color: colors.textSuccess,
         marginBottom: 4,
     },
-    explText: { fontSize: 13, fontFamily: typography.fonts.regular, color: colors.textSuccess, lineHeight: 20, textAlign: "justify" },
+    explText: { fontSize: 13, fontFamily: typography.fonts.regular, color: colors.textSuccess, lineHeight: 20, textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left" },
     scoreBadge: {
         backgroundColor: colors.successContainer,
         borderRadius: 5,

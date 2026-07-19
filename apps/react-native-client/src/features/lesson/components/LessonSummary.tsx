@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ImageBackground,
     Image,
+    Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LessonSummaryData, LessonSection } from "../hooks/useLessonSummary";
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
         ...typography.bodyMedium,
         color: colors.textSecondary,
         lineHeight: 22,
-        textAlign: "justify",
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
 
     /* Feature Navigation Grid Matrix */

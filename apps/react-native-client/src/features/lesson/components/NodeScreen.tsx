@@ -10,6 +10,7 @@ import {
     View,
     useWindowDimensions,
     Image,
+    Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -208,7 +209,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 {/* Body — HTML rendered content */}
                 <View style={{ marginBottom: 24 }}>
                     <RenderHtml
-                        contentWidth={width}
+                        contentWidth={width - 40}
                         source={{ html: convertHslToHex(node.body || "") }}
                         tagsStyles={tagsStyles}
                         classesStyles={classesStyles}
@@ -334,12 +335,12 @@ const tagsStyles = {
         color: colors.textSecondary,
         fontSize: 16,
         lineHeight: 26,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     p: {
         marginTop: 0,
         marginBottom: 12,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     a: {
         color: colors.primary,
@@ -350,7 +351,7 @@ const tagsStyles = {
         color: colors.textSecondary,
         fontSize: 15,
         lineHeight: 22,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     strong: {
         fontFamily: typography.fonts.bold,
