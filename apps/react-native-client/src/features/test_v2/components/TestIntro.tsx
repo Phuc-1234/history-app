@@ -16,6 +16,7 @@ import Mascot from "../../../components/Mascot";
 import { colors } from "../../../theme/colors";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import typography from "@/theme/typography";
+import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
 
 export function getScopePlaceholder(scopeType?: string, purposeType?: string): string {
     const isExam = purposeType === "EXAM";
@@ -51,6 +52,8 @@ interface Props {
     purposeType?: "EXAM" | "PRACTICE";
     xpReward?: number;
     goldReward?: number;
+    xpMultiplier?: number;
+    goldMultiplier?: number;
     attemptNumber?: number;
     passThreshold?: number;
     attemptCount?: number;
@@ -70,6 +73,8 @@ export default function TestIntro({
     purposeType = "EXAM",
     xpReward,
     goldReward,
+    xpMultiplier = 1,
+    goldMultiplier = 1,
     attemptNumber,
     passThreshold = 80,
     attemptCount = 0,
@@ -77,6 +82,10 @@ export default function TestIntro({
     scopeType,
     itemsReward,
 }: Props) {
+    const { data: activeEffectsData } = useGetUserActiveEffectsQuery();
+    const effectiveXpMultiplier = xpMultiplier > 1 ? xpMultiplier : (activeEffectsData?.xpMultiplier ?? 1);
+    const effectiveGoldMultiplier = goldMultiplier > 1 ? goldMultiplier : (activeEffectsData?.goldMultiplier ?? 1);
+
     const [showHelpModal, setShowHelpModal] = useState(false);
 
     const branchConfig = {
@@ -177,30 +186,56 @@ export default function TestIntro({
                     <View style={styles.rewardsRow}>
                         {/* XP reward */}
                         {xpReward != null && xpReward > 0 && (
-                            <Card variant="accent" style={styles.rewardRectangle}>
-                                <LinearGradient
-                                    colors={[colors.primary, colors.secondary]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={StyleSheet.absoluteFill}
-                                />
-                                <Zap size={20} color="#FFFFFF" style={{ zIndex: 1 }} />
-                                <Text style={[styles.rewardRectangleText, { zIndex: 1 }]}>+{xpReward} XP</Text>
-                            </Card>
+                            <View style={{ flex: 1, position: "relative" }}>
+                                <Card
+                                    variant="accent"
+                                    style={[
+                                        styles.rewardRectangle,
+                                        effectiveXpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
+                                    ]}
+                                >
+                                    <LinearGradient
+                                        colors={[colors.primary, colors.secondary]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={StyleSheet.absoluteFill}
+                                    />
+                                    <Zap size={20} color="#FFFFFF" style={{ zIndex: 1 }} />
+                                    <Text style={[styles.rewardRectangleText, { zIndex: 1 }]}>+{xpReward} XP</Text>
+                                </Card>
+                                {effectiveXpMultiplier > 1 && (
+                                    <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                        <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{effectiveXpMultiplier}</Text>
+                                    </View>
+                                )}
+                            </View>
                         )}
 
                         {/* Gold reward */}
                         {goldReward != null && goldReward > 0 && (
-                            <Card variant="accent" style={styles.rewardRectangle}>
-                                <LinearGradient
-                                    colors={[colors.primary, colors.secondary]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={StyleSheet.absoluteFill}
-                                />
-                                <Coins size={20} color="#FFFFFF" style={{ zIndex: 1 }} />
-                                <Text style={[styles.rewardRectangleText, { zIndex: 1 }]}>+{goldReward} vàng</Text>
-                            </Card>
+                            <View style={{ flex: 1, position: "relative" }}>
+                                <Card
+                                    variant="accent"
+                                    style={[
+                                        styles.rewardRectangle,
+                                        effectiveGoldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
+                                    ]}
+                                >
+                                    <LinearGradient
+                                        colors={[colors.primary, colors.secondary]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={StyleSheet.absoluteFill}
+                                    />
+                                    <Coins size={20} color="#FFFFFF" style={{ zIndex: 1 }} />
+                                    <Text style={[styles.rewardRectangleText, { zIndex: 1 }]}>+{goldReward} vàng</Text>
+                                </Card>
+                                {effectiveGoldMultiplier > 1 && (
+                                    <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                        <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{effectiveGoldMultiplier}</Text>
+                                    </View>
+                                )}
+                            </View>
                         )}
                     </View>
 
@@ -441,5 +476,22 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: typography.fonts.regular,
         color: colors.textMuted,
+    },
+    multiplierBadge: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 30,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10,
+    },
+    multiplierText: {
+        fontSize: 10,
+        fontFamily: typography.fonts.bold,
     },
 });

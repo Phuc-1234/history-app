@@ -37,6 +37,7 @@ import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { colors } from "@/theme/colors";
 import typography from "@/theme/typography";
 import { useGetTestInfoQuery } from "../services/testApi";
+import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
 import ChooseQuestion from "./ChooseQuestion";
 import FillQuestion from "./FillQuestion";
 import MatchQuestion from "./MatchQuestion";
@@ -162,6 +163,9 @@ export default function TestContainerV2({
             skip: runner.status !== "idle",
         },
     );
+    const { data: activeEffectsData } = useGetUserActiveEffectsQuery();
+    const xpMultiplier = activeEffectsData?.xpMultiplier ?? 1;
+    const goldMultiplier = activeEffectsData?.goldMultiplier ?? 1;
 
     useEffect(() => {
         if (testInfo) {
@@ -366,6 +370,8 @@ export default function TestContainerV2({
                     purposeType={params.purposeType}
                     xpReward={testInfo?.xpReward}
                     goldReward={testInfo?.goldReward}
+                    xpMultiplier={testInfo?.xpMultiplier}
+                    goldMultiplier={testInfo?.goldMultiplier}
                     attemptNumber={testInfo?.attemptNumber}
                     passThreshold={testInfo?.passThreshold}
                     attemptCount={testInfo?.attemptCount}
@@ -452,50 +458,35 @@ export default function TestContainerV2({
                                     if (c.eventType === "REWARD_EARNED") {
                                         return (
                                             <View key={i}>
-                                                <View
-                                                    style={styles.rewardRow}
-                                                >
+                                                <View style={styles.rewardRow}>
                                                     {(c.xpGained ?? 0) > 0 && (
-                                                        <View
-                                                            style={[
-                                                                styles.rewardChip,
-                                                                styles.rewardChipXp,
-                                                            ]}
-                                                        >
-                                                            <Zap
-                                                                size={13}
-                                                                color="#FFF"
-                                                            />
-                                                            <Text
-                                                                style={
-                                                                    styles.rewardChipText
-                                                                }
-                                                            >
-                                                                +{c.xpGained} XP
-                                                            </Text>
+                                                        <View style={[
+                                                            styles.rewardChip,
+                                                            styles.rewardChipXp,
+                                                            xpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
+                                                        ]}>
+                                                            <Zap size={13} color="#FFF" />
+                                                            <Text style={styles.rewardChipText}>+{c.xpGained} XP</Text>
+                                                            {xpMultiplier > 1 && (
+                                                                <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                                                    <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{xpMultiplier}</Text>
+                                                                </View>
+                                                            )}
                                                         </View>
                                                     )}
                                                     {(c.goldGained ?? 0) > 0 && (
-                                                        <View
-                                                            style={[
-                                                                styles.rewardChip,
-                                                                styles.rewardChipGold,
-                                                            ]}
-                                                        >
-                                                            <Coins
-                                                                size={13}
-                                                                color="#4A3B00"
-                                                            />
-                                                            <Text
-                                                                style={[
-                                                                    styles.rewardChipText,
-                                                                    {
-                                                                        color: "#4A3B00",
-                                                                    },
-                                                                ]}
-                                                            >
-                                                                +{c.goldGained} vàng
-                                                            </Text>
+                                                        <View style={[
+                                                            styles.rewardChip,
+                                                            styles.rewardChipGold,
+                                                            goldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
+                                                        ]}>
+                                                            <Coins size={13} color="#4A3B00" />
+                                                            <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{c.goldGained} vàng</Text>
+                                                            {goldMultiplier > 1 && (
+                                                                <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                                                    <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{goldMultiplier}</Text>
+                                                                </View>
+                                                            )}
                                                         </View>
                                                     )}
                                                 </View>
@@ -635,15 +626,35 @@ export default function TestContainerV2({
                                 {/* Rewards inside modal */}
                                 <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
                                     {(activeMilestone.xpGained ?? 0) > 0 && (
-                                        <View style={[styles.rewardChip, styles.rewardChipXp, { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }]}>
+                                        <View style={[
+                                            styles.rewardChip,
+                                            styles.rewardChipXp,
+                                            { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+                                            xpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
+                                        ]}>
                                             <Zap size={13} color="#FFF" />
                                             <Text style={styles.rewardChipText}>+{activeMilestone.xpGained} XP</Text>
+                                            {xpMultiplier > 1 && (
+                                                <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                                    <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{xpMultiplier}</Text>
+                                                </View>
+                                            )}
                                         </View>
                                     )}
                                     {(activeMilestone.goldGained ?? 0) > 0 && (
-                                        <View style={[styles.rewardChip, styles.rewardChipGold, { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }]}>
+                                        <View style={[
+                                            styles.rewardChip,
+                                            styles.rewardChipGold,
+                                            { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+                                            goldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
+                                        ]}>
                                             <Coins size={13} color="#4A3B00" />
                                             <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{activeMilestone.goldGained} vàng</Text>
+                                            {goldMultiplier > 1 && (
+                                                <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                                    <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{goldMultiplier}</Text>
+                                                </View>
+                                            )}
                                         </View>
                                     )}
                                 </View>
@@ -1758,10 +1769,28 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         paddingHorizontal: 12,
         paddingVertical: 6,
+        position: "relative",
     },
     rewardChipXp: { backgroundColor: colors.primary },
     rewardChipGold: { backgroundColor: colors.gold },
     rewardChipText: { fontSize: 12, fontFamily: typography.fonts.bold, color: "#FFFFFF" },
+    multiplierBadge: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10,
+    },
+    multiplierText: {
+        fontSize: 9,
+        fontFamily: typography.fonts.bold,
+    },
     milestoneRow: {
         flexDirection: "row",
         alignItems: "center",

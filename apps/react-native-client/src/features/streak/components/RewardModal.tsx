@@ -10,6 +10,8 @@ import {
 import { Award, Trophy } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
+import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
+
 interface RewardModalProps {
     visible: boolean;
     onClose: () => void;
@@ -23,6 +25,9 @@ export default function RewardModal({
     goldAmount = 50,
     badgeName = "Huy hiệu Chăm Chỉ",
 }: RewardModalProps) {
+    const { data: activeEffectsData } = useGetUserActiveEffectsQuery(undefined, { skip: !visible });
+    const goldMultiplier = activeEffectsData?.goldMultiplier ?? 1;
+
     // Animation Values
     const scaleAnim = useRef(new Animated.Value(0)).current;
     const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -114,7 +119,11 @@ export default function RewardModal({
                     {/* Reward Details Card (Staggered Fade-in) */}
                     <View style={styles.rewardCard}>
                         {/* Gold Coin Row (Fades in first) */}
-                        <Animated.View style={[styles.rewardRow, { opacity: fadeAnim1 }]}>
+                        <Animated.View style={[
+                            styles.rewardRow,
+                            { opacity: fadeAnim1 },
+                            goldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800", borderRadius: 16, paddingHorizontal: 8 },
+                        ]}>
                             <LinearGradient
                                 colors={["#FFFBEB", "#FEF3C7"]}
                                 style={styles.emojiBg}
@@ -130,6 +139,11 @@ export default function RewardModal({
                                 <Text style={styles.rewardLabel}>Phần thưởng xu vàng</Text>
                                 <Text style={styles.rewardValue}>+{goldAmount} Xu</Text>
                             </View>
+                            {goldMultiplier > 1 && (
+                                <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                    <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{goldMultiplier}</Text>
+                                </View>
+                            )}
                         </Animated.View>
 
                         {/* Medal Row (Fades in second) */}
@@ -252,6 +266,24 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingVertical: 12,
         gap: 14,
+        position: "relative",
+    },
+    multiplierBadge: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10,
+    },
+    multiplierText: {
+        fontSize: 9,
+        fontWeight: "800",
     },
     borderTop: {
         borderTopWidth: 1.5,

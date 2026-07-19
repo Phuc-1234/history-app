@@ -13,6 +13,8 @@ import { X, Info, Check, Lock, Flame, Award } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Reward, StreakMilestone } from "../hooks/useStreak";
 
+import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
+
 interface StreakModalProps {
     visible: boolean;
     onClose: () => void;
@@ -30,6 +32,10 @@ export default function StreakModal({
     milestones,
     onClaimReward,
 }: StreakModalProps) {
+    const { data: activeEffectsData } = useGetUserActiveEffectsQuery(undefined, { skip: !visible });
+    const xpMultiplier = activeEffectsData?.xpMultiplier ?? 1;
+    const goldMultiplier = activeEffectsData?.goldMultiplier ?? 1;
+
     // Pulsing Animation Value for Active Milestone Checkpoint
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -241,85 +247,100 @@ export default function StreakModal({
                                 Phần thưởng mốc {currentStreak} ngày
                             </Text>
 
-                            {rewards.map((reward) => (
-                                <View key={reward.id} style={styles.rewardCard}>
-                                    <View style={styles.rewardLeft}>
-                                        <LinearGradient
-                                            colors={
-                                                reward.type === "coin"
-                                                    ? ["#FFFBEB", "#FEF3C7"]
-                                                    : ["#EEF2FF", "#E0E7FF"]
-                                            }
-                                            style={styles.rewardIconContainer}
-                                        >
-                                            {reward.type === "coin" ? (
-                                                <LinearGradient
-                                                    colors={[
-                                                        "#FBBF24",
-                                                        "#D97706",
-                                                    ]}
-                                               //     style={styles.goldBadge}
-                                                >
-                                                    <Text
-                                                        style={styles.coinText}
+                            {rewards.map((reward) => {
+                                const isCoin = reward.type === "coin";
+                                const showGoldBorder = isCoin && goldMultiplier > 1;
+                                const showXpBorder = !isCoin && xpMultiplier > 1;
+
+                                return (
+                                    <View
+                                        key={reward.id}
+                                        style={[
+                                            styles.rewardCard,
+                                            showGoldBorder && { borderWidth: 2, borderColor: "#FFB800" },
+                                            showXpBorder && { borderWidth: 2, borderColor: "#007AFF" },
+                                        ]}
+                                    >
+                                        <View style={styles.rewardLeft}>
+                                            <LinearGradient
+                                                colors={
+                                                    reward.type === "coin"
+                                                        ? ["#FFFBEB", "#FEF3C7"]
+                                                        : ["#EEF2FF", "#E0E7FF"]
+                                                }
+                                                style={styles.rewardIconContainer}
+                                            >
+                                                {reward.type === "coin" ? (
+                                                    <LinearGradient
+                                                        colors={[
+                                                            "#FBBF24",
+                                                            "#D97706",
+                                                        ]}
                                                     >
-                                                        $
+                                                        <Text style={styles.coinText}>$</Text>
+                                                    </LinearGradient>
+                                                ) : (
+                                                    <Award
+                                                        size={22}
+                                                        color="#5D45F9"
+                                                        fill="#C7D2FE"
+                                                    />
+                                                )}
+                                            </LinearGradient>
+
+                                            <View style={styles.rewardInfo}>
+                                                <Text style={styles.rewardTitle}>
+                                                    {reward.title}
+                                                </Text>
+                                                <Text
+                                                    style={styles.rewardDesc}
+                                                    numberOfLines={1}
+                                                >
+                                                    {reward.description}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        {showGoldBorder && (
+                                            <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                                <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{goldMultiplier}</Text>
+                                            </View>
+                                        )}
+                                        {showXpBorder && (
+                                            <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                                <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{xpMultiplier}</Text>
+                                            </View>
+                                        )}
+
+                                        {reward.claimed ? (
+                                            <View style={styles.claimedButton}>
+                                                <Text style={styles.claimedText}>
+                                                    Đã nhận
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            <TouchableOpacity
+                                                style={styles.claimButton}
+                                                activeOpacity={0.8}
+                                                onPress={() =>
+                                                    onClaimReward(reward.id)
+                                                }
+                                            >
+                                                <LinearGradient
+                                                    colors={["#FF9B42", "#FF4F6B"]}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 0 }}
+                                                    style={styles.claimBtnGradient}
+                                                >
+                                                    <Text style={styles.claimButtonText}>
+                                                        Nhận
                                                     </Text>
                                                 </LinearGradient>
-                                            ) : (
-                                                <Award
-                                                    size={22}
-                                                    color="#5D45F9"
-                                                    fill="#C7D2FE"
-                                                />
-                                            )}
-                                        </LinearGradient>
-
-                                        <View style={styles.rewardInfo}>
-                                            <Text style={styles.rewardTitle}>
-                                                {reward.title}
-                                            </Text>
-                                            <Text
-                                                style={styles.rewardDesc}
-                                                numberOfLines={1}
-                                            >
-                                                {reward.description}
-                                            </Text>
-                                        </View>
+                                            </TouchableOpacity>
+                                        )}
                                     </View>
-
-                                    {reward.claimed ? (
-                                        <View style={styles.claimedButton}>
-                                            <Text style={styles.claimedText}>
-                                                Đã nhận
-                                            </Text>
-                                        </View>
-                                    ) : (
-                                        <TouchableOpacity
-                                            style={styles.claimButton}
-                                            activeOpacity={0.8}
-                                            onPress={() =>
-                                                onClaimReward(reward.id)
-                                            }
-                                        >
-                                            <LinearGradient
-                                                colors={["#FF9B42", "#FF4F6B"]}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 0 }}
-                                                style={styles.claimBtnGradient}
-                                            >
-                                                <Text
-                                                    style={
-                                                        styles.claimButtonText
-                                                    }
-                                                >
-                                                    Nhận
-                                                </Text>
-                                            </LinearGradient>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-                            ))}
+                                );
+                            })}
                         </View>
                     </ScrollView>
                 </View>
@@ -546,6 +567,24 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.03,
         shadowRadius: 6,
         elevation: 2,
+        position: "relative",
+    },
+    multiplierBadge: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10,
+    },
+    multiplierText: {
+        fontSize: 9,
+        fontWeight: "800",
     },
     rewardLeft: {
         flexDirection: "row",

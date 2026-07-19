@@ -110,12 +110,15 @@ const lessonStyles = StyleSheet.create({
 });
 
 import { useLoading } from "@/features/loading";
+import { useTopBarData } from "../../top_bar/hooks/useTopBarData";
+import { StreakCelebrationModal, StreakModal, RewardModal } from "../../streak";
 
 // ─── Main HomeScreen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
     const router = useRouter();
     const { hideLoading } = useLoading();
     const { openDrawer } = useSideDrawer();
+    const { data: topBarData, streakManager } = useTopBarData();
 
     // Đảm bảo profile luôn mới nhất
     const { refetch: refetchProfile, isFetching: isFetchingProfile, isLoading: isLoadingProfile } = useGetProfileQuery();
@@ -139,10 +142,9 @@ export default function HomeScreen() {
 
     const isRefreshing = isFetchingProfile || isLoading;
 
-    // Map data top 3 cho PodiumSection
     const topUsersData = React.useMemo(() => {
         if (!data?.leaderboard) return [];
-        return data.leaderboard.slice(0, 3).map((u) => ({
+        return data.leaderboard.slice(0, 3).map((u, idx) => ({
             id: u.id,
             name: u.name || "Ẩn danh",
             xp: u.totalXp ?? 0,
@@ -153,6 +155,9 @@ export default function HomeScreen() {
                     u.name || "User"
                 )}&background=E8E4F4&color=5856D6&bold=true`,
             equippedFrameUrl: u.equippedFrameUrl ?? null,
+            rank: idx + 1,
+            isFriend: false,
+            isFollowing: false,
         }));
     }, [data?.leaderboard]);
 
@@ -165,7 +170,8 @@ export default function HomeScreen() {
     const handleGoToItems = () => router.push("/(tabs)/7_1_item" as never);
 
     return (
-        <ScreenWrapper
+        <>
+            <ScreenWrapper
             showTopBar={false}
             enableScroll={true}
             enableRefresh={true}
@@ -217,18 +223,54 @@ export default function HomeScreen() {
                                 Chào, {profile?.name || "bạn"}!
                             </Text>
                             <View style={styles.badgeRow}>
-                                <View style={styles.badge}>
-                                    <Ionicons name="star" size={15} color={colors.secondary} />
+                                {/* XP Badge */}
+                                <View style={[styles.badge, (topBarData?.xpMultiplier ?? 1) > 1 && styles.xpMultipliedBadge]}>
+                                    {topBarData?.badgeImgUrl ? (
+                                        <Image
+                                            source={{ uri: topBarData.badgeImgUrl }}
+                                            style={styles.badgeIcon}
+                                        />
+                                    ) : (
+                                        <Ionicons name="star" size={15} color={colors.secondary} />
+                                    )}
                                     <Text style={styles.badgeText}>
-                                        {(profile?.totalXp ?? 0).toLocaleString("vi-VN")} XP
+                                        {topBarData ? `${topBarData.totalXp} XP` : "0 XP"}
                                     </Text>
+                                    {(topBarData?.xpMultiplier ?? 1) > 1 && (
+                                        <View style={styles.multiplierTag}>
+                                            <Text style={styles.multiplierTagText}>x{topBarData?.xpMultiplier}</Text>
+                                        </View>
+                                    )}
                                 </View>
-                                <View style={styles.badge}>
-                                    <Ionicons name="stats-chart" size={15} color={colors.primary} />
+
+                                {/* Gold Badge */}
+                                <TouchableOpacity
+                                    style={[styles.badge, (topBarData?.goldMultiplier ?? 1) > 1 && styles.goldMultipliedBadge]}
+                                    activeOpacity={0.7}
+                                    onPress={() => router.push("/(tabs)/8_2_buy_gold")}
+                                >
+                                    <Ionicons name="cash" size={15} color={colors.gold} />
                                     <Text style={styles.badgeText}>
-                                        {profile?.tierName ?? "Chưa có hạng"}
+                                        {topBarData?.totalGold ?? "0"}
                                     </Text>
-                                </View>
+                                    {(topBarData?.goldMultiplier ?? 1) > 1 && (
+                                        <View style={[styles.multiplierTag, styles.goldMultiplierTag]}>
+                                            <Text style={styles.multiplierTagText}>x{topBarData?.goldMultiplier}</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+
+                                {/* Streak Badge */}
+                                <TouchableOpacity
+                                    style={styles.badge}
+                                    activeOpacity={0.7}
+                                    onPress={streakManager.openStreak}
+                                >
+                                    <Ionicons name="flame" size={15} color={colors.warning} />
+                                    <Text style={styles.badgeText}>
+                                        {topBarData?.currentStreak ?? 0}
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
                     </View>
@@ -340,6 +382,31 @@ export default function HomeScreen() {
                 )}
             </View>
         </ScreenWrapper>
+        {topBarData && (
+            <>
+                <StreakCelebrationModal
+                    visible={streakManager.celebrationVisible}
+                    onClose={streakManager.closeCelebration}
+                    currentStreak={topBarData.currentStreak}
+                    onNext={streakManager.proceedToStreakModal}
+                />
+                <StreakModal
+                    visible={streakManager.streakVisible}
+                    onClose={streakManager.closeStreakModal}
+                    currentStreak={topBarData.currentStreak}
+                    rewards={streakManager.rewards}
+                    milestones={streakManager.milestones}
+                    onClaimReward={streakManager.handleClaimReward}
+                />
+                <RewardModal
+                    visible={streakManager.rewardVisible}
+                    onClose={streakManager.closeRewardModal}
+                    goldAmount={50}
+                    badgeName="Huy hiệu Chăm Chỉ"
+                />
+            </>
+        )}
+        </>
     );
 }
 
@@ -406,20 +473,54 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         marginBottom: 6,
     },
-    badgeRow: { flexDirection: "row", gap: 10 },
+    badgeRow: { flexDirection: "row", gap: 10, flexWrap: "nowrap" },
     badge: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: colors.background,
         borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        gap: 5,
+        position: "relative",
+        borderWidth: 1.5,
+        borderColor: "transparent",
+    },
+    xpMultipliedBadge: {
+        borderColor: "#007AFF",
+    },
+    goldMultipliedBadge: {
+        borderColor: "#FFB800",
     },
     badgeText: {
-        fontFamily: typography.fonts.regular,
-        fontSize: 13,
+        fontFamily: typography.fonts.bold,
+        fontSize: 12,
         color: colors.textPrimary,
+    },
+    multiplierTag: {
+        position: "absolute",
+        top: -6,
+        right: -6,
+        backgroundColor: "#007AFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: "#FFFFFF",
+        zIndex: 10,
+    },
+    goldMultiplierTag: {
+        backgroundColor: "#FFB800",
+    },
+    multiplierTagText: {
+        fontSize: 8,
+        fontFamily: typography.fonts.bold,
+        color: "#FFFFFF",
+    },
+    badgeIcon: {
+        width: 15,
+        height: 15,
+        resizeMode: "contain",
     },
 
     // ── Body ──

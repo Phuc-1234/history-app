@@ -1,7 +1,7 @@
-// features/dashboard/hooks/useTopBarData.ts
 import { useAppSelector } from "../../../store/storeHook"; // Adjust path according to your structure
 import { useStreak } from "../../streak"; // Adjust path as used in your wrappers
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
+import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
 
 export interface ProcessedTopBarData {
     isLoggedIn: boolean;
@@ -12,6 +12,8 @@ export interface ProcessedTopBarData {
     totalGold: string; // Formatted with toLocaleString() for direct presentation
     currentStreak: number;
     badgeImgUrl: string | null;
+    xpMultiplier: number;
+    goldMultiplier: number;
 }
 
 export function useTopBarData() {
@@ -20,6 +22,7 @@ export function useTopBarData() {
 
     // 1. Fetch live data context straight from Redux State
     const profile = useAppSelector((state) => state.auth.profile);
+    const { data: activeEffectsData } = useGetUserActiveEffectsQuery(undefined, { skip: !profile });
 
     // 2. Encapsulate streak module states and visibility configurations directly here
     const streakCount = profile ? profile.currentStreak : 0;
@@ -48,6 +51,8 @@ export function useTopBarData() {
         totalGold,
         currentStreak: streakCount,
         badgeImgUrl,
+        xpMultiplier: activeEffectsData?.xpMultiplier ?? 1.0,
+        goldMultiplier: activeEffectsData?.goldMultiplier ?? 1.0,
     };
 
     return {

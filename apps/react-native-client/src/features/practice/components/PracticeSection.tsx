@@ -10,6 +10,7 @@ import { Card } from "@/components/Card";
 import { colors } from "@/theme/colors";
 import typography from "@/theme/typography";
 import { useGetTestInfoQuery, useGetPracticeStatsQuery } from "@/features/test_v2/services/testApi";
+import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
 import { ScopeType } from "@/features/test_v2/types";
 
 export interface PracticeOptions {
@@ -120,6 +121,14 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
         { skip: answeredQuestionCount === 0 || !isActiveTab }
     );
 
+    const { data: activeEffectsData } = useGetUserActiveEffectsQuery(undefined, { skip: !isActiveTab });
+
+    const wrongXpMultiplier = ((wrongTestInfo?.xpMultiplier ?? 1) > 1 ? wrongTestInfo!.xpMultiplier : (activeEffectsData?.xpMultiplier ?? 1)) ?? 1;
+    const wrongGoldMultiplier = ((wrongTestInfo?.goldMultiplier ?? 1) > 1 ? wrongTestInfo!.goldMultiplier : (activeEffectsData?.goldMultiplier ?? 1)) ?? 1;
+
+    const personalXpMultiplier = ((personalTestInfo?.xpMultiplier ?? 1) > 1 ? personalTestInfo!.xpMultiplier : (activeEffectsData?.xpMultiplier ?? 1)) ?? 1;
+    const personalGoldMultiplier = ((personalTestInfo?.goldMultiplier ?? 1) > 1 ? personalTestInfo!.goldMultiplier : (activeEffectsData?.goldMultiplier ?? 1)) ?? 1;
+
     return (
         <View style={styles.practiceContainer}>
             {/* Làm lại câu sai Card */}
@@ -176,17 +185,34 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
 
                 <View style={styles.practiceRewardRow}>
                     <Text style={styles.practiceRewardLabel}>Phần thưởng:</Text>
-                    <View style={styles.practiceRewardBadge}>
+                    <View style={[
+                        styles.practiceRewardBadge,
+                        wrongXpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
+                    ]}>
                         <Ionicons name="flash" size={14} color="#FFF" />
                         <Text style={styles.practiceRewardText}>
                             +{wrongTestInfo ? wrongTestInfo.xpReward : wrongPracticeCount * 1} XP
                         </Text>
+                        {wrongXpMultiplier > 1 && (
+                            <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{wrongXpMultiplier}</Text>
+                            </View>
+                        )}
                     </View>
-                    <View style={[styles.practiceRewardBadge, { backgroundColor: colors.gold }]}>
+                    <View style={[
+                        styles.practiceRewardBadge,
+                        { backgroundColor: colors.gold },
+                        wrongGoldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
+                    ]}>
                         <Ionicons name="cash" size={14} color="#FFF" />
                         <Text style={styles.practiceRewardText}>
                             +{wrongTestInfo ? wrongTestInfo.goldReward : wrongPracticeCount * 1} Vàng
                         </Text>
+                        {wrongGoldMultiplier > 1 && (
+                            <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{wrongGoldMultiplier}</Text>
+                            </View>
+                        )}
                     </View>
                     {wrongTestInfo?.itemsReward?.map((item, idx) => (
                         <View key={idx} style={[styles.practiceRewardBadge, { backgroundColor: "#0d9488" }]}>
@@ -276,17 +302,34 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
 
                 <View style={styles.practiceRewardRow}>
                     <Text style={styles.practiceRewardLabel}>Phần thưởng:</Text>
-                    <View style={styles.practiceRewardBadge}>
+                    <View style={[
+                        styles.practiceRewardBadge,
+                        personalXpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
+                    ]}>
                         <Ionicons name="flash" size={14} color="#FFF" />
                         <Text style={styles.practiceRewardText}>
                             +{personalTestInfo ? personalTestInfo.xpReward : practiceCount * 1} XP
                         </Text>
+                        {personalXpMultiplier > 1 && (
+                            <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{personalXpMultiplier}</Text>
+                            </View>
+                        )}
                     </View>
-                    <View style={[styles.practiceRewardBadge, { backgroundColor: colors.gold }]}>
+                    <View style={[
+                        styles.practiceRewardBadge,
+                        { backgroundColor: colors.gold },
+                        personalGoldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
+                    ]}>
                         <Ionicons name="cash" size={14} color="#FFF" />
                         <Text style={styles.practiceRewardText}>
                             +{personalTestInfo ? personalTestInfo.goldReward : practiceCount * 1} Vàng
                         </Text>
+                        {personalGoldMultiplier > 1 && (
+                            <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{personalGoldMultiplier}</Text>
+                            </View>
+                        )}
                     </View>
                     {personalTestInfo?.itemsReward?.map((item, idx) => (
                         <View key={idx} style={[styles.practiceRewardBadge, { backgroundColor: "#0d9488" }]}>
@@ -402,6 +445,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
+        position: "relative",
     },
     practiceRewardText: {
         fontFamily: typography.fonts.bold,
@@ -419,5 +463,21 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.bold,
         fontSize: 16,
         color: "#FFFFFF",
+    },
+    multiplierBadge: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    multiplierText: {
+        fontSize: 9,
+        fontFamily: typography.fonts.bold,
     },
 });

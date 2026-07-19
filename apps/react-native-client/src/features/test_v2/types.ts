@@ -152,6 +152,8 @@ export interface TestInfoV2Response {
     purposeType: PurposeType;
     goldReward: number;
     xpReward: number;
+    xpMultiplier?: number;
+    goldMultiplier?: number;
     attemptNumber: number;
     passThreshold: number;
     attemptCount: number;

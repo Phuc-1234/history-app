@@ -47,6 +47,21 @@ export const getUserInventory = async (req: Request, res: Response) => {
     }
 };
 
+export const getUserActiveEffects = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const activeData = await shopService.getUserActiveEffects(userId);
+        return res.status(200).json(activeData);
+    } catch (err: any) {
+        console.error("Get active effects error:", err);
+        return res.status(500).json({ error: "Failed to fetch active effects" });
+    }
+};
+
 export const activateItem = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.id;
@@ -54,12 +69,15 @@ export const activateItem = async (req: Request, res: Response) => {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const { itemDefinitionId } = req.body;
+        const { itemDefinitionId, forceReplace } = req.body;
         if (itemDefinitionId === undefined) {
             return res.status(400).json({ error: "itemDefinitionId is required" });
         }
 
-        const result = await shopService.activateItem(userId, Number(itemDefinitionId));
+        const result = await shopService.activateItem(userId, Number(itemDefinitionId), Boolean(forceReplace));
+        if (result.conflict) {
+            return res.status(409).json(result);
+        }
         return res.status(200).json(result);
     } catch (err: any) {
         console.error("Activate item error:", err);

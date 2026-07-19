@@ -103,7 +103,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
 
                             <View style={styles.statsContainer}>
                                 {/* XP Chip */}
-                                <View style={styles.chip}>
+                                <View style={[styles.chip, data.xpMultiplier > 1 && styles.xpMultipliedChip]}>
                                     {data.badgeImgUrl ? (
                                         <Image
                                             source={{ uri: data.badgeImgUrl }}
@@ -115,11 +115,16 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                     <Text style={styles.chipText}>
                                         {data.totalXp}XP
                                     </Text>
+                                    {data.xpMultiplier > 1 && (
+                                        <View style={styles.multiplierTag}>
+                                            <Text style={styles.multiplierTagText}>x{data.xpMultiplier}</Text>
+                                        </View>
+                                    )}
                                 </View>
 
                                 {/* Gold Chip */}
                                 <TouchableOpacity
-                                    style={styles.chip}
+                                    style={[styles.chip, data.goldMultiplier > 1 && styles.goldMultipliedChip]}
                                     activeOpacity={0.7}
                                     onPress={() => router.push("/(tabs)/8_2_buy_gold")}
                                 >
@@ -131,6 +136,11 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                     <Text style={styles.chipText}>
                                         {data.totalGold}
                                     </Text>
+                                    {data.goldMultiplier > 1 && (
+                                        <View style={[styles.multiplierTag, styles.goldMultiplierTag]}>
+                                            <Text style={styles.multiplierTagText}>x{data.goldMultiplier}</Text>
+                                        </View>
+                                    )}
                                 </TouchableOpacity>
 
                                 {/* Streak Chip */}
@@ -255,6 +265,35 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         gap: 4,
+        borderWidth: 1.5,
+        borderColor: "transparent",
+        position: "relative",
+    },
+    xpMultipliedChip: {
+        borderColor: "#007AFF",
+    },
+    goldMultipliedChip: {
+        borderColor: "#FFB800",
+    },
+    multiplierTag: {
+        position: "absolute",
+        top: -6,
+        right: -6,
+        backgroundColor: "#007AFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: "#FFFFFF",
+        zIndex: 10,
+    },
+    goldMultiplierTag: {
+        backgroundColor: "#FFB800",
+    },
+    multiplierTagText: {
+        fontSize: 8,
+        fontFamily: typography.fonts.bold,
+        color: "#FFFFFF",
     },
     badgeIcon: {
         width: 20,

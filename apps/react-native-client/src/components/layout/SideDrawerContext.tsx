@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     Platform,
     PanResponder,
+    Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useSegments } from "expo-router";
@@ -17,6 +18,7 @@ import { colors } from "../../theme/colors";
 import { typography } from "../../theme/typography";
 import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
 import { AvatarWithFrame } from "../ui";
+import { StreakCelebrationModal, StreakModal, RewardModal } from "../../features/streak";
 
 const DRAWER_WIDTH = 280;
 
@@ -42,7 +44,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const segments = useSegments() as string[];
-    const { data } = useTopBarData();
+    const { data, streakManager } = useTopBarData();
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -194,9 +196,62 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                     <Text style={styles.drawerName} numberOfLines={1}>
                                         {data.name || "Bạn"}
                                     </Text>
-                                    <Text style={styles.drawerXpText}>
-                                        Tích luỹ: {data.totalXp} XP
-                                    </Text>
+                                    <View style={styles.drawerStatsRow}>
+                                        {/* XP Chip */}
+                                        <View style={[styles.drawerChip, data.xpMultiplier > 1 && styles.xpMultipliedChip]}>
+                                            {data.badgeImgUrl ? (
+                                                <Image
+                                                    source={{ uri: data.badgeImgUrl }}
+                                                    style={styles.badgeIcon}
+                                                />
+                                            ) : (
+                                                <Ionicons name="star" size={14} color={colors.secondary} />
+                                            )}
+                                            <Text style={styles.chipText}>
+                                                {data.totalXp}XP
+                                            </Text>
+                                            {data.xpMultiplier > 1 && (
+                                                <View style={styles.multiplierTag}>
+                                                    <Text style={styles.multiplierTagText}>x{data.xpMultiplier}</Text>
+                                                </View>
+                                            )}
+                                        </View>
+
+                                        {/* Gold Chip */}
+                                        <TouchableOpacity
+                                            style={[styles.drawerChip, data.goldMultiplier > 1 && styles.goldMultipliedChip]}
+                                            activeOpacity={0.7}
+                                            onPress={() => {
+                                                closeDrawer();
+                                                router.push("/(tabs)/8_2_buy_gold");
+                                            }}
+                                        >
+                                            <Ionicons name="cash" size={14} color={colors.gold} />
+                                            <Text style={styles.chipText}>
+                                                {data.totalGold}
+                                            </Text>
+                                            {data.goldMultiplier > 1 && (
+                                                <View style={[styles.multiplierTag, styles.goldMultiplierTag]}>
+                                                    <Text style={styles.multiplierTagText}>x{data.goldMultiplier}</Text>
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+
+                                        {/* Streak Chip */}
+                                        <TouchableOpacity
+                                            style={styles.drawerChip}
+                                            activeOpacity={0.7}
+                                            onPress={() => {
+                                                closeDrawer();
+                                                streakManager.openStreak();
+                                            }}
+                                        >
+                                            <Ionicons name="flame" size={14} color={colors.warning} />
+                                            <Text style={styles.chipText}>
+                                                {data.currentStreak}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             ) : (
                                 <View style={styles.profileSection}>
@@ -251,6 +306,30 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                     </Animated.View>
                 </View>
             )}
+            {data.isLoggedIn && (
+                <>
+                    <StreakCelebrationModal
+                        visible={streakManager.celebrationVisible}
+                        onClose={streakManager.closeCelebration}
+                        currentStreak={data.currentStreak}
+                        onNext={streakManager.proceedToStreakModal}
+                    />
+                    <StreakModal
+                        visible={streakManager.streakVisible}
+                        onClose={streakManager.closeStreakModal}
+                        currentStreak={data.currentStreak}
+                        rewards={streakManager.rewards}
+                        milestones={streakManager.milestones}
+                        onClaimReward={streakManager.handleClaimReward}
+                    />
+                    <RewardModal
+                        visible={streakManager.rewardVisible}
+                        onClose={streakManager.closeRewardModal}
+                        goldAmount={50}
+                        badgeName="Huy hiệu Chăm Chỉ"
+                    />
+                </>
+            )}
         </SideDrawerContext.Provider>
     );
 }
@@ -294,10 +373,60 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
         marginTop: 4,
     },
-    drawerXpText: {
-        fontFamily: typography.fonts.regular,
-        fontSize: 12,
-        color: colors.textMuted,
+    drawerStatsRow: {
+        flexDirection: "row",
+        gap: 6,
+        marginTop: 6,
+        justifyContent: "center",
+        flexWrap: "wrap",
+    },
+    drawerChip: {
+        backgroundColor: colors.background,
+        borderColor: colors.borderLight,
+        borderWidth: 1.5,
+        borderRadius: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        gap: 4,
+        position: "relative",
+    },
+    xpMultipliedChip: {
+        borderColor: "#007AFF",
+    },
+    goldMultipliedChip: {
+        borderColor: "#FFB800",
+    },
+    multiplierTag: {
+        position: "absolute",
+        top: -6,
+        right: -6,
+        backgroundColor: "#007AFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: "#FFFFFF",
+        zIndex: 10,
+    },
+    goldMultiplierTag: {
+        backgroundColor: "#FFB800",
+    },
+    multiplierTagText: {
+        fontSize: 8,
+        fontFamily: typography.fonts.bold,
+        color: "#FFFFFF",
+    },
+    badgeIcon: {
+        width: 14,
+        height: 14,
+        resizeMode: "contain",
+    },
+    chipText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 11,
+        color: colors.textPrimary,
     },
     loginBtn: {
         backgroundColor: colors.primary,

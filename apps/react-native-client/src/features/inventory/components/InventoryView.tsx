@@ -9,14 +9,25 @@ import {
     useWindowDimensions,
     ActivityIndicator,
     RefreshControl,
+    Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInventory, InventoryItem } from "../hooks/useInventory";
 import { Ionicons } from "@expo/vector-icons";
 
 export const InventoryView: React.FC = () => {
-    const { inventory, selectedItem, setSelectedItemId, handleUseItem, isLoading, handleRefresh, isRefreshing } =
-        useInventory();
+    const {
+        inventory,
+        selectedItem,
+        setSelectedItemId,
+        handleUseItem,
+        isLoading,
+        handleRefresh,
+        isRefreshing,
+        conflictModalData,
+        handleConfirmReplace,
+        handleCloseConflictModal,
+    } = useInventory();
     const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
 
@@ -70,25 +81,29 @@ export const InventoryView: React.FC = () => {
                                 >
                                     {selectedItem.description}
                                 </Text>
-                                <Text style={styles.featuredQuantity}>
-                                    Số lượng:{" "}
-                                    <Text style={styles.boldQty}>
-                                        x{" "}
-                                        {String(selectedItem.quantity).padStart(2, "0")}
+
+                                {selectedItem.quantity > 0 && (
+                                    <Text style={styles.featuredQuantity}>
+                                        Số lượng:{" "}
+                                        <Text style={styles.boldQty}>
+                                            x {String(selectedItem.quantity).padStart(2, "0")}
+                                        </Text>
                                     </Text>
-                                </Text>
+                                )}
+
                                 <TouchableOpacity
                                     style={[
                                         styles.useButton,
-                                        selectedItem.isEquipped && styles.unequipButton
+                                        selectedItem.isActivated && styles.activatedButton,
                                     ]}
                                     activeOpacity={0.8}
                                     onPress={() => handleUseItem(selectedItem.id)}
+                                    disabled={selectedItem.isActivated && selectedItem.itemType !== "SKIN"}
                                 >
                                     <Text style={styles.useButtonText}>
                                         {selectedItem.itemType === "SKIN"
                                             ? (selectedItem.isEquipped ? "Tháo" : "Trang bị")
-                                            : "Sử dụng"}
+                                            : (selectedItem.isActivated ? "Đã kích hoạt" : "Kích hoạt")}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -113,15 +128,19 @@ export const InventoryView: React.FC = () => {
                                         isSelected && styles.selectedGridCell,
                                     ]}
                                 >
-                                    {item.isEquipped && (
+                                    {item.isActivated && (
                                         <View style={styles.equippedGridBadge}>
-                                            <Text style={styles.equippedGridBadgeText}>Đang dùng</Text>
+                                            <Text style={styles.equippedGridBadgeText}>
+                                                {item.itemType === "SKIN" ? "Đang dùng" : "Đã kích hoạt"}
+                                            </Text>
                                         </View>
                                     )}
 
-                                    <Text style={styles.badgeCount}>
-                                        x{item.quantity}
-                                    </Text>
+                                    {item.quantity > 0 && (
+                                        <Text style={styles.badgeCount}>
+                                            x{item.quantity}
+                                        </Text>
+                                    )}
 
                                     {item.imageUrl ? (
                                         <Image
@@ -153,6 +172,48 @@ export const InventoryView: React.FC = () => {
                     </View>
                 </>
             )}
+
+            {/* Conflict Resolution Modal */}
+            <Modal
+                visible={Boolean(conflictModalData)}
+                transparent
+                animationType="fade"
+                onRequestClose={handleCloseConflictModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Ionicons name="warning-outline" size={44} color="#FF9800" style={{ marginBottom: 12 }} />
+                        <Text style={styles.modalTitle}>Thay thế hiệu ứng?</Text>
+                        <Text style={styles.modalDesc}>
+                            Bạn đang có hiệu ứng{" "}
+                            <Text style={{ fontWeight: "700", color: "#1F1F1F" }}>
+                                {conflictModalData?.activeItemName}
+                            </Text>{" "}
+                            đang hoạt động. Việc kích hoạt{" "}
+                            <Text style={{ fontWeight: "700", color: "#1F1F1F" }}>
+                                {conflictModalData?.itemName}
+                            </Text>{" "}
+                            sẽ hủy hiệu ứng hiện tại và bạn sẽ mất nó vĩnh viễn.
+                        </Text>
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.cancelBtn}
+                                activeOpacity={0.8}
+                                onPress={handleCloseConflictModal}
+                            >
+                                <Text style={styles.cancelBtnText}>Hủy</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.confirmBtn}
+                                activeOpacity={0.8}
+                                onPress={handleConfirmReplace}
+                            >
+                                <Text style={styles.confirmBtnText}>Xác nhận</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </ScrollView>
     );
 };
@@ -170,23 +231,18 @@ const styles = StyleSheet.create({
     },
     featuredCard: {
         backgroundColor: "#FFFFFF",
-        borderRadius: 20,
+        borderRadius: 12, // Container border radius = 12
         padding: 16,
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 1,
         borderColor: "#EAEAEA",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 2,
         marginBottom: 28,
     },
     featuredImage: {
         width: 100,
         height: 100,
-        borderRadius: 16,
+        borderRadius: 12,
         backgroundColor: "#F0F0F0",
     },
     featuredInfo: {
@@ -216,16 +272,14 @@ const styles = StyleSheet.create({
         color: "#1F1F1F",
     },
     useButton: {
-        backgroundColor: "#58CC02", // Duolingo dynamic vibrant green action color
-        borderRadius: 12,
-        paddingVertical: 6,
+        backgroundColor: "#58CC02",
+        borderRadius: 30, // Pill button border radius = 30
+        paddingVertical: 8,
         paddingHorizontal: 20,
         alignSelf: "flex-start",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 1,
+    },
+    activatedButton: {
+        backgroundColor: "#9E9E9E",
     },
     useButtonText: {
         color: "#FFFFFF",
@@ -245,7 +299,7 @@ const styles = StyleSheet.create({
     },
     gridCell: {
         backgroundColor: "#FFFFFF",
-        borderRadius: 16,
+        borderRadius: 12, // Container border radius = 12
         padding: 12,
         alignItems: "center",
         justifyContent: "center",
@@ -283,9 +337,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         marginTop: 6,
     },
-    emojiIcon: {
-        fontSize: 20,
-    },
     cellName: {
         fontSize: 13,
         fontWeight: "600",
@@ -293,22 +344,77 @@ const styles = StyleSheet.create({
         textAlign: "center",
         lineHeight: 16,
     },
-    unequipButton: {
-        backgroundColor: "#FF9800",
-    },
     equippedGridBadge: {
         position: "absolute",
-        top: 8,
-        left: 8,
+        top: 6,
+        left: 6,
         backgroundColor: "#58CC02",
         paddingHorizontal: 6,
         paddingVertical: 2,
-        borderRadius: 6,
+        borderRadius: 30, // Pill badge
         zIndex: 2,
     },
     equippedGridBadgeText: {
         color: "#FFFFFF",
         fontSize: 8,
         fontWeight: "700",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalContainer: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 12, // Container border radius = 12
+        padding: 24,
+        width: "100%",
+        maxWidth: 340,
+        alignItems: "center",
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#1F1F1F",
+        marginBottom: 8,
+    },
+    modalDesc: {
+        fontSize: 14,
+        color: "#666666",
+        textAlign: "center",
+        lineHeight: 20,
+        marginBottom: 20,
+    },
+    modalActions: {
+        flexDirection: "row",
+        width: "100%",
+        gap: 12,
+    },
+    cancelBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 30, // Pill button border radius = 30
+        borderWidth: 1.5,
+        borderColor: "#E5E5E5",
+        alignItems: "center",
+    },
+    cancelBtnText: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#666666",
+    },
+    confirmBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 30, // Pill button border radius = 30
+        backgroundColor: "#E53935",
+        alignItems: "center",
+    },
+    confirmBtnText: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#FFFFFF",
     },
 });
