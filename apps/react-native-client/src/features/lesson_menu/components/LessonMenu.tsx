@@ -28,6 +28,7 @@ import {
     useGetSectionsByLessonQuery,
     useGetGradesQuery,
 } from "../contentApiSlice";
+import { useGetTestInfoQuery } from "../../test_v2/services/testApi";
 import { PremiumModal } from "../../../components/PremiumModal";
 import { SlidingTabBar } from "../../../components/SlidingTabBar";
 
@@ -339,6 +340,20 @@ export function LessonMenu({
             }
         }
     }, [answeredQuestionCount, practiceOptions]);
+
+    const { data: wrongTestInfo } = useGetTestInfoQuery({
+        scopeType: "GRADE",
+        scopeId: selectedGrade,
+        autoPickStrategy: "WRONG",
+        questionCount: wrongPracticeCount,
+    }, { skip: wrongQuestionCount === 0 || activeTab !== "LUYEN_TAP" });
+
+    const { data: personalTestInfo } = useGetTestInfoQuery({
+        scopeType: "GRADE",
+        scopeId: selectedGrade,
+        autoPickStrategy: "LOW_MASTERY",
+        questionCount: practiceCount,
+    }, { skip: answeredQuestionCount === 0 || activeTab !== "LUYEN_TAP" });
 
     const toggleTopic = (topicId: number) => {
         setCollapsedTopics((prev) => ({
@@ -750,16 +765,36 @@ export function LessonMenu({
                                             </>
                                         )}
 
+                                        <View style={[styles.practiceRewardRow, { marginBottom: 12 }]}>
+                                            <Text style={styles.practiceRewardLabel}>Yêu cầu đạt:</Text>
+                                            <View style={[styles.practiceRewardBadge, { backgroundColor: colors.info }]}>
+                                                <Ionicons name="checkmark-circle" size={14} color="#FFF" />
+                                                <Text style={styles.practiceRewardText}>
+                                                    Đúng từ {wrongTestInfo ? `${wrongTestInfo.passThreshold}%` : "80%"} số câu
+                                                </Text>
+                                            </View>
+                                        </View>
+
                                         <View style={styles.practiceRewardRow}>
                                             <Text style={styles.practiceRewardLabel}>Phần thưởng:</Text>
                                             <View style={styles.practiceRewardBadge}>
                                                 <Ionicons name="flash" size={14} color="#FFF" />
-                                                <Text style={styles.practiceRewardText}>+XP</Text>
+                                                <Text style={styles.practiceRewardText}>
+                                                    +{wrongTestInfo ? wrongTestInfo.xpReward : wrongPracticeCount * 1} XP
+                                                </Text>
                                             </View>
                                             <View style={[styles.practiceRewardBadge, { backgroundColor: colors.gold }]}>
                                                 <Ionicons name="cash" size={14} color="#FFF" />
-                                                <Text style={styles.practiceRewardText}>+Vàng</Text>
+                                                <Text style={styles.practiceRewardText}>
+                                                    +{wrongTestInfo ? wrongTestInfo.goldReward : wrongPracticeCount * 1} Vàng
+                                                </Text>
                                             </View>
+                                            {wrongTestInfo?.itemsReward?.map((item, idx) => (
+                                                <View key={idx} style={[styles.practiceRewardBadge, { backgroundColor: "#0d9488" }]}>
+                                                    <Ionicons name="cube" size={14} color="#FFF" />
+                                                    <Text style={styles.practiceRewardText}>{item.name} x{item.quantity}</Text>
+                                                </View>
+                                            ))}
                                         </View>
 
                                         <TouchableOpacity
@@ -819,16 +854,36 @@ export function LessonMenu({
                                             )
                                         )}
 
+                                        <View style={[styles.practiceRewardRow, { marginBottom: 12 }]}>
+                                            <Text style={styles.practiceRewardLabel}>Yêu cầu đạt:</Text>
+                                            <View style={[styles.practiceRewardBadge, { backgroundColor: colors.info }]}>
+                                                <Ionicons name="checkmark-circle" size={14} color="#FFF" />
+                                                <Text style={styles.practiceRewardText}>
+                                                    Đúng từ {personalTestInfo ? `${personalTestInfo.passThreshold}%` : "80%"} số câu
+                                                </Text>
+                                            </View>
+                                        </View>
+
                                         <View style={styles.practiceRewardRow}>
                                             <Text style={styles.practiceRewardLabel}>Phần thưởng:</Text>
                                             <View style={styles.practiceRewardBadge}>
                                                 <Ionicons name="flash" size={14} color="#FFF" />
-                                                <Text style={styles.practiceRewardText}>+XP</Text>
+                                                <Text style={styles.practiceRewardText}>
+                                                    +{personalTestInfo ? personalTestInfo.xpReward : practiceCount * 1} XP
+                                                </Text>
                                             </View>
                                             <View style={[styles.practiceRewardBadge, { backgroundColor: colors.gold }]}>
                                                 <Ionicons name="cash" size={14} color="#FFF" />
-                                                <Text style={styles.practiceRewardText}>+Vàng</Text>
+                                                <Text style={styles.practiceRewardText}>
+                                                    +{personalTestInfo ? personalTestInfo.goldReward : practiceCount * 1} Vàng
+                                                </Text>
                                             </View>
+                                            {personalTestInfo?.itemsReward?.map((item, idx) => (
+                                                <View key={idx} style={[styles.practiceRewardBadge, { backgroundColor: "#0d9488" }]}>
+                                                    <Ionicons name="cube" size={14} color="#FFF" />
+                                                    <Text style={styles.practiceRewardText}>{item.name} x{item.quantity}</Text>
+                                                </View>
+                                            ))}
                                         </View>
 
                                         <TouchableOpacity

@@ -883,6 +883,7 @@ export class TestServiceV2 {
                     logId,
                     tx,
                     log.autoPickStrategy,
+                    log.questionCount ?? 10,
                 );
                 consequences.push(...rewardResult.consequences);
 
@@ -1113,6 +1114,7 @@ export class TestServiceV2 {
             userId,
             purposeType,
             req.autoPickStrategy,
+            questionCount,
         );
 
         // Compute attempt count and pass count
