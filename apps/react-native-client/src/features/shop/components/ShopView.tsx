@@ -69,26 +69,14 @@ export const ShopView: React.FC = () => {
                         <Coins size={28} color="#FF9800" style={styles.buyGoldBannerIcon} />
                         <View>
                             <Text style={styles.buyGoldBannerTitle}>Nạp thêm Gold</Text>
-                            <Text style={styles.buyGoldBannerSub}>Mua vật phẩm đặc biệt trong cửa hàng</Text>
+                            
                         </View>
                     </View>
                     <Text style={styles.buyGoldBannerButton}>Nạp ngay</Text>
                 </TouchableOpacity>
 
 
-                {/* Mock Filter Controls Dropdown Row */}
-                <View style={styles.filterRow}>
-                    <TouchableOpacity
-                        style={styles.filterButton}
-                        activeOpacity={0.7}
-                    >
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                            <ArrowUpDown size={14} color="#5C5665" />
-                            <Text style={styles.filterButtonText}>Sắp xếp</Text>
-                        </View>
-                    </TouchableOpacity>
-                </View>
-
+               
                 {/* 2-Column Store Products Grid Matrix */}
                 {isLoading ? (
                     <ActivityIndicator size="large" color="#4E3FE0" style={{ marginTop: 24 }} />

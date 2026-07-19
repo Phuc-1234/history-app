@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Zap, Coins } from "lucide-react-native";
 import { useAppSelector } from "@/store/storeHook";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useGetHomeDataQuery } from "../services/homeApi";
@@ -236,7 +237,7 @@ export default function HomeScreen() {
                                             style={styles.badgeIcon}
                                         />
                                     ) : (
-                                        <Ionicons name="star" size={15} color={colors.secondary} />
+                                        <Zap size={15} color={colors.secondary} />
                                     )}
                                     <Text style={styles.badgeText}>
                                         {topBarData ? `${topBarData.totalXp} XP` : "0 XP"}
@@ -254,7 +255,7 @@ export default function HomeScreen() {
                                     activeOpacity={0.7}
                                     onPress={() => router.push("/(tabs)/8_2_buy_gold")}
                                 >
-                                    <Ionicons name="cash" size={15} color={colors.gold} />
+                                    <Coins size={15} color={colors.gold} />
                                     <Text style={styles.badgeText}>
                                         {topBarData?.totalGold ?? "0"}
                                     </Text>

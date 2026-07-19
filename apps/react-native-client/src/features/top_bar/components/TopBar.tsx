@@ -9,6 +9,7 @@ import {
     Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Zap, Coins } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -115,7 +116,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                             style={styles.badgeIcon}
                                         />
                                     ) : (
-                                        <Ionicons name="ribbon" size={20} color="#FFFFFF" />
+                                        <Zap size={18} color="#FFFFFF" />
                                     )}
                                     <Text style={styles.chipText}>
                                         {data.totalXp}XP
@@ -133,8 +134,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                     activeOpacity={0.7}
                                     onPress={() => router.push("/(tabs)/8_2_buy_gold")}
                                 >
-                                    <Ionicons
-                                        name="logo-usd"
+                                    <Coins
                                         size={18}
                                         color="#FFFFFF"
                                     />

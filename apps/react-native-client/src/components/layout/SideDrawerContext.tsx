@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Zap, Coins } from "lucide-react-native";
 import { colors } from "../../theme/colors";
 import { typography } from "../../theme/typography";
 import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
@@ -213,7 +214,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                                     style={styles.badgeIcon}
                                                 />
                                             ) : (
-                                                <Ionicons name="star" size={14} color={colors.secondary} />
+                                                <Zap size={14} color={colors.secondary} />
                                             )}
                                             <Text style={styles.chipText}>
                                                 {data.totalXp}XP
@@ -234,7 +235,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                                 router.push("/(tabs)/8_2_buy_gold");
                                             }}
                                         >
-                                            <Ionicons name="cash" size={14} color={colors.gold} />
+                                            <Coins size={14} color={colors.gold} />
                                             <Text style={styles.chipText}>
                                                 {data.totalGold}
                                             </Text>

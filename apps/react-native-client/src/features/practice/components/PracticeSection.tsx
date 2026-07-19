@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Zap, Coins } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { colors } from "@/theme/colors";
 import typography from "@/theme/typography";
@@ -189,7 +190,7 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                         styles.practiceRewardBadge,
                         wrongXpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
                     ]}>
-                        <Ionicons name="flash" size={14} color="#FFF" />
+                        <Zap size={14} color="#FFF" />
                         <Text style={styles.practiceRewardText}>
                             +{wrongTestInfo ? wrongTestInfo.xpReward : wrongPracticeCount * 1} XP
                         </Text>
@@ -204,7 +205,7 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                         { backgroundColor: colors.gold },
                         wrongGoldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
                     ]}>
-                        <Ionicons name="cash" size={14} color="#FFF" />
+                        <Coins size={14} color="#FFF" />
                         <Text style={styles.practiceRewardText}>
                             +{wrongTestInfo ? wrongTestInfo.goldReward : wrongPracticeCount * 1} Vàng
                         </Text>
@@ -306,7 +307,7 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                         styles.practiceRewardBadge,
                         personalXpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
                     ]}>
-                        <Ionicons name="flash" size={14} color="#FFF" />
+                        <Zap size={14} color="#FFF" />
                         <Text style={styles.practiceRewardText}>
                             +{personalTestInfo ? personalTestInfo.xpReward : practiceCount * 1} XP
                         </Text>
@@ -321,7 +322,7 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                         { backgroundColor: colors.gold },
                         personalGoldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
                     ]}>
-                        <Ionicons name="cash" size={14} color="#FFF" />
+                        <Coins size={14} color="#FFF" />
                         <Text style={styles.practiceRewardText}>
                             +{personalTestInfo ? personalTestInfo.goldReward : practiceCount * 1} Vàng
                         </Text>
