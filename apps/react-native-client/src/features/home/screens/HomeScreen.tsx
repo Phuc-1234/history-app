@@ -111,14 +111,15 @@ const lessonStyles = StyleSheet.create({
 
 import { useLoading } from "@/features/loading";
 import { useTopBarData } from "../../top_bar/hooks/useTopBarData";
-import { StreakCelebrationModal, StreakModal, RewardModal } from "../../streak";
+import { StreakDrawerModal } from "../../streak";
+import { TierDrawerModal } from "../../tier";
 
 // ─── Main HomeScreen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
     const router = useRouter();
     const { hideLoading } = useLoading();
     const { openDrawer } = useSideDrawer();
-    const { data: topBarData, streakManager } = useTopBarData();
+    const { data: topBarData, streakManager, tierManager } = useTopBarData();
 
     // Đảm bảo profile luôn mới nhất
     const { refetch: refetchProfile, isFetching: isFetchingProfile, isLoading: isLoadingProfile } = useGetProfileQuery();
@@ -224,7 +225,11 @@ export default function HomeScreen() {
                             </Text>
                             <View style={styles.badgeRow}>
                                 {/* XP Badge */}
-                                <View style={[styles.badge, (topBarData?.xpMultiplier ?? 1) > 1 && styles.xpMultipliedBadge]}>
+                                <TouchableOpacity
+                                    style={[styles.badge, (topBarData?.xpMultiplier ?? 1) > 1 && styles.xpMultipliedBadge]}
+                                    activeOpacity={0.7}
+                                    onPress={tierManager.openTierDrawer}
+                                >
                                     {topBarData?.badgeImgUrl ? (
                                         <Image
                                             source={{ uri: topBarData.badgeImgUrl }}
@@ -241,7 +246,7 @@ export default function HomeScreen() {
                                             <Text style={styles.multiplierTagText}>x{topBarData?.xpMultiplier}</Text>
                                         </View>
                                     )}
-                                </View>
+                                </TouchableOpacity>
 
                                 {/* Gold Badge */}
                                 <TouchableOpacity
@@ -264,7 +269,7 @@ export default function HomeScreen() {
                                 <TouchableOpacity
                                     style={styles.badge}
                                     activeOpacity={0.7}
-                                    onPress={streakManager.openStreak}
+                                    onPress={streakManager.openStreakDrawer}
                                 >
                                     <Ionicons name="flame" size={15} color={colors.warning} />
                                     <Text style={styles.badgeText}>
@@ -384,25 +389,16 @@ export default function HomeScreen() {
         </ScreenWrapper>
         {topBarData && (
             <>
-                <StreakCelebrationModal
-                    visible={streakManager.celebrationVisible}
-                    onClose={streakManager.closeCelebration}
+                <StreakDrawerModal
+                    visible={streakManager.streakDrawerVisible}
+                    onClose={streakManager.closeStreakDrawer}
                     currentStreak={topBarData.currentStreak}
-                    onNext={streakManager.proceedToStreakModal}
                 />
-                <StreakModal
-                    visible={streakManager.streakVisible}
-                    onClose={streakManager.closeStreakModal}
-                    currentStreak={topBarData.currentStreak}
-                    rewards={streakManager.rewards}
-                    milestones={streakManager.milestones}
-                    onClaimReward={streakManager.handleClaimReward}
-                />
-                <RewardModal
-                    visible={streakManager.rewardVisible}
-                    onClose={streakManager.closeRewardModal}
-                    goldAmount={50}
-                    badgeName="Huy hiệu Chăm Chỉ"
+                <TierDrawerModal
+                    visible={tierManager.tierDrawerVisible}
+                    onClose={tierManager.closeTierDrawer}
+                    totalXp={topBarData.totalXp}
+                    currentTierIndex={topBarData.currentTierIndex}
                 />
             </>
         )}

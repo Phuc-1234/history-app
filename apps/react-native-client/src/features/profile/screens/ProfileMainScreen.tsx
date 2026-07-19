@@ -80,6 +80,10 @@ export default function ProfileMainScreen() {
         router.push("/(social)/friends" as never);
     };
 
+    const handleOpenItems = () => {
+        router.push("/(tabs)/7_1_item" as never);
+    };
+
     const handleSendFeedback = () => {
         router.push("/(10_proflie)/10_6_feedback");
     };
@@ -161,7 +165,7 @@ export default function ProfileMainScreen() {
 
                     {/* Test history */}
                     <TouchableOpacity
-                        style={[styles.squareButtonWrapper, styles.squareButton]}
+                        style={styles.squareButtonWrapper}
                         onPress={handleViewHistory}
                         activeOpacity={0.82}
                     >
@@ -177,7 +181,7 @@ export default function ProfileMainScreen() {
 
                     {/* Friends */}
                     <TouchableOpacity
-                        style={[styles.squareButtonWrapper, styles.squareButton]}
+                        style={styles.squareButtonWrapper}
                         onPress={handleOpenFriends}
                         activeOpacity={0.82}
                     >
@@ -191,9 +195,21 @@ export default function ProfileMainScreen() {
                         </View>
                     </TouchableOpacity>
 
+                    {/* Vật phẩm */}
+                    <TouchableOpacity
+                        style={styles.squareButtonWrapper}
+                        onPress={handleOpenItems}
+                        activeOpacity={0.82}
+                    >
+                        <View style={styles.squareButton}>
+                            <Ionicons name="gift-outline" size={26} color={colors.primary} />
+                            <Text style={styles.squareLabel}>Vật phẩm</Text>
+                        </View>
+                    </TouchableOpacity>
+
                     {/* Feedback */}
                     <TouchableOpacity
-                        style={[styles.squareButtonWrapper, styles.squareButton]}
+                        style={styles.squareButtonWrapper}
                         onPress={handleSendFeedback}
                         activeOpacity={0.82}
                     >
@@ -358,6 +374,7 @@ const styles = StyleSheet.create({
         aspectRatio: 2.1,
         borderRadius: 12,
         overflow: "hidden",
+        
     },
     squareButton: {
         backgroundColor: colors.surfaceVariant,

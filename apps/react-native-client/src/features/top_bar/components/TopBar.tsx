@@ -34,9 +34,10 @@ interface TopBarProps {
         titleColor?: string;
     };
     onOpenStreak?: () => void;
+    onOpenTier?: () => void;
 }
 
-export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }: TopBarProps) {
+export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, onOpenTier }: TopBarProps) {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { openDrawer } = useSideDrawer();
@@ -103,7 +104,11 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
 
                             <View style={styles.statsContainer}>
                                 {/* XP Chip */}
-                                <View style={[styles.chip, data.xpMultiplier > 1 && styles.xpMultipliedChip]}>
+                                <TouchableOpacity
+                                    style={[styles.chip, data.xpMultiplier > 1 && styles.xpMultipliedChip]}
+                                    activeOpacity={0.7}
+                                    onPress={onOpenTier}
+                                >
                                     {data.badgeImgUrl ? (
                                         <Image
                                             source={{ uri: data.badgeImgUrl }}
@@ -120,7 +125,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                             <Text style={styles.multiplierTagText}>x{data.xpMultiplier}</Text>
                                         </View>
                                     )}
-                                </View>
+                                </TouchableOpacity>
 
                                 {/* Gold Chip */}
                                 <TouchableOpacity

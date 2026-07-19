@@ -59,3 +59,17 @@ export const getTiers = async (
     }
 };
 
+export const getStreakDetails = async (
+    req: Request,
+    res: Response,
+) => {
+    try {
+        const userId = req.user?.id;
+        const streakInfo = await gamificationService.getStreakInfo(userId);
+        return res.status(200).json(streakInfo);
+    } catch (err) {
+        console.error("Fetch streak error:", err);
+        return res.status(500).json({ error: "Failed to fetch streak details." });
+    }
+};
+

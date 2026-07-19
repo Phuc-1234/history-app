@@ -1,5 +1,6 @@
 import { useAppSelector } from "../../../store/storeHook"; // Adjust path according to your structure
-import { useStreak } from "../../streak"; // Adjust path as used in your wrappers
+import { useStreakDrawer } from "../../streak";
+import { useTierDrawer } from "../../tier";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
 
@@ -9,6 +10,7 @@ export interface ProcessedTopBarData {
     avatarUri: string;
     equippedFrameUrl: string | null;
     totalXp: number;
+    currentTierIndex: number;
     totalGold: string; // Formatted with toLocaleString() for direct presentation
     currentStreak: number;
     badgeImgUrl: string | null;
@@ -24,14 +26,18 @@ export function useTopBarData() {
     const profile = useAppSelector((state) => state.auth.profile);
     const { data: activeEffectsData } = useGetUserActiveEffectsQuery(undefined, { skip: !profile });
 
-    // 2. Encapsulate streak module states and visibility configurations directly here
+    // 2. Encapsulate streak drawer state
     const streakCount = profile ? profile.currentStreak : 0;
-    const streakManager = useStreak(streakCount);
+    const streakManager = useStreakDrawer();
 
-    // 3. Compute structural configurations, fallbacks, and avatar generation details
+    // 3. Encapsulate tier drawer state
+    const tierManager = useTierDrawer();
+
+    // 4. Compute structural configurations, fallbacks, and avatar generation details
     const isLoggedIn = !!profile;
     const name = profile?.name ?? "";
     const totalXp = profile?.totalXp ?? 0;
+    const currentTierIndex = profile?.currentTierIndex ?? 1;
     const totalGold = profile?.totalGold ? profile.totalGold.toLocaleString() : "0";
     const badgeImgUrl = profile?.badgeImgUrl ?? null;
     const equippedFrameUrl = profile?.equippedFrameUrl ?? null;
@@ -48,6 +54,7 @@ export function useTopBarData() {
         avatarUri,
         equippedFrameUrl,
         totalXp,
+        currentTierIndex,
         totalGold,
         currentStreak: streakCount,
         badgeImgUrl,
@@ -57,6 +64,7 @@ export function useTopBarData() {
 
     return {
         data: processedData,
-        streakManager, // Bubble up standard modal operations seamlessly
+        streakManager,
+        tierManager,
     };
 }

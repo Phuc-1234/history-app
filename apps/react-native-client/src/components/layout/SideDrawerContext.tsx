@@ -18,7 +18,8 @@ import { colors } from "../../theme/colors";
 import { typography } from "../../theme/typography";
 import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
 import { AvatarWithFrame } from "../ui";
-import { StreakCelebrationModal, StreakModal, RewardModal } from "../../features/streak";
+import { StreakDrawerModal } from "../../features/streak";
+import { TierDrawerModal } from "../../features/tier";
 
 const DRAWER_WIDTH = 280;
 
@@ -44,7 +45,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const segments = useSegments() as string[];
-    const { data, streakManager } = useTopBarData();
+    const { data, streakManager, tierManager } = useTopBarData();
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -198,7 +199,14 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                     </Text>
                                     <View style={styles.drawerStatsRow}>
                                         {/* XP Chip */}
-                                        <View style={[styles.drawerChip, data.xpMultiplier > 1 && styles.xpMultipliedChip]}>
+                                        <TouchableOpacity
+                                            style={[styles.drawerChip, data.xpMultiplier > 1 && styles.xpMultipliedChip]}
+                                            activeOpacity={0.7}
+                                            onPress={() => {
+                                                closeDrawer();
+                                                tierManager.openTierDrawer();
+                                            }}
+                                        >
                                             {data.badgeImgUrl ? (
                                                 <Image
                                                     source={{ uri: data.badgeImgUrl }}
@@ -215,7 +223,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                                     <Text style={styles.multiplierTagText}>x{data.xpMultiplier}</Text>
                                                 </View>
                                             )}
-                                        </View>
+                                        </TouchableOpacity>
 
                                         {/* Gold Chip */}
                                         <TouchableOpacity
@@ -243,7 +251,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                             activeOpacity={0.7}
                                             onPress={() => {
                                                 closeDrawer();
-                                                streakManager.openStreak();
+                                                streakManager.openStreakDrawer();
                                             }}
                                         >
                                             <Ionicons name="flame" size={14} color={colors.warning} />
@@ -308,25 +316,16 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
             )}
             {data.isLoggedIn && (
                 <>
-                    <StreakCelebrationModal
-                        visible={streakManager.celebrationVisible}
-                        onClose={streakManager.closeCelebration}
+                    <StreakDrawerModal
+                        visible={streakManager.streakDrawerVisible}
+                        onClose={streakManager.closeStreakDrawer}
                         currentStreak={data.currentStreak}
-                        onNext={streakManager.proceedToStreakModal}
                     />
-                    <StreakModal
-                        visible={streakManager.streakVisible}
-                        onClose={streakManager.closeStreakModal}
-                        currentStreak={data.currentStreak}
-                        rewards={streakManager.rewards}
-                        milestones={streakManager.milestones}
-                        onClaimReward={streakManager.handleClaimReward}
-                    />
-                    <RewardModal
-                        visible={streakManager.rewardVisible}
-                        onClose={streakManager.closeRewardModal}
-                        goldAmount={50}
-                        badgeName="Huy hiệu Chăm Chỉ"
+                    <TierDrawerModal
+                        visible={tierManager.tierDrawerVisible}
+                        onClose={tierManager.closeTierDrawer}
+                        totalXp={data.totalXp}
+                        currentTierIndex={data.currentTierIndex}
                     />
                 </>
             )}
