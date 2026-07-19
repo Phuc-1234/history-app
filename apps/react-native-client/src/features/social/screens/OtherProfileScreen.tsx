@@ -10,6 +10,7 @@ import {
     StatCard,
 } from "@/components/ui";
 import { colors } from "@/theme/colors";
+import { useAppSelector } from "@/store/storeHook";
 import {
     useFollowUserMutation,
     useGetSocialProfileQuery,
@@ -28,9 +29,18 @@ export function OtherProfileScreen() {
     const router = useRouter();
     const params = useLocalSearchParams<{ userId?: string }>();
     const userId = typeof params.userId === "string" ? params.userId : "";
+    const currentUserId = useAppSelector((state) => state.auth.profile?.id);
+    const isOwnProfile = !!(userId && currentUserId && String(userId) === String(currentUserId));
+
     const { data, isFetching, isError, refetch } = useGetSocialProfileQuery(userId, {
-        skip: !userId,
+        skip: !userId || isOwnProfile,
     });
+
+    useEffect(() => {
+        if (isOwnProfile) {
+            router.replace("/(tabs)/10_1_profile" as never);
+        }
+    }, [isOwnProfile]);
 
     // TẤT CẢ hooks phải được gọi vô điều kiện (Rules of Hooks).
     const [following, setFollowing] = useState(false);
@@ -145,11 +155,6 @@ export function OtherProfileScreen() {
                             label="Người theo dõi"
                             variant="social-outline"
                             backgroundColor={colors.socialFollowers}
-                        />
-                        <StatCard
-                            value={profile.winRate ? `${profile.winRate}%` : "--"}
-                            label="Thắng"
-                            variant="accent-outline"
                         />
                     </View>
                     <View style={styles.actionRow}>

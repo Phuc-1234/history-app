@@ -36,6 +36,9 @@ import {
     CreateItemDefinitionBody,
     UpdateItemDefinitionBody,
     ItemDefinitionDto,
+    CreateTierBody,
+    UpdateTierBody,
+    AdminTierDto,
 } from "@history-app/shared";
 import { supabase } from "../config/supabaseClient";
 import { contentService } from "./contentService";
@@ -1274,6 +1277,7 @@ export class AdminService {
                 itemType: itemType as any,
                 effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : null) : null,
                 imgUrl: data.imgUrl ?? null,
+                shopImgUrl: data.shopImgUrl ?? null,
                 equipmentSlot: isSkin ? (data.equipmentSlot ? (data.equipmentSlot as any) : null) : null,
                 durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : null) : null,
             }
@@ -1299,6 +1303,7 @@ export class AdminService {
                 itemType: itemType as any,
                 effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : existing.effectValue) : null,
                 imgUrl: data.imgUrl !== undefined ? data.imgUrl : existing.imgUrl,
+                shopImgUrl: data.shopImgUrl !== undefined ? data.shopImgUrl : existing.shopImgUrl,
                 equipmentSlot: isSkin ? (data.equipmentSlot !== undefined ? (data.equipmentSlot as any) : existing.equipmentSlot) : null,
                 durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : existing.durationMinutes) : null,
             }
@@ -1312,8 +1317,213 @@ export class AdminService {
         await prisma.itemDefinition.delete({ where: { id } });
         return true;
     }
+
+    // ─── TIER ─────────────────────────────────────────────────────────────────
+
+    async listTiers(): Promise<AdminTierDto[]> {
+        const tiers = await prisma.tier.findMany({
+            orderBy: { index: "asc" }
+        });
+
+        const rewardRules = await prisma.rewardRule.findMany({
+            where: {
+                triggerType: "TIER_REACHED"
+            },
+            include: {
+                rewardRuleItems: {
+                    include: {
+                        itemDefinition: true
+                    }
+                }
+            }
+        });
+
+        const ruleMap = new Map<string, RewardRuleDto>();
+        rewardRules.forEach(r => {
+            if (r.triggerTargetId) {
+                ruleMap.set(r.triggerTargetId, {
+                    id: r.id,
+                    triggerType: r.triggerType as any,
+                    triggerTargetId: r.triggerTargetId,
+                    triggerTimeMin: r.triggerTimeMin,
+                    triggerTimeMax: r.triggerTimeMax,
+                    xp: r.xp,
+                    gold: r.gold,
+                    rewardRuleItems: r.rewardRuleItems.map(ri => ({
+                        itemDefinitionId: ri.itemDefinitionId,
+                        quantity: ri.quantity,
+                        itemDefinition: ri.itemDefinition as ItemDefinitionDto
+                    }))
+                });
+            }
+        });
+
+        return tiers.map(t => ({
+            index: t.index,
+            name: t.name,
+            badgeImgUrl: t.badgeImgUrl ?? null,
+            description: t.description ?? null,
+            xpThreshold: t.xpThreshold,
+            rewardRule: ruleMap.get(String(t.index)) ?? null
+        }));
+    }
+
+    async createTier(data: CreateTierBody): Promise<AdminTierDto> {
+        const existing = await prisma.tier.findUnique({ where: { index: Number(data.index) } });
+        if (existing) {
+            throw new Error(`Tier index ${data.index} already exists`);
+        }
+
+        const tier = await prisma.$transaction(async (tx) => {
+            const createdTier = await tx.tier.create({
+                data: {
+                    index: Number(data.index),
+                    name: data.name,
+                    badgeImgUrl: data.badgeImgUrl ?? null,
+                    description: data.description ?? null,
+                    xpThreshold: Number(data.xpThreshold)
+                }
+            });
+
+            const targetIdStr = String(createdTier.index);
+            const xpReward = data.xpReward !== undefined ? Number(data.xpReward) : 0;
+            const goldReward = data.goldReward !== undefined ? Number(data.goldReward) : 0;
+            const items = data.rewardRuleItems || [];
+
+            if (xpReward > 0 || goldReward > 0 || items.length > 0) {
+                const rule = await tx.rewardRule.create({
+                    data: {
+                        triggerType: "TIER_REACHED",
+                        triggerTargetId: targetIdStr,
+                        triggerTimeMin: 1,
+                        triggerTimeMax: null,
+                        xp: xpReward,
+                        gold: goldReward,
+                    }
+                });
+
+                if (items.length > 0) {
+                    await tx.rewardRuleItem.createMany({
+                        data: items.map(i => ({
+                            rewardRuleId: rule.id,
+                            itemDefinitionId: i.itemDefinitionId,
+                            quantity: i.quantity
+                        }))
+                    });
+                }
+            }
+
+            return createdTier;
+        });
+
+        const updatedList = await this.listTiers();
+        const createdDto = updatedList.find(t => t.index === tier.index);
+        if (!createdDto) {
+            throw new Error("Failed to retrieve created Tier");
+        }
+        return createdDto;
+    }
+
+    async updateTier(index: number, data: UpdateTierBody): Promise<AdminTierDto | null> {
+        const existing = await prisma.tier.findUnique({ where: { index } });
+        if (!existing) return null;
+
+        await prisma.$transaction(async (tx) => {
+            await tx.tier.update({
+                where: { index },
+                data: {
+                    ...(data.name !== undefined && { name: data.name }),
+                    badgeImgUrl: data.badgeImgUrl !== undefined ? data.badgeImgUrl : existing.badgeImgUrl,
+                    description: data.description !== undefined ? data.description : existing.description,
+                    ...(data.xpThreshold !== undefined && { xpThreshold: Number(data.xpThreshold) }),
+                }
+            });
+
+            const targetIdStr = String(index);
+            const hasRewardEdit = data.xpReward !== undefined || data.goldReward !== undefined || data.rewardRuleItems !== undefined;
+
+            if (hasRewardEdit) {
+                const existingRule = await tx.rewardRule.findFirst({
+                    where: {
+                        triggerType: "TIER_REACHED",
+                        triggerTargetId: targetIdStr
+                    }
+                });
+
+                const newXp = data.xpReward !== undefined ? Number(data.xpReward) : (existingRule?.xp ?? 0);
+                const newGold = data.goldReward !== undefined ? Number(data.goldReward) : (existingRule?.gold ?? 0);
+                const newItems = data.rewardRuleItems;
+
+                if (existingRule) {
+                    await tx.rewardRule.update({
+                        where: { id: existingRule.id },
+                        data: {
+                            xp: newXp,
+                            gold: newGold
+                        }
+                    });
+
+                    if (newItems !== undefined) {
+                        await tx.rewardRuleItem.deleteMany({ where: { rewardRuleId: existingRule.id } });
+                        if (newItems.length > 0) {
+                            await tx.rewardRuleItem.createMany({
+                                data: newItems.map(i => ({
+                                    rewardRuleId: existingRule.id,
+                                    itemDefinitionId: i.itemDefinitionId,
+                                    quantity: i.quantity
+                                }))
+                            });
+                        }
+                    }
+                } else if (newXp > 0 || newGold > 0 || (newItems && newItems.length > 0)) {
+                    const rule = await tx.rewardRule.create({
+                        data: {
+                            triggerType: "TIER_REACHED",
+                            triggerTargetId: targetIdStr,
+                            triggerTimeMin: 1,
+                            triggerTimeMax: null,
+                            xp: newXp,
+                            gold: newGold
+                        }
+                    });
+
+                    if (newItems && newItems.length > 0) {
+                        await tx.rewardRuleItem.createMany({
+                            data: newItems.map(i => ({
+                                rewardRuleId: rule.id,
+                                itemDefinitionId: i.itemDefinitionId,
+                                quantity: i.quantity
+                            }))
+                        });
+                    }
+                }
+            }
+        });
+
+        const updatedList = await this.listTiers();
+        return updatedList.find(t => t.index === index) ?? null;
+    }
+
+    async deleteTier(index: number): Promise<boolean> {
+        const existing = await prisma.tier.findUnique({ where: { index } });
+        if (!existing) return false;
+
+        await prisma.$transaction(async (tx) => {
+            const targetIdStr = String(index);
+            await tx.rewardRule.deleteMany({
+                where: {
+                    triggerType: "TIER_REACHED",
+                    triggerTargetId: targetIdStr
+                }
+            });
+            await tx.tier.delete({ where: { index } });
+        });
+
+        return true;
+    }
 }
 
 export const adminService = new AdminService();
+
 
 

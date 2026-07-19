@@ -17,6 +17,7 @@ import { toastService, type ToastType } from "../services/toastService";
 import { useFonts } from "expo-font";
 
 import { LoadingProvider } from "../features/loading";
+import { SideDrawerProvider } from "../components/layout/SideDrawerContext";
 
 // Register background handler for Firebase Cloud Messaging (Android)
 try {
@@ -30,10 +31,12 @@ try {
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-    // Initialize push notifications configuration and listeners
+function NotificationInitializer() {
     useNotification();
+    return null;
+}
 
+export default function RootLayout() {
     const [fontsLoaded, fontError] = useFonts({
         "Nunito-Black": require("../../assets/fonts/Nunito-Black.ttf"),
         "Nunito-BlackItalic": require("../../assets/fonts/Nunito-BlackItalic.ttf"),
@@ -72,23 +75,26 @@ export default function RootLayout() {
             <Provider store={store}>
                 {/* 2. Delay rendering UI until local storage token/states are rehydrated */}
                 <PersistGate loading={<LoadingFallback />} persistor={persistor}>
+                    <NotificationInitializer />
                     <LoadingProvider>
-                        {/* 3. Expo Router Native Navigation Container */}
-                        <Stack
-                            screenOptions={{
-                                // This completely turns off the default native route headers
-                                // across ALL app stack contexts, tabs, and nested screens globally.
-                                headerShown: false,
-                            }}
-                        >
-                            <Stack.Screen name="(tabs)" />
-                            <Stack.Screen
-                                name="modal"
-                                options={{ presentation: "modal" }}
-                            />
-                        </Stack>
-                        <GlobalSessionModal />
-                        <GlobalToastContainer />
+                        <SideDrawerProvider>
+                            {/* 3. Expo Router Native Navigation Container */}
+                            <Stack
+                                screenOptions={{
+                                    // This completely turns off the default native route headers
+                                    // across ALL app stack contexts, tabs, and nested screens globally.
+                                    headerShown: false,
+                                }}
+                            >
+                                <Stack.Screen name="(tabs)" />
+                                <Stack.Screen
+                                    name="modal"
+                                    options={{ presentation: "modal" }}
+                                />
+                            </Stack>
+                            <GlobalSessionModal />
+                            <GlobalToastContainer />
+                        </SideDrawerProvider>
                     </LoadingProvider>
                 </PersistGate>
             </Provider>

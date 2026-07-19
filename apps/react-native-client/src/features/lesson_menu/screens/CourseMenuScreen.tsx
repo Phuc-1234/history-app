@@ -211,8 +211,7 @@ export function CourseMenuScreen() {
     const { data: struct11, isLoading: loading11, refetch: refetch11, isFetching: isFetching11 } = useGetGradeStructureQuery(11);
     const { data: struct12, isLoading: loading12, refetch: refetch12, isFetching: isFetching12 } = useGetGradeStructureQuery(12);
 
-    const { data: gradesData, isLoading: loadingGrades } = useGetGradesQuery();
-    const [isMasteryModalVisible, setIsMasteryModalVisible] = useState(false);
+    const { data: gradesData } = useGetGradesQuery();
 
     const [premiumModalVisible, setPremiumModalVisible] = useState(false);
     const [lockedFeatureName, setLockedFeatureName] = useState("");
@@ -285,14 +284,6 @@ export function CourseMenuScreen() {
             <View style={styles.container}>
                 <View style={styles.headerRow}>
                     <Text style={styles.screenHeader}>Học phần</Text>
-                    <TouchableOpacity
-                        style={styles.masteryBadgeButton}
-                        onPress={() => setIsMasteryModalVisible(true)}
-                        activeOpacity={0.8}
-                    >
-                        <Ionicons name="ribbon-outline" size={16} color="#FFFFFF" />
-                        <Text style={styles.masteryBadgeButtonText}>Độ thành thạo</Text>
-                    </TouchableOpacity>
                 </View>
                 <Text style={styles.screenSubtitle}>Chọn học phần để bắt đầu</Text>
 
@@ -373,57 +364,6 @@ export function CourseMenuScreen() {
                 </ScrollView>
             </View>
 
-            <Modal
-                visible={isMasteryModalVisible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setIsMasteryModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Mức độ thành thạo</Text>
-                        <Text style={styles.modalSubtitle}>Thành thạo dựa trên kết quả trả lời đúng liên tục các câu hỏi</Text>
-
-                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                            {loadingGrades ? (
-                                <ActivityIndicator size="small" color={colors.primary} />
-                            ) : (
-                                gradesData?.grades?.map((g) => {
-                                    const pct = g.masteryPercentage ?? 0;
-                                    let gradeColor = colors.primary;
-                                    if (g.id === 11) gradeColor = colors.secondary;
-                                    if (g.id === 12) gradeColor = colors.success;
-
-                                    return (
-                                        <View key={g.id} style={styles.masteryGradeItem}>
-                                            <View style={styles.masteryGradeHeader}>
-                                                <Text style={styles.masteryGradeText}>Lịch sử Lớp {g.id}</Text>
-                                                <Text style={[styles.masteryGradePct, { color: gradeColor }]}>{pct}%</Text>
-                                            </View>
-                                            <View style={styles.masteryProgressBarTrack}>
-                                                <View
-                                                    style={[
-                                                        styles.masteryProgressBarFill,
-                                                        { width: `${pct}%`, backgroundColor: gradeColor },
-                                                    ]}
-                                                />
-                                            </View>
-                                        </View>
-                                    );
-                                })
-                            )}
-                        </ScrollView>
-
-                        <TouchableOpacity
-                            style={styles.modalCloseButton}
-                            onPress={() => setIsMasteryModalVisible(false)}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.modalCloseButtonText}>Đóng</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
 
             <PremiumModal
                 visible={premiumModalVisible}
@@ -557,7 +497,7 @@ const styles = StyleSheet.create({
     },
     headerRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "center",
         alignItems: "center",
         marginBottom: 4,
     },

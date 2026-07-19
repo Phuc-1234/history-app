@@ -5,9 +5,11 @@ import {
     ProgressEventType,
     ProgressConsequence,
 } from "../types/progressTypes";
+import { shopService } from "./shopService";
 
 // Default fallback reward for test triggers when no RewardRule exists
 const DEFAULT_TEST_REWARD = { xp: 10, gold: 5 };
+const DEFAULT_PER_QUESTION_REWARD = { xp: 1, gold: 1 };
 
 type TxClient = Prisma.TransactionClient;
 
@@ -61,7 +63,6 @@ export class RewardEngine {
             };
         }
         
-        
         if (autoPickStrategy === "WRONG") {
             return {
                 triggerType: RewardTriggerType.AUTO_WRONG_PRACTICE_COMPLETE,
@@ -73,7 +74,6 @@ export class RewardEngine {
             triggerTargetId: null,
         };
         if (scopeType) {
-            
             return {
                 triggerType: scopeToAutoTrigger(scopeType),
                 triggerTargetId: scopeId != null ? String(scopeId) : null,
@@ -108,6 +108,7 @@ export class RewardEngine {
     /**
      * Resolves the best matching RewardRule for a given trigger + triggerTime.
      * Priority: exact triggerTargetId match > null fallback row.
+     * For practice triggers (WRONG / PERSONAL): ignore attempt count filters.
      * For STREAK_REACHED / TIER_REACHED: no fallback if rule not found (return null).
      * For test triggers: return hardcoded default if no rule found.
      */
@@ -117,16 +118,24 @@ export class RewardEngine {
         triggerTime: number,
         tx: TxClient,
     ): Promise<{ ruleId: number; xp: number; gold: number; rewardRuleItems?: any[] } | null> {
+        const isPracticeTrigger =
+            triggerType === RewardTriggerType.AUTO_WRONG_PRACTICE_COMPLETE ||
+            triggerType === RewardTriggerType.AUTO_PERSONAL_PRACTICE_COMPLETE;
+
         // Try exact match first
         const exactRule = await tx.rewardRule.findFirst({
             where: {
                 triggerType,
                 triggerTargetId,
-                triggerTimeMin: { lte: triggerTime },
-                OR: [
-                    { triggerTimeMax: { gte: triggerTime } },
-                    { triggerTimeMax: null },
-                ],
+                ...(isPracticeTrigger
+                    ? {}
+                    : {
+                        triggerTimeMin: { lte: triggerTime },
+                        OR: [
+                            { triggerTimeMax: { gte: triggerTime } },
+                            { triggerTimeMax: null },
+                        ],
+                    }),
             },
             include: {
                 rewardRuleItems: {
@@ -135,7 +144,7 @@ export class RewardEngine {
                     },
                 },
             },
-            orderBy: { triggerTimeMin: "desc" }, // most specific range first
+            orderBy: isPracticeTrigger ? { id: "desc" } : { triggerTimeMin: "desc" },
         });
 
         if (exactRule) {
@@ -153,11 +162,15 @@ export class RewardEngine {
                 where: {
                     triggerType,
                     triggerTargetId: null,
-                    triggerTimeMin: { lte: triggerTime },
-                    OR: [
-                        { triggerTimeMax: { gte: triggerTime } },
-                        { triggerTimeMax: null },
-                    ],
+                    ...(isPracticeTrigger
+                        ? {}
+                        : {
+                            triggerTimeMin: { lte: triggerTime },
+                            OR: [
+                                { triggerTimeMax: { gte: triggerTime } },
+                                { triggerTimeMax: null },
+                            ],
+                        }),
                 },
                 include: {
                     rewardRuleItems: {
@@ -166,7 +179,7 @@ export class RewardEngine {
                         },
                     },
                 },
-                orderBy: { triggerTimeMin: "desc" },
+                orderBy: isPracticeTrigger ? { id: "desc" } : { triggerTimeMin: "desc" },
             });
 
             if (fallbackRule) {
@@ -190,6 +203,7 @@ export class RewardEngine {
         // For test triggers: hardcoded fallback — but no ruleId to log
         return null;
     }
+        
 
     /**
      * Grants a reward: creates UserRewardLog entry (idempotent via unique constraint).
@@ -285,7 +299,7 @@ export class RewardEngine {
                     itemDefinitionId: itemDef.id,
                     name: itemDef.name,
                     quantity,
-                    imgUrl: itemDef.imgUrl,
+                    imgUrl: itemDef.shopImgUrl ?? itemDef.imgUrl,
                 });
             }
         }
@@ -323,6 +337,8 @@ export class RewardEngine {
         userId: string,
         userTestLogId: string | null,
         tx: TxClient,
+        xpMultiplier: number = 1.0,
+        goldMultiplier: number = 1.0,
     ): Promise<{ consequences: ProgressConsequence[]; totalXp: number; totalGold: number }> {
         const consequences: ProgressConsequence[] = [];
         let totalXp = 0;
@@ -380,14 +396,17 @@ export class RewardEngine {
             );
 
             if (tierReward) {
+                const calcXp = Math.floor(tierReward.xp * xpMultiplier);
+                const calcGold = Math.floor(tierReward.gold * goldMultiplier);
+
                 const granted = await this.grantReward(
                     userId,
                     tierReward.ruleId,
                     RewardTriggerType.TIER_REACHED,
                     triggerTargetId,
                     triggerTime,
-                    tierReward.xp,
-                    tierReward.gold,
+                    calcXp,
+                    calcGold,
                     tierReward.rewardRuleItems || [],
                     userTestLogId,
                     tx,
@@ -423,9 +442,6 @@ export class RewardEngine {
 
     /**
      * Processes streak logic after a test pass.
-     * - If already passed today → no change
-     * - If passed yesterday → increment streak
-     * - If older/never → reset to 1
      * Updates lastTestPassedAt, highestStreak.
      * Returns streak consequences including any streak milestone rewards.
      */
@@ -433,6 +449,8 @@ export class RewardEngine {
         userId: string,
         userTestLogId: string | null,
         tx: TxClient,
+        xpMultiplier: number = 1.0,
+        goldMultiplier: number = 1.0,
     ): Promise<{ consequences: ProgressConsequence[]; totalXp: number; totalGold: number }> {
         const consequences: ProgressConsequence[] = [];
         let totalXp = 0;
@@ -500,14 +518,17 @@ export class RewardEngine {
         );
 
         if (streakReward) {
+            const calcXp = Math.floor(streakReward.xp * xpMultiplier);
+            const calcGold = Math.floor(streakReward.gold * goldMultiplier);
+
             const granted = await this.grantReward(
                 userId,
                 streakReward.ruleId,
                 RewardTriggerType.STREAK_REACHED,
                 triggerTargetId,
                 triggerTime,
-                streakReward.xp,
-                streakReward.gold,
+                calcXp,
+                calcGold,
                 streakReward.rewardRuleItems || [],
                 userTestLogId,
                 tx,
@@ -547,10 +568,14 @@ export class RewardEngine {
         userTestLogId: string,
         tx: TxClient,
         autoPickStrategy?: string | null,
+        questionCount: number = 10,
     ): Promise<{ consequences: ProgressConsequence[]; totalXpGained: number; totalGoldGained: number }> {
         const consequences: ProgressConsequence[] = [];
         let totalXpGained = 0;
         let totalGoldGained = 0;
+
+        // Fetch active multipliers for XP and Gold
+        const { xpMultiplier, goldMultiplier } = await shopService.getUserActiveEffects(userId, tx);
 
         // 1. Determine trigger
         const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId, purposeType, autoPickStrategy);
@@ -566,15 +591,24 @@ export class RewardEngine {
         let testGold = 0;
         let testItems: any[] = [];
 
+        const isPracticeTrigger =
+            triggerType === RewardTriggerType.AUTO_WRONG_PRACTICE_COMPLETE ||
+            triggerType === RewardTriggerType.AUTO_PERSONAL_PRACTICE_COMPLETE;
+
         if (testReward) {
+            const baseXp = testReward.xp;
+            const baseGold = testReward.gold;
+            const calcXp = Math.floor((isPracticeTrigger ? baseXp * questionCount : baseXp) * xpMultiplier);
+            const calcGold = Math.floor((isPracticeTrigger ? baseGold * questionCount : baseGold) * goldMultiplier);
+
             const granted = await this.grantReward(
                 userId,
                 testReward.ruleId,
                 triggerType,
                 triggerTargetId,
                 triggerTime,
-                testReward.xp,
-                testReward.gold,
+                calcXp,
+                calcGold,
                 testReward.rewardRuleItems || [],
                 userTestLogId,
                 tx,
@@ -584,8 +618,10 @@ export class RewardEngine {
             testItems = granted.itemsAwarded;
         } else {
             // Hardcoded fallback for test triggers (no rule found, no ruleId to log)
-            testXp = DEFAULT_TEST_REWARD.xp;
-            testGold = DEFAULT_TEST_REWARD.gold;
+            const baseXp = isPracticeTrigger ? DEFAULT_PER_QUESTION_REWARD.xp * questionCount : DEFAULT_TEST_REWARD.xp;
+            const baseGold = isPracticeTrigger ? DEFAULT_PER_QUESTION_REWARD.gold * questionCount : DEFAULT_TEST_REWARD.gold;
+            testXp = Math.floor(baseXp * xpMultiplier);
+            testGold = Math.floor(baseGold * goldMultiplier);
             testItems = [];
         }
 
@@ -605,8 +641,8 @@ export class RewardEngine {
             });
         }
 
-        // 4. Process streak
-        const streakResult = await this.processStreak(userId, userTestLogId, tx);
+        // 4. Process streak (with active multipliers)
+        const streakResult = await this.processStreak(userId, userTestLogId, tx, xpMultiplier, goldMultiplier);
         consequences.push(...streakResult.consequences);
         totalXpGained += streakResult.totalXp;
         totalGoldGained += streakResult.totalGold;
@@ -614,8 +650,8 @@ export class RewardEngine {
         // 5. Apply all XP and gold from test + streak
         await this.applyXpAndGold(userId, totalXpGained, totalGoldGained, tx);
 
-        // 6. Check tier up (reads updated totalXp)
-        const tierResult = await this.checkTierUp(userId, userTestLogId, tx);
+        // 6. Check tier up (reads updated totalXp, with active multipliers)
+        const tierResult = await this.checkTierUp(userId, userTestLogId, tx, xpMultiplier, goldMultiplier);
         consequences.push(...tierResult.consequences);
         totalXpGained += tierResult.totalXp;
         totalGoldGained += tierResult.totalGold;
@@ -674,8 +710,11 @@ export class RewardEngine {
         userId: string,
         purposeType?: string | null,
         autoPickStrategy?: string | null,
-    ): Promise<{ xp: number; gold: number; attemptNumber: number; items: { id: number; name: string; imgUrl: string | null; quantity: number }[] }> {
+        questionCount: number = 10,
+    ): Promise<{ xp: number; gold: number; attemptNumber: number; xpMultiplier: number; goldMultiplier: number; items: { id: number; name: string; imgUrl: string | null; quantity: number }[] }> {
         const { triggerType, triggerTargetId } = this.determineTrigger(testId, scopeType, scopeId, purposeType, autoPickStrategy);
+
+        const { xpMultiplier, goldMultiplier } = await shopService.getUserActiveEffects(userId);
 
         // Count previous reward grants for this trigger
         const prevTimes = await prisma.userRewardLog.count({
@@ -694,14 +733,26 @@ export class RewardEngine {
         const items = (reward?.rewardRuleItems || []).map((ri: any) => ({
             id: ri.itemDefinition.id,
             name: ri.itemDefinition.name,
-            imgUrl: ri.itemDefinition.imgUrl,
+            imgUrl: ri.itemDefinition.shopImgUrl ?? ri.itemDefinition.imgUrl,
             quantity: ri.quantity,
         }));
 
+        const isPracticeTrigger =
+            triggerType === RewardTriggerType.AUTO_WRONG_PRACTICE_COMPLETE ||
+            triggerType === RewardTriggerType.AUTO_PERSONAL_PRACTICE_COMPLETE;
+
+        const baseXp = reward?.xp ?? (isPracticeTrigger ? DEFAULT_PER_QUESTION_REWARD.xp : DEFAULT_TEST_REWARD.xp);
+        const baseGold = reward?.gold ?? (isPracticeTrigger ? DEFAULT_PER_QUESTION_REWARD.gold : DEFAULT_TEST_REWARD.gold);
+
+        const rawXp = isPracticeTrigger ? baseXp * questionCount : baseXp;
+        const rawGold = isPracticeTrigger ? baseGold * questionCount : baseGold;
+
         return {
-            xp: reward?.xp ?? DEFAULT_TEST_REWARD.xp,
-            gold: reward?.gold ?? DEFAULT_TEST_REWARD.gold,
+            xp: Math.floor(rawXp * xpMultiplier),
+            gold: Math.floor(rawGold * goldMultiplier),
             attemptNumber: nextTriggerTime,
+            xpMultiplier,
+            goldMultiplier,
             items,
         };
     }

@@ -136,7 +136,8 @@ export async function expandScopeToQuestionWhere(
     scopeType: string | null | undefined,
     scopeId: number | null | undefined,
 ): Promise<Prisma.QuestionWhereInput> {
-    if (!scopeType || scopeType === "NATIONAL") return { isActive: true };
+    if (!scopeType) return { isActive: true };
+    if (scopeType === "NATIONAL") return { scopeType: "NATIONAL" as any, isActive: true };
 
     const conditions: Prisma.QuestionWhereInput[] = [];
 
@@ -633,8 +634,8 @@ export class TestServiceV2 {
 
         purposeType = preset.purposeType ?? purposeType;
 
-        // Resolve final parameters (Request overrides -> Test settings -> Preset settings -> Default fallbacks)
-        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (test?.questionNumber ?? preset?.questionCount ?? 10);
+        // Resolve final parameters (Request overrides -> Preset settings -> Default fallbacks)
+        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (preset?.questionCount ?? 10);
         const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
         const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
         const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
@@ -883,6 +884,7 @@ export class TestServiceV2 {
                     logId,
                     tx,
                     log.autoPickStrategy,
+                    log.questionCount ?? 10,
                 );
                 consequences.push(...rewardResult.consequences);
 
@@ -1074,8 +1076,8 @@ export class TestServiceV2 {
 
         purposeType = preset.purposeType ?? purposeType;
 
-        // Resolve final parameters (Request overrides -> Test settings -> Preset settings -> Default fallbacks)
-        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (test?.questionNumber ?? preset?.questionCount ?? 10);
+        // Resolve final parameters (Request overrides -> Preset settings -> Default fallbacks)
+        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (preset?.questionCount ?? 10);
         const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
         const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
         const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
@@ -1113,6 +1115,7 @@ export class TestServiceV2 {
             userId,
             purposeType,
             req.autoPickStrategy,
+            questionCount,
         );
 
         // Compute attempt count and pass count
@@ -1158,8 +1161,8 @@ export class TestServiceV2 {
         };
     }
 
-    async getNationalTests(): Promise<NationalTestDto[]> {
-        return prisma.test.findMany({
+    async getNationalTests(userId?: string): Promise<NationalTestDto[]> {
+        const tests = await prisma.test.findMany({
             where: {
                 isNationalTest: true,
             },
@@ -1169,7 +1172,75 @@ export class TestServiceV2 {
                 summary: true,
                 isPro: true,
                 imgUrl: true,
+                testQuestions: {
+                    select: {
+                        questionId: true,
+                    },
+                },
             },
+        });
+
+        if (!userId) {
+            return tests.map((t) => ({
+                id: t.id,
+                title: t.title,
+                summary: t.summary,
+                isPro: t.isPro,
+                imgUrl: t.imgUrl,
+                passCount: 0,
+                masteryPercentage: 0,
+            }));
+        }
+
+        const questionIds = Array.from(new Set(tests.flatMap((t) => t.testQuestions.map((tq) => tq.questionId))));
+
+        let masteryMap = new Map<number, number>();
+        if (questionIds.length > 0) {
+            const masteries = await prisma.userQuestionMastery.findMany({
+                where: {
+                    userId,
+                    questionId: { in: questionIds },
+                },
+                select: {
+                    questionId: true,
+                    level: true,
+                },
+            });
+            masteryMap = new Map(masteries.map((m) => [m.questionId, m.level]));
+        }
+
+        const passedLogs = await prisma.userTestLog.groupBy({
+            by: ["testId"],
+            where: {
+                userId,
+                testId: { in: tests.map((t) => t.id).filter(Boolean) as string[] },
+                isPassed: true,
+            },
+            _count: {
+                id: true,
+            },
+        });
+        const passCountMap = new Map(passedLogs.map((log) => [log.testId, log._count.id]));
+
+        return tests.map((t) => {
+            const tqIds = t.testQuestions.map((tq) => tq.questionId);
+            const totalQuestions = tqIds.length;
+            
+            let masteryPercentage = 0;
+            if (totalQuestions > 0) {
+                const totalLevel = tqIds.reduce((sum, qId) => sum + (masteryMap.get(qId) ?? 0), 0);
+                masteryPercentage = Math.round((totalLevel / (totalQuestions * 5)) * 100);
+            }
+
+            return {
+                id: t.id,
+                title: t.title,
+                summary: t.summary,
+                isPro: t.isPro,
+                imgUrl: t.imgUrl,
+                passCount: passCountMap.get(t.id) ?? 0,
+                masteryPercentage,
+            };
         });
     }
 
@@ -1324,7 +1395,34 @@ export class TestServiceV2 {
         }
     }
 
+    async getPracticeStats(userId: string, scopeType?: string, scopeId?: number) {
+        const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
 
+        const wrongQuestionCount = await prisma.userQuestionMastery.count({
+            where: {
+                userId,
+                consecutiveCorrect: 0,
+                question: {
+                    ...scopeWhere,
+                    isActive: true,
+                    answerDataJson: { not: Prisma.DbNull }
+                }
+            }
+        });
+
+        const answeredQuestionCount = await prisma.userQuestionMastery.count({
+            where: {
+                userId,
+                question: {
+                    ...scopeWhere,
+                    isActive: true,
+                    answerDataJson: { not: Prisma.DbNull }
+                }
+            }
+        });
+
+        return { wrongQuestionCount, answeredQuestionCount };
+    }
 }
 
 export const testServiceV2 = new TestServiceV2();

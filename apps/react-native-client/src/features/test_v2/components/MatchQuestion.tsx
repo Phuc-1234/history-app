@@ -91,7 +91,7 @@ function MatchItem({
         : FadeInRight.delay(idx * 60).duration(300);
 
     return (
-        <Animated.View entering={enteringAnim} style={animatedStyle}>
+        <Animated.View entering={enteringAnim} style={[animatedStyle, { flex: 1 }]}>
             <TouchableOpacity
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
@@ -387,16 +387,18 @@ export default function MatchQuestion({
                                         {correct.left}
                                     </Text>
                                     <Text style={styles.feedbackArrow}>→</Text>
-                                    <Text
-                                        style={[
-                                            styles.feedbackRightText,
-                                            isPairCorrect
-                                                ? styles.textGreen
-                                                : styles.textRed,
-                                        ]}
-                                    >
-                                        {userPair?.right ?? "(Chưa ghép)"}
-                                    </Text>
+                                    {userPair?.right ? (
+                                        <Text
+                                            style={[
+                                                styles.feedbackRightText,
+                                                isPairCorrect
+                                                    ? styles.textGreen
+                                                    : styles.textRed,
+                                            ]}
+                                        >
+                                            {userPair.right}
+                                        </Text>
+                                    ) : null}
                                     <View
                                         style={[
                                             styles.feedbackBadge,
@@ -453,13 +455,14 @@ const styles = StyleSheet.create({
     rowsContainer: { gap: 8 },
     rowWrapper: {
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "stretch",
         gap: 12,
     },
     cellContainer: {
         flex: 1,
     },
     item: {
+        flex: 1,
         backgroundColor: "#FFF",
         borderWidth: 1.5,
         borderColor: "#E5E7EB",

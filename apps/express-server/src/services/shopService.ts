@@ -92,17 +92,91 @@ export class ShopService {
         });
     }
 
+    async getUserActiveEffects(userId: string, tx?: any) {
+        const client = tx || prisma;
+        const now = new Date();
+
+        // Lazily expire outdated active effects
+        await client.userActiveEffect.updateMany({
+            where: {
+                userId,
+                status: "ACTIVE",
+                expiresAt: { lte: now },
+            },
+            data: {
+                status: "EXPIRED",
+            },
+        });
+
+        // Query active effects
+        const activeEffects = await client.userActiveEffect.findMany({
+            where: {
+                userId,
+                status: "ACTIVE",
+                expiresAt: { gt: now },
+            },
+            include: { itemDefinition: true },
+        });
+
+        let xpMultiplier = 1.0;
+        let goldMultiplier = 1.0;
+
+        for (const eff of activeEffects) {
+            if (eff.itemType === "XP_MUL") {
+                xpMultiplier *= eff.effectValue;
+            } else if (eff.itemType === "GOLD_MUL") {
+                goldMultiplier *= eff.effectValue;
+            }
+        }
+
+        return {
+            activeEffects,
+            xpMultiplier,
+            goldMultiplier,
+        };
+    }
+
     async getUserInventory(userId: string) {
-        return await prisma.userItem.findMany({
+        const activeRes = await this.getUserActiveEffects(userId);
+        const activeEffects = activeRes.activeEffects;
+        const activeDefIds = new Set(activeEffects.map((e) => e.itemDefinitionId));
+
+        const userItems = await prisma.userItem.findMany({
             where: { userId },
             include: { itemDefinition: true },
             orderBy: { itemDefinitionId: "asc" },
         });
+
+        const itemsResult: Array<any> = userItems.map((ui) => ({
+            ...ui,
+            isActivated: activeDefIds.has(ui.itemDefinitionId),
+        }));
+
+        // Append active consumable items where quantity reached 0 and row was removed from user_items
+        for (const eff of activeEffects) {
+            const existsInUserItems = itemsResult.some(
+                (item) => item.itemDefinitionId === eff.itemDefinitionId
+            );
+            if (!existsInUserItems) {
+                itemsResult.push({
+                    userId,
+                    itemDefinitionId: eff.itemDefinitionId,
+                    quantity: 0,
+                    itemDefinition: eff.itemDefinition,
+                    isActivated: true,
+                });
+            }
+        }
+
+        return itemsResult;
     }
 
-    async activateItem(userId: string, itemDefinitionId: number) {
+    async activateItem(userId: string, itemDefinitionId: number, forceReplace: boolean = false) {
         return await prisma.$transaction(async (tx) => {
-            // 1. Fetch user item and make sure they own it
+            // 1. Fetch active effects (and lazily expire)
+            const activeRes = await this.getUserActiveEffects(userId, tx);
+
+            // 2. Fetch user item and make sure they own it
             const userItem = await tx.userItem.findUnique({
                 where: {
                     userId_itemDefinitionId: {
@@ -119,14 +193,92 @@ export class ShopService {
 
             const itemDef = userItem.itemDefinition;
 
-            // 2. Verify it is a SKIN with equipmentSlot = AVT_FRAME
+            // 3. Handle Consumables (XP_MUL / GOLD_MUL)
+            if (itemDef.itemType === "XP_MUL" || itemDef.itemType === "GOLD_MUL") {
+                const existingSameType = activeRes.activeEffects.find(
+                    (eff) => eff.itemType === itemDef.itemType
+                );
+
+                if (existingSameType) {
+                    if (existingSameType.itemDefinitionId === itemDefinitionId) {
+                        return {
+                            success: false,
+                            conflict: true,
+                            code: "ACTIVE_EFFECT_EXISTS",
+                            message: `Hiệu ứng ${existingSameType.itemDefinition.name} đang hoạt động.`,
+                            activeItemName: existingSameType.itemDefinition.name,
+                        };
+                    }
+
+                    if (!forceReplace) {
+                        return {
+                            success: false,
+                            conflict: true,
+                            code: "ACTIVE_EFFECT_EXISTS",
+                            message: `Bạn đang sử dụng ${existingSameType.itemDefinition.name}. Việc kích hoạt vật phẩm này sẽ hủy hiệu ứng hiện tại.`,
+                            activeItemName: existingSameType.itemDefinition.name,
+                        };
+                    }
+
+                    // forceReplace is true -> expire previous active effect
+                    await tx.userActiveEffect.update({
+                        where: { id: existingSameType.id },
+                        data: { status: "EXPIRED" },
+                    });
+                }
+
+                // Consume 1 item from inventory
+                const newQty = userItem.quantity - 1;
+                if (newQty > 0) {
+                    await tx.userItem.update({
+                        where: {
+                            userId_itemDefinitionId: {
+                                userId,
+                                itemDefinitionId,
+                            },
+                        },
+                        data: { quantity: newQty },
+                    });
+                } else {
+                    await tx.userItem.delete({
+                        where: {
+                            userId_itemDefinitionId: {
+                                userId,
+                                itemDefinitionId,
+                            },
+                        },
+                    });
+                }
+
+                const durationMinutes = itemDef.durationMinutes ?? 60;
+                const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+
+                await tx.userActiveEffect.create({
+                    data: {
+                        userId,
+                        itemDefinitionId,
+                        effectValue: itemDef.effectValue ?? 1.5,
+                        expiresAt,
+                        status: "ACTIVE",
+                        itemType: itemDef.itemType,
+                    },
+                });
+
+                return {
+                    success: true,
+                    equipped: true,
+                    message: "Kích hoạt vật phẩm thành công!",
+                };
+            }
+
+            // 4. Verify it is a SKIN with equipmentSlot = AVT_FRAME
             if (itemDef.itemType !== "SKIN" || itemDef.equipmentSlot !== "AVT_FRAME") {
                 throw new Error("Item activation not supported yet");
             }
 
             const slot = itemDef.equipmentSlot; // "AVT_FRAME"
 
-            // 3. Toggle equip status
+            // 5. Toggle equip status
             const existingEquipped = await tx.userEquippedItem.findUnique({
                 where: {
                     userId_equipmentSlot: {

@@ -12,6 +12,7 @@ import {
     Dimensions,
     useWindowDimensions,
     Image,
+    Platform,
 } from "react-native";
 import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -36,6 +37,7 @@ import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { colors } from "@/theme/colors";
 import typography from "@/theme/typography";
 import { useGetTestInfoQuery } from "../services/testApi";
+import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
 import ChooseQuestion from "./ChooseQuestion";
 import FillQuestion from "./FillQuestion";
 import MatchQuestion from "./MatchQuestion";
@@ -161,6 +163,9 @@ export default function TestContainerV2({
             skip: runner.status !== "idle",
         },
     );
+    const { data: activeEffectsData } = useGetUserActiveEffectsQuery();
+    const xpMultiplier = activeEffectsData?.xpMultiplier ?? 1;
+    const goldMultiplier = activeEffectsData?.goldMultiplier ?? 1;
 
     useEffect(() => {
         if (testInfo) {
@@ -303,7 +308,6 @@ export default function TestContainerV2({
                 : "THỬ THÁCH",
         title: displayTitle,
         onBackPress: handleBack,
-        onHomePress: handleBack,
     };
 
     // ── Auth check ───────────────────────────────────────────────────
@@ -365,6 +369,8 @@ export default function TestContainerV2({
                     purposeType={params.purposeType}
                     xpReward={testInfo?.xpReward}
                     goldReward={testInfo?.goldReward}
+                    xpMultiplier={testInfo?.xpMultiplier}
+                    goldMultiplier={testInfo?.goldMultiplier}
                     attemptNumber={testInfo?.attemptNumber}
                     passThreshold={testInfo?.passThreshold}
                     attemptCount={testInfo?.attemptCount}
@@ -451,50 +457,35 @@ export default function TestContainerV2({
                                     if (c.eventType === "REWARD_EARNED") {
                                         return (
                                             <View key={i}>
-                                                <View
-                                                    style={styles.rewardRow}
-                                                >
+                                                <View style={styles.rewardRow}>
                                                     {(c.xpGained ?? 0) > 0 && (
-                                                        <View
-                                                            style={[
-                                                                styles.rewardChip,
-                                                                styles.rewardChipXp,
-                                                            ]}
-                                                        >
-                                                            <Zap
-                                                                size={13}
-                                                                color="#FFF"
-                                                            />
-                                                            <Text
-                                                                style={
-                                                                    styles.rewardChipText
-                                                                }
-                                                            >
-                                                                +{c.xpGained} XP
-                                                            </Text>
+                                                        <View style={[
+                                                            styles.rewardChip,
+                                                            styles.rewardChipXp,
+                                                            xpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
+                                                        ]}>
+                                                            <Zap size={13} color="#FFF" />
+                                                            <Text style={styles.rewardChipText}>+{c.xpGained} XP</Text>
+                                                            {xpMultiplier > 1 && (
+                                                                <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                                                    <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{xpMultiplier}</Text>
+                                                                </View>
+                                                            )}
                                                         </View>
                                                     )}
                                                     {(c.goldGained ?? 0) > 0 && (
-                                                        <View
-                                                            style={[
-                                                                styles.rewardChip,
-                                                                styles.rewardChipGold,
-                                                            ]}
-                                                        >
-                                                            <Coins
-                                                                size={13}
-                                                                color="#4A3B00"
-                                                            />
-                                                            <Text
-                                                                style={[
-                                                                    styles.rewardChipText,
-                                                                    {
-                                                                        color: "#4A3B00",
-                                                                    },
-                                                                ]}
-                                                            >
-                                                                +{c.goldGained} vàng
-                                                            </Text>
+                                                        <View style={[
+                                                            styles.rewardChip,
+                                                            styles.rewardChipGold,
+                                                            goldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
+                                                        ]}>
+                                                            <Coins size={13} color="#4A3B00" />
+                                                            <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{c.goldGained} vàng</Text>
+                                                            {goldMultiplier > 1 && (
+                                                                <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                                                    <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{goldMultiplier}</Text>
+                                                                </View>
+                                                            )}
                                                         </View>
                                                     )}
                                                 </View>
@@ -551,19 +542,21 @@ export default function TestContainerV2({
                             <Text style={styles.restartBtnText}>Làm lại</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.viewDetailsBtn}
-                            onPress={() => {
-                                router.push({
-                                    pathname: "/(10_proflie)/10_5_test_detail",
-                                    params: { logId: String(userTestLog.id) },
-                                });
-                            }}
-                        >
-                            <Text style={styles.viewDetailsBtnText}>
-                                Xem chi tiết bài làm
-                            </Text>
-                        </TouchableOpacity>
+                        {userTestLog.isPassed && (
+                            <TouchableOpacity
+                                style={styles.viewDetailsBtn}
+                                onPress={() => {
+                                    router.push({
+                                        pathname: "/(10_proflie)/10_5_test_detail",
+                                        params: { logId: String(userTestLog.id) },
+                                    });
+                                }}
+                            >
+                                <Text style={styles.viewDetailsBtnText}>
+                                    Xem chi tiết bài làm
+                                </Text>
+                            </TouchableOpacity>
+                        )}
 
                         <TouchableOpacity
                             style={styles.exitBtn}
@@ -634,15 +627,35 @@ export default function TestContainerV2({
                                 {/* Rewards inside modal */}
                                 <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
                                     {(activeMilestone.xpGained ?? 0) > 0 && (
-                                        <View style={[styles.rewardChip, styles.rewardChipXp, { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }]}>
+                                        <View style={[
+                                            styles.rewardChip,
+                                            styles.rewardChipXp,
+                                            { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+                                            xpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
+                                        ]}>
                                             <Zap size={13} color="#FFF" />
                                             <Text style={styles.rewardChipText}>+{activeMilestone.xpGained} XP</Text>
+                                            {xpMultiplier > 1 && (
+                                                <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                                    <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{xpMultiplier}</Text>
+                                                </View>
+                                            )}
                                         </View>
                                     )}
                                     {(activeMilestone.goldGained ?? 0) > 0 && (
-                                        <View style={[styles.rewardChip, styles.rewardChipGold, { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }]}>
+                                        <View style={[
+                                            styles.rewardChip,
+                                            styles.rewardChipGold,
+                                            { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+                                            goldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
+                                        ]}>
                                             <Coins size={13} color="#4A3B00" />
                                             <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{activeMilestone.goldGained} vàng</Text>
+                                            {goldMultiplier > 1 && (
+                                                <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                                    <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{goldMultiplier}</Text>
+                                                </View>
+                                            )}
                                         </View>
                                     )}
                                 </View>
@@ -812,7 +825,14 @@ export default function TestContainerV2({
                                         renderers={renderers}
                                     />
                                 </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                <View style={{ flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                                    <TouchableOpacity
+                                        onPress={() => setFeedbackModalVisible(true)}
+                                        style={{ padding: 4 }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Flag size={18} color={colors.textSecondary} />
+                                    </TouchableOpacity>
                                     <View style={[styles.pointPill, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
                                         <Text style={styles.pointPillText}>
                                             {(() => {
@@ -843,13 +863,6 @@ export default function TestContainerV2({
                                                 </TouchableOpacity>
                                             )}
                                     </View>
-                                    <TouchableOpacity
-                                        onPress={() => setFeedbackModalVisible(true)}
-                                        style={{ padding: 6 }}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Flag size={18} color={colors.textSecondary} />
-                                    </TouchableOpacity>
                                 </View>
                             </View>
 
@@ -989,35 +1002,57 @@ export default function TestContainerV2({
                     {purposeType === "EXAM" ? (
                         <View style={{ width: "100%" }}>
                             {/* Indicators representing all questions under options */}
-                            <View style={styles.blockIndicatorsRow}>
-                                {Array.from(
-                                    { length: totalCount },
-                                    (_, idx) => {
-                                        const q = questions[idx];
-                                        const isActive = idx === currentIndex;
-                                        const isAnswered = q
-                                            ? isQuestionAnswered(q.id)
-                                            : false;
+                            {(() => {
+                                const ITEM_WIDTH = 15;
+                                const GAP = 5;
+                                const maxItemsPerRow = Math.max(
+                                    1,
+                                    Math.floor((width - 32 + GAP) / (ITEM_WIDTH + GAP)),
+                                );
+                                const indicatorsContainerWidth =
+                                    totalCount > 0
+                                        ? Math.min(totalCount, maxItemsPerRow) *
+                                              (ITEM_WIDTH + GAP) -
+                                          GAP
+                                        : 0;
 
-                                        return (
-                                            <TouchableOpacity
-                                                key={idx}
-                                                style={[
-                                                    styles.blockIndicator,
-                                                    isAnswered &&
-                                                        styles.blockIndicatorAnswered,
-                                                    isActive &&
-                                                        styles.blockIndicatorActive,
-                                                ]}
-                                                onPress={() =>
-                                                    actions.jumpTo(idx)
-                                                }
-                                                activeOpacity={0.7}
-                                            />
-                                        );
-                                    },
-                                )}
-                            </View>
+                                return (
+                                    <View
+                                        style={[
+                                            styles.blockIndicatorsRow,
+                                            { maxWidth: indicatorsContainerWidth },
+                                        ]}
+                                    >
+                                        {Array.from(
+                                            { length: totalCount },
+                                            (_, idx) => {
+                                                const q = questions[idx];
+                                                const isActive = idx === currentIndex;
+                                                const isAnswered = q
+                                                    ? isQuestionAnswered(q.id)
+                                                    : false;
+
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={idx}
+                                                        style={[
+                                                            styles.blockIndicator,
+                                                            isAnswered &&
+                                                                styles.blockIndicatorAnswered,
+                                                            isActive &&
+                                                                styles.blockIndicatorActive,
+                                                        ]}
+                                                        onPress={() =>
+                                                            actions.jumpTo(idx)
+                                                        }
+                                                        activeOpacity={0.7}
+                                                    />
+                                                );
+                                            },
+                                        )}
+                                    </View>
+                                );
+                            })()}
 
                             <View style={styles.navButtonsRow}>
                                 <TouchableOpacity
@@ -1311,19 +1346,19 @@ const promptTagsStyles = {
         fontSize: 16,
         fontFamily: typography.fonts.bold,
         lineHeight: 24,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     p: {
         marginTop: 0,
         marginBottom: 8,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     li: {
         color: colors.textPrimary,
         fontSize: 15,
         fontFamily: typography.fonts.regular,
         lineHeight: 22,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     ...commonTagsStyles,
 };
@@ -1334,19 +1369,19 @@ const docTagsStyles = {
         fontSize: 14,
         fontFamily: typography.fonts.regular,
         lineHeight: 22,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     p: {
         marginTop: 0,
         marginBottom: 8,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     li: {
         color: colors.textSecondary,
         fontSize: 13,
         fontFamily: typography.fonts.regular,
         lineHeight: 20,
-        textAlign: "justify" as const,
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     ...commonTagsStyles,
 };
@@ -1592,7 +1627,8 @@ const styles = StyleSheet.create({
     blockIndicatorsRow: {
         flexDirection: "row",
         flexWrap: "wrap",
-        justifyContent: "center",
+        justifyContent: "flex-start",
+        alignSelf: "center",
         gap: 5,
         marginTop: 4,
         marginBottom: 12,
@@ -1608,7 +1644,6 @@ const styles = StyleSheet.create({
     },
     blockIndicatorActive: {
         backgroundColor: colors.primary,
-        width: 28,
     },
     navButtonsRow: {
         flexDirection: "row",
@@ -1757,10 +1792,28 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         paddingHorizontal: 12,
         paddingVertical: 6,
+        position: "relative",
     },
     rewardChipXp: { backgroundColor: colors.primary },
     rewardChipGold: { backgroundColor: colors.gold },
     rewardChipText: { fontSize: 12, fontFamily: typography.fonts.bold, color: "#FFFFFF" },
+    multiplierBadge: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1.5,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10,
+    },
+    multiplierText: {
+        fontSize: 9,
+        fontFamily: typography.fonts.bold,
+    },
     milestoneRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -1867,7 +1920,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
         lineHeight: 20,
-        textAlign: "justify",
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     modalOverlay: {
         position: "absolute",
@@ -1951,7 +2004,7 @@ const styles = StyleSheet.create({
         borderColor: colors.error,
         backgroundColor: colors.errorContainer,
     },
-    optText: { fontSize: 14, fontFamily: typography.fonts.semiBold, color: colors.textSecondary, textAlign: "justify" },
+    optText: { fontSize: 14, fontFamily: typography.fonts.semiBold, color: colors.textSecondary, textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left" },
     optTextCorrect: { color: colors.textSuccess },
     optTextWrong: { color: colors.textError },
     fillContainer: {
@@ -2003,7 +2056,7 @@ const styles = StyleSheet.create({
         color: colors.textSuccess,
         marginBottom: 4,
     },
-    explText: { fontSize: 13, fontFamily: typography.fonts.regular, color: colors.textSuccess, lineHeight: 20, textAlign: "justify" },
+    explText: { fontSize: 13, fontFamily: typography.fonts.regular, color: colors.textSuccess, lineHeight: 20, textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left" },
     scoreBadge: {
         backgroundColor: colors.successContainer,
         borderRadius: 5,

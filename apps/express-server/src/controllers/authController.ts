@@ -146,6 +146,7 @@ export const loginUser = async (
                 role: true,
                 isPro: true,
                 proExpiresAt: true,
+                currentTierIndex: true,
                 tier: {
                     select: {
                         name: true,
@@ -175,6 +176,7 @@ export const loginUser = async (
             role: userProfile.role as any,
             isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
+            currentTierIndex: userProfile.currentTierIndex,
         };
 
         // Meets LoginSuccessResponse contract perfectly
@@ -233,6 +235,7 @@ export const verifyOtp = async (
                 role: true,
                 isPro: true,
                 proExpiresAt: true,
+                currentTierIndex: true,
                 tier: {
                     select: {
                         name: true,
@@ -261,6 +264,7 @@ export const verifyOtp = async (
             role: userProfile.role as any,
             isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
+            currentTierIndex: userProfile.currentTierIndex,
         };
 
         // 4. Return tokens and data right back to the React Native UI layout
@@ -408,6 +412,7 @@ export const verifyGoogleSession = async (
                 role: true,
                 isPro: true,
                 proExpiresAt: true,
+                currentTierIndex: true,
                 tier: {
                     select: {
                         name: true,
@@ -439,6 +444,7 @@ export const verifyGoogleSession = async (
             role: userProfile.role as any,
             isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
+            currentTierIndex: userProfile.currentTierIndex,
         };
 
         // 6. Return unified payload containing native, auto-refreshing Supabase session JWTs
@@ -501,6 +507,7 @@ export const verifyFacebookSession = async (
                 role: true,
                 isPro: true,
                 proExpiresAt: true,
+                currentTierIndex: true,
                 tier: {
                     select: {
                         name: true,
@@ -530,6 +537,7 @@ export const verifyFacebookSession = async (
             role: userProfile.role as any,
             isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
+            currentTierIndex: userProfile.currentTierIndex,
         };
 
         return res.status(200).json({

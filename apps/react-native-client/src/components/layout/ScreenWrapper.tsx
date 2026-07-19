@@ -14,11 +14,8 @@ import type { Edge } from "react-native-safe-area-context";
 import { useSegments } from "expo-router";
 import { TopBar } from "../../features/top_bar/components/TopBar";
 import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
-import {
-    StreakCelebrationModal,
-    StreakModal,
-    RewardModal,
-} from "../../features/streak";
+import { StreakDrawerModal } from "../../features/streak";
+import { TierDrawerModal } from "../../features/tier";
 import { colors } from "../../theme/colors";
 import AppBackground from "./AppBackground";
 
@@ -160,7 +157,7 @@ function ScreenWithTopBar({
     showHistoricalBackground = true,
     ...contentProps
 }: ScreenWrapperProps) {
-    const { data, streakManager } = useTopBarData();
+    const { data, streakManager, tierManager } = useTopBarData();
     const segments = useSegments() as string[];
     const insets = useSafeAreaInsets();
 
@@ -187,7 +184,8 @@ function ScreenWithTopBar({
             <TopBar
                 data={data}
                 branchConfig={branchConfig}
-                onOpenStreak={streakManager.openStreak}
+                onOpenStreak={streakManager.openStreakDrawer}
+                onOpenTier={tierManager.openTierDrawer}
             />
 
             <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
@@ -196,26 +194,17 @@ function ScreenWithTopBar({
                     {children}
                 </ContentLayer>
             </View>
-            {/* Streak / Reward modals */}
-            <StreakCelebrationModal
-                visible={streakManager.celebrationVisible}
-                onClose={streakManager.closeCelebration}
+            {/* Streak & Tier modals */}
+            <StreakDrawerModal
+                visible={streakManager.streakDrawerVisible}
+                onClose={streakManager.closeStreakDrawer}
                 currentStreak={data.currentStreak}
-                onNext={streakManager.proceedToStreakModal}
             />
-            <StreakModal
-                visible={streakManager.streakVisible}
-                onClose={streakManager.closeStreakModal}
-                currentStreak={data.currentStreak}
-                rewards={streakManager.rewards}
-                milestones={streakManager.milestones}
-                onClaimReward={streakManager.handleClaimReward}
-            />
-            <RewardModal
-                visible={streakManager.rewardVisible}
-                onClose={streakManager.closeRewardModal}
-                goldAmount={50}
-                badgeName="Huy hiệu Chăm Chỉ"
+            <TierDrawerModal
+                visible={tierManager.tierDrawerVisible}
+                onClose={tierManager.closeTierDrawer}
+                totalXp={data.totalXp}
+                currentTierIndex={data.currentTierIndex}
             />
         </SafeAreaView>
     );

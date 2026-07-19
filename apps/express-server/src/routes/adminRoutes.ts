@@ -60,6 +60,10 @@ import {
     createItemDefinition,
     updateItemDefinition,
     deleteItemDefinition,
+    listTiers,
+    createTier,
+    updateTier,
+    deleteTier,
 } from "../controllers/adminController";
 import { listAllFeedbacks } from "../controllers/feedbackController";
 
@@ -254,5 +258,16 @@ router.patch("/item-definitions/:id", updateItemDefinition);
 // DELETE /api/admin/item-definitions/:id
 router.delete("/item-definitions/:id", deleteItemDefinition);
 
+// ─── Tier ─────────────────────────────────────────────────────────────────────
+// GET    /api/admin/tiers
+router.get("/tiers", listTiers);
+// POST   /api/admin/tiers
+router.post("/tiers", createTier);
+// PATCH  /api/admin/tiers/:index
+router.patch("/tiers/:index", updateTier);
+// DELETE /api/admin/tiers/:index
+router.delete("/tiers/:index", deleteTier);
+
 export default router;
+
 

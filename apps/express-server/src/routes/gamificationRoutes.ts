@@ -3,7 +3,7 @@ import { Router } from "express";
 import {
     getLeaderboard,
     getTiers,
-
+    getStreakDetails,
 } from "../controllers/gamificationController";
 import { optionalAuth, requireStudent } from "../middlewares/authMiddleware";
 
@@ -14,6 +14,9 @@ router.get("/leaderboard", optionalAuth, getLeaderboard);
 
 // GET /api/gamification/tiers
 router.get("/tiers", getTiers);
+
+// GET /api/gamification/streak
+router.get("/streak", optionalAuth, getStreakDetails);
 
 
 export default router;

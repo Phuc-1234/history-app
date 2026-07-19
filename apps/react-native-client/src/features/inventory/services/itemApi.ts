@@ -9,6 +9,7 @@ export interface ItemDefinition {
     itemType: "SKIN" | "XP_MUL" | "GOLD_MUL" | "BADGE";
     effectValue: number | null;
     imgUrl: string | null;
+    shopImgUrl: string | null;
     equipmentSlot: string | null;
     durationMinutes: number | null;
 }
@@ -18,6 +19,25 @@ export interface UserInventoryItem {
     itemDefinitionId: number;
     quantity: number;
     itemDefinition: ItemDefinition;
+    isActivated?: boolean;
+}
+
+export interface ActiveEffectItem {
+    id: number;
+    userId: string;
+    itemDefinitionId: number;
+    effectValue: number;
+    startedAt: string;
+    expiresAt: string;
+    status: "ACTIVE" | "EXPIRED";
+    itemType: "SKIN" | "XP_MUL" | "GOLD_MUL" | "BADGE";
+    itemDefinition: ItemDefinition;
+}
+
+export interface ActiveEffectsResponse {
+    activeEffects: ActiveEffectItem[];
+    xpMultiplier: number;
+    goldMultiplier: number;
 }
 
 export interface ShopItemsResponse {
@@ -38,6 +58,20 @@ export interface PurchaseItemResponse {
     userItem: UserInventoryItem;
 }
 
+export interface ActivateItemRequest {
+    itemDefinitionId: number;
+    forceReplace?: boolean;
+}
+
+export interface ActivateItemResponse {
+    success: boolean;
+    equipped?: boolean;
+    conflict?: boolean;
+    code?: string;
+    message: string;
+    activeItemName?: string;
+}
+
 export const itemApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         getShopItems: builder.query<ShopItemsResponse, void>({
@@ -48,6 +82,10 @@ export const itemApi = apiSlice.injectEndpoints({
             query: () => "/api/inventory",
             providesTags: ["User"],
         }),
+        getUserActiveEffects: builder.query<ActiveEffectsResponse, void>({
+            query: () => "/api/inventory/active-effects",
+            providesTags: ["User"],
+        }),
         purchaseItem: builder.mutation<PurchaseItemResponse, PurchaseItemRequest>({
             query: (body) => ({
                 url: "/api/shop/purchase",
@@ -56,7 +94,7 @@ export const itemApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ["User"],
         }),
-        activateItem: builder.mutation<{ success: boolean; equipped: boolean; message: string }, { itemDefinitionId: number }>({
+        activateItem: builder.mutation<ActivateItemResponse, ActivateItemRequest>({
             query: (body) => ({
                 url: "/api/inventory/activate",
                 method: "POST",
@@ -71,6 +109,7 @@ export const itemApi = apiSlice.injectEndpoints({
 export const {
     useGetShopItemsQuery,
     useGetUserInventoryQuery,
+    useGetUserActiveEffectsQuery,
     usePurchaseItemMutation,
     useActivateItemMutation,
 } = itemApi;

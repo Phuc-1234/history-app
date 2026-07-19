@@ -17,6 +17,7 @@ export interface InventoryItem {
     itemType: "SKIN" | "XP_MUL" | "GOLD_MUL" | "BADGE";
     equipmentSlot: string | null;
     isEquipped: boolean;
+    isActivated: boolean;
 }
 
 export function useInventory() {
@@ -24,6 +25,11 @@ export function useInventory() {
     const { refetch: refetchProfile } = useGetProfileQuery();
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [activateItem] = useActivateItemMutation();
+    const [conflictModalData, setConflictModalData] = useState<{
+        dbId: number;
+        itemName: string;
+        activeItemName: string;
+    } | null>(null);
 
     const profile = useAppSelector((state) => state.auth.profile);
 
@@ -55,6 +61,8 @@ export function useInventory() {
                 profile?.equippedFrameUrl !== undefined &&
                 profile.equippedFrameUrl === def.imgUrl;
 
+            const isActivated = Boolean(ui.isActivated) || isEquipped;
+
             return {
                 id: String(def.id),
                 dbId: def.id,
@@ -64,10 +72,11 @@ export function useInventory() {
                 icon,
                 iconBgColor,
                 iconColor,
-                imageUrl: def.imgUrl ?? "https://picsum.photos/id/1021/200/200",
+                imageUrl: def.shopImgUrl ?? def.imgUrl ?? "",
                 itemType: def.itemType,
                 equipmentSlot: def.equipmentSlot,
                 isEquipped,
+                isActivated,
             };
         });
     }, [inventoryData, profile]);
@@ -78,20 +87,43 @@ export function useInventory() {
         return inventory.find((item) => item.id === selectedItemId) || inventory[0];
     }, [inventory, selectedItemId]);
 
-    const handleUseItem = async (id: string) => {
+    const handleUseItem = async (id: string, forceReplace: boolean = false) => {
         const item = inventory.find((it) => it.id === id);
         if (!item) return;
 
-        if (item.itemType !== "SKIN" || item.equipmentSlot !== "AVT_FRAME") {
-            Alert.alert("Tính năng chưa được hỗ trợ", "Chỉ hỗ trợ trang bị Khung đại diện (avatar frame) vào lúc này.");
-            return;
-        }
-
         try {
-            await activateItem({ itemDefinitionId: item.dbId }).unwrap();
+            const res = await activateItem({ itemDefinitionId: item.dbId, forceReplace }).unwrap();
+            if (res.conflict) {
+                setConflictModalData({
+                    dbId: item.dbId,
+                    itemName: item.name,
+                    activeItemName: res.activeItemName || "hiệu ứng đang dùng",
+                });
+            } else {
+                setConflictModalData(null);
+            }
         } catch (err: any) {
-            Alert.alert("Lỗi", err?.data?.error ?? err?.message ?? "Không thể thực hiện hành động này.");
+            if (err?.data?.conflict || err?.status === 409) {
+                setConflictModalData({
+                    dbId: item.dbId,
+                    itemName: item.name,
+                    activeItemName: err?.data?.activeItemName || "hiệu ứng đang dùng",
+                });
+            } else {
+                Alert.alert("Lỗi", err?.data?.error ?? err?.message ?? "Không thể thực hiện hành động này.");
+            }
         }
+    };
+
+    const handleConfirmReplace = async () => {
+        if (!conflictModalData) return;
+        const targetDbId = conflictModalData.dbId;
+        setConflictModalData(null);
+        await handleUseItem(String(targetDbId), true);
+    };
+
+    const handleCloseConflictModal = () => {
+        setConflictModalData(null);
     };
 
     const handleRefresh = async () => {
@@ -113,5 +145,8 @@ export function useInventory() {
         isLoading,
         handleRefresh,
         isRefreshing: isFetchingInventory,
+        conflictModalData,
+        handleConfirmReplace,
+        handleCloseConflictModal,
     };
 }

@@ -7,8 +7,10 @@ import {
     View,
     ActivityIndicator,
     RefreshControl,
+    TouchableWithoutFeedback,
 } from "react-native";
 import { useSelector } from "react-redux";
+import { useRouter } from "expo-router";
 import { RootState } from "@/store/store";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { PodiumSection } from "./PodiumSection";
@@ -16,48 +18,136 @@ import { RankingList } from "./RankingList";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { SlidingTabBar } from "../../../components/SlidingTabBar";
+import { Card } from "../../../components/Card";
 import { Ionicons } from "@expo/vector-icons";
 
 export const RankingView: React.FC = () => {
+    const router = useRouter();
     const user = useSelector((state: RootState) => state.auth.profile);
     const myUserId = user?.id;
     
-    // State để quản lý thanh sticky
+    // State quản lý sticky & filter dropdown
     const [showSticky, setShowSticky] = useState(false);
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
     const {
         topUsers,
         rankingList,
+        displayUsers,
         isSmallDevice,
         activeTab,
         setActiveTab,
+        filterAll,
+        toggleAll,
+        filterFriends,
+        toggleFriends,
+        filterFollowing,
+        toggleFollowing,
         isLoading,
         isFetching,
         isError,
         refetch,
-    } = useLeaderboard();
-   const allUsers = [...(topUsers || []), ...(rankingList || [])];
-    const meInList = allUsers.find(u => String(u.id) === String(myUserId));
-    const myRank = meInList ? allUsers.indexOf(meInList) + 1 : 0;
+    } = useLeaderboard(myUserId ? String(myUserId) : undefined);
+
+    const meInList = displayUsers.find((u) => String(u.id) === String(myUserId));
+    const myRank = meInList ? meInList.rank : 0;
+
+    const isFiltering = !filterAll;
 
     // Logic cuộn để hiện thanh sticky
     const handleScroll = (event: any) => {
         const scrollY = event.nativeEvent.contentOffset.y;
         setShowSticky(scrollY > 100); 
     };
+
+    const handleUserPress = (targetUserId: string) => {
+        if (myUserId && String(targetUserId) === String(myUserId)) {
+            return;
+        }
+        router.push(`/(social)/profile?userId=${targetUserId}` as never);
+    };
+
     return (
         <View style={styles.container}>
-            <SlidingTabBar
-                tabs={[
-                    { key: "xp", label: "XP" },
-                    { key: "streak", label: "Chuỗi" },
-                ]}
-                activeTab={activeTab}
-                onChangeTab={(key) => setActiveTab(key as "xp" | "streak")}
-                containerStyle={styles.tabContainer}
-                indicatorColor={colors.primary}
-                inactiveColor={colors.primary}
-            />
+            {/* Absolute overlay to dismiss dropdown when tapping outside */}
+            {showFilterDropdown && (
+                <TouchableWithoutFeedback onPress={() => setShowFilterDropdown(false)}>
+                    <View style={styles.overlay} />
+                </TouchableWithoutFeedback>
+            )}
+
+            {/* Header tab bar + Filter button */}
+            <View style={styles.tabFilterRow}>
+                <SlidingTabBar
+                    tabs={[
+                        { key: "xp", label: "XP" },
+                        { key: "streak", label: "Chuỗi" },
+                    ]}
+                    activeTab={activeTab}
+                    onChangeTab={(key) => setActiveTab(key as "xp" | "streak")}
+                    containerStyle={styles.tabContainer}
+                    indicatorColor={colors.primary}
+                    inactiveColor={colors.primary}
+                />
+                <TouchableOpacity
+                    style={[
+                        styles.filterButton,
+                        isFiltering && styles.filterButtonActive,
+                    ]}
+                    onPress={() => setShowFilterDropdown((prev) => !prev)}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons
+                        name="filter"
+                        size={20}
+                        color={isFiltering ? colors.textLight : colors.primary}
+                    />
+                </TouchableOpacity>
+            </View>
+
+            {/* Filter Dropdown Popover */}
+            {showFilterDropdown && (
+                <Card style={styles.filterDropdownCard}>
+                    <TouchableOpacity
+                        style={styles.checkboxOption}
+                        onPress={toggleAll}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons
+                            name={filterAll ? "checkbox" : "square-outline"}
+                            size={20}
+                            color={colors.primary}
+                        />
+                        <Text style={styles.checkboxLabel}>Tất cả</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.checkboxOption}
+                        onPress={toggleFriends}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons
+                            name={filterFriends ? "checkbox" : "square-outline"}
+                            size={20}
+                            color={colors.primary}
+                        />
+                        <Text style={styles.checkboxLabel}>Bạn bè</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.checkboxOption}
+                        onPress={toggleFollowing}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons
+                            name={filterFollowing ? "checkbox" : "square-outline"}
+                            size={20}
+                            color={colors.primary}
+                        />
+                        <Text style={styles.checkboxLabel}>Đang theo dõi</Text>
+                    </TouchableOpacity>
+                </Card>
+            )}
 
             {isLoading ? (
                 <View style={styles.centerContainer}>
@@ -76,26 +166,48 @@ export const RankingView: React.FC = () => {
                     scrollEventThrottle={16}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
-                    refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} colors={[colors.primary]} tintColor={colors.primary} />}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isFetching}
+                            onRefresh={refetch}
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
+                        />
+                    }
                 >
-                    {topUsers.length >= 3 && (
-                        <PodiumSection topUsers={topUsers} isSmallDevice={isSmallDevice} showStreak={activeTab === "streak"} />
+                    {topUsers.length > 0 ? (
+                        <PodiumSection
+                            topUsers={topUsers}
+                            isSmallDevice={isSmallDevice}
+                            showStreak={activeTab === "streak"}
+                            onUserPress={handleUserPress}
+                            myUserId={myUserId}
+                        />
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyText}>Không tìm thấy người dùng phù hợp</Text>
+                        </View>
                     )}
-                    
+
                     {rankingList.length > 0 && (
                         <RankingList
                             rankingList={rankingList}
                             isSmallDevice={isSmallDevice}
                             showStreak={activeTab === "streak"}
                             myUserId={myUserId}
+                            onUserPress={handleUserPress}
                         />
                     )}
                 </ScrollView>
             )}
 
-           {/* Thanh Sticky Bar */}
+            {/* Thanh Sticky Bar */}
             {showSticky && meInList && (
-                <View style={styles.myRankStickyBar}>
+                <TouchableOpacity
+                    style={styles.myRankStickyBar}
+                    onPress={() => handleUserPress(String(myUserId))}
+                    activeOpacity={0.9}
+                >
                     <Text style={styles.rankText}>Hạng {myRank}</Text>
                     <Text style={styles.nameText} numberOfLines={1}>
                         {meInList.name}
@@ -110,63 +222,130 @@ export const RankingView: React.FC = () => {
                             </>
                         )}
                     </Text>
-                </View>
+                </TouchableOpacity>
             )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: 'transparent' },
-    tabContainer: { marginHorizontal: 22, marginTop: 10, marginBottom: 10 },
+    container: { flex: 1, backgroundColor: "transparent" },
+    overlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 50,
+        backgroundColor: "transparent",
+    },
+    tabFilterRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginHorizontal: 22,
+        marginTop: 10,
+        marginBottom: 10,
+        gap: 10,
+        zIndex: 10,
+    },
+    tabContainer: {
+        flex: 1,
+        marginHorizontal: 0,
+        marginTop: 0,
+        marginBottom: 0,
+    },
+    filterButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: colors.surfaceVariant,
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    filterButtonActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    filterDropdownCard: {
+        position: "absolute",
+        top: 60,
+        right: 22,
+        zIndex: 100,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 12,
+        gap: 10,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        minWidth: 160,
+    },
+    checkboxOption: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingVertical: 6,
+        paddingHorizontal: 4,
+    },
+    checkboxLabel: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 14,
+        color: colors.textPrimary,
+    },
     scrollContent: { paddingHorizontal: 22, paddingTop: 10, paddingBottom: 120 },
     centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-    errorText: { 
+    emptyContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 40,
+    },
+    emptyText: {
+        fontFamily: typography.fonts.medium,
+        color: colors.textMuted,
+        fontSize: 14,
+    },
+    errorText: {
         fontFamily: typography.fonts.regular,
-        color: colors.error, 
-        marginBottom: 16 
+        color: colors.error,
+        marginBottom: 16,
     },
     retryButton: { backgroundColor: colors.primary, padding: 10, borderRadius: 5 },
-    retryButtonText: { 
+    retryButtonText: {
         fontFamily: typography.fonts.bold,
-        color: 'white' 
+        color: "white",
     },
     
     // Style cho thanh Sticky
     myRankStickyBar: {
-    position: 'absolute',
-    bottom: 60,
-    left: 20,
-    right: 20,
-    height: 60,
-    backgroundColor: colors.accent,
-    borderRadius: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between', // Dàn đều hạng và XP sang 2 bên
-    paddingHorizontal: 30,           // Tăng padding để nhìn đẹp hơn
-    elevation: 10,
-    zIndex: 999,                     // Luôn nằm trên cùng
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-},
-rankText: { 
-    fontFamily: typography.fonts.bold,
-    color: '#FFD700', 
-    fontSize: 16 
-},
-xpText: { 
-    fontFamily: typography.fonts.bold,
-    color: '#FFD700', 
-    fontSize: 16 
-},
-nameText: { 
-    fontFamily: typography.fonts.bold,
-    color: 'white', 
-    fontSize: 16, 
-    flex: 1, 
-    marginHorizontal: 10 
-},
-});
+        position: "absolute",
+        bottom: 60,
+        left: 20,
+        right: 20,
+        height: 60,
+        backgroundColor: colors.accent,
+        borderRadius: 30,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 30,
+        zIndex: 999,
+    },
+    rankText: { 
+        fontFamily: typography.fonts.bold,
+        color: "#FFD700", 
+        fontSize: 16 
+    },
+    xpText: { 
+        fontFamily: typography.fonts.bold,
+        color: "#FFD700", 
+        fontSize: 16 
+    },
+    nameText: { 
+        fontFamily: typography.fonts.bold,
+        color: "white", 
+        fontSize: 16, 
+        flex: 1, 
+        marginHorizontal: 10 
+    },
+});

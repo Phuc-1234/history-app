@@ -1,17 +1,19 @@
 import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import { AvatarWithFrame } from "../../../components/ui";
 import { Ionicons } from "@expo/vector-icons";
+import { UserSocialBadges } from "./UserSocialBadges";
 
 interface RankingListProps {
     rankingList: DisplayUser[];
     isSmallDevice: boolean;
     showStreak?: boolean;
     myUserId?: string | number;
+    onUserPress?: (userId: string) => void;
 }
 
 export const RankingList: React.FC<RankingListProps> = ({
@@ -19,6 +21,7 @@ export const RankingList: React.FC<RankingListProps> = ({
     isSmallDevice,
     showStreak = false,
     myUserId,
+    onUserPress,
 }) => {
     const styles = createStyles(isSmallDevice);
 
@@ -26,15 +29,16 @@ export const RankingList: React.FC<RankingListProps> = ({
         <View style={styles.listContainer}>
             {rankingList.map((item, index) => {
                 const isMe = String(item.id) === String(myUserId);
-                if (String(item.id) === String(myUserId)) {
-                    console.log("Dữ liệu của tôi trong rankingList:", item);
-                }
 
                 return (
-                    <Card key={item.id} style={[styles.rankRow, isMe && styles.meRow]}>
+                    <Card
+                        key={item.id}
+                        style={styles.rankRow}
+                        onPress={() => onUserPress?.(item.id)}
+                    >
                         {/* Hạng */}
-                        <Text style={[styles.rowPosition, isMe && styles.meText]}>
-                            {index + 4}
+                        <Text style={styles.rowPosition}>
+                            {item.rank || index + 4}
                         </Text>
 
                         {/* Avatar */}
@@ -47,13 +51,26 @@ export const RankingList: React.FC<RankingListProps> = ({
                             style={{ marginRight: 14 }}
                         />
 
-                        {/* Tên */}
-                        <Text style={[styles.rowName, isMe && styles.meText]} numberOfLines={1}>
-                            {item.name}
-                        </Text>
+                        {/* Tên & Badges */}
+                        <View style={styles.nameColumn}>
+                            <Text style={[styles.rowName, isMe && styles.meName]} numberOfLines={1}>
+                                {item.name}
+                            </Text>
+                            {isMe && (
+                                <View style={{ flexDirection: "row", marginTop: 2 }}>
+                                    <View style={styles.meTag}>
+                                        <Text style={styles.meTagText}>Tôi</Text>
+                                    </View>
+                                </View>
+                            )}
+                            <UserSocialBadges
+                                isFriend={item.isFriend}
+                                isFollowing={item.isFollowing}
+                            />
+                        </View>
 
                         {/* XP hoặc Chuỗi */}
-                        <Text style={[styles.rowXp, isMe && styles.meText]}>
+                        <Text style={styles.rowXp}>
                             {showStreak ? (
                                 <>
                                     <Ionicons name="flame" size={14} color="#EA580C" />
@@ -90,39 +107,20 @@ const createStyles = (isSmallDevice: boolean) =>
         },
         rowPosition: {
             fontFamily: typography.fonts.bold,
-            width: 22,
-            marginRight: 10,
+            width: 28,
+            marginRight: 8,
             fontSize: 15,
             color: colors.textPrimary,
         },
-        rowAvatar: {
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            marginRight: 14,
-            backgroundColor: colors.surfaceVariant,
-        },
-        rowDefaultAvatar: {
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            marginRight: 14,
-            backgroundColor: colors.primaryContainer,
+        nameColumn: {
+            flex: 1,
             justifyContent: "center",
-            alignItems: "center",
-        },
-        meDefaultAvatar: { backgroundColor: colors.borderMedium },
-        rowDefaultAvatarText: {
-            fontFamily: typography.fonts.bold,
-            color: colors.primary,
-            fontSize: 16,
+            marginRight: 8,
         },
         rowName: {
             fontFamily: typography.fonts.medium,
-            flex: 1,
             fontSize: isSmallDevice ? 14 : 15,
             color: colors.textPrimary,
-            marginRight: 8,
         },
         rowXp: {
             fontFamily: typography.fonts.bold,
@@ -132,4 +130,19 @@ const createStyles = (isSmallDevice: boolean) =>
         meText: {
             color: colors.accent,
         },
-    });
+        meName: {
+            color: "#EA580C",
+            fontFamily: typography.fonts.bold,
+        },
+        meTag: {
+            backgroundColor: "#EA580C",
+            paddingHorizontal: 6,
+            paddingVertical: 1.5,
+            borderRadius: 12,
+        },
+        meTagText: {
+            fontFamily: typography.fonts.bold,
+            fontSize: 10,
+            color: "#FFFFFF",
+        },
+    });

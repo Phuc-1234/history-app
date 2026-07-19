@@ -9,8 +9,9 @@ import {
     getAttemptDetail,
     getTestInfo,
     getNationalTests,
+    getPracticeStats,
 } from "../controllers/testControllerV2";
-import { requireStudent } from "../middlewares/authMiddleware";
+import { requireStudent, optionalAuth } from "../middlewares/authMiddleware";
 
 const router = Router();
 
@@ -18,7 +19,10 @@ const router = Router();
 router.get("/resumable", requireStudent, checkResumable);
 
 // GET /api/tests-v2/national
-router.get("/national", getNationalTests);
+router.get("/national", optionalAuth, getNationalTests);
+
+// GET /api/tests-v2/practice-stats
+router.get("/practice-stats", requireStudent, getPracticeStats);
 
 // POST /api/tests-v2/info
 router.post("/info", requireStudent, getTestInfo);

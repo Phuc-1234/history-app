@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import Animated, {
     FadeInLeft,
     useSharedValue,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
         flex: 1,
-        textAlign: "justify",
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     textSelected: { color: colors.textLight },
     textSelectedMultiple: { color: colors.textLight },

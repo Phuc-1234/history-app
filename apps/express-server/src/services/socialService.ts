@@ -1,4 +1,5 @@
 import { prisma } from "@history-app/shared";
+import { pushNotificationService } from "./pushNotificationService";
 
 const db = prisma as any;
 
@@ -204,14 +205,17 @@ export class SocialService {
                 select: { name: true },
             });
             const senderName = sender?.name || "Một người dùng";
+            const title = "Lời mời kết bạn mới";
+            const body = `${senderName} đã gửi cho bạn một lời mời kết bạn.`;
             await db.notification.create({
                 data: {
                     userId: receiverId,
                     type: "FRIEND_REQUEST",
-                    title: "Lời mời kết bạn mới",
-                    body: `${senderName} đã gửi cho bạn một lời mời kết bạn.`,
+                    title,
+                    body,
                 },
             });
+            await pushNotificationService.sendToUser(receiverId, title, body, { type: "FRIEND_REQUEST" });
         } catch (error) {
             console.error("Failed to create FRIEND_REQUEST notification:", error);
         }
@@ -243,6 +247,8 @@ export class SocialService {
             select: { name: true },
         });
         const receiverName = receiver?.name || "Một người dùng";
+        const title = "Chấp nhận lời mời kết bạn";
+        const body = `${receiverName} đã chấp nhận lời mời kết bạn của bạn.`;
 
         await db.$transaction([
             db.friendship.upsert({
@@ -258,11 +264,13 @@ export class SocialService {
                 data: {
                     userId: request.senderId,
                     type: "FRIEND_ACCEPT",
-                    title: "Chấp nhận lời mời kết bạn",
-                    body: `${receiverName} đã chấp nhận lời mời kết bạn của bạn.`,
+                    title,
+                    body,
                 },
             }),
         ]);
+
+        await pushNotificationService.sendToUser(request.senderId, title, body, { type: "FRIEND_ACCEPT" });
 
         return { message: "Friend request accepted." };
     }

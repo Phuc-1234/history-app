@@ -3,6 +3,8 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const alwaysOpenOnboarding = false; // Set to false to respect storage flag
+
 export default function Index() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -10,16 +12,20 @@ export default function Index() {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
+        if (alwaysOpenOnboarding) {
+          router.replace('/(routing)/onboarding');
+          return;
+        }
+
         const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
-        
         if (hasSeenOnboarding === 'true') {
           router.replace("/(tabs)/home");
         } else {
-          router.replace('/(routing)/screen1');
+          router.replace('/(routing)/onboarding');
         }
       } catch (error) {
         console.log('Lỗi kiểm tra Onboarding:', error);
-        router.replace('/(routing)/screen1');
+        router.replace('/(routing)/onboarding');
       } finally {
         setIsLoading(false);
       }

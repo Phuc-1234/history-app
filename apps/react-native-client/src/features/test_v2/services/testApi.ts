@@ -79,8 +79,17 @@ export const testApiV2 = apiSlice.injectEndpoints({
             query: ({ logId }) => `/api/tests-v2/history/${logId}`,
         }),
         // GET /api/tests-v2/national
-        getNationalTests: builder.query<{ id: string; title: string; summary: string | null; isPro: boolean; imgUrl?: string | null }[], void>({
+        getNationalTests: builder.query<{ id: string; title: string; summary: string | null; isPro: boolean; imgUrl?: string | null; passCount?: number; masteryPercentage?: number }[], void>({
             query: () => "/api/tests-v2/national",
+        }),
+
+        // GET /api/tests-v2/practice-stats
+        getPracticeStats: builder.query<{ wrongQuestionCount: number; answeredQuestionCount: number }, { scopeType?: string; scopeId?: number }>({
+            query: (params) => ({
+                url: "/api/tests-v2/practice-stats",
+                params,
+            }),
+            providesTags: ["User"],
         }),
     }),
     overrideExisting: __DEV__,
@@ -101,4 +110,6 @@ export const {
     useLazyGetAttemptDetailQuery,
     useGetNationalTestsQuery,
     useLazyGetNationalTestsQuery,
+    useGetPracticeStatsQuery,
+    useLazyGetPracticeStatsQuery,
 } = testApiV2;

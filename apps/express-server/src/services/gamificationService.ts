@@ -10,8 +10,14 @@ export class GamificationService {
 
         const orderBy =
             sort === "streak"
-                ? { currentStreak: "desc" as const }
-                : { totalXp: "desc" as const };
+                ? [
+                      { currentStreak: "desc" as const },
+                      { totalXp: "desc" as const },
+                  ]
+                : [
+                      { totalXp: "desc" as const },
+                      { currentStreak: "desc" as const },
+                  ];
 
         const users = await prisma.user.findMany({
             where: {
@@ -57,38 +63,181 @@ export class GamificationService {
         if (sort === "streak") {
             const user = await prisma.user.findUnique({
                 where: { id: userId },
-                select: { currentStreak: true } as any,
+                select: { currentStreak: true, totalXp: true } as any,
             });
             if (!user) return null;
             const higher = await prisma.user.count({
-                where: { currentStreak: { gt: (user as any).currentStreak } },
+                where: {
+                    OR: [
+                        { currentStreak: { gt: (user as any).currentStreak } },
+                        {
+                            currentStreak: (user as any).currentStreak,
+                            totalXp: { gt: (user as any).totalXp },
+                        },
+                    ],
+                },
             });
             return higher + 1;
         }
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { totalXp: true } as any,
+            select: { totalXp: true, currentStreak: true } as any,
         });
         if (!user) return null;
         const higher = await prisma.user.count({
-            where: { totalXp: { gt: (user as any).totalXp } },
+            where: {
+                OR: [
+                    { totalXp: { gt: (user as any).totalXp } },
+                    {
+                        totalXp: (user as any).totalXp,
+                        currentStreak: { gt: (user as any).currentStreak },
+                    },
+                ],
+            },
         });
         return higher + 1;
     }
 
     async getTiers() {
         const tiers = await prisma.tier.findMany({ orderBy: { index: "asc" } });
-        return tiers.map((t) => ({
-            index: t.index,
-            name: t.name,
-            description: t.description ?? null,
-            badgeImgUrl: t.badgeImgUrl ?? null,
-            xpThreshold: t.xpThreshold,
-        }));
+
+        const rewardRules = await prisma.rewardRule.findMany({
+            where: {
+                triggerType: "TIER_REACHED",
+            },
+            include: {
+                rewardRuleItems: {
+                    include: {
+                        itemDefinition: true,
+                    },
+                },
+            },
+        });
+
+        const rewardMap = new Map<string, typeof rewardRules[0]>();
+        rewardRules.forEach((rule) => {
+            if (rule.triggerTargetId) {
+                rewardMap.set(rule.triggerTargetId, rule);
+            }
+        });
+
+        return tiers.map((t) => {
+            const rule = rewardMap.get(String(t.index));
+            return {
+                index: t.index,
+                name: t.name,
+                description: t.description ?? null,
+                badgeImgUrl: t.badgeImgUrl ?? null,
+                xpThreshold: t.xpThreshold,
+                rewards: rule
+                    ? {
+                          xp: rule.xp,
+                          gold: rule.gold,
+                          items: rule.rewardRuleItems.map((rri) => ({
+                              id: rri.itemDefinition.id,
+                              name: rri.itemDefinition.name,
+                              imgUrl: rri.itemDefinition.imgUrl,
+                              quantity: rri.quantity,
+                          })),
+                      }
+                    : null,
+            };
+        });
     }
 
-    
+    async getStreakInfo(userId?: string) {
+        let currentStreak = 0;
+        let highestStreak = 0;
+        let hasCompletedToday = false;
+
+        if (userId) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    currentStreak: true,
+                    highestStreak: true,
+                    lastTestPassedAt: true,
+                },
+            });
+
+            if (user) {
+                currentStreak = user.currentStreak;
+                highestStreak = user.highestStreak;
+                if (user.lastTestPassedAt) {
+                    const todayStr = new Date().toISOString().split("T")[0];
+                    const lastPassStr = user.lastTestPassedAt.toISOString().split("T")[0];
+                    hasCompletedToday = todayStr === lastPassStr;
+                }
+            }
+        }
+
+        const streakRules = await prisma.rewardRule.findMany({
+            where: {
+                triggerType: "STREAK_REACHED",
+            },
+            include: {
+                rewardRuleItems: {
+                    include: {
+                        itemDefinition: true,
+                    },
+                },
+            },
+        });
+
+        let claimedRuleIds = new Set<number>();
+        if (userId) {
+            const logs = await prisma.userRewardLog.findMany({
+                where: {
+                    userId,
+                    triggerType: "STREAK_REACHED",
+                },
+                select: { rewardRuleId: true },
+            });
+            claimedRuleIds = new Set(logs.map((l) => l.rewardRuleId));
+        }
+
+        const milestones = streakRules
+            .map((rule) => {
+                const day = rule.triggerTargetId ? parseInt(rule.triggerTargetId, 10) : 0;
+                return {
+                    id: rule.id,
+                    day,
+                    xp: rule.xp,
+                    gold: rule.gold,
+                    items: rule.rewardRuleItems.map((rri) => ({
+                        id: rri.itemDefinition.id,
+                        name: rri.itemDefinition.name,
+                        imgUrl: rri.itemDefinition.imgUrl,
+                        quantity: rri.quantity,
+                    })),
+                    isReached: currentStreak >= day || highestStreak >= day,
+                    isClaimed: claimedRuleIds.has(rule.id),
+                };
+            })
+            .sort((a, b) => a.day - b.day);
+
+        const defaultMilestones = [3, 7, 14, 30, 60, 100];
+        const finalMilestones =
+            milestones.length > 0
+                ? milestones
+                : defaultMilestones.map((day) => ({
+                      id: day,
+                      day,
+                      xp: day * 50,
+                      gold: day * 10,
+                      items: [],
+                      isReached: currentStreak >= day || highestStreak >= day,
+                      isClaimed: currentStreak >= day,
+                  }));
+
+        return {
+            currentStreak,
+            highestStreak,
+            hasCompletedToday,
+            milestones: finalMilestones,
+        };
+    }
 }
 
 export const gamificationService = new GamificationService();

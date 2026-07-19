@@ -80,6 +80,10 @@ export default function ProfileMainScreen() {
         router.push("/(social)/friends" as never);
     };
 
+    const handleOpenItems = () => {
+        router.push("/(tabs)/7_1_item" as never);
+    };
+
     const handleSendFeedback = () => {
         router.push("/(10_proflie)/10_6_feedback");
     };
@@ -131,14 +135,84 @@ export default function ProfileMainScreen() {
 
 
             <View style={styles.menuSection}>
-                <Text style={styles.sectionHeader}>Gói dịch vụ</Text>
-                <Card variant="soft" style={styles.menuContainer}>
-                    <ProfileMenuItem
-                        icon="gift-outline"
-                        label={profile?.isPro ? "Quản lý gói Pro" : "Đăng ký gói Pro"}
+                {/* Quick action buttons */}
+                <View style={styles.quickGrid}>
+                    {/* Pro button — shiny gradient */}
+                    <TouchableOpacity
+                        style={styles.proButtonWrapper}
                         onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
-                    />
-                </Card>
+                        activeOpacity={0.82}
+                    >
+                        <LinearGradient
+                            colors={["#8A2387", "#E94057", "#F27121"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.squareButtonPro}
+                        >
+                            {/* shimmer strip */}
+                            <LinearGradient
+                                colors={["transparent", "rgba(255,255,255,0.25)", "transparent"]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.proShimmer}
+                            />
+                            <Ionicons name="star" size={22} color="#fff" />
+                            <Text style={styles.squareLabelPro}>
+                                {profile?.isPro ? "Gói Pro" : "Đăng ký Pro"}
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Row 1: Test history & Friends */}
+                    <View style={styles.gridRow}>
+                        <TouchableOpacity
+                            style={styles.squareButtonWrapper}
+                            onPress={handleViewHistory}
+                            activeOpacity={0.82}
+                        >
+                            <View style={styles.squareButton}>
+                                <Ionicons name="document-text-outline" size={26} color={colors.primary} />
+                                <Text style={styles.squareLabel}>Lịch sử làm bài</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.squareButtonWrapper}
+                            onPress={handleOpenFriends}
+                            activeOpacity={0.82}
+                        >
+                            <View style={styles.squareButton}>
+                                <Ionicons name="people-outline" size={26} color={colors.primary} />
+                                <Text style={styles.squareLabel}>Bạn bè & theo dõi</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Row 2: Vật phẩm & Feedback */}
+                    <View style={styles.gridRow}>
+                        <TouchableOpacity
+                            style={styles.squareButtonWrapper}
+                            onPress={handleOpenItems}
+                            activeOpacity={0.82}
+                        >
+                            <View style={styles.squareButton}>
+                                <Ionicons name="gift-outline" size={26} color={colors.primary} />
+                                <Text style={styles.squareLabel}>Vật phẩm</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.squareButtonWrapper}
+                            onPress={handleSendFeedback}
+                            activeOpacity={0.82}
+                        >
+                            <View style={styles.squareButton}>
+                                <Ionicons name="chatbubble-ellipses-outline" size={26} color={colors.primary} />
+                                <Text style={styles.squareLabel}>Góp ý</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
                 <Text style={styles.sectionHeader}>Quản lý tài khoản</Text>
                 <Card variant="soft" style={styles.menuContainer}>
@@ -151,33 +225,6 @@ export default function ProfileMainScreen() {
                         icon="lock-closed-outline"
                         label="Đổi mật khẩu"
                         onPress={handleChangePassword}
-                    />
-                </Card>
-
-                <Text style={styles.sectionHeader}>Quản lý làm bài</Text>
-                <Card variant="soft" style={styles.menuContainer}>
-                    <ProfileMenuItem
-                        icon="document-text-outline"
-                        label="Lịch sử làm bài"
-                        onPress={handleViewHistory}
-                    />
-                </Card>
-
-                <Text style={styles.sectionHeader}>Cộng đồng</Text>
-                <Card variant="soft" style={styles.menuContainer}>
-                    <ProfileMenuItem
-                        icon="people-outline"
-                        label="Bạn bè & theo dõi"
-                        onPress={handleOpenFriends}
-                    />
-                </Card>
-
-                <Text style={styles.sectionHeader}>Góp ý & Báo lỗi</Text>
-                <Card variant="soft" style={styles.menuContainer}>
-                    <ProfileMenuItem
-                        icon="chatbubble-ellipses-outline"
-                        label="Gửi góp ý cho nhà phát triển"
-                        onPress={handleSendFeedback}
                     />
                 </Card>
             </View>
@@ -292,11 +339,6 @@ const styles = StyleSheet.create({
         marginTop: 8,
         borderRadius: 20,
         overflow: "hidden",
-        shadowColor: "#E94057",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
     },
     proBadge: {
         paddingHorizontal: 16,
@@ -310,5 +352,61 @@ const styles = StyleSheet.create({
         color: "#ffffff",
         textTransform: "uppercase",
         letterSpacing: 0.5,
+    },
+    // Quick grid
+    quickGrid: {
+        gap: 10,
+        marginBottom: 4,
+    },
+    gridRow: {
+        flexDirection: "row",
+        gap: 10,
+    },
+    squareButtonWrapper: {
+        flex: 1,
+        aspectRatio: 2.1,
+        borderRadius: 12,
+        overflow: "hidden",
+    },
+    proButtonWrapper: {
+        width: "100%",
+        height: 50,
+        borderRadius: 12,
+        overflow: "hidden",
+    },
+    squareButton: {
+        backgroundColor: colors.primaryContainer,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        flex: 1
+    },
+    squareButtonPro: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        overflow: "hidden",
+    },
+    proShimmer: {
+        position: "absolute",
+        top: 0,
+        left: "-30%",
+        width: "60%",
+        height: "100%",
+        transform: [{ skewX: "-20deg" }],
+    },
+    squareLabel: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 12,
+        color: colors.textPrimary,
+        textAlign: "center",
+    },
+    squareLabelPro: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: "#fff",
+        textAlign: "center",
     },
 });

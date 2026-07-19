@@ -105,6 +105,7 @@ export interface UserProfileSummary {
     role?: UserRole;
     isPro?: boolean;
     proExpiresAt?: string | null;
+    currentTierIndex: number;
 }
 
 // --- POST /auth/login ---

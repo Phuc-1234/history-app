@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import Card from "../../../components/Card";
+import { CustomModal } from "../../../components/Modal";
 import { useGetTestHistoryQuery } from "../services/testApi";
 import { formatScore } from "../services/scoreEngine";
 import type { UserTestLogV2 } from "../types";
@@ -17,6 +18,7 @@ interface Props {
 export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props = {}) {
     const router = useRouter();
     const { data, isLoading, refetch } = useGetTestHistoryQuery({ scopeType, scopeId, testId });
+    const [restrictedModalVisible, setRestrictedModalVisible] = useState(false);
 
     if (isLoading) {
         return (
@@ -36,6 +38,14 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
         );
     }
 
+    const handlePressItem = (item: UserTestLogV2) => {
+        if (item.isPassed) {
+            router.push({ pathname: "/(10_proflie)/10_5_test_detail", params: { logId: item.id } } as any);
+        } else {
+            setRestrictedModalVisible(true);
+        }
+    };
+
     const renderItem = ({ item }: { item: UserTestLogV2 }) => {
         const scoreDisplay = item.maxScore > 0
             ? formatScore((item.scoreAwarded / item.maxScore) * 10)
@@ -47,7 +57,7 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
             <Card
                 variant="grayBorder"
                 style={styles.card}
-                onPress={() => router.push({ pathname: "/(10_proflie)/10_5_test_detail", params: { logId: item.id } } as any)}
+                onPress={() => handlePressItem(item)}
                 activeOpacity={0.7}
             >
                 <View style={styles.cardTop}>
@@ -79,15 +89,26 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
     };
 
     return (
-        <FlatList
-            data={logs}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.list}
-            showsVerticalScrollIndicator={false}
-            onRefresh={refetch}
-            refreshing={isLoading}
-        />
+        <View style={{ flex: 1 }}>
+            <FlatList
+                data={logs}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                contentContainerStyle={styles.list}
+                showsVerticalScrollIndicator={false}
+                onRefresh={refetch}
+                refreshing={isLoading}
+            />
+            <CustomModal
+                visible={restrictedModalVisible}
+                title="Không thể xem chi tiết"
+                message="Bạn chỉ có thể xem chi tiết bài làm đối với các lượt thi đã ĐẠT. Hãy thử lại để đạt kết quả tốt hơn nhé!"
+                confirmText="Đã hiểu"
+                onConfirm={() => setRestrictedModalVisible(false)}
+                showMascot={true}
+                mascotExpression="sad"
+            />
+        </View>
     );
 }
 

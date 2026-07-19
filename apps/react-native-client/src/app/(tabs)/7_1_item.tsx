@@ -4,6 +4,7 @@ import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { SlidingTabBar } from "../../components/SlidingTabBar";
 import { ShopView } from "../../features/shop";
 import { InventoryView } from "../../features/inventory";
+import colors from "../../theme/colors";
 
 export default function ItemScreen() {
     const [activeTab, setActiveTab] = useState("shop");
@@ -32,13 +33,13 @@ export default function ItemScreen() {
 const styles = StyleSheet.create({
     wrapper: {
         flex: 1,
-        backgroundColor: "#FAF8F5",
+        backgroundColor: colors.background,
     },
     tabBarContainer: {
         paddingHorizontal: 20,
         paddingTop: 16,
         paddingBottom: 8,
-        backgroundColor: "#FAF8F5",
+        backgroundColor: colors.background,
     },
     contentContainer: {
         flex: 1,

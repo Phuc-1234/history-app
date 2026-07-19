@@ -1,4 +1,5 @@
-export { default as StreakCelebrationModal } from "./components/StreakCelebrationModal";
-export { default as StreakModal } from "./components/StreakModal";
-export { default as RewardModal } from "./components/RewardModal";
-export { useStreak } from "./hooks/useStreak";
+export { default as StreakDrawerModal } from "./components/StreakDrawerModal";
+export { HomeStreakSection } from "./components/HomeStreakSection";
+export * from "./hooks/useStreakDrawer";
+export * from "./services/streakApi";
+

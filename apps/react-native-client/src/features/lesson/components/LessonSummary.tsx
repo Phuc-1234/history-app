@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ImageBackground,
     Image,
+    Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LessonSummaryData, LessonSection } from "../hooks/useLessonSummary";
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
         ...typography.bodyMedium,
         color: colors.textSecondary,
         lineHeight: 22,
-        textAlign: "justify",
+        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
 
     /* Feature Navigation Grid Matrix */
@@ -272,11 +273,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     gridButton: {
+        flex: 1,
         flexDirection: "row",
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
-        borderRadius: 30,
+        backgroundColor: colors.primary,
+        borderWidth: 2,
+        borderColor: colors.accent,
+        borderRadius: 12,
         paddingVertical: 8,
         paddingHorizontal: 16,
         alignItems: "center",
@@ -284,16 +286,17 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     iconWrapper: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: 30,
+        height: 30,
+    backgroundColor: colors.accent,
+        borderRadius: 15,
         justifyContent: "center",
         alignItems: "center",
     },
     gridButtonText: {
         ...typography.caption,
         fontFamily: typography.fonts.bold,
-        color: colors.textPrimary,
+        color: colors.textLight,
     },
 
     /* Tree List Wrapper */

@@ -6,8 +6,10 @@ import {
     View,
     Image,
     TouchableOpacity,
+    Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Zap, Coins } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,6 +17,7 @@ import { ProcessedTopBarData } from "../hooks/useTopBarData";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { AvatarWithFrame } from "../../../components/ui";
+import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
 
 interface TopBarProps {
     data?: ProcessedTopBarData;
@@ -32,11 +35,13 @@ interface TopBarProps {
         titleColor?: string;
     };
     onOpenStreak?: () => void;
+    onOpenTier?: () => void;
 }
 
-export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }: TopBarProps) {
+export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, onOpenTier }: TopBarProps) {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { openDrawer } = useSideDrawer();
 
     return (
         <LinearGradient
@@ -49,6 +54,13 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                     {!data.isLoggedIn ? (
                         /* Anonymous UI View state */
                         <View style={styles.notLoggedInContainer}>
+                            <TouchableOpacity
+                                style={styles.menuButton}
+                                activeOpacity={0.7}
+                                onPress={openDrawer}
+                            >
+                                <Ionicons name="menu" size={26} color="#FFFFFF" />
+                            </TouchableOpacity>
                             <View style={styles.promptTextContainer}>
                                 <Ionicons
                                     name="person-circle-outline"
@@ -71,6 +83,13 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                         /* Authenticated State UI View */
                         <>
                             <TouchableOpacity
+                                style={styles.menuButton}
+                                activeOpacity={0.7}
+                                onPress={openDrawer}
+                            >
+                                <Ionicons name="menu" size={26} color="#FFFFFF" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
                                 style={styles.userSection}
                                 activeOpacity={0.7}
                                 onPress={() => router.push("/(tabs)/10_1_profile")}
@@ -86,34 +105,47 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
 
                             <View style={styles.statsContainer}>
                                 {/* XP Chip */}
-                                <View style={styles.chip}>
+                                <TouchableOpacity
+                                    style={[styles.chip, data.xpMultiplier > 1 && styles.xpMultipliedChip]}
+                                    activeOpacity={0.7}
+                                    onPress={onOpenTier}
+                                >
                                     {data.badgeImgUrl ? (
                                         <Image
                                             source={{ uri: data.badgeImgUrl }}
                                             style={styles.badgeIcon}
                                         />
                                     ) : (
-                                        <Ionicons name="ribbon" size={20} color="#FFFFFF" />
+                                        <Zap size={18} color="#FFFFFF" />
                                     )}
                                     <Text style={styles.chipText}>
                                         {data.totalXp}XP
                                     </Text>
-                                </View>
+                                    {data.xpMultiplier > 1 && (
+                                        <View style={styles.multiplierTag}>
+                                            <Text style={styles.multiplierTagText}>x{data.xpMultiplier}</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
 
                                 {/* Gold Chip */}
                                 <TouchableOpacity
-                                    style={styles.chip}
+                                    style={[styles.chip, data.goldMultiplier > 1 && styles.goldMultipliedChip]}
                                     activeOpacity={0.7}
                                     onPress={() => router.push("/(tabs)/8_2_buy_gold")}
                                 >
-                                    <Ionicons
-                                        name="logo-usd"
+                                    <Coins
                                         size={18}
                                         color="#FFFFFF"
                                     />
                                     <Text style={styles.chipText}>
                                         {data.totalGold}
                                     </Text>
+                                    {data.goldMultiplier > 1 && (
+                                        <View style={[styles.multiplierTag, styles.goldMultiplierTag]}>
+                                            <Text style={styles.multiplierTagText}>x{data.goldMultiplier}</Text>
+                                        </View>
+                                    )}
                                 </TouchableOpacity>
 
                                 {/* Streak Chip */}
@@ -122,7 +154,11 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                                     activeOpacity={0.7}
                                     onPress={onOpenStreak}
                                 >
-                                    <Ionicons name="flame" size={20} color="#FFFFFF" />
+                                    <Ionicons
+                                        name="flame"
+                                        size={20}
+                                        color={data.hasCompletedToday ? "#FF4500" : "#FFFFFF"}
+                                    />
                                     <Text style={styles.chipText}>
                                         {data.currentStreak}
                                     </Text>
@@ -137,13 +173,15 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
             {branchConfig && (
                 <View style={styles.branchBar}>
                     {!branchConfig.hideBack && (
-                        <TouchableOpacity
+                        <Pressable
                             onPress={branchConfig.onBackPress}
-                            style={styles.backButton}
-                            activeOpacity={0.7}
+                            style={({ pressed }) => [
+                                styles.backButton,
+                                pressed && styles.buttonPressed
+                            ]}
                         >
                             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
 
                     <View style={styles.branchTextContainer}>
@@ -168,13 +206,15 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak }
                         branchConfig.rightElement
                     ) : (
                         !branchConfig.hideHome && (
-                            <TouchableOpacity
+                            <Pressable
                                 onPress={branchConfig.onHomePress || (() => router.push("/(tabs)/home"))}
-                                style={styles.homeButton}
-                                activeOpacity={0.7}
+                                style={({ pressed }) => [
+                                    styles.homeButton,
+                                    pressed && styles.buttonPressed
+                                ]}
                             >
                                 <Ionicons name="home-outline" size={24} color="#FFFFFF" />
-                            </TouchableOpacity>
+                            </Pressable>
                         )
                     )}
                 </View>
@@ -194,6 +234,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 16,
+    },
+    menuButton: {
+        marginRight: 12,
+        justifyContent: "center",
+        alignItems: "center",
     },
     purpleBarWithBranch: {
     },
@@ -229,6 +274,35 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         gap: 4,
+        borderWidth: 1.5,
+        borderColor: "transparent",
+        position: "relative",
+    },
+    xpMultipliedChip: {
+        borderColor: "#007AFF",
+    },
+    goldMultipliedChip: {
+        borderColor: "#FFB800",
+    },
+    multiplierTag: {
+        position: "absolute",
+        top: -6,
+        right: -6,
+        backgroundColor: "#007AFF",
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: "#FFFFFF",
+        zIndex: 10,
+    },
+    goldMultiplierTag: {
+        backgroundColor: "#FFB800",
+    },
+    multiplierTagText: {
+        fontSize: 8,
+        fontFamily: typography.fonts.bold,
+        color: "#FFFFFF",
     },
     badgeIcon: {
         width: 20,
@@ -275,10 +349,25 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     backButton: {
-        marginRight: 12,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: -8,
+        marginRight: 4,
     },
     homeButton: {
-        marginLeft: 12,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: 4,
+        marginRight: -8,
+    },
+    buttonPressed: {
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
     },
     branchTextContainer: {
         flex: 1,

@@ -12,7 +12,6 @@ import type { LayoutNode } from "../types";
 import { animationConfig, NODE_CONFIGS } from "../constants";
 import { charsPerLine, wrapText, textStartOffset, FIXED_LETTER_SPACING } from "../utils/layout";
 import { colors } from "../../../theme/colors";
-import { typography } from "../../../theme/typography";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -204,7 +203,7 @@ export const NodeCard = React.memo(function NodeCard({
                         fill="#FFFFFF"
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
-                        fontFamily={typography.fonts.bold}
+                        fontFamily="System"
                     >
                         {line}
                     </SvgText>
@@ -253,7 +252,7 @@ export const NodeCard = React.memo(function NodeCard({
                         fill={colors.textPrimary}
                         fontSize={config.fontSize}
                         fontWeight={config.fontWeight}
-                        fontFamily={typography.fonts.semiBold}
+                        fontFamily="System"
                     >
                         {line}
                     </SvgText>
@@ -309,7 +308,7 @@ export const NodeCard = React.memo(function NodeCard({
                     fill={colors.textSecondary}
                     fontSize={config.fontSize}
                     fontWeight={config.fontWeight}
-                    fontFamily={typography.fonts.medium}
+                    fontFamily="System"
                 >
                     {line}
                 </SvgText>

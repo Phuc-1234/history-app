@@ -3,8 +3,11 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import { notificationService } from '../services/notificationService';
 import { toastService } from '@/services/toastService';
+import { useAppSelector } from '@/store/storeHook';
 
 export function useNotification() {
+  const profileId = useAppSelector((state) => state.auth.profile?.id);
+
   // 1. Request notification permissions (required for Android 13+ / API 33+)
   async function requestNotificationPermission() {
     if (Platform.OS === 'android' && Platform.Version >= 33) {
@@ -87,5 +90,5 @@ export function useNotification() {
       unsubscribeNotificationOpened();
       unsubscribeTokenRefresh();
     };
-  }, []);
+  }, [profileId]);
 }

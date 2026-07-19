@@ -38,24 +38,29 @@ try {
   console.error('❌ Failed to initialize Firebase Admin SDK:', error);
 }
 
+import { pushNotificationService } from '../services/pushNotificationService';
+
 /**
  * API: POST /api/notifications/register-token
- * Receives the FCM token from the device and stores it
+ * Receives the FCM token from the device and stores it for the logged in user
  */
-router.post('/register-token', (req: Request, res: Response) => {
+router.post('/register-token', requireStudent, async (req: Request, res: Response) => {
   const { token } = req.body;
+  const userId = (req as any).user.id;
 
   if (!token) {
     return res.status(400).json({ error: 'Token is required' });
   }
 
-  registeredTokens.add(token);
-  console.log(`[Notification] Token registered. Total tokens: ${registeredTokens.size}`);
-  
-  return res.status(200).json({
-    message: 'Token registered successfully',
-    totalTokens: registeredTokens.size,
-  });
+  try {
+    await pushNotificationService.registerToken(userId, token);
+    registeredTokens.add(token);
+    console.log(`[Notification] Token registered for user ${userId}`);
+    return res.status(200).json({ message: 'Token registered successfully' });
+  } catch (error: any) {
+    console.error('[Notification] Error registering token:', error);
+    return res.status(500).json({ error: 'Failed to register token', details: error.message });
+  }
 });
 
 /**

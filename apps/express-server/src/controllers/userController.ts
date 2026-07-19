@@ -74,6 +74,7 @@ export const getUserProfile = async (
                 currentStreak: true,
                 isPro: true,
                 proExpiresAt: true,
+                currentTierIndex: true,
                 tier: {
                     select: {
                         name: true,
@@ -117,6 +118,7 @@ export const getUserProfile = async (
             equippedFrameUrl,
             isPro: fullProfile.isPro ?? false,
             proExpiresAt: fullProfile.proExpiresAt ? fullProfile.proExpiresAt.toISOString() : null,
+            currentTierIndex: fullProfile.currentTierIndex,
         });
     } catch (error) {
         console.error("Express Profile Fetch Controller Crash:", error);
@@ -190,6 +192,7 @@ export const updateUserProfile = async (
                 currentStreak: true,
                 isPro: true,
                 proExpiresAt: true,
+                currentTierIndex: true,
                 tier: {
                     select: {
                         name: true,
@@ -211,6 +214,7 @@ export const updateUserProfile = async (
             badgeImgUrl: updatedProfile.tier.badgeImgUrl,
             isPro: updatedProfile.isPro ?? false,
             proExpiresAt: updatedProfile.proExpiresAt ? updatedProfile.proExpiresAt.toISOString() : null,
+            currentTierIndex: updatedProfile.currentTierIndex,
         });
     } catch (error: any) {
         console.error("Express Profile Update Controller Crash:", error);

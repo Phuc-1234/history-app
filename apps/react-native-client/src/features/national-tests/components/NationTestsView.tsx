@@ -16,7 +16,7 @@ import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
 import typography from "@/theme/typography";
 import { Card } from "@/components/Card";
-import { useGetNationalTestsQuery } from "@/features/test_v2/services/testApi";
+import { useGetNationalTestsQuery, useLazyGetTestInfoQuery } from "@/features/test_v2/services/testApi";
 import {
   BookOpen,
   FileText,
@@ -29,6 +29,8 @@ import {
 } from "lucide-react-native";
 import { useAppSelector } from "@/store/storeHook";
 import { PremiumModal } from "@/components/PremiumModal";
+import { SlidingTabBar } from "@/components/SlidingTabBar";
+import { PracticeSection, PracticeOptions } from "@/features/practice";
 import { Ionicons } from "@expo/vector-icons";
 
 const VIBRANT_COLORS = [
@@ -60,6 +62,9 @@ export const NationalTestsView: React.FC = () => {
 
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
   const [lockedFeatureName, setLockedFeatureName] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("DE_THI");
+
+  const [getTestInfo] = useLazyGetTestInfoQuery();
 
   const showProModal = (feature: string) => {
     setLockedFeatureName(feature);
@@ -69,11 +74,32 @@ export const NationalTestsView: React.FC = () => {
   const { data: tests, isLoading, error, refetch, isFetching } = useGetNationalTestsQuery();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMasteryExpanded, setIsMasteryExpanded] = useState(false);
+
+  const overallMasteryPct = React.useMemo(() => {
+    if (!tests || tests.length === 0) return 0;
+    const total = tests.reduce((sum, t) => sum + (t.masteryPercentage ?? 0), 0);
+    return Math.round(total / tests.length);
+  }, [tests]);
 
   const handleTestPress = (id: string) => {
     router.push({
       pathname: "/(6_tests)/6_2_ques_choose",
       params: { testId: id, purposeType: "EXAM" },
+    });
+  };
+
+  const handlePracticePress = (options: PracticeOptions) => {
+    router.push({
+      pathname: "/(6_tests)/6_2_ques_choose",
+      params: {
+        scopeType: options.scopeType,
+        ...(options.scopeId != null ? { scopeId: String(options.scopeId) } : {}),
+        purposeType: "PRACTICE",
+        questionCount: String(options.questionCount),
+        autoPickStrategy: options.autoPickStrategy,
+        skipIntro: "true",
+      },
     });
   };
 
@@ -87,37 +113,140 @@ export const NationalTestsView: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Đề thi Quốc gia</Text>
+        <Text style={styles.headerTitle}>
+          {activeTab === "LUYEN_TAP" ? "Luyện tập đề THPT" : "Đề thi Quốc gia"}
+        </Text>
       </View>
 
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={[
-            styles.searchInput,
-            isSearchFocused && styles.searchInputFocused
+      <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+        <SlidingTabBar
+          tabs={[
+            { key: "DE_THI", label: "Đề thi" },
+            { key: "LUYEN_TAP", label: "Luyện tập" },
           ]}
-          placeholder="Tìm kiếm đề thi..."
-          placeholderTextColor={colors.textPlaceholder}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          underlineColorAndroid="transparent"
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
+          activeTab={activeTab}
+          onChangeTab={(key: string) => setActiveTab(key)}
         />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching && !isLoading}
-            onRefresh={refetch}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
+      {activeTab === "LUYEN_TAP" ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: 16 }]}
+        >
+          {/* Độ thành thạo Card (Expandable) */}
+          <Card variant="bordered" style={[styles.practiceCard, { marginBottom: 16 }]}>
+            <TouchableOpacity
+              style={styles.masteryExpandHeader}
+              onPress={() => setIsMasteryExpanded((prev) => !prev)}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                <Ionicons name="ribbon-outline" size={24} color={colors.primary} />
+                <Text style={styles.practiceCardTitle}>Độ thành thạo</Text>
+              </View>
+              <Ionicons
+                name={isMasteryExpanded ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {isMasteryExpanded && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={styles.masteryExplanationText}>
+                  Làm đúng tất cả câu hỏi 5 lần liên tiếp để đạt được 100% độ thành thạo
+                </Text>
+
+                <View style={styles.masteryGradeItem}>
+                  <View style={styles.masteryGradeHeader}>
+                    <Text style={styles.masteryGradeText}>Độ thành thạo Đề thi Quốc gia</Text>
+                    <Text style={[styles.masteryGradePct, { color: colors.primary }]}>{overallMasteryPct}%</Text>
+                  </View>
+                  <View style={styles.masteryProgressBarTrack}>
+                    <View
+                      style={[
+                        styles.masteryProgressBarFill,
+                        { width: `${overallMasteryPct}%`, backgroundColor: colors.primary },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.masteryBreakdownContainer}>
+                  <Text style={styles.masteryBreakdownTitle}>Chi tiết theo đề thi</Text>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 16 }} />
+                  ) : tests && tests.length > 0 ? (
+                    tests.map((test) => (
+                      <View key={test.id} style={styles.masteryTestItem}>
+                        <View style={styles.masteryTestHeader}>
+                          <Text style={styles.masteryTestText} numberOfLines={1}>
+                            {test.title}
+                          </Text>
+                          <Text style={styles.masteryTestPct}>
+                            {test.masteryPercentage ?? 0}%
+                          </Text>
+                        </View>
+                        <View style={styles.masteryProgressBarTrack}>
+                          <View
+                            style={[
+                              styles.masteryProgressBarFill,
+                              {
+                                width: `${test.masteryPercentage ?? 0}%`,
+                                backgroundColor: colors.primary,
+                              },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.noMasteryText}>
+                      Chưa có dữ liệu thành thạo. Hãy làm bài luyện tập để tích lũy độ thành thạo!
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+          </Card>
+
+          <PracticeSection
+            scopeType="NATIONAL"
+            onPracticePress={handlePracticePress}
+            isActiveTab={activeTab === "LUYEN_TAP"}
           />
-        }
-      >
+        </ScrollView>
+      ) : (
+        <>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={[
+                styles.searchInput,
+                isSearchFocused && styles.searchInputFocused
+              ]}
+              placeholder="Tìm kiếm đề thi..."
+              placeholderTextColor={colors.textPlaceholder}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              underlineColorAndroid="transparent"
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+            />
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isFetching && !isLoading}
+                onRefresh={refetch}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+              />
+            }
+          >
         {isLoading ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -143,6 +272,15 @@ export const NationalTestsView: React.FC = () => {
                 key={item.id}
                 activeOpacity={0.8}
                 onPress={() => {
+                  getTestInfo({ testId: item.id, purposeType: "EXAM" })
+                    .unwrap()
+                    .then((res) => {
+                      console.log("Test info response:", res);
+                    })
+                    .catch((err) => {
+                      console.error("Error fetching test info:", err);
+                    });
+
                   if (isTestLocked) {
                     showProModal(`đề thi "${item.title}"`);
                   } else {
@@ -188,14 +326,26 @@ export const NationalTestsView: React.FC = () => {
                       {item.summary}
                     </Text>
                   ) : null}
+                  <View style={styles.cardStatsRow}>
+                    <View style={styles.cardStatItem}>
+                      <Ionicons name="checkmark-done" size={14} color={colors.success} />
+                      <Text style={styles.cardStatText}>Đã vượt qua: {item.passCount ?? 0} lần</Text>
+                    </View>
+                    <View style={styles.cardStatItem}>
+                      <Ionicons name="ribbon-outline" size={14} color={colors.primary} />
+                      <Text style={styles.cardStatText}>Thành thạo: {item.masteryPercentage ?? 0}%</Text>
+                    </View>
+                  </View>
                 </View>
               </Card>
             );
           })
         )}
       </ScrollView>
+    </>
+  )}
 
-      <PremiumModal
+  <PremiumModal
         visible={premiumModalVisible}
         onClose={() => setPremiumModalVisible(false)}
         featureName={lockedFeatureName}
@@ -310,5 +460,112 @@ const styles = StyleSheet.create({
   proBadgeText: {
     fontFamily: typography.fonts.bold,
     fontSize: 10,
+  },
+  practiceCard: {
+    padding: 20,
+    marginBottom: 24,
+    borderRadius: 12,
+  },
+  practiceCardTitle: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 18,
+    color: colors.textPrimary,
+    marginLeft: 8,
+  },
+  masteryExpandHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  masteryExplanationText: {
+    fontFamily: typography.fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  masteryGradeItem: {
+    marginBottom: 16,
+  },
+  masteryGradeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  masteryGradeText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  masteryGradePct: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 14,
+  },
+  masteryProgressBarTrack: {
+    height: 8,
+    backgroundColor: colors.borderMedium,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  masteryProgressBarFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  masteryBreakdownContainer: {
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderMedium,
+    paddingTop: 12,
+  },
+  masteryBreakdownTitle: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  noMasteryText: {
+    fontFamily: typography.fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginVertical: 20,
+  },
+  masteryTestItem: {
+    marginBottom: 12,
+  },
+  masteryTestHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  masteryTestText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+    flex: 1,
+    marginRight: 8,
+  },
+  masteryTestPct: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  cardStatsRow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 4,
+    marginTop: 8,
+  },
+  cardStatItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  cardStatText: {
+    fontFamily: typography.fonts.medium,
+    fontSize: 12,
+    color: colors.textSecondary,
   },
 });
