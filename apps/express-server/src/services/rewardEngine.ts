@@ -299,7 +299,7 @@ export class RewardEngine {
                     itemDefinitionId: itemDef.id,
                     name: itemDef.name,
                     quantity,
-                    imgUrl: itemDef.imgUrl,
+                    imgUrl: itemDef.shopImgUrl ?? itemDef.imgUrl,
                 });
             }
         }
@@ -733,7 +733,7 @@ export class RewardEngine {
         const items = (reward?.rewardRuleItems || []).map((ri: any) => ({
             id: ri.itemDefinition.id,
             name: ri.itemDefinition.name,
-            imgUrl: ri.itemDefinition.imgUrl,
+            imgUrl: ri.itemDefinition.shopImgUrl ?? ri.itemDefinition.imgUrl,
             quantity: ri.quantity,
         }));
 

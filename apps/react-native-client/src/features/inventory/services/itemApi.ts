@@ -9,6 +9,7 @@ export interface ItemDefinition {
     itemType: "SKIN" | "XP_MUL" | "GOLD_MUL" | "BADGE";
     effectValue: number | null;
     imgUrl: string | null;
+    shopImgUrl: string | null;
     equipmentSlot: string | null;
     durationMinutes: number | null;
 }

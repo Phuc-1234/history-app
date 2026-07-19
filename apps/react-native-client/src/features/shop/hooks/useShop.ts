@@ -37,7 +37,7 @@ export function useShop() {
             name: item.name,
             description: item.description ?? "",
             cost: item.price,
-            imageUrl: item.imgUrl ?? "https://picsum.photos/id/1021/400/400",
+            imageUrl: item.shopImgUrl ?? item.imgUrl ?? "https://picsum.photos/id/1021/400/400",
             category: (item.itemType === "XP_MUL" || item.itemType === "GOLD_MUL") ? "powerup" : "cosmetic",
             itemType: item.itemType,
             isOwned: (item.itemType === "SKIN" || item.itemType === "BADGE") && ownedIds.has(item.id),

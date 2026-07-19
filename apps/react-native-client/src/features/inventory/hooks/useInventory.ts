@@ -72,7 +72,7 @@ export function useInventory() {
                 icon,
                 iconBgColor,
                 iconColor,
-                imageUrl: def.imgUrl ?? "https://picsum.photos/id/1021/200/200",
+                imageUrl: def.shopImgUrl ?? def.imgUrl ?? "https://picsum.photos/id/1021/200/200",
                 itemType: def.itemType,
                 equipmentSlot: def.equipmentSlot,
                 isEquipped,

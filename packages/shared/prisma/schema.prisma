@@ -512,6 +512,7 @@ model ItemDefinition {
   itemType          ItemDefinitionType @map("item_type")
   effectValue       Float?             @map("effect_value")
   imgUrl            String?            @map("img_url")
+  shopImgUrl        String?            @map("shop_img_url")
   equipmentSlot     EquipmentSlot?     @map("equipment_slot")
   durationMinutes   Int?               @map("duration_minutes")
   rewardRuleItems   RewardRuleItem[]

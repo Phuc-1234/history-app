@@ -244,9 +244,10 @@ export default function HomeScreen() {
                             }}
                             style={styles.bellButton}
                         >
-                            <Image
-                                source={require("../../../../assets/images/bellRinging.png")}
-                                style={styles.bellIcon}
+                            <Ionicons
+                                name="notifications-outline"
+                                size={22}
+                                color="#FFFFFF"
                             />
                         </TouchableOpacity>
                     </View>
@@ -584,12 +585,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "rgba(124, 86, 86, 0.15)",
-    },
-    bellIcon: {
-        width: 20,
-        height: 20,
-        resizeMode: "contain",
-        tintColor: "#ffffff",
     },
     searchButton: {
         width: 40,

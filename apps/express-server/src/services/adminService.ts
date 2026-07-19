@@ -1277,6 +1277,7 @@ export class AdminService {
                 itemType: itemType as any,
                 effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : null) : null,
                 imgUrl: data.imgUrl ?? null,
+                shopImgUrl: data.shopImgUrl ?? null,
                 equipmentSlot: isSkin ? (data.equipmentSlot ? (data.equipmentSlot as any) : null) : null,
                 durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : null) : null,
             }
@@ -1302,6 +1303,7 @@ export class AdminService {
                 itemType: itemType as any,
                 effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : existing.effectValue) : null,
                 imgUrl: data.imgUrl !== undefined ? data.imgUrl : existing.imgUrl,
+                shopImgUrl: data.shopImgUrl !== undefined ? data.shopImgUrl : existing.shopImgUrl,
                 equipmentSlot: isSkin ? (data.equipmentSlot !== undefined ? (data.equipmentSlot as any) : existing.equipmentSlot) : null,
                 durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : existing.durationMinutes) : null,
             }
