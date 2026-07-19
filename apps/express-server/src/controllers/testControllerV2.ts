@@ -116,7 +116,8 @@ export const getTestInfo = async (req: Request, res: Response) => {
 
 export const getNationalTests = async (req: Request, res: Response) => {
     try {
-        const resp = await testServiceV2.getNationalTests();
+        const userId = req.user?.id;
+        const resp = await testServiceV2.getNationalTests(userId);
         return res.status(200).json(resp);
     } catch (err: any) {
         console.error("getNationalTests error:", err?.message ?? err);

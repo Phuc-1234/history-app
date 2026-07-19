@@ -176,5 +176,7 @@ export interface NationalTestDto {
     summary: string | null;
     isPro: boolean;
     imgUrl?: string | null;
+    passCount?: number;
+    masteryPercentage?: number;
 }
 

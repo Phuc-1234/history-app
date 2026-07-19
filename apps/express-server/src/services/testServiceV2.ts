@@ -1161,8 +1161,8 @@ export class TestServiceV2 {
         };
     }
 
-    async getNationalTests(): Promise<NationalTestDto[]> {
-        return prisma.test.findMany({
+    async getNationalTests(userId?: string): Promise<NationalTestDto[]> {
+        const tests = await prisma.test.findMany({
             where: {
                 isNationalTest: true,
             },
@@ -1172,7 +1172,75 @@ export class TestServiceV2 {
                 summary: true,
                 isPro: true,
                 imgUrl: true,
+                testQuestions: {
+                    select: {
+                        questionId: true,
+                    },
+                },
             },
+        });
+
+        if (!userId) {
+            return tests.map((t) => ({
+                id: t.id,
+                title: t.title,
+                summary: t.summary,
+                isPro: t.isPro,
+                imgUrl: t.imgUrl,
+                passCount: 0,
+                masteryPercentage: 0,
+            }));
+        }
+
+        const questionIds = Array.from(new Set(tests.flatMap((t) => t.testQuestions.map((tq) => tq.questionId))));
+
+        let masteryMap = new Map<number, number>();
+        if (questionIds.length > 0) {
+            const masteries = await prisma.userQuestionMastery.findMany({
+                where: {
+                    userId,
+                    questionId: { in: questionIds },
+                },
+                select: {
+                    questionId: true,
+                    level: true,
+                },
+            });
+            masteryMap = new Map(masteries.map((m) => [m.questionId, m.level]));
+        }
+
+        const passedLogs = await prisma.userTestLog.groupBy({
+            by: ["testId"],
+            where: {
+                userId,
+                testId: { in: tests.map((t) => t.id).filter(Boolean) as string[] },
+                isPassed: true,
+            },
+            _count: {
+                id: true,
+            },
+        });
+        const passCountMap = new Map(passedLogs.map((log) => [log.testId, log._count.id]));
+
+        return tests.map((t) => {
+            const tqIds = t.testQuestions.map((tq) => tq.questionId);
+            const totalQuestions = tqIds.length;
+            
+            let masteryPercentage = 0;
+            if (totalQuestions > 0) {
+                const totalLevel = tqIds.reduce((sum, qId) => sum + (masteryMap.get(qId) ?? 0), 0);
+                masteryPercentage = Math.round((totalLevel / (totalQuestions * 5)) * 100);
+            }
+
+            return {
+                id: t.id,
+                title: t.title,
+                summary: t.summary,
+                isPro: t.isPro,
+                imgUrl: t.imgUrl,
+                passCount: passCountMap.get(t.id) ?? 0,
+                masteryPercentage,
+            };
         });
     }
 

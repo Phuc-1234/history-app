@@ -74,6 +74,13 @@ export const NationalTestsView: React.FC = () => {
   const { data: tests, isLoading, error, refetch, isFetching } = useGetNationalTestsQuery();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMasteryExpanded, setIsMasteryExpanded] = useState(false);
+
+  const overallMasteryPct = React.useMemo(() => {
+    if (!tests || tests.length === 0) return 0;
+    const total = tests.reduce((sum, t) => sum + (t.masteryPercentage ?? 0), 0);
+    return Math.round(total / tests.length);
+  }, [tests]);
 
   const handleTestPress = (id: string) => {
     router.push({
@@ -127,6 +134,83 @@ export const NationalTestsView: React.FC = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.scrollContent, { paddingHorizontal: 16 }]}
         >
+          {/* Độ thành thạo Card (Expandable) */}
+          <Card variant="bordered" style={[styles.practiceCard, { marginBottom: 16 }]}>
+            <TouchableOpacity
+              style={styles.masteryExpandHeader}
+              onPress={() => setIsMasteryExpanded((prev) => !prev)}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                <Ionicons name="ribbon-outline" size={24} color={colors.primary} />
+                <Text style={styles.practiceCardTitle}>Độ thành thạo</Text>
+              </View>
+              <Ionicons
+                name={isMasteryExpanded ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {isMasteryExpanded && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={styles.masteryExplanationText}>
+                  Làm đúng tất cả câu hỏi 5 lần liên tiếp để đạt được 100% độ thành thạo
+                </Text>
+
+                <View style={styles.masteryGradeItem}>
+                  <View style={styles.masteryGradeHeader}>
+                    <Text style={styles.masteryGradeText}>Độ thành thạo Đề thi Quốc gia</Text>
+                    <Text style={[styles.masteryGradePct, { color: colors.primary }]}>{overallMasteryPct}%</Text>
+                  </View>
+                  <View style={styles.masteryProgressBarTrack}>
+                    <View
+                      style={[
+                        styles.masteryProgressBarFill,
+                        { width: `${overallMasteryPct}%`, backgroundColor: colors.primary },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.masteryBreakdownContainer}>
+                  <Text style={styles.masteryBreakdownTitle}>Chi tiết theo đề thi</Text>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 16 }} />
+                  ) : tests && tests.length > 0 ? (
+                    tests.map((test) => (
+                      <View key={test.id} style={styles.masteryTestItem}>
+                        <View style={styles.masteryTestHeader}>
+                          <Text style={styles.masteryTestText} numberOfLines={1}>
+                            {test.title}
+                          </Text>
+                          <Text style={styles.masteryTestPct}>
+                            {test.masteryPercentage ?? 0}%
+                          </Text>
+                        </View>
+                        <View style={styles.masteryProgressBarTrack}>
+                          <View
+                            style={[
+                              styles.masteryProgressBarFill,
+                              {
+                                width: `${test.masteryPercentage ?? 0}%`,
+                                backgroundColor: colors.primary,
+                              },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.noMasteryText}>
+                      Chưa có dữ liệu thành thạo. Hãy làm bài luyện tập để tích lũy độ thành thạo!
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+          </Card>
+
           <PracticeSection
             scopeType="NATIONAL"
             onPracticePress={handlePracticePress}
@@ -242,6 +326,16 @@ export const NationalTestsView: React.FC = () => {
                       {item.summary}
                     </Text>
                   ) : null}
+                  <View style={styles.cardStatsRow}>
+                    <View style={styles.cardStatItem}>
+                      <Ionicons name="checkmark-done" size={14} color={colors.success} />
+                      <Text style={styles.cardStatText}>Đã vượt qua: {item.passCount ?? 0} lần</Text>
+                    </View>
+                    <View style={styles.cardStatItem}>
+                      <Ionicons name="ribbon-outline" size={14} color={colors.primary} />
+                      <Text style={styles.cardStatText}>Thành thạo: {item.masteryPercentage ?? 0}%</Text>
+                    </View>
+                  </View>
                 </View>
               </Card>
             );
@@ -366,5 +460,112 @@ const styles = StyleSheet.create({
   proBadgeText: {
     fontFamily: typography.fonts.bold,
     fontSize: 10,
+  },
+  practiceCard: {
+    padding: 20,
+    marginBottom: 24,
+    borderRadius: 12,
+  },
+  practiceCardTitle: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 18,
+    color: colors.textPrimary,
+    marginLeft: 8,
+  },
+  masteryExpandHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  masteryExplanationText: {
+    fontFamily: typography.fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  masteryGradeItem: {
+    marginBottom: 16,
+  },
+  masteryGradeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  masteryGradeText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  masteryGradePct: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 14,
+  },
+  masteryProgressBarTrack: {
+    height: 8,
+    backgroundColor: colors.borderMedium,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  masteryProgressBarFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  masteryBreakdownContainer: {
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderMedium,
+    paddingTop: 12,
+  },
+  masteryBreakdownTitle: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  noMasteryText: {
+    fontFamily: typography.fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginVertical: 20,
+  },
+  masteryTestItem: {
+    marginBottom: 12,
+  },
+  masteryTestHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  masteryTestText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 13,
+    color: colors.textPrimary,
+    flex: 1,
+    marginRight: 8,
+  },
+  masteryTestPct: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  cardStatsRow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 4,
+    marginTop: 8,
+  },
+  cardStatItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  cardStatText: {
+    fontFamily: typography.fonts.medium,
+    fontSize: 12,
+    color: colors.textSecondary,
   },
 });
