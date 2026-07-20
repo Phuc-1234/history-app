@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "history-app",
+    "name": "Sắc Sử",
     "slug": "history-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/true_app_icon.png",
     "scheme": "historyapp",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -17,7 +17,7 @@
       "newArchEnabled": false,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/images/true_app_icon.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
