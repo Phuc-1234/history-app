@@ -44,7 +44,7 @@ const SCREEN_H = Dimensions.get("window").height;
 const DRIFTING_CLOUD_COUNT = 10;
 
 // Tint: brand gold looks like classical gilded sky motifs on old scrolls.
-const TINT: keyof typeof colors = "secondary"; // imperial gold
+const TINT = "secondary" as const;
 const OPACITY = 0.22;
 
 // ─── Per-cloud config (computed once per mount) ─────────────────────────────

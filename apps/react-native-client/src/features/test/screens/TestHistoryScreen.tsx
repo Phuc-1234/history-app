@@ -15,7 +15,7 @@ import { TestAttempt } from "../store/testHistorySlice";
 
 export default function TestHistoryScreen() {
     const router = useRouter();
-    const attempts = useSelector((state: RootState) => state.testHistory.attempts);
+    const attempts = useSelector((state: RootState) => state.testHistory.attempts) || [];
 
     const handlePressAttempt = (id: string) => {
         router.push({

@@ -72,7 +72,8 @@ export const BuyGoldScreen: React.FC = () => {
         pay(selectedProvider, selectedPackage.goldAmount);
     };
 
-    const copyToClipboard = (value: string, label: string) => {
+    const copyToClipboard = (value: string | undefined, label: string) => {
+        if (!value) return;
         Clipboard.setString(value);
         Alert.alert("Đã sao chép", `${label} đã được sao chép.`);
     };

@@ -5,6 +5,7 @@ import { createSlice } from "@reduxjs/toolkit";
 interface TestHistoryState {
     // Intentionally empty — V2 uses RTK Query for history data
     _placeholder: boolean;
+    attempts?: any[];
 }
 
 const initialState: TestHistoryState = {

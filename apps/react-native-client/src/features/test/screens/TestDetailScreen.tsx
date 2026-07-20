@@ -14,9 +14,9 @@ import { Question } from "../types";
 
 export default function TestDetailScreen() {
     const { attemptId } = useLocalSearchParams<{ attemptId: string }>();
-    const attempts = useSelector((state: RootState) => state.testHistory.attempts);
+    const attempts = useSelector((state: RootState) => state.testHistory.attempts) || [];
 
-    const attempt = attempts.find((a) => a.id === attemptId) || attempts[0];
+    const attempt = attempts.find((a: any) => a.id === attemptId) || attempts[0];
 
     if (!attempt) {
         return (
@@ -213,7 +213,7 @@ export default function TestDetailScreen() {
             {/* Questions List */}
             <Text style={styles.sectionTitle}>Chi tiết câu hỏi</Text>
             <View style={styles.questionsList}>
-                {attempt.questions.map((q, idx) => renderQuestionDetail(q, idx))}
+                {attempt.questions.map((q: Question, idx: number) => renderQuestionDetail(q, idx))}
             </View>
         </ScrollView>
     );
