@@ -236,7 +236,7 @@ async function getNodeIdsForSections(sectionIds: number[]): Promise<number[]> {
 
 // ─── Auto-pick question selection ────────────────────────────────────────
 
-async function autoPickQuestions(
+async function autoPickQuestionsInternal(
     userId: string,
     scopeType: string | null | undefined,
     scopeId: number | null | undefined,
@@ -493,6 +493,35 @@ async function autoPickQuestions(
     return selected;
 }
 
+async function autoPickQuestions(
+    userId: string,
+    scopeType: string | null | undefined,
+    scopeId: number | null | undefined,
+    strategy: string | null | undefined,
+    questionCount: number | null,
+    difficultyRatioJson: any,
+): Promise<number[]> {
+    const questions = await autoPickQuestionsInternal(
+        userId,
+        scopeType,
+        scopeId,
+        strategy,
+        questionCount,
+        difficultyRatioJson,
+    );
+    if (questions.length === 0 && (scopeType || scopeId)) {
+        return autoPickQuestionsInternal(
+            userId,
+            null,
+            null,
+            strategy,
+            questionCount,
+            difficultyRatioJson,
+        );
+    }
+    return questions;
+}
+
 // ─── Service class ──────────────────────────────────────────────────────
 
 export class TestServiceV2 {
@@ -654,10 +683,21 @@ export class TestServiceV2 {
                 finalQuestionCount,
                 finalDifficultyRatioJson,
             );
+        }
 
-            if (sequence.length === 0) {
-                throw serviceError("No questions available in this scope", "NO_QUESTIONS");
-            }
+        if (sequence.length === 0) {
+            sequence = await autoPickQuestions(
+                userId,
+                null,
+                null,
+                req.autoPickStrategy ?? "BALANCED",
+                finalQuestionCount,
+                finalDifficultyRatioJson,
+            );
+        }
+
+        if (sequence.length === 0) {
+            throw serviceError("No questions available", "NO_QUESTIONS");
         }
 
         // Compute attempt number
@@ -1096,6 +1136,18 @@ export class TestServiceV2 {
                 finalDifficultyRatioJson,
             );
             questionCount = sequence.length;
+        }
+
+        if (questionCount === 0) {
+            const fallbackSeq = await autoPickQuestions(
+                userId,
+                null,
+                null,
+                req.autoPickStrategy ?? "BALANCED",
+                finalQuestionCount,
+                finalDifficultyRatioJson,
+            );
+            questionCount = fallbackSeq.length;
         }
 
         const mockLog = {
