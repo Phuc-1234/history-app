@@ -258,6 +258,10 @@ export const changeUserPassword = async (
             return res.status(400).json({ error: "Mật khẩu mới phải có ít nhất 6 ký tự." });
         }
 
+        if (newPassword === currentPassword) {
+            return res.status(400).json({ error: "Mật khẩu mới không được trùng mật khẩu cũ." });
+        }
+
         const token = getBearerToken(req);
         if (!token) {
             return res.status(401).json({ error: "Access token missing." });
