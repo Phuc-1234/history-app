@@ -1,0 +1,43 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20'
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion 36
+
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 36
+    }
+
+    repositories {
+        flatDir {
+            dirs 'libs'
+        }
+    }
+
+    namespace "com.reactnativezalopay"
+}
+
+repositories {
+    google()
+    mavenCentral()
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+dependencies {
+    implementation 'com.facebook.react:react-native:+'
+    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
+}

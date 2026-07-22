@@ -1,5 +1,6 @@
 // features/payment/hooks/usePayment.ts
 import { useState, useRef, useCallback } from "react";
+import { Linking } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useInitiatePaymentMutation } from "../api/paymentApi";
 import { paymentApi, GetPaymentStatusResponse, PaymentProvider } from "../api/paymentApi";
@@ -126,45 +127,62 @@ export function usePayment() {
                     return;
                 }
 
-                if (provider === "ZALOPAY" && zpTransToken && ReactNativeZalopay) {
-                    try {
-                        console.log("[ZaloPay] Initiating native payment flow with token:", zpTransToken);
-                        setState({
-                            phase: "waiting",
-                            orderId,
-                            amountVnd,
-                            provider,
-                        });
-                        
-                        // Start polling immediately in parallel so we don't get stuck if deep link fails
-                        pollStatus(orderId);
-                        
-                        // Initialize ZaloPay SDK with Sandbox AppID 2554
-                        ReactNativeZalopay.init(2554, true);
+                if (provider === "ZALOPAY") {
+                    setState({
+                        phase: "waiting",
+                        orderId,
+                        amountVnd,
+                        provider,
+                    });
+                    pollStatus(orderId);
 
-                        const result = await ReactNativeZalopay.payOrder(zpTransToken);
-                        console.log("[ZaloPay] Native payment result:", result);
+                    if (zpTransToken && ReactNativeZalopay) {
+                        try {
+                            console.log("[ZaloPay] Initiating native payment flow with token:", zpTransToken);
+                            ReactNativeZalopay.init(2554, true);
 
-                        if (result.status === "cancelled") {
-                            stopPolling();
-                            setState({ phase: "failed", error: "Giao dịch đã bị hủy." });
-                        } else if (result.status === "error") {
-                            stopPolling();
-                            setState({ phase: "failed", error: `Lỗi thanh toán: ${result.errorCode || "Unknown"}` });
+                            const result = await ReactNativeZalopay.payOrder(zpTransToken);
+                            console.log("[ZaloPay] Native payment result:", result);
+
+                            if (result.status === "cancelled") {
+                                stopPolling();
+                                setState({ phase: "failed", error: "Giao dịch đã bị hủy." });
+                                return;
+                            } else if (result.status === "error") {
+                                stopPolling();
+                                setState({ phase: "failed", error: `Lỗi thanh toán: ${result.errorCode || "Unknown"}` });
+                                return;
+                            } else if (result.status === "success") {
+                                return;
+                            }
+                        } catch (sdkError: any) {
+                            console.warn("[ZaloPay] Native module error, falling back to direct intent:", sdkError);
                         }
-                    } catch (sdkError: any) {
-                        console.warn("[ZaloPay] Native module error, falling back to web flow:", sdkError);
-                        setState({
-                            phase: "waiting",
-                            orderId,
-                            amountVnd,
-                            provider,
-                        });
-                        pollStatus(orderId);
+                    }
+
+                    // Direct Android Package Intent to open ZaloPay app directly without Chrome/Web
+                    if (zpTransToken) {
+                        try {
+                            const directIntent = `intent://app.zalopay.vn/pay?zptranstoken=${zpTransToken}#Intent;scheme=zalopay;package=vn.com.vng.zalopay;end`;
+                            console.log("[ZaloPay] Triggering direct package intent to ZaloPay app:", directIntent);
+                            const canOpen = await Linking.canOpenURL(directIntent).catch(() => true);
+                            if (canOpen) {
+                                await Linking.openURL(directIntent);
+                                return;
+                            }
+                        } catch (intentErr) {
+                            console.warn("[ZaloPay] Direct intent failed, fallback to payUrl:", intentErr);
+                        }
+                    }
+
+                    try {
+                        await Linking.openURL(payUrl);
+                    } catch (err) {
+                        console.warn("[ZaloPay] Linking.openURL failed:", err);
                         await WebBrowser.openBrowserAsync(payUrl);
                     }
                 } else {
-                    // Open the payment URL in the in-app browser (SePay VietQR or ZaloPay web fallback)
+                    // Open the payment URL in the in-app browser (SePay VietQR or web fallback)
                     setState({
                         phase: "waiting",
                         orderId,
