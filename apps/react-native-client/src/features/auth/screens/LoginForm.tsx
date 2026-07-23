@@ -93,10 +93,10 @@ export default function LoginForm() {
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 editable={!isLoading}
-                                // Thêm paddingRight vừa đủ để nội dung không đè lên @gmail.com
-                                style={[styles.customInput, { paddingRight: 95 }]}
+                                // Thêm paddingRight vừa đủ
+                                style={[styles.customInput, { paddingRight: (email.length > 0 && email.length < 15 && !email.includes("@")) ? 95 : 24 }]}
                             />
-                            {email.length > 0 && !email.includes("@") && (
+                            {email.length > 0 && email.length < 14 && !email.includes("@") && (
                                 <View style={styles.ghostTextWrapper} pointerEvents="none">
                                     <Text style={styles.ghostEmailText}>@gmail.com</Text>
                                 </View>
