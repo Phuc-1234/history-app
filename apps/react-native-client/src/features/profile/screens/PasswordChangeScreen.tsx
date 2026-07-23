@@ -8,7 +8,7 @@ import {
     View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { CheckCircle, KeyRound, Lock } from "lucide-react-native";
+import { Check, CheckCircle, Circle, KeyRound, Lock } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Button from "../../../components/Button";
@@ -30,7 +30,45 @@ const text = {
     confirmLabel: "Xác nhận mật khẩu",
     confirmPlaceholder: "Nhập lại mật khẩu mới",
     save: "Lưu",
+    requirementsTitle: "Mật khẩu mới cần thỏa:",
+    reqMinLength: "Có ít nhất 8 ký tự",
+    reqNotSame: "Khác mật khẩu cũ",
+    reqConfirm: "Xác nhận mật khẩu khớp",
 };
+
+type Requirement = {
+    key: string;
+    label: string;
+    met: boolean;
+};
+
+function PasswordRequirementList({ items }: { items: Requirement[] }) {
+    return (
+        <View style={styles.requirementList}>
+            <Text style={styles.requirementTitle}>{text.requirementsTitle}</Text>
+            {items.map((item) => {
+                const Icon = item.met ? Check : Circle;
+                return (
+                    <View key={item.key} style={styles.requirementRow}>
+                        <Icon
+                            size={16}
+                            color={item.met ? colors.success : colors.textMuted}
+                            strokeWidth={item.met ? 3 : 2}
+                        />
+                        <Text
+                            style={[
+                                styles.requirementText,
+                                item.met && styles.requirementTextMet,
+                            ]}
+                        >
+                            {item.label}
+                        </Text>
+                    </View>
+                );
+            })}
+        </View>
+    );
+}
 
 export default function PasswordChangeScreen() {
     const router = useRouter();
@@ -96,6 +134,29 @@ export default function PasswordChangeScreen() {
                             onChangeText={state.setNewPassword}
                             style={styles.inputField}
                             containerStyle={styles.inputContainer}
+                        />
+                        <PasswordRequirementList
+                            items={[
+                                {
+                                    key: "min",
+                                    label: text.reqMinLength,
+                                    met: state.newPassword.length >= 8,
+                                },
+                                {
+                                    key: "notSame",
+                                    label: text.reqNotSame,
+                                    met:
+                                        state.newPassword.length > 0 &&
+                                        state.newPassword !== state.currentPassword,
+                                },
+                                {
+                                    key: "confirm",
+                                    label: text.reqConfirm,
+                                    met:
+                                        state.confirmPassword.length > 0 &&
+                                        state.confirmPassword === state.newPassword,
+                                },
+                            ]}
                         />
                         {state.newPasswordError ? (
                             <Text style={styles.errorText}>{state.newPasswordError}</Text>
@@ -209,5 +270,30 @@ const styles = StyleSheet.create({
     },
     inputContainer: {
         marginVertical: 4,
+    },
+    requirementList: {
+        marginTop: 10,
+        paddingHorizontal: 4,
+    },
+    requirementTitle: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: colors.textSecondary,
+        marginBottom: 6,
+    },
+    requirementRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 3,
+    },
+    requirementText: {
+        marginLeft: 8,
+        fontSize: 13,
+        color: colors.textMuted,
+        lineHeight: 18,
+    },
+    requirementTextMet: {
+        color: colors.success,
+        fontWeight: "600",
     },
 });

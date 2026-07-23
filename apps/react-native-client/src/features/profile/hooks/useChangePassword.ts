@@ -37,11 +37,12 @@ export function useChangePassword() {
         if (!newPassword) {
             setNewPasswordError(message.newRequired);
             isValid = false;
+        } else if (newPassword === currentPassword) {
+            // Ưu tiên báo lỗi trùng mật khẩu cũ (yêu cầu nghiệp vụ: không được nhập trùng mk cũ)
+            setNewPasswordError(message.newSame);
+            isValid = false;
         } else if (newPassword.length < 8) {
             setNewPasswordError(message.newMin);
-            isValid = false;
-        } else if (newPassword === currentPassword) {
-            setNewPasswordError(message.newSame);
             isValid = false;
         } else {
             setNewPasswordError("");
