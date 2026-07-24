@@ -45,6 +45,36 @@ import { contentService } from "./contentService";
 
 
 export class AdminService {
+    // ─────────────────────────────── OVERVIEW STATS ───────────────────────────
+
+    async getOverviewStats() {
+        const [grades, topics, lessons, sections, users, videos, questions, tests, flashcards, rewardRules] = await prisma.$transaction([
+            prisma.grade.count(),
+            prisma.topic.count(),
+            prisma.lesson.count(),
+            prisma.section.count(),
+            prisma.user.count(),
+            prisma.video.count(),
+            prisma.question.count(),
+            prisma.test.count(),
+            prisma.flashcard.count(),
+            prisma.rewardRule.count(),
+        ]);
+
+        return {
+            grades,
+            topics,
+            lessons,
+            sections,
+            users,
+            videos,
+            questions,
+            tests,
+            flashcards,
+            rewardRules,
+        };
+    }
+
     // ─────────────────────────────── GRADE ────────────────────────────────────
 
     async createGrade(data: CreateGradeBody): Promise<GradeDto> {
@@ -1277,10 +1307,10 @@ export class AdminService {
                 itemType: itemType as any,
                 effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : null) : null,
                 imgUrl: data.imgUrl ?? null,
-                shopImgUrl: data.shopImgUrl ?? null,
+                ...(data.shopImgUrl !== undefined && { shopImgUrl: data.shopImgUrl }),
                 equipmentSlot: isSkin ? (data.equipmentSlot ? (data.equipmentSlot as any) : null) : null,
                 durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : null) : null,
-            }
+            } as any
         });
         return item as any as ItemDefinitionDto;
     }
@@ -1301,12 +1331,12 @@ export class AdminService {
                 ...(data.shownInStore !== undefined && { shownInStore: data.shownInStore }),
                 ...(data.price !== undefined && { price: Number(data.price) }),
                 itemType: itemType as any,
-                effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : existing.effectValue) : null,
+                effectValue: isMul ? (data.effectValue !== undefined ? data.effectValue : (existing as any).effectValue) : null,
                 imgUrl: data.imgUrl !== undefined ? data.imgUrl : existing.imgUrl,
-                shopImgUrl: data.shopImgUrl !== undefined ? data.shopImgUrl : existing.shopImgUrl,
-                equipmentSlot: isSkin ? (data.equipmentSlot !== undefined ? (data.equipmentSlot as any) : existing.equipmentSlot) : null,
-                durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : existing.durationMinutes) : null,
-            }
+                ...(data.shopImgUrl !== undefined && { shopImgUrl: data.shopImgUrl }),
+                equipmentSlot: isSkin ? (data.equipmentSlot !== undefined ? (data.equipmentSlot as any) : (existing as any).equipmentSlot) : null,
+                durationMinutes: isMul ? (data.durationMinutes !== undefined ? data.durationMinutes : (existing as any).durationMinutes) : null,
+            } as any
         });
         return updated as any as ItemDefinitionDto;
     }
