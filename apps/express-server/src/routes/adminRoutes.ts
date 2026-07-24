@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { requireAdmin } from "../middlewares/authMiddleware";
 import {
+    getOverviewStats,
     createGrade,
     updateGrade,
     deleteGrade,
@@ -83,6 +84,10 @@ const router = Router();
 
 // All admin routes require ADMIN or SUPER_ADMIN role
 router.use(requireAdmin);
+
+// ─── Overview Stats ───────────────────────────────────────────────────────────
+// GET    /api/admin/stats
+router.get("/stats", getOverviewStats);
 
 // ─── Feedback ─────────────────────────────────────────────────────────────────
 // GET    /api/admin/feedback

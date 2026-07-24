@@ -53,6 +53,17 @@ import {
     AdminTierDto,
 } from "@history-app/shared";
 
+// ─────────────────────────────── OVERVIEW STATS ───────────────────────────────
+
+export const getOverviewStats = async (req: Request, res: Response) => {
+    try {
+        const stats = await adminService.getOverviewStats();
+        return res.json(stats);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch overview stats" });
+    }
+};
+
 // ─────────────────────────────── GRADE ────────────────────────────────────────
 
 export const createGrade = async (
