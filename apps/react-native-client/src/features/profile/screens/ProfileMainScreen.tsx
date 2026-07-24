@@ -122,7 +122,7 @@ export default function ProfileMainScreen() {
                 {profile?.isPro && (
                     <View style={styles.proBadgeContainer}>
                         <LinearGradient
-                            colors={["#8A2387", "#E94057", "#F27121"]}
+                            colors={colors.proGradient}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.proBadge}
@@ -144,19 +144,19 @@ export default function ProfileMainScreen() {
                         activeOpacity={0.82}
                     >
                         <LinearGradient
-                            colors={["#8A2387", "#E94057", "#F27121"]}
+                            colors={colors.proGradient}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.squareButtonPro}
                         >
                             {/* shimmer strip */}
                             <LinearGradient
-                                colors={["transparent", "rgba(255,255,255,0.25)", "transparent"]}
+                                colors={["transparent", "rgba(255,255,255,0.35)", "transparent"]}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                                 style={styles.proShimmer}
                             />
-                            <Ionicons name="star" size={22} color="#fff" />
+                            <Ionicons name="sparkles" size={22} color="#fff" />
                             <Text style={styles.squareLabelPro}>
                                 {profile?.isPro ? "Gói Pro" : "Đăng ký Pro"}
                             </Text>

@@ -20,6 +20,7 @@ import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 const PAYMENT_PROVIDERS: PaymentProvider[] = ["ZALOPAY", "SEPAY"];
 
@@ -292,18 +293,25 @@ export const SubscriptionScreen: React.FC = () => {
 
                     {/* CTA Button */}
                     <TouchableOpacity
-                        style={[styles.payButton, isLoading && styles.payButtonDisabled]}
+                        style={[styles.payButtonWrapper, isLoading && styles.payButtonDisabled]}
                         onPress={handleSubscribe}
                         activeOpacity={0.85}
                         disabled={isLoading}
                     >
-                        {isLoading ? (
-                            <ActivityIndicator color={colors.textLight} />
-                        ) : (
-                            <Text style={styles.payButtonText}>
-                                Đăng ký ngay (2.000đ/tháng)
-                            </Text>
-                        )}
+                        <LinearGradient
+                            colors={colors.proGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.payButton}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color={colors.textLight} />
+                            ) : (
+                                <Text style={styles.payButtonText}>
+                                    Đăng ký ngay (2.000đ/tháng)
+                                </Text>
+                            )}
+                        </LinearGradient>
                     </TouchableOpacity>
 
                     <Text style={styles.footnote}>
@@ -652,13 +660,16 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.medium,
         flex: 1,
     },
+    payButtonWrapper: {
+        borderRadius: 30,
+        overflow: "hidden",
+        marginBottom: 12,
+    },
     payButton: {
-        backgroundColor: colors.primary,
         borderRadius: 30,
         paddingVertical: 16,
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 12,
     },
     payButtonDisabled: {
         opacity: 0.6,

@@ -99,6 +99,11 @@ export const colors = {
         { bg: "#FAF0E6", border: "#8D5A32", text: "#5C3516" }, // Copper
         { bg: "#F4F0FA", border: "#8C6BAF", text: "#4C326B" }, // Purple
     ],
+
+    // -------------------------------------------------------------
+    // PRO / Premium Styling (Imperial Copper-Gold Gradient)
+    // -------------------------------------------------------------
+    proGradient: ["#8C2500", "#E5A93B", "#FFD700"] as const,
 };
 
 export default colors;
