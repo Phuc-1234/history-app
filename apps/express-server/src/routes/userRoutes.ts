@@ -6,6 +6,7 @@ import {
     changeUserPassword,
     updateUserData,
     updateUserEmail,
+    verifyUserEmailChange,
 } from "../controllers/userController";
 import { createFeedback, getUserFeedbackHistory } from "../controllers/feedbackController";
 
@@ -26,6 +27,9 @@ router.put("/data", requireStudent, updateUserData);
 
 // Route target: PUT /api/user/email
 router.put("/email", requireStudent, updateUserEmail);
+
+// Route target: POST /api/user/email/verify
+router.post("/email/verify", requireStudent, verifyUserEmailChange);
 
 // Route target: PUT /api/user/password
 router.put("/password", requireStudent, changeUserPassword);

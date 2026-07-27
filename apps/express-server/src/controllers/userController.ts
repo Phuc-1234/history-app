@@ -388,20 +388,14 @@ export const updateUserEmail = async (
             });
         }
 
-        // 1. Update in Supabase Auth
+        // 1. Initiate update in Supabase Auth (sends OTP code to new email)
         const { error: authError } = await updateSupabaseAuthUser(req, { email: trimmedEmail });
         if (authError) {
             return res.status(400).json({ error: authError.message });
         }
 
-        // 2. Update in Prisma DB
-        await prisma.user.update({
-            where: { id: req.user.id },
-            data: { email: trimmedEmail },
-        });
-
         return res.status(200).json({
-            message: "Email updated successfully.",
+            message: "Mã OTP đã được gửi đến email mới. Vui lòng kiểm tra hộp thư của bạn.",
         });
     } catch (error: any) {
         console.error("Express User Email Update Controller Crash:", error);
@@ -411,7 +405,71 @@ export const updateUserEmail = async (
             });
         }
         return res.status(500).json({
-            error: "Lỗi hệ thống khi cập nhật email.",
+            error: "Lỗi hệ thống khi gửi mã xác thực email.",
+        });
+    }
+};
+
+export const verifyUserEmailChange = async (
+    req: Request<{}, { message: string } | { error: string }, { newEmail: string; token: string }>,
+    res: Response<{ message: string } | { error: string }>,
+): Promise<Response<{ message: string } | { error: string }>> => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ error: "Access denied. Valid session missing." });
+        }
+
+        const { newEmail, token } = req.body;
+        const trimmedEmail = newEmail?.trim();
+        const trimmedToken = token?.trim();
+
+        if (!trimmedEmail || !trimmedToken) {
+            return res.status(400).json({ error: "Email mới và mã OTP không được để trống." });
+        }
+
+        const accessToken = getBearerToken(req);
+        const refreshToken = getRefreshToken(req);
+
+        if (!accessToken) {
+            return res.status(401).json({ error: "Access token missing." });
+        }
+
+        const userSupabase = getSupabaseUserClient(accessToken);
+        if (refreshToken) {
+            await userSupabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+            });
+        }
+
+        const { error } = await userSupabase.auth.verifyOtp({
+            email: trimmedEmail,
+            token: trimmedToken,
+            type: "email_change",
+        });
+
+        if (error) {
+            return res.status(400).json({ error: error.message || "Mã OTP không chính xác hoặc đã hết hạn." });
+        }
+
+        // Update email in Prisma DB after successful OTP verification
+        await prisma.user.update({
+            where: { id: req.user.id },
+            data: { email: trimmedEmail },
+        });
+
+        return res.status(200).json({
+            message: "Xác thực và cập nhật email thành công.",
+        });
+    } catch (error: any) {
+        console.error("Express Verify User Email Controller Crash:", error);
+        if (error.code === "P2002") {
+            return res.status(400).json({
+                error: "Email này đã được sử dụng bởi một tài khoản khác.",
+            });
+        }
+        return res.status(500).json({
+            error: "Lỗi hệ thống khi xác thực email.",
         });
     }
 };
