@@ -57,3 +57,8 @@ Desktop.ini
 /android/
 /ios/
 /app.json
+
+# ==========================================
+# Generated Database Schema Documentation
+# ==========================================
+packages/shared/prisma/schema_tables.md

@@ -48,11 +48,12 @@ export class AdminService {
     // ─────────────────────────────── OVERVIEW STATS ───────────────────────────
 
     async getOverviewStats() {
-        const [grades, topics, lessons, sections, users, videos, questions, tests, flashcards, rewardRules] = await prisma.$transaction([
+        const [grades, topics, lessons, sections, mindMaps, users, videos, questions, tests, flashcards, rewardRules] = await prisma.$transaction([
             prisma.grade.count(),
             prisma.topic.count(),
             prisma.lesson.count(),
             prisma.section.count(),
+            prisma.mindMap.count(),
             prisma.user.count(),
             prisma.video.count(),
             prisma.question.count(),
@@ -65,7 +66,7 @@ export class AdminService {
             grades,
             topics,
             lessons,
-            sections,
+            sections: sections > 0 ? sections : mindMaps,
             users,
             videos,
             questions,
