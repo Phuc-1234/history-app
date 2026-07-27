@@ -5,6 +5,7 @@ import type {
     FriendRequestDto,
     MessageResponse,
     SocialProfile,
+    SocialSearchFilter,
     SocialUser,
 } from "../types/socialApiTypes";
 
@@ -12,15 +13,26 @@ export const socialApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         searchSocialUsers: builder.query<
             { users: SocialUser[] },
-            { q?: string; limit?: number } | void
+            { q?: string; limit?: number; filter?: SocialSearchFilter } | void
         >({
             query: (params) => ({
                 url: "/api/social/users/search",
                 params: {
                     q: params?.q ?? "",
                     limit: params?.limit ?? 20,
+                    // Chỉ gửi filter khi khác "all" để giữ tương thích ngược.
+                    ...(params?.filter && params.filter !== "all"
+                        ? { filter: params.filter }
+                        : {}),
                 },
             }),
+            providesTags: ["User"],
+        }),
+        getMutualFriends: builder.query<
+            { total: number; friends: SocialUser[] },
+            string
+        >({
+            query: (userId) => `/api/social/users/${userId}/mutual-friends`,
             providesTags: ["User"],
         }),
         getSocialProfile: builder.query<{ profile: SocialProfile }, string>({
@@ -118,6 +130,7 @@ export const {
     useGetFollowingQuery,
     useGetFriendsQuery,
     useGetIncomingFriendRequestsQuery,
+    useGetMutualFriendsQuery,
     useGetOutgoingFriendRequestsQuery,
     useGetSocialProfileQuery,
     useRejectFriendRequestMutation,

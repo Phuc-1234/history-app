@@ -50,7 +50,7 @@ export function toViewUser(user: ApiSocialUser): ViewUser {
         title: user.tierName || "Người học lịch sử",
         xp: user.totalXp ?? 0,
         streak: user.currentStreak ?? 0,
-        mutualFriends: 0,
+        mutualFriends: user.mutualFriends ?? 0,
         winRate: 0,
         friendStatus,
         isFollowing: Boolean(user.isFollowing),

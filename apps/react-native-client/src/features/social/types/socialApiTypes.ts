@@ -5,6 +5,12 @@ export type SocialRelationStatus =
     | "outgoing_request"
     | "none";
 
+/**
+ * Bộ lọc cho màn "Tìm bạn" (4 SegmentTabs).
+ * Phải khớp đúng với `SocialSearchFilter` ở backend.
+ */
+export type SocialSearchFilter = "all" | "mutual" | "learning" | "recent";
+
 export interface SocialUser {
     id: string;
     name: string;
@@ -19,6 +25,8 @@ export interface SocialUser {
     allowFriendRequest?: boolean;
     relationStatus?: SocialRelationStatus;
     isFollowing?: boolean;
+    /** Số bạn chung với người dùng hiện tại (do backend tính). */
+    mutualFriends?: number;
 }
 
 export interface SocialProfile extends SocialUser {
