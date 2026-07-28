@@ -11,7 +11,9 @@ import {
     KeyboardAvoidingView,
     Platform,
     Dimensions,
+    Keyboard,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
 import {
@@ -32,9 +34,26 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const OVERLAY_HEIGHT = SCREEN_HEIGHT * 0.8;
 
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
+    const insets = useSafeAreaInsets();
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [inputText, setInputText] = useState("");
     const [showSessionsDrawer, setShowSessionsDrawer] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+    useEffect(() => {
+        if (Platform.OS === "android") {
+            const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+                setKeyboardHeight(e.endCoordinates.height);
+            });
+            const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+                setKeyboardHeight(0);
+            });
+            return () => {
+                showSub.remove();
+                hideSub.remove();
+            };
+        }
+    }, []);
 
     const { data: sessionsData, isLoading: isLoadingSessions } = useListSessionsQuery(undefined, { skip: !visible });
     const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
@@ -123,12 +142,12 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
     };
 
     return (
-        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+        <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
             <View style={styles.modalBackdrop}>
-                <Pressable style={styles.backdropDismiss} onPress={onClose} />
+                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    style={styles.overlayContainer}
+                    style={[styles.overlayContainer, { height: SCREEN_HEIGHT * 0.8 }]}
                 >
                     {/* Header */}
                     <View style={styles.header}>
@@ -236,27 +255,32 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         )}
                     </View>
 
-                    {/* Input Bar */}
-                    <View style={styles.inputContainer}>
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Nhập câu hỏi..."
-                            placeholderTextColor={colors.textPlaceholder}
-                            value={inputText}
-                            onChangeText={setInputText}
-                            multiline
-                            maxLength={1000}
-                        />
-                        <Pressable
-                            style={[
-                                styles.sendButton,
-                                (!inputText.trim() || isSending) && styles.sendButtonDisabled,
-                            ]}
-                            onPress={handleSend}
-                            disabled={!inputText.trim() || isSending}
-                        >
-                            <Ionicons name="arrow-up" size={20} color="#FFF" />
-                        </Pressable>
+                    {/* Input Bar & Disclaimer */}
+                    <View style={[styles.bottomContainer, { paddingBottom: Math.max(insets.bottom + 4, 8) + (Platform.OS === "android" ? keyboardHeight : 0) }]}>
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Nhập câu hỏi..."
+                                placeholderTextColor={colors.textPlaceholder}
+                                value={inputText}
+                                onChangeText={setInputText}
+                                multiline
+                                maxLength={1000}
+                            />
+                            <Pressable
+                                style={[
+                                    styles.sendButton,
+                                    (!inputText.trim() || isSending) && styles.sendButtonDisabled,
+                                ]}
+                                onPress={handleSend}
+                                disabled={!inputText.trim() || isSending}
+                            >
+                                <Ionicons name="arrow-up" size={20} color="#FFF" />
+                            </Pressable>
+                        </View>
+                        <Text style={styles.disclaimerText}>
+                            AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng.
+                        </Text>
                     </View>
                 </KeyboardAvoidingView>
             </View>
@@ -442,14 +466,18 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         marginLeft: 8,
     },
+    bottomContainer: {
+        backgroundColor: colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: colors.surfaceVariant,
+        paddingBottom: 4,
+    },
     inputContainer: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 12,
-        paddingVertical: 8,
-        backgroundColor: colors.surface,
-        borderTopWidth: 1,
-        borderTopColor: colors.surfaceVariant,
+        paddingTop: 8,
+        paddingBottom: 4,
     },
     textInput: {
         flex: 1,
@@ -474,5 +502,11 @@ const styles = StyleSheet.create({
     },
     sendButtonDisabled: {
         backgroundColor: colors.textPlaceholder,
+    },
+    disclaimerText: {
+        fontSize: 11,
+        color: colors.textMuted,
+        textAlign: "center",
+        paddingVertical: 4,
     },
 });
