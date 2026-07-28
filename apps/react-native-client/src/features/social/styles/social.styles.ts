@@ -135,6 +135,11 @@ export const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 12,
     },
+    mutualFriendsRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+    },
     badgeCard: {
         flex: 1,
         borderRadius: 12,

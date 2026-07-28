@@ -9,6 +9,7 @@ import {
     getFollowing,
     getFriends,
     getIncomingFriendRequests,
+    getMutualFriends,
     getOutgoingFriendRequests,
     getSocialUserProfile,
     rejectFriendRequest,
@@ -24,6 +25,7 @@ router.get("/users/search", requireStudent, searchUsers);
 router.get("/users/:userId/profile", requireStudent, getSocialUserProfile);
 router.get("/users/:userId/followers", requireStudent, getFollowers);
 router.get("/users/:userId/following", requireStudent, getFollowing);
+router.get("/users/:userId/mutual-friends", requireStudent, getMutualFriends);
 
 // Friends
 router.get("/friends", requireStudent, getFriends);
