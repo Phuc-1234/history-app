@@ -71,6 +71,69 @@ export class AIService {
         throw new Error(`All Gemini API keys failed. Last error: ${lastError?.message}`);
     }
 
+    async callGeminiChat(contents: { role: "user" | "model"; parts: { text: string }[] }[]): Promise<string> {
+        const keys = [
+            process.env.GEMINI_API_KEY_1,
+            process.env.GEMINI_API_KEY_2,
+            process.env.GEMINI_API_KEY_3
+        ].map(k => k?.trim().replace(/^"|"$/g, "")).filter(Boolean) as string[];
+
+        if (keys.length === 0) {
+            throw new Error("No Gemini API keys found in environment variables.");
+        }
+
+        const model = (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim().replace(/^"|"$/g, "");
+        let lastError: Error | null = null;
+        const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
+
+        for (const apiKey of shuffledKeys) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        systemInstruction: {
+                            parts: [{ text: "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng." }]
+                        },
+                        contents,
+                        generationConfig: {
+                            temperature: 0.7
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text().catch(() => "");
+                    throw new Error(`Status ${response.status}: ${errText}`);
+                }
+
+                const data: any = await response.json();
+                const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!textResponse) {
+                    throw new Error("Invalid response structure from Gemini.");
+                }
+                return textResponse;
+            } catch (error: any) {
+                console.error(`Gemini chat call failed with key ending in ...${apiKey.slice(-5)}:`, error.message);
+                lastError = error;
+            }
+        }
+        throw new Error(`All Gemini API keys failed. Last error: ${lastError?.message}`);
+    }
+
+    async generateChatTitle(firstMessage: string): Promise<string> {
+        try {
+            const prompt = `Tạo tiêu đề cuộc trò chuyện cực kỳ ngắn gọn (3-6 từ, không dấu ngoặc kép, không dùng markdown) dựa trên câu hỏi đầu tiên này: "${firstMessage}"`;
+            const title = await this.callGemini(prompt);
+            return title.trim().replace(/^"|"$/g, "") || firstMessage.slice(0, 30);
+        } catch {
+            return firstMessage.length > 30 ? firstMessage.slice(0, 30) + "..." : firstMessage;
+        }
+    }
+
     async generateMindMap(text: string): Promise<{ sections: any[] }> {
         const prompt = `Bạn là một trợ lý AI phân tích lịch sử. Hãy tóm tắt đoạn văn bản lịch sử sau đây thành một cấu trúc sơ đồ tư duy (mindmap) dưới dạng JSON.
 Định dạng JSON trả về phải tuân thủ CHÍNH XÁC cấu trúc sau:

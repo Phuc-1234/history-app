@@ -261,6 +261,7 @@ model User {
   testLogs               UserTestLog[]
   notifications          Notification[]
   fcmTokens              FcmToken[]
+  aiChatSessions         AiChatSession[]
   tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
 
   @@map("users")
@@ -706,5 +707,30 @@ model FcmToken {
 
   @@index([userId])
   @@map("fcm_tokens")
+}
+
+model AiChatSession {
+  id        String          @id @default(uuid())
+  userId    String          @map("user_id")
+  title     String
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AiChatMessage[]
+
+  @@map("ai_chat_sessions")
+}
+
+model AiChatMessage {
+  id        String        @id @default(uuid())
+  sessionId String        @map("session_id")
+  sender    String        // "user" | "assistant"
+  content   String        @db.Text
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  session   AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_chat_messages")
 }
 
