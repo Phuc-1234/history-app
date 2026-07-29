@@ -24,10 +24,16 @@ import {
     useSendMessageMutation,
     AiChatMessageDto,
 } from "../services/aiChatApi";
+import { AiSkeletonBubble } from "./AiSkeletonBubble";
 
 interface AiChatOverlayProps {
     visible: boolean;
     onClose: () => void;
+}
+
+interface DisplayChatMessage extends AiChatMessageDto {
+    isPending?: boolean;
+    isError?: boolean;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -39,6 +45,15 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
     const [inputText, setInputText] = useState("");
     const [showSessionsDrawer, setShowSessionsDrawer] = useState(false);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [pendingMessage, setPendingMessage] = useState<{
+        id: string;
+        content: string;
+        status: "sending" | "error";
+    } | null>(null);
+
+    useEffect(() => {
+        setPendingMessage(null);
+    }, [selectedSessionId]);
 
     useEffect(() => {
         if (Platform.OS === "android") {
@@ -71,6 +86,23 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
     const sessions = sessionsData?.sessions || [];
     const messages = messagesData?.messages || [];
 
+    const displayMessages: DisplayChatMessage[] = [
+        ...messages,
+        ...(pendingMessage && selectedSessionId
+            ? [
+                  {
+                      id: pendingMessage.id,
+                      sessionId: selectedSessionId,
+                      sender: "user" as const,
+                      content: pendingMessage.content,
+                      createdAt: new Date().toISOString(),
+                      isPending: pendingMessage.status === "sending",
+                      isError: pendingMessage.status === "error",
+                  },
+              ]
+            : []),
+    ];
+
     // Auto-select latest session or create one when opened if empty
     useEffect(() => {
         if (visible && sessions.length > 0 && !selectedSessionId) {
@@ -100,9 +132,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         }
     };
 
-    const handleSend = async () => {
-        const text = inputText.trim();
-        if (!text || isSending) return;
+    const handleSend = async (contentToSend?: string) => {
+        const text = (contentToSend || inputText).trim();
+        if (!text || (isSending && pendingMessage?.status === "sending")) return;
 
         let activeSessionId = selectedSessionId;
         if (!activeSessionId) {
@@ -115,15 +147,22 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             }
         }
 
-        setInputText("");
+        if (!contentToSend) {
+            setInputText("");
+        }
+        const tempId = `temp-user-${Date.now()}`;
+        setPendingMessage({ id: tempId, content: text, status: "sending" });
+
         try {
             await sendMessage({ sessionId: activeSessionId, content: text }).unwrap();
+            setPendingMessage(null);
         } catch (err) {
             console.error("Failed to send message:", err);
+            setPendingMessage({ id: tempId, content: text, status: "error" });
         }
     };
 
-    const renderMessageItem = ({ item }: { item: AiChatMessageDto }) => {
+    const renderMessageItem = ({ item }: { item: DisplayChatMessage }) => {
         const isUser = item.sender === "user";
         return (
             <View style={[styles.messageBubbleContainer, isUser ? styles.userBubbleAlign : styles.assistantBubbleAlign]}>
@@ -132,10 +171,33 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <Ionicons name="sparkles" size={14} color="#FFF" />
                     </View>
                 )}
-                <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-                    <Text style={[styles.messageText, isUser ? styles.userMessageText : styles.assistantMessageText]}>
-                        {item.content}
-                    </Text>
+                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "80%" }}>
+                    <View
+                        style={[
+                            styles.messageBubble,
+                            isUser ? styles.userBubble : styles.assistantBubble,
+                            item.isError && styles.errorBubble,
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.messageText,
+                                item.isError
+                                    ? styles.errorMessageText
+                                    : isUser
+                                    ? styles.userMessageText
+                                    : styles.assistantMessageText,
+                            ]}
+                        >
+                            {item.content}
+                        </Text>
+                    </View>
+                    {item.isError && (
+                        <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
+                            <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+                            <Text style={styles.retryText}>Gửi thất bại. Chạm để thử lại</Text>
+                        </Pressable>
+                    )}
                 </View>
             </View>
         );
@@ -233,9 +295,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <>
                             {/* Chat Messages */}
                             <View style={styles.messagesContainer}>
-                                {isLoadingMessages && messages.length === 0 ? (
+                                {isLoadingMessages && displayMessages.length === 0 ? (
                                     <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
-                                ) : messages.length === 0 ? (
+                                ) : displayMessages.length === 0 ? (
                                     <View style={styles.emptyContainer}>
                                         <Ionicons name="sparkles-outline" size={48} color={colors.primary} />
                                         <Text style={styles.emptyTitle}>Xin chào! Tôi có thể giúp gì cho bạn?</Text>
@@ -246,18 +308,15 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 ) : (
                                     <FlatList
                                         ref={flatListRef}
-                                        data={messages}
+                                        data={displayMessages}
                                         keyExtractor={(m) => m.id}
                                         renderItem={renderMessageItem}
                                         contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 16 }}
                                         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                                        ListFooterComponent={
+                                            pendingMessage?.status === "sending" ? <AiSkeletonBubble /> : null
+                                        }
                                     />
-                                )}
-                                {isSending && (
-                                    <View style={styles.sendingIndicator}>
-                                        <ActivityIndicator size="small" color={colors.primary} />
-                                        <Text style={styles.sendingText}>AI đang trả lời...</Text>
-                                    </View>
                                 )}
                             </View>
 
@@ -285,10 +344,11 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     <Pressable
                                         style={[
                                             styles.sendButton,
-                                            (!inputText.trim() || isSending) && styles.sendButtonDisabled,
+                                            (!inputText.trim() || pendingMessage?.status === "sending") &&
+                                                styles.sendButtonDisabled,
                                         ]}
-                                        onPress={handleSend}
-                                        disabled={!inputText.trim() || isSending}
+                                        onPress={() => handleSend()}
+                                        disabled={!inputText.trim() || pendingMessage?.status === "sending"}
                                     >
                                         <Ionicons name="arrow-up" size={20} color="#FFF" />
                                     </Pressable>
@@ -470,16 +530,24 @@ const styles = StyleSheet.create({
     assistantMessageText: {
         color: colors.textPrimary,
     },
-    sendingIndicator: {
+    errorBubble: {
+        backgroundColor: colors.errorContainer,
+        borderColor: colors.error,
+        borderWidth: 1,
+    },
+    errorMessageText: {
+        color: colors.textError,
+    },
+    retryButton: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        marginTop: 4,
+        paddingHorizontal: 4,
     },
-    sendingText: {
-        fontSize: 12,
-        color: colors.textMuted,
-        marginLeft: 8,
+    retryText: {
+        fontSize: 11,
+        color: colors.error,
+        marginLeft: 4,
     },
     bottomContainer: {
         backgroundColor: colors.surface,

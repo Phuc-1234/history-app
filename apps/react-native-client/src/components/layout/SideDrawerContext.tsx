@@ -50,6 +50,14 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const segments = useSegments() as string[];
+    const currentRoute = segments.join("/");
+    const shouldHideAiFab =
+        segments.includes("(1_auth)") ||
+        segments.includes("(6_tests)") ||
+        currentRoute.includes("login") ||
+        currentRoute.includes("register") ||
+        currentRoute.includes("forgot") ||
+        currentRoute.includes("ques_choose");
     const { data, streakManager, tierManager } = useTopBarData();
 
     const slideAnim = useRef(new Animated.Value(0)).current;
@@ -350,7 +358,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                     />
                 </>
             )}
-            <AiChatFab onPress={() => setAiChatVisible(true)} />
+            {!shouldHideAiFab && <AiChatFab onPress={() => setAiChatVisible(true)} />}
             <AiChatOverlay visible={aiChatVisible} onClose={() => setAiChatVisible(false)} />
         </SideDrawerContext.Provider>
     );
