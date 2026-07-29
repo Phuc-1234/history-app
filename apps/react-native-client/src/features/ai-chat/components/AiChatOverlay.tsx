@@ -155,11 +155,17 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                             style={styles.drawerToggleButton}
                             onPress={() => setShowSessionsDrawer(!showSessionsDrawer)}
                         >
-                            <Ionicons name="menu-outline" size={24} color={colors.textPrimary} />
+                            <Ionicons
+                                name={showSessionsDrawer ? "chevron-back-outline" : "menu-outline"}
+                                size={24}
+                                color={colors.textPrimary}
+                            />
                         </Pressable>
 
                         <Text style={styles.headerTitle} numberOfLines={1}>
-                            {sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
+                            {showSessionsDrawer
+                                ? "Lịch sử trò chuyện"
+                                : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
                         </Text>
 
                         <Pressable style={styles.newChatHeaderButton} onPress={handleCreateNewSession}>
@@ -171,11 +177,11 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         </Pressable>
                     </View>
 
-                    {/* Session List Drawer (Dropdown Overlay) */}
-                    {showSessionsDrawer && (
-                        <View style={styles.sessionsDrawerContainer}>
+                    {/* View Switch: Full Sessions List OR Chat View */}
+                    {showSessionsDrawer ? (
+                        <View style={styles.sessionsListFullContainer}>
                             <View style={styles.drawerHeader}>
-                                <Text style={styles.drawerTitle}>Lịch sử trò chuyện</Text>
+                                <Text style={styles.drawerTitle}>Danh sách hội thoại</Text>
                                 <Pressable style={styles.addSessionBtn} onPress={handleCreateNewSession}>
                                     <Ionicons name="add" size={18} color="#FFF" />
                                     <Text style={styles.addSessionBtnText}>Tạo mới</Text>
@@ -187,7 +193,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 <FlatList
                                     data={sessions}
                                     keyExtractor={(s) => s.id}
-                                    style={{ maxHeight: 200 }}
+                                    contentContainerStyle={{ paddingVertical: 8 }}
                                     renderItem={({ item }) => (
                                         <View
                                             style={[
@@ -223,65 +229,76 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 />
                             )}
                         </View>
-                    )}
+                    ) : (
+                        <>
+                            {/* Chat Messages */}
+                            <View style={styles.messagesContainer}>
+                                {isLoadingMessages && messages.length === 0 ? (
+                                    <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+                                ) : messages.length === 0 ? (
+                                    <View style={styles.emptyContainer}>
+                                        <Ionicons name="sparkles-outline" size={48} color={colors.primary} />
+                                        <Text style={styles.emptyTitle}>Xin chào! Tôi có thể giúp gì cho bạn?</Text>
+                                        <Text style={styles.emptySub}>
+                                            Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <FlatList
+                                        ref={flatListRef}
+                                        data={messages}
+                                        keyExtractor={(m) => m.id}
+                                        renderItem={renderMessageItem}
+                                        contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 16 }}
+                                        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                                    />
+                                )}
+                                {isSending && (
+                                    <View style={styles.sendingIndicator}>
+                                        <ActivityIndicator size="small" color={colors.primary} />
+                                        <Text style={styles.sendingText}>AI đang trả lời...</Text>
+                                    </View>
+                                )}
+                            </View>
 
-                    {/* Chat Messages */}
-                    <View style={styles.messagesContainer}>
-                        {isLoadingMessages && messages.length === 0 ? (
-                            <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
-                        ) : messages.length === 0 ? (
-                            <View style={styles.emptyContainer}>
-                                <Ionicons name="sparkles-outline" size={48} color={colors.primary} />
-                                <Text style={styles.emptyTitle}>Xin chào! Tôi có thể giúp gì cho bạn?</Text>
-                                <Text style={styles.emptySub}>
-                                    Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!
+                            {/* Input Bar & Disclaimer */}
+                            <View
+                                style={[
+                                    styles.bottomContainer,
+                                    {
+                                        paddingBottom:
+                                            Math.max(insets.bottom + 4, 8) +
+                                            (Platform.OS === "android" ? keyboardHeight : 0),
+                                    },
+                                ]}
+                            >
+                                <View style={styles.inputContainer}>
+                                    <TextInput
+                                        style={styles.textInput}
+                                        placeholder="Nhập câu hỏi..."
+                                        placeholderTextColor={colors.textPlaceholder}
+                                        value={inputText}
+                                        onChangeText={setInputText}
+                                        multiline
+                                        maxLength={1000}
+                                    />
+                                    <Pressable
+                                        style={[
+                                            styles.sendButton,
+                                            (!inputText.trim() || isSending) && styles.sendButtonDisabled,
+                                        ]}
+                                        onPress={handleSend}
+                                        disabled={!inputText.trim() || isSending}
+                                    >
+                                        <Ionicons name="arrow-up" size={20} color="#FFF" />
+                                    </Pressable>
+                                </View>
+                                <Text style={styles.disclaimerText}>
+                                    AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng.
                                 </Text>
                             </View>
-                        ) : (
-                            <FlatList
-                                ref={flatListRef}
-                                data={messages}
-                                keyExtractor={(m) => m.id}
-                                renderItem={renderMessageItem}
-                                contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 16 }}
-                                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                            />
-                        )}
-                        {isSending && (
-                            <View style={styles.sendingIndicator}>
-                                <ActivityIndicator size="small" color={colors.primary} />
-                                <Text style={styles.sendingText}>AI đang trả lời...</Text>
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Input Bar & Disclaimer */}
-                    <View style={[styles.bottomContainer, { paddingBottom: Math.max(insets.bottom + 4, 8) + (Platform.OS === "android" ? keyboardHeight : 0) }]}>
-                        <View style={styles.inputContainer}>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder="Nhập câu hỏi..."
-                                placeholderTextColor={colors.textPlaceholder}
-                                value={inputText}
-                                onChangeText={setInputText}
-                                multiline
-                                maxLength={1000}
-                            />
-                            <Pressable
-                                style={[
-                                    styles.sendButton,
-                                    (!inputText.trim() || isSending) && styles.sendButtonDisabled,
-                                ]}
-                                onPress={handleSend}
-                                disabled={!inputText.trim() || isSending}
-                            >
-                                <Ionicons name="arrow-up" size={20} color="#FFF" />
-                            </Pressable>
-                        </View>
-                        <Text style={styles.disclaimerText}>
-                            AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng.
-                        </Text>
-                    </View>
+                        </>
+                    )}
                 </KeyboardAvoidingView>
             </View>
         </Modal>
@@ -332,13 +349,11 @@ const styles = StyleSheet.create({
     closeButton: {
         padding: 4,
     },
-    sessionsDrawerContainer: {
+    sessionsListFullContainer: {
+        flex: 1,
         backgroundColor: colors.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.surfaceVariant,
         paddingHorizontal: 16,
-        paddingVertical: 10,
-        zIndex: 10,
+        paddingVertical: 12,
     },
     drawerHeader: {
         flexDirection: "row",
@@ -355,9 +370,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: colors.primary,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 30,
     },
     addSessionBtnText: {
         color: "#FFF",
@@ -368,9 +383,9 @@ const styles = StyleSheet.create({
     sessionItem: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 10,
-        paddingHorizontal: 8,
-        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderRadius: 12,
     },
     sessionItemActive: {
         backgroundColor: colors.primaryContainer,
