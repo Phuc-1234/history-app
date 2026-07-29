@@ -16,6 +16,7 @@ import { useAppSelector } from "@/store/storeHook";
 import {
     useUpdateUserDataMutation,
     useUpdateUserEmailMutation,
+    useVerifyUserEmailMutation,
 } from "@/features/auth/services/authApi";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
@@ -25,6 +26,7 @@ import * as ImagePicker from "expo-image-picker";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { Toast } from "../../../components/Toast";
+import { OtpModal } from "../../../components/OtpModal";
 
 export default function ProfileEditScreen() {
     const router = useRouter();
@@ -40,6 +42,12 @@ export default function ProfileEditScreen() {
     const [isUploading, setIsUploading] = useState(false);
     const [updateUserData] = useUpdateUserDataMutation();
     const [updateUserEmail] = useUpdateUserEmailMutation();
+    const [verifyUserEmail] = useVerifyUserEmailMutation();
+
+    const [otpModalVisible, setOtpModalVisible] = useState(false);
+    const [pendingEmail, setPendingEmail] = useState("");
+    const [otpError, setOtpError] = useState<string | null>(null);
+    const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
     useEffect(() => {
         setName(profile?.name ?? "");
@@ -164,7 +172,7 @@ export default function ProfileEditScreen() {
                 setIsUploading(false);
             }
 
-            // 2. Save updates to database
+            // 2. Save updates for name and image
             if (trimmedName !== profile?.name || finalProfileImgUrl !== profile?.profileImgUrl) {
                 await updateUserData({
                     name: trimmedName,
@@ -172,8 +180,14 @@ export default function ProfileEditScreen() {
                 }).unwrap();
             }
 
+            // 3. If email changed, request OTP code
             if (trimmedEmail !== profile?.email) {
                 await updateUserEmail({ newEmail: trimmedEmail }).unwrap();
+                setPendingEmail(trimmedEmail);
+                setOtpError(null);
+                setOtpModalVisible(true);
+                setIsLoading(false);
+                return;
             }
 
             if (Platform.OS === 'web') {
@@ -188,10 +202,43 @@ export default function ProfileEditScreen() {
             }, 1800);
         } catch (err: any) {
             console.error("Save error:", err);
-            setErrorMsg(err.message || err?.data?.error || "Cập nhật thông tin thất bại");
+            setErrorMsg(err?.data?.error || err.message || "Cập nhật thông tin thất bại");
             setIsUploading(false);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async (token: string) => {
+        setIsVerifyingOtp(true);
+        setOtpError(null);
+        try {
+            await verifyUserEmail({ newEmail: pendingEmail, token }).unwrap();
+            setOtpModalVisible(false);
+
+            if (Platform.OS === 'web') {
+                alert("Đã cập nhật email thành công!");
+            } else {
+                setToastMessage("Đã cập nhật email thành công!");
+                setToastVisible(true);
+            }
+
+            setTimeout(() => {
+                router.back();
+            }, 1800);
+        } catch (err: any) {
+            console.error("Verify OTP error:", err);
+            setOtpError(err?.data?.error || err.message || "Mã OTP không chính xác hoặc đã hết hạn.");
+        } finally {
+            setIsVerifyingOtp(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        try {
+            await updateUserEmail({ newEmail: pendingEmail }).unwrap();
+        } catch (err: any) {
+            setOtpError(err?.data?.error || err.message || "Gửi lại mã OTP thất bại.");
         }
     };
 
@@ -286,6 +333,15 @@ export default function ProfileEditScreen() {
                 visible={toastVisible}
                 message={toastMessage}
                 onHide={() => setToastVisible(false)}
+            />
+            <OtpModal
+                visible={otpModalVisible}
+                email={pendingEmail}
+                onClose={() => setOtpModalVisible(false)}
+                onVerify={handleVerifyOtp}
+                onResend={handleResendOtp}
+                error={otpError}
+                isLoading={isVerifyingOtp}
             />
         </ScreenWrapper>
     );
