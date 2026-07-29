@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
     Avatar,
@@ -13,6 +13,7 @@ import { colors } from "@/theme/colors";
 import { useAppSelector } from "@/store/storeHook";
 import {
     useFollowUserMutation,
+    useGetMutualFriendsQuery,
     useGetSocialProfileQuery,
     useRemoveFriendMutation,
     useSendFriendRequestMutation,
@@ -33,6 +34,11 @@ export function OtherProfileScreen() {
     const isOwnProfile = !!(userId && currentUserId && String(userId) === String(currentUserId));
 
     const { data, isFetching, isError, refetch } = useGetSocialProfileQuery(userId, {
+        skip: !userId || isOwnProfile,
+    });
+
+    // Chỉ gọi khi có userId hợp lệ và không phải chính mình → tránh request vô nghĩa.
+    const { data: mutualData } = useGetMutualFriendsQuery(userId, {
         skip: !userId || isOwnProfile,
     });
 
@@ -201,8 +207,31 @@ export function OtherProfileScreen() {
                 </View>
 
                 <View style={{ gap: 12 }}>
-                    <Text style={styles.sectionTitle}>Bạn chung</Text>
-                    <EmptyState title="Chưa có dữ liệu bạn chung." />
+                    <Text style={styles.sectionTitle}>
+                        Bạn chung {mutualData?.total ? `(${mutualData.total})` : ""}
+                    </Text>
+                    {mutualData?.friends && mutualData.friends.length > 0 ? (
+                        <View style={styles.mutualFriendsRow}>
+                            {mutualData.friends.slice(0, 6).map((mutualUser) => (
+                                <TouchableOpacity
+                                    key={mutualUser.id}
+                                    onPress={() =>
+                                        pushRoute(
+                                            router,
+                                            `/(social)/profile?userId=${mutualUser.id}`,
+                                        )
+                                    }
+                                >
+                                    <Avatar
+                                        user={toViewUser(mutualUser)}
+                                        size={44}
+                                    />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    ) : (
+                        <EmptyState title="Chưa có bạn chung." />
+                    )}
                 </View>
             </ScrollView>
         </ScreenShell>

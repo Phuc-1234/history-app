@@ -10,6 +10,7 @@ import {
     useSendFriendRequestMutation,
     useUnfollowUserMutation,
 } from "../services/socialApi";
+import type { SocialSearchFilter } from "../types/socialApiTypes";
 import { styles } from "../styles/social.styles";
 import { toViewUser } from "../utils/socialView";
 import { SearchUserCard } from "../components/SearchUserCard";
@@ -18,13 +19,34 @@ function pushRoute(router: ReturnType<typeof useRouter>, route: string) {
     router.push(route as never);
 }
 
+/**
+ * Map nhãn tab (hiển thị tiếng Việt) → giá trị filter gửi cho backend.
+ * Tách ra ngoài component để referential ổn định, tránh re-render không cần thiết.
+ */
+const TAB_TO_FILTER: Record<string, SocialSearchFilter> = {
+    "Tất cả": "all",
+    "Bạn chung": "mutual",
+    "Đang học": "learning",
+    "Gần đây": "recent",
+};
+
 export function SearchUsersScreen() {
     const router = useRouter();
     const [query, setQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState("");
     const [selectedTab, setSelectedTab] = useState("Tất cả");
+
+    // Debounce 350ms: tránh spam server khi user gõ liên tục.
+    // Cleanup timer khi unmount / query đổi → không leak timer.
+    React.useEffect(() => {
+        const t = setTimeout(() => setDebouncedQuery(query), 350);
+        return () => clearTimeout(t);
+    }, [query]);
+
     const { data, isFetching, isError, refetch } = useSearchSocialUsersQuery({
-        q: query,
+        q: debouncedQuery,
         limit: 20,
+        filter: TAB_TO_FILTER[selectedTab] ?? "all",
     });
     const [followUser] = useFollowUserMutation();
     const [unfollowUser] = useUnfollowUserMutation();

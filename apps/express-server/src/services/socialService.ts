@@ -1,4 +1,5 @@
 import { prisma } from "@history-app/shared";
+import { Prisma } from "@prisma/client";
 import { pushNotificationService } from "./pushNotificationService";
 
 const db = prisma as any;
@@ -9,6 +10,21 @@ type RelationStatus =
     | "incoming_request"
     | "outgoing_request"
     | "none";
+
+/**
+ * Bộ lọc cho màn tìm bạn social.
+ * - `all`: tất cả user (sắp xếp theo XP).
+ * - `mutual`: bạn của bạn bè (có bạn chung với mình).
+ * - `learning`: học cùng khối lớp (cùng gradeId dựa trên node đã học).
+ * - `recent`: hoạt động gần đây (theo studied_at của node progress).
+ */
+export type SocialSearchFilter = "all" | "mutual" | "learning" | "recent";
+
+/** Giới hạn an hạn cho raw SQL LIMIT để tránh injection/over-fetch. */
+function safeRawLimit(value: number, fallback = 80, max = 400): number {
+    const n = Math.floor(Number(value) || fallback);
+    return Math.min(Math.max(n, 1), max);
+}
 
 const userSelect = {
     id: true,
@@ -64,9 +80,22 @@ function requestDto(request: any) {
 }
 
 export class SocialService {
-    async searchUsers(currentUserId: string, query = "", limit = 20) {
+    async searchUsers(
+        currentUserId: string,
+        query = "",
+        limit = 20,
+        filter: SocialSearchFilter = "all",
+    ) {
         const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
         const trimmedQuery = query.trim();
+
+        // Lấy trước tập ID user thoả mãn filter (có thể rỗng = tất cả).
+        const filteredIds = await this.collectFilteredUserIds(
+            currentUserId,
+            filter,
+            trimmedQuery,
+            safeLimit,
+        );
 
         const users = await db.user.findMany({
             where: {
@@ -80,19 +109,148 @@ export class SocialService {
                         ],
                     }
                     : {}),
+                ...(filteredIds ? { id: { in: filteredIds } } : {}),
             },
             select: userSelect,
             orderBy: [{ totalXp: "desc" }, { name: "asc" }],
             take: safeLimit,
         });
 
-        return Promise.all(
-            users.map(async (user: any) => ({
+        if (users.length === 0) return [];
+
+        const userIds = users.map((u: any) => u.id);
+
+        // Bulk-load mọi quan hệ 1 lần thay vì N+1:
+        // - friends của mình (1 query)
+        // - bạn bè của tất cả user trong kết quả (1 query bằng raw UNION)
+        // - follow của mình tới các user đó (1 query)
+        // - friend request pending 2 chiều (1 query)
+        const [myFriendSet, theirFriendMap, myFollowSet, pendingMap] =
+            await Promise.all([
+                this.getRawFriendIdSet(currentUserId),
+                this.bulkFriendIdSets(userIds),
+                this.getRawFollowingIdSet(currentUserId, userIds),
+                this.bulkPendingRequestMap(currentUserId, userIds),
+            ]);
+
+        return users.map((user: any) => {
+            const theirFriends = theirFriendMap.get(user.id) ?? new Set<string>();
+            // Đếm intersection giữa 2 tập bạn bè (đã có sẵn trong bộ nhớ).
+            let mutualCount = 0;
+            for (const fid of myFriendSet) {
+                if (theirFriends.has(fid)) mutualCount++;
+            }
+            const isFriend = myFriendSet.has(user.id);
+            const pending = pendingMap.get(user.id);
+            const relationStatus: RelationStatus = isFriend
+                ? "friend"
+                : pending === "out"
+                  ? "outgoing_request"
+                  : pending === "in"
+                    ? "incoming_request"
+                    : "none";
+            return {
                 ...publicUser(user),
-                relationStatus: await this.getRelationStatus(currentUserId, user.id),
-                isFollowing: await this.isFollowing(currentUserId, user.id),
-            })),
-        );
+                relationStatus,
+                isFollowing: myFollowSet.has(user.id),
+                mutualFriends: mutualCount,
+            };
+        });
+    }
+
+    /**
+     * Tập hợp ID của các user thoả mãn `filter`.
+     * Trả về:
+     * - `null`: không cần lọc (lấy tất cả).
+     * - `string[]`: ràng buộc WHERE id IN (...).
+     *
+     * Tách riêng để dễ test và tránh trộn query builder phức tạp.
+     */
+    private async collectFilteredUserIds(
+        currentUserId: string,
+        filter: SocialSearchFilter,
+        query: string,
+        limit: number,
+    ): Promise<string[] | null> {
+        if (filter === "all") return null;
+
+        if (filter === "mutual") {
+            // Lấy ID bạn bè của mình
+            const myFriends = await this.getRawFriendIds(currentUserId);
+            if (myFriends.length === 0) return [];
+
+            // Lấy ID bạn của bạn bè đó, trừ chính mình và trừ bạn bè trực tiếp.
+            // Dùng LIMIT trong SQL để tránh fetch toàn bộ before slice trong JS.
+            const myFriendSet = new Set(myFriends);
+            const sqlLimit = safeRawLimit(limit, 80, 400);
+            const rows: any[] = await db.$queryRaw`
+                SELECT id FROM (
+                    SELECT "friend_id" AS id
+                    FROM friendships
+                    WHERE "user_id" IN (${Prisma.join(myFriends)})
+                    UNION
+                    SELECT "user_id" AS id
+                    FROM friendships
+                    WHERE "friend_id" IN (${Prisma.join(myFriends)})
+                ) AS combined
+                LIMIT ${sqlLimit}
+            `;
+            const ids = new Set<string>();
+            for (const r of rows) {
+                const id = String(r.id);
+                if (
+                    id &&
+                    id !== currentUserId &&
+                    !myFriendSet.has(id)
+                ) {
+                    ids.add(id);
+                }
+            }
+            return Array.from(ids);
+        }
+
+        if (filter === "learning") {
+            // Học cùng khối lớp: cùng gradeId phổ biến nhất của mình.
+            const myGrade = await this.getPrimaryGradeId(currentUserId);
+            if (!myGrade) return [];
+
+            const rawLimit = safeRawLimit(limit);
+            const rows: any[] = await db.$queryRaw`
+                SELECT DISTINCT u.id
+                FROM users u
+                JOIN user_node_progress unp ON u.id = unp.user_id
+                JOIN nodes n ON n.id = unp.node_id
+                JOIN sections s ON n.section_id = s.id
+                JOIN lessons l ON s.lesson_id = l.id
+                JOIN topics t ON l.topic_id = t.id
+                WHERE u.is_hidden = false
+                  AND u.id <> ${currentUserId}
+                  AND t.grade_id = ${myGrade}
+                LIMIT ${rawLimit}
+            `;
+            return rows.map((r) => String(r.id));
+        }
+
+        if (filter === "recent") {
+            // Người có hoạt động học gần đây theo studied_at.
+            // Phải GROUP BY u.id vì dùng aggregate MAX() trong ORDER BY —
+            // nếu không sẽ lỗi "column must appear in GROUP BY" ở PostgreSQL.
+            const rawLimit = safeRawLimit(limit);
+            const rows: any[] = await db.$queryRaw`
+                SELECT u.id
+                FROM users u
+                JOIN user_node_progress unp ON u.id = unp.user_id
+                WHERE u.is_hidden = false
+                  AND u.id <> ${currentUserId}
+                  AND unp.studied_at IS NOT NULL
+                GROUP BY u.id
+                ORDER BY MAX(unp.studied_at) DESC
+                LIMIT ${rawLimit}
+            `;
+            return rows.map((r) => String(r.id));
+        }
+
+        return null;
     }
 
     async getUserProfile(currentUserId: string, targetUserId: string) {
@@ -469,6 +627,189 @@ export class SocialService {
         if (!user || user.isHidden) {
             throw Object.assign(new Error("User not found."), { statusCode: 404 });
         }
+    }
+
+    /**
+     * Lấy danh sách ID bạn bè trực tiếp của một user.
+     * Vì Friendship dùng cặp (userId, friendId) không đối xứng nên phải UNION 2 phía.
+     */
+    private async getRawFriendIds(userId: string): Promise<string[]> {
+        const rows = await db.friendship.findMany({
+            where: { OR: [{ userId }, { friendId: userId }] },
+            select: { userId: true, friendId: true },
+        });
+        const ids = new Set<string>();
+        for (const r of rows) {
+            if (r.userId !== userId) ids.add(r.userId);
+            if (r.friendId !== userId) ids.add(r.friendId);
+        }
+        return Array.from(ids);
+    }
+
+    /** Giống `getRawFriendIds` nhưng trả về Set để tra cứu O(1). */
+    private async getRawFriendIdSet(userId: string): Promise<Set<string>> {
+        const ids = await this.getRawFriendIds(userId);
+        return new Set(ids);
+    }
+
+    /**
+     * Bulk-load tập bạn bè của nhiều user cùng lúc → tránh N+1.
+     * Trả về Map<userId, Set<friendIds>>.
+     */
+    private async bulkFriendIdSets(
+        userIds: string[],
+    ): Promise<Map<string, Set<string>>> {
+        if (userIds.length === 0) return new Map();
+        // Một user có thể xuất hiện ở cột userId HOẶC friendId,
+        // nên phải query cả 2 phía rồi gộp.
+        const rows: any[] = await db.friendship.findMany({
+            where: {
+                OR: [
+                    { userId: { in: userIds } },
+                    { friendId: { in: userIds } },
+                ],
+            },
+            select: { userId: true, friendId: true },
+        });
+        const result = new Map<string, Set<string>>();
+        for (const id of userIds) result.set(id, new Set<string>());
+        for (const r of rows) {
+            // Nếu r.userId thuộc danh sách → bạn của nó là r.friendId
+            result.get(r.userId)?.add(r.friendId);
+            // Nếu r.friendId thuộc danh sách → bạn của nó là r.userId
+            result.get(r.friendId)?.add(r.userId);
+        }
+        return result;
+    }
+
+    /**
+     * Bulk-load tập user mà currentUserId đang follow (chỉ trong userIds).
+     */
+    private async getRawFollowingIdSet(
+        currentUserId: string,
+        userIds: string[],
+    ): Promise<Set<string>> {
+        if (userIds.length === 0) return new Set();
+        const rows = await db.follow.findMany({
+            where: {
+                followerId: currentUserId,
+                followingId: { in: userIds },
+            },
+            select: { followingId: true },
+        });
+        return new Set(rows.map((r: any) => r.followingId));
+    }
+
+    /**
+     * Bulk-load trạng thái pending request giữa currentUserId và các user khác.
+     * Trả về Map<userId, "out" | "in">:
+     * - "out": mình đã gửi lời mời cho user đó
+     * - "in": user đó đã gửi lời mời cho mình
+     */
+    private async bulkPendingRequestMap(
+        currentUserId: string,
+        userIds: string[],
+    ): Promise<Map<string, "out" | "in">> {
+        if (userIds.length === 0) return new Map();
+        const rows = await db.friendRequest.findMany({
+            where: {
+                status: "PENDING",
+                OR: [
+                    { senderId: currentUserId, receiverId: { in: userIds } },
+                    { receiverId: currentUserId, senderId: { in: userIds } },
+                ],
+            },
+            select: { senderId: true, receiverId: true },
+        });
+        const result = new Map<string, "out" | "in">();
+        for (const r of rows) {
+            if (r.senderId === currentUserId) {
+                result.set(r.receiverId, "out");
+            } else if (r.receiverId === currentUserId) {
+                result.set(r.senderId, "in");
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Đếm số bạn chung giữa 2 user (dùng cho UserCard + OtherProfileScreen).
+     * Intersection của 2 tập bạn bè.
+     */
+    private async getMutualFriendCount(userAId: string, userBId: string): Promise<number> {
+        if (userAId === userBId) return 0;
+        const [aFriends, bFriends] = await Promise.all([
+            this.getRawFriendIds(userAId),
+            this.getRawFriendIds(userBId),
+        ]);
+        if (aFriends.length === 0 || bFriends.length === 0) return 0;
+        const bSet = new Set(bFriends);
+        let count = 0;
+        for (const id of aFriends) {
+            if (bSet.has(id)) count++;
+        }
+        return count;
+    }
+
+    /**
+     * Lấy gradeId phổ biến nhất của user (theo số node đã học trong từng khối).
+     * Trả về null nếu user chưa học gì → filter "learning" sẽ trả rỗng.
+     */
+    private async getPrimaryGradeId(userId: string): Promise<number | null> {
+        const rows: any[] = await db.$queryRaw`
+            SELECT t.grade_id AS "gradeId", COUNT(*)::int AS cnt
+            FROM user_node_progress unp
+            JOIN nodes n ON n.id = unp.node_id
+            JOIN sections s ON n.section_id = s.id
+            JOIN lessons l ON s.lesson_id = l.id
+            JOIN topics t ON l.topic_id = t.id
+            WHERE unp.user_id = ${userId}
+            GROUP BY t.grade_id
+            ORDER BY cnt DESC, t.grade_id ASC
+            LIMIT 1
+        `;
+        if (!rows || rows.length === 0) return null;
+        const gradeId = Number(rows[0].gradeId);
+        return Number.isFinite(gradeId) ? gradeId : null;
+    }
+
+    /**
+     * API cho section "Bạn chung" trong OtherProfileScreen.
+     * Trả về danh sách user chung + total count.
+     */
+    async getMutualFriends(
+        currentUserId: string,
+        targetUserId: string,
+        limit = 10,
+    ) {
+        const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
+        if (currentUserId === targetUserId) {
+            return { total: 0, friends: [] };
+        }
+
+        const [myFriendsRaw, theirFriendsRaw] = await Promise.all([
+            this.getRawFriendIds(currentUserId),
+            this.getRawFriendIds(targetUserId),
+        ]);
+        const theirSet = new Set(theirFriendsRaw);
+        const mutualIds = myFriendsRaw.filter((id) => theirSet.has(id));
+        if (mutualIds.length === 0) {
+            return { total: 0, friends: [] };
+        }
+
+        const users = await db.user.findMany({
+            where: {
+                id: { in: mutualIds },
+                isHidden: false,
+            },
+            select: userSelect,
+            take: safeLimit,
+            orderBy: { totalXp: "desc" },
+        });
+        return {
+            total: mutualIds.length,
+            friends: users.map(publicUser),
+        };
     }
 
     private async getFriendCount(userId: string) {

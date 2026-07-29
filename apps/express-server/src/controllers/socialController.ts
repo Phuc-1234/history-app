@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
-import { socialService } from "../services/socialService";
+import {
+    socialService,
+    type SocialSearchFilter,
+} from "../services/socialService";
 
 function handleSocialError(error: any, res: Response) {
     const statusCode = Number(error?.statusCode) || 500;
@@ -20,6 +23,18 @@ function requireCurrentUser(req: Request) {
     return req.user;
 }
 
+const ALLOWED_FILTERS: ReadonlySet<string> = new Set([
+    "all",
+    "mutual",
+    "learning",
+    "recent",
+]);
+
+function parseFilter(value: unknown): SocialSearchFilter {
+    const v = typeof value === "string" ? value.trim().toLowerCase() : "";
+    return ALLOWED_FILTERS.has(v) ? (v as SocialSearchFilter) : "all";
+}
+
 export const searchUsers = async (req: Request, res: Response) => {
     try {
         const currentUser = requireCurrentUser(req);
@@ -27,8 +42,23 @@ export const searchUsers = async (req: Request, res: Response) => {
             currentUser.id,
             String(req.query.q ?? ""),
             Number(req.query.limit ?? 20),
+            parseFilter(req.query.filter),
         );
         return res.status(200).json({ users });
+    } catch (error) {
+        return handleSocialError(error, res);
+    }
+};
+
+export const getMutualFriends = async (req: Request, res: Response) => {
+    try {
+        const currentUser = requireCurrentUser(req);
+        const result = await socialService.getMutualFriends(
+            currentUser.id,
+            req.params.userId,
+            Number(req.query.limit ?? 10),
+        );
+        return res.status(200).json(result);
     } catch (error) {
         return handleSocialError(error, res);
     }
