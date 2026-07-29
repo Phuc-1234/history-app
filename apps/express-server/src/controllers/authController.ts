@@ -18,7 +18,7 @@ import {
 } from "@history-app/shared";
 import { prisma } from "@history-app/shared";
 import { Session } from "@supabase/supabase-js";
-import { getSupabaseUserClient, supabase } from "../config/supabaseClient";
+import { getSupabaseUserClient, supabase, supabaseAdmin } from "../config/supabaseClient";
 import { getBearerToken } from "./userController";
 
 const authService = new AuthService();
@@ -618,7 +618,6 @@ export const completeReset = async (req, res) => {
         const { newPassword } = req.body;
         
         const token = getBearerToken(req);
-        
 
         if (!token) {
             return res.status(401).json({ error: "Phiên làm việc đã hết hạn." });
@@ -628,19 +627,33 @@ export const completeReset = async (req, res) => {
             return res.status(400).json({ error: "Mật khẩu phải có ít nhất 6 ký tự." });
         }
 
-        // Use the token passed from the mobile app to target the specific user
-        const userSupabase = getSupabaseUserClient(token);
-        const { error: sessionError } = await userSupabase.auth.setSession({
-            access_token: token,
-            refresh_token: "iyl7y35cbakb",
-        });
-        
-        const { error } = await userSupabase.auth.updateUser({ password: newPassword });
-        console.log("error", error);
-        if (error) return res.status(400).json({ error: error.message });
+        // Safely extract user ID (sub) from JWT payload
+        let userId: string | null = null;
+        try {
+            const parts = token.split('.');
+            if (parts.length === 3) {
+                const payloadJson = Buffer.from(parts[1], 'base64').toString('utf-8');
+                const payload = JSON.parse(payloadJson);
+                userId = payload.sub || null;
+            }
+        } catch (e) {
+            console.error("JWT decode error:", e);
+        }
+
+        if (!userId) {
+            return res.status(401).json({ error: "Mã xác thực không hợp lệ hoặc đã hết hạn." });
+        }
+
+        // Update password using Supabase Admin API with extracted user ID
+        const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
+        if (error) {
+            console.error("completeReset admin updateUserById error:", error);
+            return res.status(400).json({ error: error.message });
+        }
 
         return res.status(200).json({ message: "Đặt lại mật khẩu thành công!" });
     } catch (error) {
+        console.error("completeReset server error:", error);
         return res.status(500).json({ error: "Lỗi hệ thống." });
     }
 };

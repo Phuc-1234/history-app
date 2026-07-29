@@ -295,15 +295,22 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "PUT",
                 body,
             }),
+        }),
+
+        verifyUserEmail: builder.mutation<{ message: string }, { newEmail: string; token: string }>({
+            query: (body) => ({
+                url: "/api/user/email/verify",
+                method: "POST",
+                body,
+            }),
             invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    console.log("[authApi] updateUserEmail success, data:", data);
-                    // Refresh profile
+                    console.log("[authApi] verifyUserEmail success, data:", data);
                     dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
                 } catch (error) {
-                    console.error("[authApi] Failed to update email:", error);
+                    console.error("[authApi] Failed to verify email OTP:", error);
                 }
             },
         }),
@@ -330,15 +337,29 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            async onQueryStarted(_, { queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if (data?.accessToken) {
+                        if (Platform.OS === "web") {
+                            try {
+                                localStorage.setItem("access_token", data.accessToken);
+                            } catch (e) {}
+                        } else {
+                            await AsyncStorage.setItem("access_token", data.accessToken);
+                        }
+                    }
+                } catch (error) {
+                    console.error("[authApi] verifyForgotOtp save token error:", error);
+                }
+            },
         }),
 
-        completeReset: builder.mutation<{ message: string }, { token: string; newPassword: string }>({
+        completeReset: builder.mutation<{ message: string }, { token?: string; newPassword: string }>({
             query: ({ token, newPassword }) => ({
                 url: "/api/auth/complete-reset",
                 method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
                 body: { newPassword },
             }),
         }),
@@ -357,6 +378,7 @@ export const {
     useChangePasswordMutation,
     useUpdateUserDataMutation,
     useUpdateUserEmailMutation,
+    useVerifyUserEmailMutation,
     useUpdateUserPasswordMutation,
     useGoogleVerifyMutation,
     useFacebookVerifyMutation,

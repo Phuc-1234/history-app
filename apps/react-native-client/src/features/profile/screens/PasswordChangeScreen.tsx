@@ -5,6 +5,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -124,6 +125,13 @@ export default function PasswordChangeScreen() {
                         {state.currentPasswordError ? (
                             <Text style={styles.errorText}>{state.currentPasswordError}</Text>
                         ) : null}
+                        <TouchableOpacity
+                            onPress={() => router.push("/(1_auth)/1_3_forgot")}
+                            style={styles.forgotButton}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.forgotText}>Quên mật khẩu?</Text>
+                        </TouchableOpacity>
 
                         <Text style={styles.fieldLabel}>{text.newLabel}</Text>
                         <Input
@@ -294,6 +302,16 @@ const styles = StyleSheet.create({
     },
     requirementTextMet: {
         color: colors.success,
+        fontWeight: "600",
+    },
+    forgotButton: {
+        alignSelf: "flex-end",
+        marginTop: 4,
+        marginBottom: 10,
+    },
+    forgotText: {
+        color: colors.primary,
+        fontSize: 13,
         fontWeight: "600",
     },
 });
