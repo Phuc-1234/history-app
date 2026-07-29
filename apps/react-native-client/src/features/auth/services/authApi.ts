@@ -330,15 +330,29 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            async onQueryStarted(_, { queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if (data?.accessToken) {
+                        if (Platform.OS === "web") {
+                            try {
+                                localStorage.setItem("access_token", data.accessToken);
+                            } catch (e) {}
+                        } else {
+                            await AsyncStorage.setItem("access_token", data.accessToken);
+                        }
+                    }
+                } catch (error) {
+                    console.error("[authApi] verifyForgotOtp save token error:", error);
+                }
+            },
         }),
 
-        completeReset: builder.mutation<{ message: string }, { token: string; newPassword: string }>({
+        completeReset: builder.mutation<{ message: string }, { token?: string; newPassword: string }>({
             query: ({ token, newPassword }) => ({
                 url: "/api/auth/complete-reset",
                 method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
                 body: { newPassword },
             }),
         }),
