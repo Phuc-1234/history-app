@@ -20,7 +20,8 @@
     "build:shared": "npm run build --workspace=@history-app/shared",
     "build:server": "npm run build --workspace=express-server",
     "build:render": "npm install && npx prisma generate --schema=packages/shared/prisma/schema.prisma && npm run build:shared && npm run build:server",
-    "start:render": "node apps/express-server/dist/index.js"
+    "start:render": "node apps/express-server/dist/index.js",
+    "dev": ""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
