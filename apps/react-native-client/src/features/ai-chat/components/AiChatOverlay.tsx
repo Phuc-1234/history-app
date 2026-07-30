@@ -231,7 +231,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     {item.isError && (
                         <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
                             <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
-                            <Text style={styles.retryText}>Gửi thất bại. Chạm để thử lại</Text>
+                            <Text style={styles.retryText}>Gửi thất bại, chạm để thử lại</Text>
                         </Pressable>
                     )}
                 </View>
