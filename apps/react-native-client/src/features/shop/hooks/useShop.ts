@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useAppSelector } from "../../../store/storeHook";
 import { useGetShopItemsQuery, usePurchaseItemMutation, useGetUserInventoryQuery } from "../../inventory/services/itemApi";
 import { useGetProfileQuery } from "../../auth/services/authApi";
+import { toastService } from "../../../services/toastService";
 
 export interface ShopItem {
     id: string;
@@ -81,12 +82,7 @@ export function useShop() {
         try {
             await purchaseItem({ itemDefinitionId: item.dbId, quantity: 1 }).unwrap();
             setSelectedItem(null);
-            setPurchaseModal({
-                visible: true,
-                title: "Mua thành công!",
-                message: `Bạn đã mua thành công vật phẩm "${item.name}".`,
-                isSuccess: true,
-            });
+            toastService.show(`Bạn đã mua thành công vật phẩm "${item.name}".`, "success");
         } catch (err: any) {
             setPurchaseModal({
                 visible: true,

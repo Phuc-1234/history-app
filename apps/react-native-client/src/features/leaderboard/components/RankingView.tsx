@@ -37,12 +37,8 @@ export const RankingView: React.FC = () => {
         isSmallDevice,
         activeTab,
         setActiveTab,
-        filterAll,
-        toggleAll,
-        filterFriends,
-        toggleFriends,
-        filterFollowing,
-        toggleFollowing,
+        filterOption,
+        setFilterOption,
         isLoading,
         isFetching,
         isError,
@@ -52,7 +48,7 @@ export const RankingView: React.FC = () => {
     const meInList = displayUsers.find((u) => String(u.id) === String(myUserId));
     const myRank = meInList ? meInList.rank : 0;
 
-    const isFiltering = !filterAll;
+    const isFiltering = filterOption !== "all";
 
     // Logic cuộn để hiện thanh sticky
     const handleScroll = (event: any) => {
@@ -110,11 +106,11 @@ export const RankingView: React.FC = () => {
                 <Card style={styles.filterDropdownCard}>
                     <TouchableOpacity
                         style={styles.checkboxOption}
-                        onPress={toggleAll}
+                        onPress={() => setFilterOption("all")}
                         activeOpacity={0.8}
                     >
                         <Ionicons
-                            name={filterAll ? "checkbox" : "square-outline"}
+                            name={filterOption === "all" ? "radio-button-on" : "radio-button-off"}
                             size={20}
                             color={colors.primary}
                         />
@@ -123,11 +119,11 @@ export const RankingView: React.FC = () => {
 
                     <TouchableOpacity
                         style={styles.checkboxOption}
-                        onPress={toggleFriends}
+                        onPress={() => setFilterOption("friends")}
                         activeOpacity={0.8}
                     >
                         <Ionicons
-                            name={filterFriends ? "checkbox" : "square-outline"}
+                            name={filterOption === "friends" ? "radio-button-on" : "radio-button-off"}
                             size={20}
                             color={colors.primary}
                         />
@@ -136,15 +132,28 @@ export const RankingView: React.FC = () => {
 
                     <TouchableOpacity
                         style={styles.checkboxOption}
-                        onPress={toggleFollowing}
+                        onPress={() => setFilterOption("following")}
                         activeOpacity={0.8}
                     >
                         <Ionicons
-                            name={filterFollowing ? "checkbox" : "square-outline"}
+                            name={filterOption === "following" ? "radio-button-on" : "radio-button-off"}
                             size={20}
                             color={colors.primary}
                         />
                         <Text style={styles.checkboxLabel}>Đang theo dõi</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.checkboxOption}
+                        onPress={() => setFilterOption("both")}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons
+                            name={filterOption === "both" ? "radio-button-on" : "radio-button-off"}
+                            size={20}
+                            color={colors.primary}
+                        />
+                        <Text style={styles.checkboxLabel}>Bạn bè & đang theo dõi</Text>
                     </TouchableOpacity>
                 </Card>
             )}

@@ -72,9 +72,11 @@ export function LessonSummary({
             <View style={styles.bannerContainer}>
                 {/* Replace with your image asset later */}
                 <ImageBackground
-                    source={{
-                        uri: data.imgUrl || "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500",
-                    }}
+                    source={
+                        data.imgUrl
+                            ? { uri: data.imgUrl }
+                            : require("../../../../assets/images/default_lesson.png")
+                    }
                     style={styles.bannerBg}
                     imageStyle={{ borderRadius: 12 }}
                 >

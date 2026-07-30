@@ -42,13 +42,11 @@ app.use(cors({
 }));
 app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies onto req.body
 
-// ==========================================
+import aiChatRoutes from "./routes/aiChatRoutes";
+
 // API Route Bindings
-// ==========================================
-// Mounts your authentication routes under the /api/auth prefix
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
-// Triggers hot-reload for feedback routes inclusion
 app.use("/api/content", contentRoutes);
 app.use("/api/gamification", gamificationRoutes);
 app.use("/api/admin", adminRoutes);
@@ -61,6 +59,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/home", homeRoutes);
 app.use("/api/shop", shopRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/ai-chat", aiChatRoutes);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {

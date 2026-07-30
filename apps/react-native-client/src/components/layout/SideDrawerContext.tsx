@@ -22,6 +22,8 @@ import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
 import { AvatarWithFrame } from "../ui";
 import { StreakDrawerModal } from "../../features/streak";
 import { TierDrawerModal } from "../../features/tier";
+import { AiChatFab } from "../../features/ai-chat/components/AiChatFab";
+import { AiChatOverlay } from "../../features/ai-chat/components/AiChatOverlay";
 
 const DRAWER_WIDTH = 280;
 
@@ -44,9 +46,18 @@ export function useSideDrawer() {
 export function SideDrawerProvider({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [renderDrawer, setRenderDrawer] = useState(false);
+    const [aiChatVisible, setAiChatVisible] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const segments = useSegments() as string[];
+    const currentRoute = segments.join("/");
+    const shouldHideAiFab =
+        segments.includes("(1_auth)") ||
+        segments.includes("(6_tests)") ||
+        currentRoute.includes("login") ||
+        currentRoute.includes("register") ||
+        currentRoute.includes("forgot") ||
+        currentRoute.includes("ques_choose");
     const { data, streakManager, tierManager } = useTopBarData();
 
     const slideAnim = useRef(new Animated.Value(0)).current;
@@ -168,12 +179,10 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         { id: "subscription", label: "Đăng ký gói", icon: "card-outline", activeIcon: "card", route: "/(10_proflie)/10_8_subscription" },
     ];
 
-    const isDrawerAvailable = segments.includes("(tabs)");
-
     return (
         <SideDrawerContext.Provider value={{ openDrawer, closeDrawer, isOpen }}>
             {children}
-            {isDrawerAvailable && !isOpen && (
+            {!isOpen && (
                 <View
                     style={styles.swipeOpenHandle}
                     {...openPanResponder.panHandlers}
@@ -349,6 +358,8 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                     />
                 </>
             )}
+            {!shouldHideAiFab && <AiChatFab onPress={() => setAiChatVisible(true)} />}
+            <AiChatOverlay visible={aiChatVisible} onClose={() => setAiChatVisible(false)} />
         </SideDrawerContext.Provider>
     );
 }

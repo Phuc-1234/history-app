@@ -172,13 +172,6 @@ export const ShopView: React.FC = () => {
                                     {selectedItem.description}
                                 </Text>
 
-                                <View style={styles.modalCostIndicatorRow}>
-                                    <Coins size={18} color={colors.secondary} style={styles.modalCoinIcon} />
-                                    <Text style={styles.modalCostLabelText}>
-                                        {selectedItem.cost.toLocaleString()} xu
-                                    </Text>
-                                </View>
-
                                 <TouchableOpacity
                                     style={[
                                         styles.checkoutActionButton,
@@ -193,7 +186,11 @@ export const ShopView: React.FC = () => {
                                     ) : (
                                         <View style={styles.checkoutButtonInner}>
                                             <ShoppingCart size={16} color={colors.textLight} />
-                                            <Text style={styles.checkoutButtonText}>Mua ngay</Text>
+                                            <Text style={styles.checkoutButtonText}>Mua ngay •</Text>
+                                            <Coins size={14} color={colors.secondary} />
+                                            <Text style={styles.checkoutButtonText}>
+                                                {selectedItem.cost.toLocaleString()} xu
+                                            </Text>
                                         </View>
                                     )}
                                 </TouchableOpacity>
@@ -312,12 +309,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         position: "relative",
+        padding: 10,
     },
     cellImage: {
         width: "100%",
         height: "100%",
-        resizeMode: "cover",
-        position: "absolute",
+        resizeMode: "contain",
         zIndex: 2,
     },
     cellFooter: {
@@ -404,11 +401,12 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surfaceVariant,
         justifyContent: "center",
         alignItems: "center",
+        padding: 16,
     },
     modalLargeImage: {
         width: "100%",
         height: "100%",
-        resizeMode: "cover",
+        resizeMode: "contain",
     },
     modalDetailsWrapper: {
         padding: 24,

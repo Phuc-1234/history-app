@@ -569,8 +569,12 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     menuButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: "center",
         alignItems: "center",
+        marginLeft: -8,
     },
     logoText: {
         fontFamily: typography.fonts.medium,

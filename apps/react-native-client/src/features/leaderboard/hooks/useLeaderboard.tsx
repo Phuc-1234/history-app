@@ -16,46 +16,14 @@ export interface DisplayUser {
     rank: number;
 }
 
+export type LeaderboardFilterOption = "all" | "friends" | "following" | "both";
+
 export function useLeaderboard(myUserId?: string) {
     const { width } = useWindowDimensions();
     const isSmallDevice = width < 390;
 
     const [activeTab, setActiveTab] = useState<"xp" | "streak">("xp");
-    const [filterFriends, setFilterFriends] = useState(true);
-    const [filterFollowing, setFilterFollowing] = useState(true);
-    const [filterAll, setFilterAll] = useState(true);
-
-    const toggleAll = () => {
-        if (filterAll) {
-            setFilterAll(false);
-            setFilterFriends(false);
-            setFilterFollowing(false);
-        } else {
-            setFilterAll(true);
-            setFilterFriends(true);
-            setFilterFollowing(true);
-        }
-    };
-
-    const toggleFriends = () => {
-        setFilterFriends((prev) => {
-            const next = !prev;
-            if (!next) {
-                setFilterAll(false);
-            }
-            return next;
-        });
-    };
-
-    const toggleFollowing = () => {
-        setFilterFollowing((prev) => {
-            const next = !prev;
-            if (!next) {
-                setFilterAll(false);
-            }
-            return next;
-        });
-    };
+    const [filterOption, setFilterOption] = useState<LeaderboardFilterOption>("all");
 
     const {
         data: response,
@@ -114,22 +82,30 @@ export function useLeaderboard(myUserId?: string) {
             };
         });
 
-        const filtered = filterAll
-            ? mapped
-            : mapped.filter((user) => {
-                  if (myUserId && String(user.id) === String(myUserId)) {
-                      return true;
-                  }
-                  const matchFriend = filterFriends && user.isFriend;
-                  const matchFollowing = filterFollowing && user.isFollowing;
-                  return matchFriend || matchFollowing;
-              });
+        const filtered = mapped.filter((user) => {
+            if (myUserId && String(user.id) === String(myUserId)) {
+                return true;
+            }
+            if (filterOption === "all") {
+                return true;
+            }
+            if (filterOption === "friends") {
+                return user.isFriend;
+            }
+            if (filterOption === "following") {
+                return user.isFollowing;
+            }
+            if (filterOption === "both") {
+                return user.isFriend || user.isFollowing;
+            }
+            return true;
+        });
 
         return filtered.map((user, idx) => ({
             ...user,
             rank: idx + 1,
         }));
-    }, [response, friendIdsSet, followingIdsSet, filterAll, filterFriends, filterFollowing, myUserId]);
+    }, [response, friendIdsSet, followingIdsSet, filterOption, myUserId]);
 
     const topUsers = displayUsers.slice(0, 3);
     const rankingList = displayUsers.slice(3);
@@ -141,12 +117,8 @@ export function useLeaderboard(myUserId?: string) {
         isSmallDevice,
         activeTab,
         setActiveTab,
-        filterAll,
-        toggleAll,
-        filterFriends,
-        toggleFriends,
-        filterFollowing,
-        toggleFollowing,
+        filterOption,
+        setFilterOption,
         isLoading: isLeaderboardLoading,
         isFetching: isLeaderboardFetching,
         isError,

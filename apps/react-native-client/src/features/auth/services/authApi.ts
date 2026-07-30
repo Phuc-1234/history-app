@@ -295,15 +295,22 @@ export const authApi = apiSlice.injectEndpoints({
                 method: "PUT",
                 body,
             }),
+        }),
+
+        verifyUserEmail: builder.mutation<{ message: string }, { newEmail: string; token: string }>({
+            query: (body) => ({
+                url: "/api/user/email/verify",
+                method: "POST",
+                body,
+            }),
             invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    console.log("[authApi] updateUserEmail success, data:", data);
-                    // Refresh profile
+                    console.log("[authApi] verifyUserEmail success, data:", data);
                     dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
                 } catch (error) {
-                    console.error("[authApi] Failed to update email:", error);
+                    console.error("[authApi] Failed to verify email OTP:", error);
                 }
             },
         }),
@@ -371,6 +378,7 @@ export const {
     useChangePasswordMutation,
     useUpdateUserDataMutation,
     useUpdateUserEmailMutation,
+    useVerifyUserEmailMutation,
     useUpdateUserPasswordMutation,
     useGoogleVerifyMutation,
     useFacebookVerifyMutation,
