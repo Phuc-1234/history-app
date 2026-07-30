@@ -31,11 +31,7 @@ export const AiSkeletonBubble: React.FC = () => {
             <View style={styles.aiAvatar}>
                 <Ionicons name="sparkles" size={14} color="#FFF" />
             </View>
-            <Animated.View style={[styles.bubble, { opacity: opacityAnim }]}>
-                <View style={styles.skeletonLineShort} />
-                <View style={styles.skeletonLineLong} />
-                <View style={styles.skeletonLineMedium} />
-            </Animated.View>
+            <Animated.View style={[styles.bubble, { opacity: opacityAnim }]} />
         </View>
     );
 };
@@ -58,31 +54,10 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     bubble: {
-        maxWidth: "75%",
-        minWidth: 140,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        width: 60,
+        height: 36,
         borderRadius: 12,
         borderBottomLeftRadius: 4,
         backgroundColor: colors.surfaceVariant,
-        gap: 8,
-    },
-    skeletonLineShort: {
-        height: 10,
-        width: "50%",
-        backgroundColor: colors.borderMedium,
-        borderRadius: 4,
-    },
-    skeletonLineLong: {
-        height: 10,
-        width: "90%",
-        backgroundColor: colors.borderMedium,
-        borderRadius: 4,
-    },
-    skeletonLineMedium: {
-        height: 10,
-        width: "70%",
-        backgroundColor: colors.borderMedium,
-        borderRadius: 4,
     },
 });
