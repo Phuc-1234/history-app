@@ -121,4 +121,18 @@ export class AiChatService {
         });
         return { success: true };
     }
+
+    async updateSessionTitle(userId: string, sessionId: string, title: string) {
+        const session = await prisma.aiChatSession.findFirst({
+            where: { id: sessionId, userId }
+        });
+        if (!session) {
+            throw new Error("Chat session not found or unauthorized.");
+        }
+        const updated = await prisma.aiChatSession.update({
+            where: { id: sessionId },
+            data: { title }
+        });
+        return updated;
+    }
 }

@@ -20,9 +20,11 @@ import {
     useListSessionsQuery,
     useCreateSessionMutation,
     useDeleteSessionMutation,
+    useUpdateSessionTitleMutation,
     useGetSessionMessagesQuery,
     useSendMessageMutation,
     AiChatMessageDto,
+    AiChatSessionDto,
 } from "../services/aiChatApi";
 import { AiSkeletonBubble } from "./AiSkeletonBubble";
 
@@ -70,9 +72,14 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         }
     }, []);
 
+    const [actionSession, setActionSession] = useState<AiChatSessionDto | null>(null);
+    const [showRenameModal, setShowRenameModal] = useState(false);
+    const [renameTitleInput, setRenameTitleInput] = useState("");
+
     const { data: sessionsData, isLoading: isLoadingSessions } = useListSessionsQuery(undefined, { skip: !visible });
     const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
     const [deleteSession] = useDeleteSessionMutation();
+    const [updateSessionTitle, { isLoading: isUpdatingTitle }] = useUpdateSessionTitleMutation();
 
     const { data: messagesData, isLoading: isLoadingMessages } = useGetSessionMessagesQuery(
         selectedSessionId!,
@@ -132,6 +139,35 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         }
     };
 
+    const handleLongPressSession = (session: AiChatSessionDto) => {
+        setActionSession(session);
+    };
+
+    const handleOpenRename = () => {
+        if (actionSession) {
+            setRenameTitleInput(actionSession.title);
+            setShowRenameModal(true);
+        }
+    };
+
+    const handleSaveRename = async () => {
+        if (!actionSession || !renameTitleInput.trim()) return;
+        try {
+            await updateSessionTitle({ sessionId: actionSession.id, title: renameTitleInput.trim() }).unwrap();
+            setShowRenameModal(false);
+            setActionSession(null);
+        } catch (err) {
+            console.error("Failed to rename session:", err);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!actionSession) return;
+        const idToDelete = actionSession.id;
+        setActionSession(null);
+        await handleDeleteSession(idToDelete);
+    };
+
     const handleSend = async (contentToSend?: string) => {
         const text = (contentToSend || inputText).trim();
         if (!text || (isSending && pendingMessage?.status === "sending")) return;
@@ -171,7 +207,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <Ionicons name="sparkles" size={14} color="#FFF" />
                     </View>
                 )}
-                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "80%" }}>
+                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "65%" }}>
                     <View
                         style={[
                             styles.messageBubble,
@@ -244,10 +280,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <View style={styles.sessionsListFullContainer}>
                             <View style={styles.drawerHeader}>
                                 <Text style={styles.drawerTitle}>Danh sách hội thoại</Text>
-                                <Pressable style={styles.addSessionBtn} onPress={handleCreateNewSession}>
-                                    <Ionicons name="add" size={18} color="#FFF" />
-                                    <Text style={styles.addSessionBtnText}>Tạo mới</Text>
-                                </Pressable>
+                                
                             </View>
                             {isLoadingSessions ? (
                                 <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
@@ -257,36 +290,28 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     keyExtractor={(s) => s.id}
                                     contentContainerStyle={{ paddingVertical: 8 }}
                                     renderItem={({ item }) => (
-                                        <View
-                                            style={[
+                                        <Pressable
+                                            style={({ pressed }) => [
                                                 styles.sessionItem,
                                                 item.id === selectedSessionId && styles.sessionItemActive,
+                                                pressed && styles.sessionItemPressed,
                                             ]}
+                                            onPress={() => {
+                                                setSelectedSessionId(item.id);
+                                                setShowSessionsDrawer(false);
+                                            }}
+                                            onLongPress={() => handleLongPressSession(item)}
                                         >
-                                            <Pressable
-                                                style={{ flex: 1 }}
-                                                onPress={() => {
-                                                    setSelectedSessionId(item.id);
-                                                    setShowSessionsDrawer(false);
-                                                }}
+                                            <Text
+                                                style={[
+                                                    styles.sessionItemText,
+                                                    item.id === selectedSessionId && styles.sessionItemTextActive,
+                                                ]}
+                                                numberOfLines={1}
                                             >
-                                                <Text
-                                                    style={[
-                                                        styles.sessionItemText,
-                                                        item.id === selectedSessionId && styles.sessionItemTextActive,
-                                                    ]}
-                                                    numberOfLines={1}
-                                                >
-                                                    {item.title}
-                                                </Text>
-                                            </Pressable>
-                                            <Pressable
-                                                onPress={() => handleDeleteSession(item.id)}
-                                                style={styles.deleteSessionBtn}
-                                            >
-                                                <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
-                                            </Pressable>
-                                        </View>
+                                                {item.title}
+                                            </Text>
+                                        </Pressable>
                                     )}
                                 />
                             )}
@@ -361,6 +386,81 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     )}
                 </KeyboardAvoidingView>
             </View>
+
+            {/* Session Action Options Modal (Long Press) */}
+            <Modal
+                visible={!!actionSession && !showRenameModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setActionSession(null)}
+            >
+                <View style={styles.actionModalBackdrop}>
+                    <Pressable style={StyleSheet.absoluteFill} onPress={() => setActionSession(null)} />
+                    <View style={styles.actionModalContainer}>
+                        <Text style={styles.actionModalTitle} numberOfLines={1}>
+                            {actionSession?.title}
+                        </Text>
+                        <Pressable style={styles.actionOptionRow} onPress={handleOpenRename}>
+                            <Ionicons name="pencil-outline" size={20} color={colors.textPrimary} style={{ marginRight: 12 }} />
+                            <Text style={styles.actionOptionText}>Đổi tên</Text>
+                        </Pressable>
+                        <View style={styles.actionOptionDivider} />
+                        <Pressable style={styles.actionOptionRow} onPress={handleConfirmDelete}>
+                            <Ionicons name="trash-outline" size={20} color={colors.error} style={{ marginRight: 12 }} />
+                            <Text style={[styles.actionOptionText, { color: colors.error }]}>Xóa hội thoại</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Rename Session Title Modal */}
+            <Modal
+                visible={showRenameModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowRenameModal(false)}
+            >
+                <View style={styles.actionModalBackdrop}>
+                    <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowRenameModal(false)} />
+                    <View style={styles.renameModalContainer}>
+                        <Text style={styles.renameModalTitle}>Đổi tên cuộc trò chuyện</Text>
+                        <TextInput
+                            style={styles.renameInput}
+                            value={renameTitleInput}
+                            onChangeText={setRenameTitleInput}
+                            placeholder="Nhập tên mới..."
+                            placeholderTextColor={colors.textPlaceholder}
+                            autoFocus
+                            maxLength={100}
+                        />
+                        <View style={styles.renameButtonRow}>
+                            <Pressable
+                                style={styles.renameCancelBtn}
+                                onPress={() => {
+                                    setShowRenameModal(false);
+                                    setActionSession(null);
+                                }}
+                            >
+                                <Text style={styles.renameCancelText}>Hủy</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[
+                                    styles.renameSaveBtn,
+                                    (!renameTitleInput.trim() || isUpdatingTitle) && styles.renameSaveBtnDisabled,
+                                ]}
+                                onPress={handleSaveRename}
+                                disabled={!renameTitleInput.trim() || isUpdatingTitle}
+                            >
+                                {isUpdatingTitle ? (
+                                    <ActivityIndicator size="small" color="#FFF" />
+                                ) : (
+                                    <Text style={styles.renameSaveText}>Lưu</Text>
+                                )}
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </Modal>
     );
 };
@@ -446,9 +546,14 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 12,
         borderRadius: 12,
+        overflow: "hidden",
     },
     sessionItemActive: {
         backgroundColor: colors.primaryContainer,
+    },
+    sessionItemPressed: {
+        backgroundColor: colors.surfaceVariant,
+        opacity: 0.75,
     },
     sessionItemText: {
         fontSize: 14,
@@ -507,7 +612,7 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     messageBubble: {
-        maxWidth: "80%",
+        maxWidth: "100%",
         paddingHorizontal: 14,
         paddingVertical: 10,
         borderRadius: 16,
@@ -591,5 +696,94 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         textAlign: "center",
         paddingVertical: 4,
+    },
+    actionModalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 24,
+    },
+    actionModalContainer: {
+        width: "100%",
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+    },
+    actionModalTitle: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: colors.textPrimary,
+        marginBottom: 12,
+        paddingHorizontal: 4,
+    },
+    actionOptionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        borderRadius: 8,
+    },
+    actionOptionText: {
+        fontSize: 15,
+        color: colors.textPrimary,
+        fontWeight: "500",
+    },
+    actionOptionDivider: {
+        height: 1,
+        backgroundColor: colors.surfaceVariant,
+        marginVertical: 4,
+    },
+    renameModalContainer: {
+        width: "100%",
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 20,
+    },
+    renameModalTitle: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: colors.textPrimary,
+        marginBottom: 14,
+    },
+    renameInput: {
+        backgroundColor: colors.inputBackground,
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        fontSize: 14,
+        color: colors.textPrimary,
+        marginBottom: 18,
+    },
+    renameButtonRow: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        alignItems: "center",
+    },
+    renameCancelBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 30,
+        marginRight: 8,
+    },
+    renameCancelText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: colors.textMuted,
+    },
+    renameSaveBtn: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 30,
+    },
+    renameSaveBtnDisabled: {
+        backgroundColor: colors.textPlaceholder,
+    },
+    renameSaveText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#FFF",
     },
 });
