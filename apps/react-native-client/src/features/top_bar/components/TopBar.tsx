@@ -236,9 +236,13 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
     menuButton: {
-        marginRight: 12,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: "center",
         alignItems: "center",
+        marginLeft: -8,
+        marginRight: 4,
     },
     purpleBarWithBranch: {
     },
