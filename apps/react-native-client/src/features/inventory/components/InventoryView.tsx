@@ -75,10 +75,13 @@ export const InventoryView: React.FC = () => {
                     {selectedItem && (
                         <View style={styles.featuredCard}>
                             {selectedItem.imageUrl ? (
-                                <Image
-                                    source={{ uri: selectedItem.imageUrl }}
-                                    style={styles.featuredImage}
-                                />
+                                <View style={styles.featuredImageWrapper}>
+                                    <Image
+                                        source={{ uri: selectedItem.imageUrl }}
+                                        style={styles.featuredImageInside}
+                                        resizeMode="contain"
+                                    />
+                                </View>
                             ) : (
                                 <View style={[styles.featuredImage, styles.iconFallbackCircle]}>
                                     <Package size={40} color={colors.textMuted} />
@@ -156,11 +159,13 @@ export const InventoryView: React.FC = () => {
                                     )}
 
                                     {item.imageUrl ? (
-                                        <Image
-                                            source={{ uri: item.imageUrl }}
-                                            style={styles.cellImage}
-                                            resizeMode="contain"
-                                        />
+                                        <View style={styles.cellImageWrapper}>
+                                            <Image
+                                                source={{ uri: item.imageUrl }}
+                                                style={styles.cellImageInside}
+                                                resizeMode="contain"
+                                            />
+                                        </View>
                                     ) : (
                                         <View style={styles.cellIconWrapper}>
                                             <Package size={28} color={colors.textMuted} />
@@ -274,6 +279,19 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: colors.surfaceVariant,
     },
+    featuredImageWrapper: {
+        width: 100,
+        height: 100,
+        borderRadius: 12,
+        backgroundColor: colors.surfaceVariant,
+        padding: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    featuredImageInside: {
+        width: "100%",
+        height: "100%",
+    },
     iconFallbackCircle: {
         alignItems: "center",
         justifyContent: "center",
@@ -362,6 +380,21 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         marginTop: 6,
         backgroundColor: colors.surfaceVariant,
+    },
+    cellImageWrapper: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        marginBottom: 10,
+        marginTop: 6,
+        backgroundColor: colors.surfaceVariant,
+        padding: 6,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    cellImageInside: {
+        width: "100%",
+        height: "100%",
     },
     cellIconWrapper: {
         width: 44,
