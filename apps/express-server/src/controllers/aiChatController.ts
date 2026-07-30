@@ -71,3 +71,21 @@ export const deleteSession = async (req: Request, res: Response) => {
         return res.status(500).json({ error: err.message || "Failed to delete chat session." });
     }
 };
+
+export const updateSession = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+        const { sessionId } = req.params;
+        const { title } = req.body;
+        if (!title || typeof title !== "string" || !title.trim()) {
+            return res.status(400).json({ error: "Title is required." });
+        }
+
+        const session = await aiChatService.updateSessionTitle(userId, sessionId, title.trim());
+        return res.status(200).json({ session });
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to update chat session title." });
+    }
+};
