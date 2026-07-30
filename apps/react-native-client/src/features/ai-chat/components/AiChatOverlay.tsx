@@ -207,7 +207,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <Ionicons name="sparkles" size={14} color="#FFF" />
                     </View>
                 )}
-                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "65%" }}>
+                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "66%" }}>
                     <View
                         style={[
                             styles.messageBubble,
