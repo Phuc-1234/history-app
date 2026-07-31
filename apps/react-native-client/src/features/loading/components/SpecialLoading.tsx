@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
+import { useAppSelector } from "../../../store/storeHook";
+import { useGetStreakInfoQuery } from "../../streak";
 
 // Mascot image imports
 const MASCOTS = [
@@ -21,19 +23,47 @@ const MASCOTS = [
     require("../../../../assets/images/mascot/aLong_tutin.png"),
 ];
 
-// Historical Tips List
-const TIPS = [
-    "Bạn có biết: Trống đồng Đông Sơn là biểu tượng rực rỡ của nền văn minh sông Hồng cổ đại?",
-    "Lịch sử không chỉ là những con số, đó là hành trình đầy tự hào của thế hệ đi trước.",
-    "Hãy ôn tập flashcard mỗi ngày để đạt điểm cao trong kỳ thi sắp tới nhé!",
-    "Vua Quang Trung đại phá 29 vạn quân Thanh vào dịp Tết Kỷ Dậu năm 1789.",
-    "Chiến thắng Điện Biên Phủ năm 1954 lừng lẫy năm châu, chấn động địa cầu.",
-    "Bản Tuyên ngôn Độc lập đầu tiên của nước ta được cho là bài thơ thần 'Nam quốc sơn hà'.",
-    "Hội nghị Diên Hồng là biểu tượng cho ý chí đoàn kết toàn dân tộc trước nguy cơ ngoại xâm.",
-    "Kỳ thi tốt nghiệp THPT Quốc gia môn Lịch sử thường kiểm tra kiến thức lịch sử Việt Nam và thế giới.",
-    "Bạn có thể đổi số XP tích lũy được để nhận những khung ảnh đại diện độc quyền trong Cửa hàng.",
-    "Hãy luyện đề thường xuyên để làm quen với cấu trúc đề thi chính thức nhé!",
+// App Usage & Encouragement Tips List
+const STATIC_TIPS = [
+    "💡 Ôn tập Flashcard mỗi ngày để ghi nhớ các mốc sự kiện quan trọng nhanh chóng và bền lâu!",
+    "🛒 Dùng Vàng tích lũy trong Cửa hàng để mua vật phẩm nhân đôi XP hoặc Vàng khi làm bài.",
+    "🖼️ Ghé thăm Cửa hàng để sở hữu các khung ảnh đại diện và danh hiệu độc quyền thể hiện phong cách của bạn!",
+    "📝 Thử sức với các bộ Đề thi THPT Quốc gia để rèn luyện áp lực thời gian và cấu trúc đề thi thực tế.",
+    "🏆 Thi đua top Bảng xếp hạng tuần để khẳng định bản thân và nhận về nhiều phần thưởng hấp dẫn!",
+    "🗺️ Sử dụng Sơ đồ tư duy để hệ thống hóa toàn bộ kiến thức lịch sử theo tiến trình thời gian một cách trực quan.",
+    "🔄 Đừng quên xem lại danh sách câu hỏi làm sai trong lịch sử để rút kinh nghiệm cho lần thi sau.",
+    "🎙️ Trải nghiệm tính năng luyện tập bằng giọng nói để việc học Lịch sử trở nên mới mẻ và thú vị hơn!",
+    "✨ Mỗi câu hỏi trả lời đúng là một bước tiến gần hơn tới điểm số mục tiêu của bạn!",
+    "💪 Kiên trì mỗi ngày là chìa khóa vạn năng để chinh phục mọi đỉnh cao tri thức!",
+    "🌟 Đừng lo lắng về lỗi sai, đó chính là cơ hội tuyệt vời để bạn học hỏi và tiến bộ hơn!",
+    "🚀 Tập trung cao độ và làm hết sức mình, kết quả rực rỡ đang chờ đón bạn phía trước!",
 ];
+
+/**
+ * Returns a list of candidate tips combining static tips with dynamic state-based encouragement tips
+ */
+function getTipsList(currentStreak: number, hasCompletedToday: boolean, isLoggedIn: boolean): string[] {
+    const tips = [...STATIC_TIPS];
+
+    if (isLoggedIn) {
+        if (currentStreak > 0) {
+            tips.push(`🔥 Tuyệt vời! Bạn đã đạt chuỗi ${currentStreak} ngày học liên tiếp. Tiếp tục phát huy nhé!`);
+        } else {
+            tips.push("🔥 Hãy duy trì chuỗi học tập mỗi ngày để nhận thêm nhiều điểm thưởng và quà hấp dẫn!");
+        }
+
+        if (!hasCompletedToday) {
+            tips.push("📚 Bạn chưa học bài hôm nay đấy! Dành 5 phút hoàn thành một bài luyện tập ngay thôi nào.");
+        } else {
+            tips.push("🎉 Bạn đã hoàn thành nhiệm vụ học tập hôm nay! Hãy giữ vững phong độ này nhé.");
+        }
+    } else {
+        tips.push("🔥 Hãy đăng nhập để tích lũy chuỗi ngày học tập và nhận nhiều phần thưởng hấp dẫn!");
+        tips.push("📚 Dành 5 phút mỗi ngày học Lịch sử sẽ tạo nên sự khác biệt lớn cho kỳ thi của bạn!");
+    }
+
+    return tips;
+}
 
 interface SpecialLoadingProps {
     visible: boolean;
@@ -43,6 +73,14 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
     const [localVisible, setLocalVisible] = useState(false);
     const [currentMascot, setCurrentMascot] = useState(MASCOTS[0]);
     const [tip, setTip] = useState("");
+
+    // User data context for dynamic tips
+    const profile = useAppSelector((state) => state.auth?.profile);
+    const { data: streakData } = useGetStreakInfoQuery(undefined, { skip: !profile });
+
+    const currentStreak = profile?.currentStreak ?? streakData?.currentStreak ?? 0;
+    const hasCompletedToday = streakData?.hasCompletedToday ?? false;
+    const isLoggedIn = !!profile;
 
     // Animation values
     const progressAnim = useRef(new Animated.Value(0)).current;
@@ -61,8 +99,9 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
             setCurrentMascot(randomInitial);
             mascotOpacity.setValue(1);
 
-            // 2. Choose a random tip
-            const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)];
+            // 2. Choose a random tip (combining app tips & user state encouragement)
+            const availableTips = getTipsList(currentStreak, hasCompletedToday, isLoggedIn);
+            const randomTip = availableTips[Math.floor(Math.random() * availableTips.length)];
             setTip(randomTip);
 
             // 3. Start progress animation (fake progress: 0 to 95% over 6 seconds - 2x faster than 12s)
@@ -215,7 +254,7 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
 
                     {/* 3. Random Tip */}
                     <View style={styles.tipContainer}>
-                        <Text style={styles.tipTitle}>Mách nhỏ lịch sử</Text>
+                        <Text style={styles.tipTitle}>Mách nhỏ cho bạn</Text>
                         <Text style={styles.tipText}>{tip}</Text>
                     </View>
                 </View>

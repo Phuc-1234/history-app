@@ -44,3 +44,5 @@ app-example
 # generated native folders
 /ios
 /android
+.qldatn-tracker/
+qldatn-tracker-install_*.mjs
