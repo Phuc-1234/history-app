@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import {
     View,
     Text,
@@ -11,33 +11,17 @@ import {
     KeyboardAvoidingView,
     Platform,
     Dimensions,
-    Keyboard,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
-import {
-    useListSessionsQuery,
-    useCreateSessionMutation,
-    useDeleteSessionMutation,
-    useUpdateSessionTitleMutation,
-    useGetSessionMessagesQuery,
-    useSendMessageMutation,
-    AiChatMessageDto,
-    AiChatSessionDto,
-} from "../services/aiChatApi";
 import { AiSkeletonBubble } from "./AiSkeletonBubble";
-import { useVoiceInput } from "../hooks/useVoiceInput";
 import { VibratingVoiceInput } from "./VibratingVoiceInput";
+import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
 
 interface AiChatOverlayProps {
     visible: boolean;
     onClose: () => void;
-}
-
-interface DisplayChatMessage extends AiChatMessageDto {
-    isPending?: boolean;
-    isError?: boolean;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -45,175 +29,46 @@ const OVERLAY_HEIGHT = SCREEN_HEIGHT * 0.8;
 
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
     const insets = useSafeAreaInsets();
-    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-    const [inputText, setInputText] = useState("");
-    const [showSessionsDrawer, setShowSessionsDrawer] = useState(false);
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
-    const [pendingMessage, setPendingMessage] = useState<{
-        id: string;
-        content: string;
-        status: "sending" | "error";
-    } | null>(null);
+    const flatListRef = useRef<FlatList>(null);
 
     const {
+        selectedSessionId,
+        setSelectedSessionId,
+        inputText,
+        setInputText,
+        showSessionsDrawer,
+        setShowSessionsDrawer,
+        keyboardHeight,
+        pendingMessage,
+        actionSession,
+        setActionSession,
+        showRenameModal,
+        setShowRenameModal,
+        renameTitleInput,
+        setRenameTitleInput,
+
         isListening,
         isTranscribing,
         transcript,
         startListening,
         stopListening,
         forceStopImmediate,
-    } = useVoiceInput({
-        onTranscriptComplete: (text) => {
-            if (text) {
-                setInputText((prev) => (prev ? `${prev} ${text}` : text));
-            }
-        },
-    });
 
-    useEffect(() => {
-        setPendingMessage(null);
-    }, [selectedSessionId]);
+        isLoadingSessions,
+        isUpdatingTitle,
+        isLoadingMessages,
+        isSending,
 
-    useEffect(() => {
-        if (Platform.OS === "android") {
-            const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-                setKeyboardHeight(e.endCoordinates.height);
-            });
-            const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-                setKeyboardHeight(0);
-            });
-            return () => {
-                showSub.remove();
-                hideSub.remove();
-            };
-        }
-    }, []);
+        sessions,
+        displayMessages,
 
-    const [actionSession, setActionSession] = useState<AiChatSessionDto | null>(null);
-    const [showRenameModal, setShowRenameModal] = useState(false);
-    const [renameTitleInput, setRenameTitleInput] = useState("");
-
-    const { data: sessionsData, isLoading: isLoadingSessions } = useListSessionsQuery(undefined, { skip: !visible });
-    const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
-    const [deleteSession] = useDeleteSessionMutation();
-    const [updateSessionTitle, { isLoading: isUpdatingTitle }] = useUpdateSessionTitleMutation();
-
-    const { data: messagesData, isLoading: isLoadingMessages } = useGetSessionMessagesQuery(
-        selectedSessionId!,
-        { skip: !selectedSessionId || !visible }
-    );
-
-    const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
-
-    const flatListRef = useRef<FlatList>(null);
-
-    const sessions = sessionsData?.sessions || [];
-    const messages = messagesData?.messages || [];
-
-    const displayMessages: DisplayChatMessage[] = [
-        ...messages,
-        ...(pendingMessage && selectedSessionId
-            ? [
-                  {
-                      id: pendingMessage.id,
-                      sessionId: selectedSessionId,
-                      sender: "user" as const,
-                      content: pendingMessage.content,
-                      createdAt: new Date().toISOString(),
-                      isPending: pendingMessage.status === "sending",
-                      isError: pendingMessage.status === "error",
-                  },
-              ]
-            : []),
-    ];
-
-    // Auto-select latest session or create one when opened if empty
-    useEffect(() => {
-        if (visible && sessions.length > 0 && !selectedSessionId) {
-            setSelectedSessionId(sessions[0].id);
-        }
-    }, [visible, sessions, selectedSessionId]);
-
-    const handleCreateNewSession = async () => {
-        try {
-            const res = await createSession().unwrap();
-            setSelectedSessionId(res.session.id);
-            setShowSessionsDrawer(false);
-        } catch (err) {
-            console.error("Failed to create chat session:", err);
-        }
-    };
-
-    const handleDeleteSession = async (id: string) => {
-        try {
-            await deleteSession(id).unwrap();
-            if (selectedSessionId === id) {
-                const remaining = sessions.filter((s) => s.id !== id);
-                setSelectedSessionId(remaining.length > 0 ? remaining[0].id : null);
-            }
-        } catch (err) {
-            console.error("Failed to delete session:", err);
-        }
-    };
-
-    const handleLongPressSession = (session: AiChatSessionDto) => {
-        setActionSession(session);
-    };
-
-    const handleOpenRename = () => {
-        if (actionSession) {
-            setRenameTitleInput(actionSession.title);
-            setShowRenameModal(true);
-        }
-    };
-
-    const handleSaveRename = async () => {
-        if (!actionSession || !renameTitleInput.trim()) return;
-        try {
-            await updateSessionTitle({ sessionId: actionSession.id, title: renameTitleInput.trim() }).unwrap();
-            setShowRenameModal(false);
-            setActionSession(null);
-        } catch (err) {
-            console.error("Failed to rename session:", err);
-        }
-    };
-
-    const handleConfirmDelete = async () => {
-        if (!actionSession) return;
-        const idToDelete = actionSession.id;
-        setActionSession(null);
-        await handleDeleteSession(idToDelete);
-    };
-
-    const handleSend = async (contentToSend?: string) => {
-        const text = (contentToSend || inputText).trim();
-        if (!text || (isSending && pendingMessage?.status === "sending")) return;
-
-        let activeSessionId = selectedSessionId;
-        if (!activeSessionId) {
-            try {
-                const res = await createSession().unwrap();
-                activeSessionId = res.session.id;
-                setSelectedSessionId(activeSessionId);
-            } catch {
-                return;
-            }
-        }
-
-        if (!contentToSend) {
-            setInputText("");
-        }
-        const tempId = `temp-user-${Date.now()}`;
-        setPendingMessage({ id: tempId, content: text, status: "sending" });
-
-        try {
-            await sendMessage({ sessionId: activeSessionId, content: text }).unwrap();
-            setPendingMessage(null);
-        } catch (err) {
-            console.error("Failed to send message:", err);
-            setPendingMessage({ id: tempId, content: text, status: "error" });
-        }
-    };
+        handleCreateNewSession,
+        handleLongPressSession,
+        handleOpenRename,
+        handleSaveRename,
+        handleConfirmDelete,
+        handleSend,
+    } = useAiChatOverlay({ visible });
 
     const renderMessageItem = ({ item }: { item: DisplayChatMessage }) => {
         const isUser = item.sender === "user";
@@ -255,6 +110,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             </View>
         );
     };
+
 
     return (
         <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
