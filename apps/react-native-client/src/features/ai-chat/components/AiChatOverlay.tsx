@@ -27,6 +27,8 @@ import {
     AiChatSessionDto,
 } from "../services/aiChatApi";
 import { AiSkeletonBubble } from "./AiSkeletonBubble";
+import { useVoiceInput } from "../hooks/useVoiceInput";
+import { VibratingVoiceInput } from "./VibratingVoiceInput";
 
 interface AiChatOverlayProps {
     visible: boolean;
@@ -52,6 +54,21 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         content: string;
         status: "sending" | "error";
     } | null>(null);
+
+    const {
+        isListening,
+        isTranscribing,
+        transcript,
+        startListening,
+        stopListening,
+        forceStopImmediate,
+    } = useVoiceInput({
+        onTranscriptComplete: (text) => {
+            if (text) {
+                setInputText((prev) => (prev ? `${prev} ${text}` : text));
+            }
+        },
+    });
 
     useEffect(() => {
         setPendingMessage(null);
@@ -357,23 +374,57 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 ]}
                             >
                                 <View style={styles.inputContainer}>
-                                    <TextInput
-                                        style={styles.textInput}
-                                        placeholder="Nhập câu hỏi..."
-                                        placeholderTextColor={colors.textPlaceholder}
-                                        value={inputText}
-                                        onChangeText={setInputText}
-                                        multiline
-                                        maxLength={1000}
-                                    />
+                                    {isListening || isTranscribing ? (
+                                        <VibratingVoiceInput
+                                            isTranscribing={isTranscribing}
+                                            transcript={transcript}
+                                        />
+                                    ) : (
+                                        <TextInput
+                                            style={styles.textInput}
+                                            placeholder="Nhập câu hỏi..."
+                                            placeholderTextColor={colors.textPlaceholder}
+                                            value={inputText}
+                                            onChangeText={setInputText}
+                                            multiline
+                                            maxLength={1000}
+                                        />
+                                    )}
+                                    <Pressable
+                                        style={[
+                                            styles.micButton,
+                                            isListening && styles.micButtonActive,
+                                        ]}
+                                        onPress={isListening ? stopListening : startListening}
+                                        disabled={isTranscribing}
+                                    >
+                                        <Ionicons
+                                            name={isListening ? "square" : "mic"}
+                                            size={18}
+                                            color={isListening ? colors.error : colors.primary}
+                                        />
+                                    </Pressable>
                                     <Pressable
                                         style={[
                                             styles.sendButton,
-                                            (!inputText.trim() || pendingMessage?.status === "sending") &&
+                                            (!inputText.trim() && !isListening && !transcript.trim() || pendingMessage?.status === "sending") &&
                                                 styles.sendButtonDisabled,
                                         ]}
-                                        onPress={() => handleSend()}
-                                        disabled={!inputText.trim() || pendingMessage?.status === "sending"}
+                                        onPress={() => {
+                                            if (isListening) {
+                                                const textFromVoice = forceStopImmediate();
+                                                const textToSend = [inputText, textFromVoice].filter(Boolean).join(" ");
+                                                if (textToSend.trim()) {
+                                                    handleSend(textToSend);
+                                                }
+                                            } else {
+                                                handleSend();
+                                            }
+                                        }}
+                                        disabled={
+                                            (!inputText.trim() && !isListening && !transcript.trim()) ||
+                                            pendingMessage?.status === "sending"
+                                        }
                                     >
                                         <Ionicons name="arrow-up" size={20} color="#FFF" />
                                     </Pressable>
@@ -678,6 +729,18 @@ const styles = StyleSheet.create({
         paddingBottom: 10,
         fontSize: 14,
         color: colors.textPrimary,
+    },
+    micButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.surfaceVariant,
+        alignItems: "center",
+        justifyContent: "center",
+        marginLeft: 8,
+    },
+    micButtonActive: {
+        backgroundColor: colors.errorContainer,
     },
     sendButton: {
         width: 36,
