@@ -1,11 +1,21 @@
 import { apiSlice } from "@/services/apiSlice";
 
+export type AiChatModeType = "COURSE_ONLY" | "COURSE_FIRST" | "GENERAL";
+
 export interface AiChatSessionDto {
     id: string;
     title: string;
+    mode: AiChatModeType;
     createdAt: string;
     updatedAt: string;
     messages?: { content: string }[];
+}
+
+export interface ScreenContextPayload {
+    screenName?: string;
+    lessonId?: number;
+    nodeId?: number;
+    topicId?: number;
 }
 
 export interface AiChatMessageDto {
@@ -13,6 +23,7 @@ export interface AiChatMessageDto {
     sessionId: string;
     sender: "user" | "assistant";
     content: string;
+    screenContext?: ScreenContextPayload;
     createdAt: string;
 }
 
@@ -22,7 +33,10 @@ export const aiChatApi = apiSlice.injectEndpoints({
             query: () => "/api/ai-chat/sessions",
             providesTags: ["AiChatSession"],
         }),
-        createSession: builder.mutation<{ session: AiChatSessionDto }, { title?: string } | void>({
+        createSession: builder.mutation<
+            { session: AiChatSessionDto },
+            { title?: string; mode?: AiChatModeType } | void
+        >({
             query: (body) => ({
                 url: "/api/ai-chat/sessions",
                 method: "POST",
@@ -37,14 +51,14 @@ export const aiChatApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ["AiChatSession"],
         }),
-        updateSessionTitle: builder.mutation<
+        updateSession: builder.mutation<
             { session: AiChatSessionDto },
-            { sessionId: string; title: string }
+            { sessionId: string; title?: string; mode?: AiChatModeType }
         >({
-            query: ({ sessionId, title }) => ({
+            query: ({ sessionId, title, mode }) => ({
                 url: `/api/ai-chat/sessions/${sessionId}`,
                 method: "PATCH",
-                body: { title },
+                body: { title, mode },
             }),
             invalidatesTags: ["AiChatSession"],
         }),
@@ -54,12 +68,12 @@ export const aiChatApi = apiSlice.injectEndpoints({
         }),
         sendMessage: builder.mutation<
             { userMessage: AiChatMessageDto; assistantMessage: AiChatMessageDto },
-            { sessionId: string; content: string }
+            { sessionId: string; content: string; screenContext?: ScreenContextPayload }
         >({
-            query: ({ sessionId, content }) => ({
+            query: ({ sessionId, content, screenContext }) => ({
                 url: `/api/ai-chat/sessions/${sessionId}/messages`,
                 method: "POST",
-                body: { content },
+                body: { content, screenContext },
             }),
             invalidatesTags: (_result, _error, { sessionId }) => [
                 { type: "AiChatMessage", id: sessionId },
@@ -73,7 +87,7 @@ export const {
     useListSessionsQuery,
     useCreateSessionMutation,
     useDeleteSessionMutation,
-    useUpdateSessionTitleMutation,
+    useUpdateSessionMutation,
     useGetSessionMessagesQuery,
     useSendMessageMutation,
 } = aiChatApi;

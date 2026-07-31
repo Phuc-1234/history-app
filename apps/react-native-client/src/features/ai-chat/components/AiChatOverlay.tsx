@@ -17,7 +17,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
 import { AiSkeletonBubble } from "./AiSkeletonBubble";
 import { VibratingVoiceInput } from "./VibratingVoiceInput";
+import { AiMarkdownMessage } from "./AiMarkdownMessage";
 import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
+import { AiChatModeType } from "../services/aiChatApi";
 
 interface AiChatOverlayProps {
     visible: boolean;
@@ -26,6 +28,12 @@ interface AiChatOverlayProps {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const OVERLAY_HEIGHT = SCREEN_HEIGHT * 0.8;
+
+const MODES: { id: AiChatModeType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { id: "COURSE_ONLY", label: "Chỉ Giáo Trình", icon: "book" },
+    { id: "COURSE_FIRST", label: "Ưu Tiên Giáo Trình", icon: "school" },
+    { id: "GENERAL", label: "Chung", icon: "chatbubbles" },
+];
 
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
     const insets = useSafeAreaInsets();
@@ -46,6 +54,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         setShowRenameModal,
         renameTitleInput,
         setRenameTitleInput,
+        activeMode,
+        handleChangeMode,
+        screenContext,
 
         isListening,
         isTranscribing,
@@ -79,7 +90,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <Ionicons name="sparkles" size={14} color="#FFF" />
                     </View>
                 )}
-                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "66%" }}>
+                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "80%" }}>
                     <View
                         style={[
                             styles.messageBubble,
@@ -87,18 +98,17 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                             item.isError && styles.errorBubble,
                         ]}
                     >
-                        <Text
-                            style={[
-                                styles.messageText,
-                                item.isError
-                                    ? styles.errorMessageText
-                                    : isUser
-                                    ? styles.userMessageText
-                                    : styles.assistantMessageText,
-                            ]}
-                        >
-                            {item.content}
-                        </Text>
+                        {isUser ? (
+                            <Text style={[styles.messageText, styles.userMessageText]}>
+                                {item.content}
+                            </Text>
+                        ) : (
+                            <AiMarkdownMessage
+                                content={item.content}
+                                textColor={colors.textPrimary}
+                                onCloseOverlay={onClose}
+                            />
+                        )}
                     </View>
                     {item.isError && (
                         <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
@@ -110,7 +120,6 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             </View>
         );
     };
-
 
     return (
         <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
@@ -139,7 +148,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
                         </Text>
 
-                        <Pressable style={styles.newChatHeaderButton} onPress={handleCreateNewSession}>
+                        <Pressable style={styles.newChatHeaderButton} onPress={() => handleCreateNewSession()}>
                             <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
                         </Pressable>
 
@@ -148,12 +157,45 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         </Pressable>
                     </View>
 
+                    {/* Mode Selector Sub-header */}
+                    {!showSessionsDrawer && (
+                        <View style={styles.modeSelectorBar}>
+                            {MODES.map((mode) => {
+                                const isActive = activeMode === mode.id;
+                                return (
+                                    <Pressable
+                                        key={mode.id}
+                                        style={[
+                                            styles.modePill,
+                                            isActive && styles.modePillActive,
+                                        ]}
+                                        onPress={() => handleChangeMode(mode.id)}
+                                    >
+                                        <Ionicons
+                                            name={mode.icon}
+                                            size={12}
+                                            color={isActive ? "#FFF" : colors.textSecondary}
+                                            style={{ marginRight: 4 }}
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.modePillText,
+                                                isActive && styles.modePillTextActive,
+                                            ]}
+                                        >
+                                            {mode.label}
+                                        </Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </View>
+                    )}
+
                     {/* View Switch: Full Sessions List OR Chat View */}
                     {showSessionsDrawer ? (
                         <View style={styles.sessionsListFullContainer}>
                             <View style={styles.drawerHeader}>
                                 <Text style={styles.drawerTitle}>Danh sách hội thoại</Text>
-                                
                             </View>
                             {isLoadingSessions ? (
                                 <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
@@ -175,15 +217,24 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             }}
                                             onLongPress={() => handleLongPressSession(item)}
                                         >
-                                            <Text
-                                                style={[
-                                                    styles.sessionItemText,
-                                                    item.id === selectedSessionId && styles.sessionItemTextActive,
-                                                ]}
-                                                numberOfLines={1}
-                                            >
-                                                {item.title}
-                                            </Text>
+                                            <View style={{ flex: 1 }}>
+                                                <Text
+                                                    style={[
+                                                        styles.sessionItemText,
+                                                        item.id === selectedSessionId && styles.sessionItemTextActive,
+                                                    ]}
+                                                    numberOfLines={1}
+                                                >
+                                                    {item.title}
+                                                </Text>
+                                                <Text style={styles.sessionItemModeText}>
+                                                    {item.mode === "COURSE_ONLY"
+                                                        ? "Chỉ Giáo Trình"
+                                                        : item.mode === "COURSE_FIRST"
+                                                        ? "Ưu Tiên Giáo Trình"
+                                                        : "Chung"}
+                                                </Text>
+                                            </View>
                                         </Pressable>
                                     )}
                                 />
@@ -202,6 +253,14 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                         <Text style={styles.emptySub}>
                                             Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!
                                         </Text>
+                                        {screenContext?.screenName && (
+                                            <View style={styles.contextBadge}>
+                                                <Ionicons name="location-outline" size={12} color={colors.primary} style={{ marginRight: 4 }} />
+                                                <Text style={styles.contextBadgeText}>
+                                                    Đang xem: {screenContext.screenName}
+                                                </Text>
+                                            </View>
+                                        )}
                                     </View>
                                 ) : (
                                     <FlatList
@@ -238,7 +297,13 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     ) : (
                                         <TextInput
                                             style={styles.textInput}
-                                            placeholder="Nhập câu hỏi..."
+                                            placeholder={
+                                                activeMode === "COURSE_ONLY"
+                                                    ? "Hỏi về giáo trình bài học..."
+                                                    : activeMode === "COURSE_FIRST"
+                                                    ? "Hỏi ưu tiên giáo trình..."
+                                                    : "Nhập câu hỏi..."
+                                            }
                                             placeholderTextColor={colors.textPlaceholder}
                                             value={inputText}
                                             onChangeText={setInputText}
@@ -378,9 +443,6 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0, 0, 0, 0.4)",
         justifyContent: "flex-end",
     },
-    backdropDismiss: {
-        flex: 1,
-    },
     overlayContainer: {
         height: OVERLAY_HEIGHT,
         backgroundColor: colors.background,
@@ -416,6 +478,33 @@ const styles = StyleSheet.create({
     closeButton: {
         padding: 4,
     },
+    modeSelectorBar: {
+        flexDirection: "row",
+        backgroundColor: colors.surfaceVariant,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        gap: 6,
+        justifyContent: "center",
+    },
+    modePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 30, // pill button border radius = 30
+        backgroundColor: colors.surface,
+    },
+    modePillActive: {
+        backgroundColor: colors.primary,
+    },
+    modePillText: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: colors.textSecondary,
+    },
+    modePillTextActive: {
+        color: "#FFF",
+    },
     sessionsListFullContainer: {
         flex: 1,
         backgroundColor: colors.surface,
@@ -433,26 +522,12 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: colors.textSecondary,
     },
-    addSessionBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 30,
-    },
-    addSessionBtnText: {
-        color: "#FFF",
-        fontSize: 12,
-        fontWeight: "600",
-        marginLeft: 4,
-    },
     sessionItem: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 12,
         paddingHorizontal: 12,
-        borderRadius: 12,
+        borderRadius: 12, // container border radius = 12
         overflow: "hidden",
     },
     sessionItemActive: {
@@ -470,8 +545,10 @@ const styles = StyleSheet.create({
         color: colors.primary,
         fontWeight: "600",
     },
-    deleteSessionBtn: {
-        padding: 4,
+    sessionItemModeText: {
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 2,
     },
     messagesContainer: {
         flex: 1,
@@ -496,6 +573,20 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: "center",
         lineHeight: 18,
+    },
+    contextBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.primaryContainer,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 30,
+        marginTop: 12,
+    },
+    contextBadgeText: {
+        fontSize: 11,
+        color: colors.primary,
+        fontWeight: "600",
     },
     messageBubbleContainer: {
         flexDirection: "row",
@@ -522,7 +613,7 @@ const styles = StyleSheet.create({
         maxWidth: "100%",
         paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 16,
+        borderRadius: 12, // container border radius = 12
     },
     userBubble: {
         backgroundColor: colors.primary,
@@ -539,16 +630,10 @@ const styles = StyleSheet.create({
     userMessageText: {
         color: "#FFF",
     },
-    assistantMessageText: {
-        color: colors.textPrimary,
-    },
     errorBubble: {
         backgroundColor: colors.errorContainer,
         borderColor: colors.error,
         borderWidth: 1,
-    },
-    errorMessageText: {
-        color: colors.textError,
     },
     retryButton: {
         flexDirection: "row",

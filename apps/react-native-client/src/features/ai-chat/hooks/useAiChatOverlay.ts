@@ -4,13 +4,15 @@ import {
     useListSessionsQuery,
     useCreateSessionMutation,
     useDeleteSessionMutation,
-    useUpdateSessionTitleMutation,
+    useUpdateSessionMutation,
     useGetSessionMessagesQuery,
     useSendMessageMutation,
     AiChatMessageDto,
     AiChatSessionDto,
+    AiChatModeType,
 } from "../services/aiChatApi";
 import { useVoiceInput } from "./useVoiceInput";
+import { useScreenContext } from "./useScreenContext";
 
 export interface DisplayChatMessage extends AiChatMessageDto {
     isPending?: boolean;
@@ -22,6 +24,7 @@ interface UseAiChatOverlayOptions {
 }
 
 export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
+    const screenContext = useScreenContext();
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [inputText, setInputText] = useState("");
     const [showSessionsDrawer, setShowSessionsDrawer] = useState(false);
@@ -73,7 +76,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     const { data: sessionsData, isLoading: isLoadingSessions } = useListSessionsQuery(undefined, { skip: !visible });
     const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
     const [deleteSession] = useDeleteSessionMutation();
-    const [updateSessionTitle, { isLoading: isUpdatingTitle }] = useUpdateSessionTitleMutation();
+    const [updateSession, { isLoading: isUpdatingSession }] = useUpdateSessionMutation();
 
     const { data: messagesData, isLoading: isLoadingMessages } = useGetSessionMessagesQuery(
         selectedSessionId!,
@@ -84,6 +87,8 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
 
     const sessions = sessionsData?.sessions || [];
     const messages = messagesData?.messages || [];
+    const activeSession = sessions.find((s) => s.id === selectedSessionId);
+    const activeMode: AiChatModeType = activeSession?.mode || "GENERAL";
 
     const displayMessages: DisplayChatMessage[] = [
         ...messages,
@@ -109,15 +114,24 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         }
     }, [visible, sessions, selectedSessionId]);
 
-    const handleCreateNewSession = useCallback(async () => {
+    const handleCreateNewSession = useCallback(async (mode?: AiChatModeType) => {
         try {
-            const res = await createSession().unwrap();
+            const res = await createSession({ mode: mode || activeMode }).unwrap();
             setSelectedSessionId(res.session.id);
             setShowSessionsDrawer(false);
         } catch (err) {
             console.error("Failed to create chat session:", err);
         }
-    }, [createSession]);
+    }, [createSession, activeMode]);
+
+    const handleChangeMode = useCallback(async (newMode: AiChatModeType) => {
+        if (!selectedSessionId) return;
+        try {
+            await updateSession({ sessionId: selectedSessionId, mode: newMode }).unwrap();
+        } catch (err) {
+            console.error("Failed to update chat mode:", err);
+        }
+    }, [selectedSessionId, updateSession]);
 
     const handleDeleteSession = useCallback(async (id: string) => {
         try {
@@ -145,13 +159,13 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     const handleSaveRename = useCallback(async () => {
         if (!actionSession || !renameTitleInput.trim()) return;
         try {
-            await updateSessionTitle({ sessionId: actionSession.id, title: renameTitleInput.trim() }).unwrap();
+            await updateSession({ sessionId: actionSession.id, title: renameTitleInput.trim() }).unwrap();
             setShowRenameModal(false);
             setActionSession(null);
         } catch (err) {
             console.error("Failed to rename session:", err);
         }
-    }, [actionSession, renameTitleInput, updateSessionTitle]);
+    }, [actionSession, renameTitleInput, updateSession]);
 
     const handleConfirmDelete = useCallback(async () => {
         if (!actionSession) return;
@@ -167,7 +181,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         let activeSessionId = selectedSessionId;
         if (!activeSessionId) {
             try {
-                const res = await createSession().unwrap();
+                const res = await createSession({ mode: "GENERAL" }).unwrap();
                 activeSessionId = res.session.id;
                 setSelectedSessionId(activeSessionId);
             } catch {
@@ -182,13 +196,17 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         setPendingMessage({ id: tempId, content: text, status: "sending" });
 
         try {
-            await sendMessage({ sessionId: activeSessionId, content: text }).unwrap();
+            await sendMessage({
+                sessionId: activeSessionId,
+                content: text,
+                screenContext,
+            }).unwrap();
             setPendingMessage(null);
         } catch (err) {
             console.error("Failed to send message:", err);
             setPendingMessage({ id: tempId, content: text, status: "error" });
         }
-    }, [inputText, isSending, pendingMessage, selectedSessionId, createSession, sendMessage]);
+    }, [inputText, isSending, pendingMessage, selectedSessionId, createSession, sendMessage, screenContext]);
 
     return {
         selectedSessionId,
@@ -205,6 +223,9 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         setShowRenameModal,
         renameTitleInput,
         setRenameTitleInput,
+        activeMode,
+        handleChangeMode,
+        screenContext,
 
         isListening,
         isTranscribing,
@@ -214,7 +235,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         forceStopImmediate,
 
         isLoadingSessions,
-        isUpdatingTitle,
+        isUpdatingTitle: isUpdatingSession,
         isLoadingMessages,
         isSending,
 

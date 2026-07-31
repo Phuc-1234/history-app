@@ -1,7 +1,15 @@
-import { prisma } from "@history-app/shared";
+import { prisma, AiChatMode } from "@history-app/shared";
 import { AIService } from "./aiService";
+import { contentSearchService } from "./contentSearchService";
 
 const aiService = new AIService();
+
+export interface ScreenContextPayload {
+    screenName?: string;
+    lessonId?: number;
+    nodeId?: number;
+    topicId?: number;
+}
 
 export class AiChatService {
     async listSessions(userId: string) {
@@ -11,6 +19,7 @@ export class AiChatService {
             select: {
                 id: true,
                 title: true,
+                mode: true,
                 createdAt: true,
                 updatedAt: true,
                 messages: {
@@ -22,11 +31,12 @@ export class AiChatService {
         });
     }
 
-    async createSession(userId: string, initialTitle?: string) {
+    async createSession(userId: string, initialTitle?: string, mode?: AiChatMode) {
         return prisma.aiChatSession.create({
             data: {
                 userId,
-                title: initialTitle || "Cuộc trò chuyện mới"
+                title: initialTitle || "Cuộc trò chuyện mới",
+                mode: mode || AiChatMode.GENERAL
             }
         });
     }
@@ -45,7 +55,12 @@ export class AiChatService {
         });
     }
 
-    async sendMessage(userId: string, sessionId: string, content: string) {
+    async sendMessage(
+        userId: string,
+        sessionId: string,
+        content: string,
+        screenContext?: ScreenContextPayload
+    ) {
         const session = await prisma.aiChatSession.findFirst({
             where: { id: sessionId, userId },
             include: {
@@ -64,18 +79,39 @@ export class AiChatService {
             data: {
                 sessionId,
                 sender: "user",
-                content
+                content,
+                screenContext: screenContext ? (screenContext as any) : undefined
             }
         });
 
         // Auto-generate title if this is the first message in the session
         if (session.messages.length === 0) {
-            aiService.generateChatTitle(content).then(async (newTitle) => {
-                await prisma.aiChatSession.update({
-                    where: { id: sessionId },
-                    data: { title: newTitle }
-                });
-            }).catch(() => {});
+            aiService
+                .generateChatTitle(content)
+                .then(async (newTitle) => {
+                    await prisma.aiChatSession.update({
+                        where: { id: sessionId },
+                        data: { title: newTitle }
+                    });
+                })
+                .catch(() => {});
+        }
+
+        // Search grounding course context if mode is COURSE_ONLY / COURSE_FIRST or screenContext has lessonId/nodeId
+        let groundingContext = "";
+        if (session.mode === AiChatMode.COURSE_ONLY || session.mode === AiChatMode.COURSE_FIRST) {
+            const searchResult = await contentSearchService.searchCourseContent(content, {
+                contextLessonId: screenContext?.lessonId,
+                contextNodeId: screenContext?.nodeId
+            });
+            groundingContext = searchResult.formattedContext;
+        }
+
+        let screenContextText = "";
+        if (screenContext?.screenName) {
+            screenContextText = `- Màn hình: ${screenContext.screenName}`;
+            if (screenContext.lessonId) screenContextText += ` (Bài học ID: ${screenContext.lessonId})`;
+            if (screenContext.nodeId) screenContextText += ` (Nút kiến thức ID: ${screenContext.nodeId})`;
         }
 
         // Prepare context (sliding window of last 16 messages)
@@ -85,8 +121,12 @@ export class AiChatService {
             parts: [{ text: msg.content }]
         }));
 
-        // Call Gemini
-        const assistantText = await aiService.callGeminiChat(formattedContents);
+        // Call Gemini with mode & grounding context
+        const assistantText = await aiService.callGeminiChat(formattedContents, {
+            mode: session.mode,
+            groundingContext,
+            screenContextText
+        });
 
         // Save assistant response
         const assistantMsg = await prisma.aiChatMessage.create({
@@ -122,7 +162,11 @@ export class AiChatService {
         return { success: true };
     }
 
-    async updateSessionTitle(userId: string, sessionId: string, title: string) {
+    async updateSession(
+        userId: string,
+        sessionId: string,
+        updateData: { title?: string; mode?: AiChatMode }
+    ) {
         const session = await prisma.aiChatSession.findFirst({
             where: { id: sessionId, userId }
         });
@@ -131,7 +175,10 @@ export class AiChatService {
         }
         const updated = await prisma.aiChatSession.update({
             where: { id: sessionId },
-            data: { title }
+            data: {
+                ...(updateData.title ? { title: updateData.title } : {}),
+                ...(updateData.mode ? { mode: updateData.mode } : {})
+            }
         });
         return updated;
     }

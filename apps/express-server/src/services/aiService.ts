@@ -71,7 +71,14 @@ export class AIService {
         throw new Error(`All Gemini API keys failed. Last error: ${lastError?.message}`);
     }
 
-    async callGeminiChat(contents: { role: "user" | "model"; parts: { text: string }[] }[]): Promise<string> {
+    async callGeminiChat(
+        contents: { role: "user" | "model"; parts: { text: string }[] }[],
+        options?: {
+            mode?: "COURSE_ONLY" | "COURSE_FIRST" | "GENERAL";
+            groundingContext?: string;
+            screenContextText?: string;
+        }
+    ): Promise<string> {
         const keys = [
             process.env.GEMINI_API_KEY_1,
             process.env.GEMINI_API_KEY_2,
@@ -86,6 +93,38 @@ export class AIService {
         let lastError: Error | null = null;
         const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
 
+        let systemPrompt = "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n";
+
+        if (options?.screenContextText) {
+            systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ:\n${options.screenContextText}\n\n`;
+        }
+
+        if (options?.mode === "COURSE_ONLY") {
+            systemPrompt += `CHẾ ĐỘ: CHỈ SỬ DỤNG DỮ LIỆU GIÁO TRÌNH (COURSE ONLY).
+QUY TẮC BẮT BUỘC:
+1. Bạn CHỈ ĐƯỢC PHÉP trả lời dựa trên thông tin có trong phần 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' bên dưới. KHÔNG tự suy đoán hay lấy thông tin bên ngoài.
+2. Nếu dữ liệu giáo trình không có câu trả lời cho thắc mắc, hãy trả lời lịch sự: "Rất tiếc, thông tin này chưa có trong bộ giáo trình của ứng dụng."
+3. Khi nhắc tới Bài học hoặc Nút kiến thức trong dữ liệu giáo trình, BẮT BUỘC chèn liên kết Markdown theo đúng cú pháp:
+   - Bài học: [Tên bài học](lesson:ID) (ví dụ: [Bài 3: Cách mạng tháng Tám](lesson:3))
+   - Nút kiến thức: [Tiêu đề nút](node:ID) (ví dụ: [Chi tiết diễn biến](node:12))
+
+DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT:
+${options.groundingContext || "Không tìm thấy dữ liệu giáo trình liên quan."}`;
+        } else if (options?.mode === "COURSE_FIRST") {
+            systemPrompt += `CHẾ ĐỘ: ƯU TIÊN DỮ LIỆU GIÁO TRÌNH (COURSE FIRST).
+QUY TẮC BẮT BUỘC:
+1. Hãy ưu tiên sử dụng thông tin trong phần 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' bên dưới để trả lời.
+2. Nếu câu hỏi vượt quá dữ liệu giáo trình có sẵn, bạn CÓ THỂ bổ sung thêm kiến thức lịch sử bên ngoài, nhưng BẮT BUỘC kèm theo dòng ghi chú ở cuối câu trả lời:
+   "\n\n*Lưu ý: Một số thông tin trên được tổng hợp thêm ngoài giáo trình chuẩn của ứng dụng.*"
+3. Khi trích dẫn thông tin từ giáo trình, hãy chèn liên kết Markdown: [Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).
+
+DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT:
+${options.groundingContext || "Không tìm thấy dữ liệu giáo trình trực tiếp."}`;
+        } else {
+            systemPrompt += `CHẾ ĐỘ: TRỢ LÝ TỰ DO (GENERAL).
+Hãy hỗ trợ học sinh giải đáp thắc mắc lịch sử tự do, chính xác và sinh động. Khi nhắc tới các nội dung trong ứng dụng, bạn có thể tạo liên kết Markdown [Tên bài](lesson:ID) hoặc [Chi tiết nút](node:ID) nếu phù hợp.`;
+        }
+
         for (const apiKey of shuffledKeys) {
             try {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -96,11 +135,11 @@ export class AIService {
                     },
                     body: JSON.stringify({
                         systemInstruction: {
-                            parts: [{ text: "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng." }]
+                            parts: [{ text: systemPrompt }]
                         },
                         contents,
                         generationConfig: {
-                            temperature: 0.7
+                            temperature: options?.mode === "COURSE_ONLY" ? 0.2 : 0.7
                         }
                     })
                 });
@@ -123,6 +162,7 @@ export class AIService {
         }
         throw new Error(`All Gemini API keys failed. Last error: ${lastError?.message}`);
     }
+
 
     async generateChatTitle(firstMessage: string): Promise<string> {
         try {
