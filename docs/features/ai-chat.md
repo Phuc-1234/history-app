@@ -1,6 +1,6 @@
 # AI Chat Feature Documentation
 
-**Current Version:** 2.0  
+**Current Version:** 2.1  
 **Module Location:**
 - Frontend: [ai-chat](../../apps/react-native-client/src/features/ai-chat)
 - Backend: [aiChatRoutes.ts](../../apps/express-server/src/routes/aiChatRoutes.ts), [aiChatController.ts](../../apps/express-server/src/controllers/aiChatController.ts), [aiChatService.ts](../../apps/express-server/src/services/aiChatService.ts), [aiService.ts](../../apps/express-server/src/services/aiService.ts), [contentSearchService.ts](../../apps/express-server/src/services/contentSearchService.ts)
@@ -10,14 +10,15 @@
 ## 1. Feature Overview
 The AI Chat feature provides students with an interactive Vietnamese & World History AI study assistant inside the React Native Expo client, backed by an Express.js server, Prisma PostgreSQL database, and Google Gemini LLM API.
 
-### Key Capabilities (v2.0)
-- **3 Chat Modes per Session:**
+### Key Capabilities (v2.1)
+- **3 Chat Modes per Session (Switchable Mid-Session):**
   - `COURSE_ONLY` ("Chỉ Giáo Trình"): Restricts AI answers strictly to database course material (`Lesson`, `Section`, `Node`).
-  - `COURSE_FIRST` ("Ưu Tiên Giáo Trình"): Uses course material first, with explicit disclaimer note when supplementing external knowledge.
+  - `COURSE_FIRST` ("Ưu Tiên Giáo Trình"): Uses course material first; places an explicit disclaimer note *before* any external knowledge section.
   - `GENERAL` ("Chung"): Unrestricted general history AI assistant.
-- **RAG Course Content Search Engine:** Automatically searches top 5 relevant lessons and nodes via [contentSearchService.ts](../../apps/express-server/src/services/contentSearchService.ts) to ground AI responses.
+  - *Mid-Session Switching:* Users can change the active mode at any point during a chat session via the top mode selector pills. Mode changes trigger a `PATCH /api/ai-chat/sessions/:sessionId` update and apply immediately to subsequent messages.
+- **RAG Course Content Search Engine:** Automatically searches top 5 relevant lessons and nodes via [contentSearchService.ts](../../apps/express-server/src/services/contentSearchService.ts) to ground AI responses across the entire course database without restricting searches to active screen grade.
 - **Rich Markdown & Deep Link Navigation:** Render chat bubbles with bold, headers, lists, and clickable custom links (`[Title](lesson:ID)`, `[Title](node:ID)`) that navigate to target Expo Router screens ([AiMarkdownMessage.tsx](../../apps/react-native-client/src/features/ai-chat/components/AiMarkdownMessage.tsx)).
-- **Active Screen Context Awareness:** Detects user location (`LessonMenuScreen`, `LessonSummaryScreen`, `NodeScreen`) via [useScreenContext.ts](../../apps/react-native-client/src/features/ai-chat/hooks/useScreenContext.ts) to provide localized assistant context.
+- **Active Screen Context as Suggestion (v2.1):** Detects user location (`LessonMenuScreen`, `LessonSummaryScreen`, `NodeScreen`) via [useScreenContext.ts](../../apps/react-native-client/src/features/ai-chat/hooks/useScreenContext.ts) and uses active screen as a contextual suggestion for resolving ambiguous terms (e.g. "bài này", "nút này", "ở đây") rather than a hard boundary limit on course scope.
 - **Floating Action Button (FAB):** Draggable button ([AiChatFab](../../apps/react-native-client/src/features/ai-chat/components/AiChatFab.tsx)) using `PanResponder`.
 - **Voice Recognition Input:** Speech-to-text via `expo-speech-recognition` (`vi-VN`) with animated waveform UI ([VibratingVoiceInput](../../apps/react-native-client/src/features/ai-chat/components/VibratingVoiceInput.tsx)).
 
@@ -139,15 +140,23 @@ model AiChatMessage {
 |---|---|---|
 | 1.0 | 2026-07-31 | Initial implementation of AI Chat feature (FE overlay + BE Express/Prisma + Gemini API + Voice Input). |
 | 2.0 | 2026-07-31 | Added 3 per-chat modes (`COURSE_ONLY`, `COURSE_FIRST`, `GENERAL`), RAG search engine (`contentSearchService`), Markdown rendering with deep link navigation (`lesson:id`, `node:id`), and screen context awareness (`useScreenContext`). |
+| 2.1 | 2026-07-31 | Made active screen context a suggestion for ambiguous terms (e.g., "bài này", "nút này", "ở đây") rather than a scope limit in Course modes (`COURSE_ONLY`, `COURSE_FIRST`). Updated RAG search to search all course material across grades unless query specifies otherwise. |
 
 ---
 
-## 6. Future Upgrades
+## 6. Bugs and Future Upgrades
+
+### High severity/priority 
+1. **RAG search accuracy** - Implement a better semantic search engine to improve the accuracy of the RAG search engine. For example when user ask "Lớp 10 dạy cái gì" in Course first mode the AI answer a lesson in other grade, not sure how that happened.
+
+
+### Medium severity/priority
 
 1. **Streaming Responses (Server-Sent Events / WebSockets):** Replace chunked POST response with streaming text output.
 2. **Offline Cache & Retry Queue:** Store pending messages in AsyncStorage for offline handling when network drops.
 3. **Token Limit & Cost Tracking:** Track token usage per user to enforce daily quotas for free/pro users.
 4. **Voice Output (Text-to-Speech):** Add optional audio response playback for AI answers.
+5. **Context Summarizer:** Consider the context window size and token usage. It's recommended to summarize the context to avoid unnecessary token usage.
 
 ---
 

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, Animated } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
 
 export const AiSkeletonBubble: React.FC = () => {
@@ -28,36 +27,24 @@ export const AiSkeletonBubble: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.aiAvatar}>
-                <Ionicons name="sparkles" size={14} color="#FFF" />
-            </View>
-            <Animated.View style={[styles.bubble, { opacity: opacityAnim }]} />
+            <Animated.View style={[styles.skeletonLine, { width: "70%", opacity: opacityAnim }]} />
+            <Animated.View style={[styles.skeletonLine, { width: "90%", opacity: opacityAnim }]} />
+            <Animated.View style={[styles.skeletonLine, { width: "50%", opacity: opacityAnim }]} />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flexDirection: "row",
-        marginVertical: 6,
-        alignItems: "flex-end",
-        justifyContent: "flex-start",
+        marginVertical: 12,
+        paddingHorizontal: 4,
+        alignItems: "flex-start",
+        gap: 8,
     },
-    aiAvatar: {
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        backgroundColor: colors.primary,
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 8,
-        marginBottom: 2,
-    },
-    bubble: {
-        width: 60,
-        height: 36,
-        borderRadius: 12,
-        borderBottomLeftRadius: 4,
+    skeletonLine: {
+        height: 14,
+        borderRadius: 8,
         backgroundColor: colors.surfaceVariant,
     },
 });
+

@@ -16,6 +16,7 @@ export interface ScreenContextPayload {
     lessonId?: number;
     nodeId?: number;
     topicId?: number;
+    grade?: number;
 }
 
 export interface AiChatMessageDto {
@@ -60,6 +61,22 @@ export const aiChatApi = apiSlice.injectEndpoints({
                 method: "PATCH",
                 body: { title, mode },
             }),
+            async onQueryStarted({ sessionId, title, mode }, { dispatch, queryFulfilled }) {
+                const patchResult = dispatch(
+                    aiChatApi.util.updateQueryData("listSessions", undefined, (draft) => {
+                        const session = draft.sessions.find((s) => s.id === sessionId);
+                        if (session) {
+                            if (mode !== undefined) session.mode = mode;
+                            if (title !== undefined) session.title = title;
+                        }
+                    })
+                );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    patchResult.undo();
+                }
+            },
             invalidatesTags: ["AiChatSession"],
         }),
         getSessionMessages: builder.query<{ messages: AiChatMessageDto[] }, string>({

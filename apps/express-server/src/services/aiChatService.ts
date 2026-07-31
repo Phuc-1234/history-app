@@ -9,6 +9,7 @@ export interface ScreenContextPayload {
     lessonId?: number;
     nodeId?: number;
     topicId?: number;
+    grade?: number;
 }
 
 export class AiChatService {
@@ -97,12 +98,19 @@ export class AiChatService {
                 .catch(() => {});
         }
 
-        // Search grounding course context if mode is COURSE_ONLY / COURSE_FIRST or screenContext has lessonId/nodeId
+        // Search grounding course context if mode is COURSE_ONLY / COURSE_FIRST or screenContext has lessonId/nodeId/grade
         let groundingContext = "";
-        if (session.mode === AiChatMode.COURSE_ONLY || session.mode === AiChatMode.COURSE_FIRST) {
+        if (
+            session.mode === AiChatMode.COURSE_ONLY ||
+            session.mode === AiChatMode.COURSE_FIRST ||
+            screenContext?.lessonId ||
+            screenContext?.nodeId ||
+            screenContext?.grade
+        ) {
             const searchResult = await contentSearchService.searchCourseContent(content, {
                 contextLessonId: screenContext?.lessonId,
-                contextNodeId: screenContext?.nodeId
+                contextNodeId: screenContext?.nodeId,
+                contextGrade: screenContext?.grade
             });
             groundingContext = searchResult.formattedContext;
         }
@@ -110,6 +118,7 @@ export class AiChatService {
         let screenContextText = "";
         if (screenContext?.screenName) {
             screenContextText = `- Màn hình: ${screenContext.screenName}`;
+            if (screenContext.grade) screenContextText += ` (Lớp ${screenContext.grade})`;
             if (screenContext.lessonId) screenContextText += ` (Bài học ID: ${screenContext.lessonId})`;
             if (screenContext.nodeId) screenContextText += ` (Nút kiến thức ID: ${screenContext.nodeId})`;
         }

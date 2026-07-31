@@ -124,12 +124,23 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         }
     }, [createSession, activeMode]);
 
+    const [errorModal, setErrorModal] = useState<{
+        visible: boolean;
+        title: string;
+        message: string;
+    }>({ visible: false, title: "", message: "" });
+
     const handleChangeMode = useCallback(async (newMode: AiChatModeType) => {
         if (!selectedSessionId) return;
         try {
             await updateSession({ sessionId: selectedSessionId, mode: newMode }).unwrap();
         } catch (err) {
             console.error("Failed to update chat mode:", err);
+            setErrorModal({
+                visible: true,
+                title: "Lỗi cập nhật",
+                message: "Không thể thay đổi chế độ trò chuyện. Vui lòng kiểm tra lại kết nối.",
+            });
         }
     }, [selectedSessionId, updateSession]);
 
@@ -225,6 +236,8 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         setRenameTitleInput,
         activeMode,
         handleChangeMode,
+        errorModal,
+        setErrorModal,
         screenContext,
 
         isListening,

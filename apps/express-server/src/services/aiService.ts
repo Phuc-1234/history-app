@@ -93,10 +93,19 @@ export class AIService {
         let lastError: Error | null = null;
         const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
 
-        let systemPrompt = "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n";
+        let systemPrompt = "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n" +
+            "QUY TẮC HIỂN THỊ LIÊN KẾT NÚT KIẾN THỨC (QUAN TRỌNG):\n" +
+            "- TUYỆT ĐỐI KHÔNG DÙNG \"Nút id ___\", \"Nút ___\", \"Nút ID ___\" hay bất kỳ mã ID nào làm tên hiển thị của liên kết (CẤM CỤT THỂ: [Nút id 12](node:12) hoặc [Nút 12](node:12)).\n" +
+            "- Luôn sử dụng Tiêu đề của nút kiến thức làm tên hiển thị (ví dụ: [Diễn biến cuộc khởi nghĩa](node:12)).\n" +
+            "- KHÔNG đặt ngoặc vuông [] quanh các từ văn bản thuần túy (ví dụ: viết \"Lớp 11\" thay vì \"[Lớp 11]\"), trừ khi tạo liên kết Markdown dạng [Tên nhãn](lesson:ID) hoặc [Tên nhãn](node:ID).\n" +
+            "- Nếu nút kiến thức không có tiêu đề, hãy tự sáng tạo một tiêu đề tóm tắt ngắn gọn (3-6 từ) thể hiện đúng nội dung của nút đó làm tên hiển thị liên kết (ví dụ: [Bối cảnh lịch sử](node:12)).\n\n";
 
         if (options?.screenContextText) {
-            systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ:\n${options.screenContextText}\n\n`;
+            systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ (GỢI Ý BỐI CẢNH):
+${options.screenContextText}
+- LƯU Ý QUAN TRỌNG VỀ BỐI CẢNH MÀN HÌNH:
+  + Màn hình này là GỢI Ý NGUYÊN THỂ khi người dùng dùng từ mập mờ (ví dụ: "bài này", "nút này", "màn hình này", "ở đây", "nội dung này").
+  + Màn hình này KHÔNG PHẢI là giới hạn duy nhất cho phạm vi câu hỏi. Người dùng có thể hỏi về bất kỳ bài học hoặc chủ đề nào khác trong bộ giáo trình. Bạn cần sử dụng toàn bộ 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' để trả lời.\n\n`;
         }
 
         if (options?.mode === "COURSE_ONLY") {
@@ -114,8 +123,8 @@ ${options.groundingContext || "Không tìm thấy dữ liệu giáo trình liên
             systemPrompt += `CHẾ ĐỘ: ƯU TIÊN DỮ LIỆU GIÁO TRÌNH (COURSE FIRST).
 QUY TẮC BẮT BUỘC:
 1. Hãy ưu tiên sử dụng thông tin trong phần 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' bên dưới để trả lời.
-2. Nếu câu hỏi vượt quá dữ liệu giáo trình có sẵn, bạn CÓ THỂ bổ sung thêm kiến thức lịch sử bên ngoài, nhưng BẮT BUỘC kèm theo dòng ghi chú ở cuối câu trả lời:
-   "\n\n*Lưu ý: Một số thông tin trên được tổng hợp thêm ngoài giáo trình chuẩn của ứng dụng.*"
+2. Nếu câu hỏi vượt quá dữ liệu giáo trình và bạn bổ sung thêm kiến thức lịch sử bên ngoài, BẮT BUỘC phải viết dòng ghi chú ĐẦU TIÊN ngay trước phần kiến thức ngoài đó để phân tách rõ ràng với thông tin giáo trình:
+   "\n\n> ⚠️ *Lưu ý: Phần thông tin dưới đây được tổng hợp thêm từ nguồn ngoài giáo trình chuẩn của ứng dụng:*\n\n"
 3. Khi trích dẫn thông tin từ giáo trình, hãy chèn liên kết Markdown: [Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).
 
 DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT:
@@ -123,6 +132,10 @@ ${options.groundingContext || "Không tìm thấy dữ liệu giáo trình trự
         } else {
             systemPrompt += `CHẾ ĐỘ: TRỢ LÝ TỰ DO (GENERAL).
 Hãy hỗ trợ học sinh giải đáp thắc mắc lịch sử tự do, chính xác và sinh động. Khi nhắc tới các nội dung trong ứng dụng, bạn có thể tạo liên kết Markdown [Tên bài](lesson:ID) hoặc [Chi tiết nút](node:ID) nếu phù hợp.`;
+
+            if (options?.groundingContext) {
+                systemPrompt += `\n\nDỮ LIỆU BỐI CẢNH MÀN HÌNH BÀI HỌC HIỆN TẠI NGƯỜI DÙNG ĐANG XEM:\n${options.groundingContext}`;
+            }
         }
 
         for (const apiKey of shuffledKeys) {
@@ -166,9 +179,25 @@ Hãy hỗ trợ học sinh giải đáp thắc mắc lịch sử tự do, chính
 
     async generateChatTitle(firstMessage: string): Promise<string> {
         try {
-            const prompt = `Tạo tiêu đề cuộc trò chuyện cực kỳ ngắn gọn (3-6 từ, không dấu ngoặc kép, không dùng markdown) dựa trên câu hỏi đầu tiên này: "${firstMessage}"`;
-            const title = await this.callGemini(prompt);
-            return title.trim().replace(/^"|"$/g, "") || firstMessage.slice(0, 30);
+            const prompt = `Tạo tiêu đề cuộc trò chuyện cực kỳ ngắn gọn (3-6 từ, không dùng dấu ngoặc kép, không dùng markdown, không dùng JSON). Chỉ trả về tiêu đề dưới dạng chuỗi chữ thuần túy cho câu hỏi này: "${firstMessage}"`;
+            let title = await this.callGemini(prompt);
+            title = title.trim();
+
+            // Handle cases where model returns JSON object (e.g. { "title": "..." })
+            if (title.startsWith("{")) {
+                try {
+                    const parsed = JSON.parse(title);
+                    title = parsed.title || parsed.text || parsed.result || Object.values(parsed)[0] || title;
+                } catch {}
+            }
+
+            title = String(title)
+                .replace(/^"|"$/g, "")
+                .replace(/^\{\s*"title"\s*:\s*"/i, "")
+                .replace(/"\s*\}$/, "")
+                .trim();
+
+            return title || (firstMessage.length > 30 ? firstMessage.slice(0, 30) + "..." : firstMessage);
         } catch {
             return firstMessage.length > 30 ? firstMessage.slice(0, 30) + "..." : firstMessage;
         }

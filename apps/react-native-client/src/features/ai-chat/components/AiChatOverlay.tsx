@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -11,13 +11,18 @@ import {
     KeyboardAvoidingView,
     Platform,
     Dimensions,
+    Clipboard,
 } from "react-native";
+import * as Speech from "expo-speech";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
 import { AiSkeletonBubble } from "./AiSkeletonBubble";
 import { VibratingVoiceInput } from "./VibratingVoiceInput";
 import { AiMarkdownMessage } from "./AiMarkdownMessage";
+import { MascotRotator } from "./MascotRotator";
+import { TwinklingStars } from "./TwinklingStars";
+import { CustomModal } from "@/components/Modal";
 import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
 import { AiChatModeType } from "../services/aiChatApi";
 
@@ -38,6 +43,8 @@ const MODES: { id: AiChatModeType; label: string; icon: keyof typeof Ionicons.gl
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
     const insets = useSafeAreaInsets();
     const flatListRef = useRef<FlatList>(null);
+    const [speakingId, setSpeakingId] = useState<string | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     const {
         selectedSessionId,
@@ -56,6 +63,8 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         setRenameTitleInput,
         activeMode,
         handleChangeMode,
+        errorModal,
+        setErrorModal,
         screenContext,
 
         isListening,
@@ -81,25 +90,87 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         handleSend,
     } = useAiChatOverlay({ visible });
 
+    const speakingIdRef = useRef<string | null>(null);
+
+    const updateSpeakingId = (id: string | null) => {
+        speakingIdRef.current = id;
+        setSpeakingId(id);
+    };
+
+    useEffect(() => {
+        if (!visible) {
+            Speech.stop();
+            updateSpeakingId(null);
+        }
+    }, [visible]);
+
+    const stripMarkdown = (text: string): string => {
+        return text
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+            .replace(/^#{1,6}\s+/gm, "")
+            .replace(/^>\s*/gm, "")
+            .replace(/^-\s*\[[ xX]\]\s*/gm, "")
+            .replace(/^[\*\-]\s+/gm, "")
+            .replace(/\*\*([^*]+)\*\*/g, "$1")
+            .replace(/\*([^*]+)\*/g, "$1")
+            .replace(/_([^_]+)_/g, "$1")
+            .replace(/\[([^\]]+)\]/g, "$1")
+            .trim();
+    };
+
+    const handleCopy = (content: string, id: string) => {
+        Clipboard.setString(content);
+        setCopiedId(id);
+        setTimeout(() => {
+            setCopiedId((prev) => (prev === id ? null : prev));
+        }, 2000);
+    };
+
+    const handleSpeak = (content: string, id: string) => {
+        if (speakingIdRef.current === id) {
+            Speech.stop();
+            updateSpeakingId(null);
+        } else {
+            Speech.stop();
+            updateSpeakingId(id);
+            const plainText = stripMarkdown(content);
+            Speech.speak(plainText, {
+                language: "vi-VN",
+                onDone: () => {
+                    if (speakingIdRef.current === id) {
+                        updateSpeakingId(null);
+                    }
+                },
+                onError: () => {
+                    if (speakingIdRef.current === id) {
+                        updateSpeakingId(null);
+                    }
+                },
+                onStopped: () => {
+                    if (speakingIdRef.current === id) {
+                        updateSpeakingId(null);
+                    }
+                },
+            });
+        }
+    };
+
     const renderMessageItem = ({ item }: { item: DisplayChatMessage }) => {
         const isUser = item.sender === "user";
+        const isSpeaking = speakingId === item.id;
+        const isCopied = copiedId === item.id;
+
         return (
             <View style={[styles.messageBubbleContainer, isUser ? styles.userBubbleAlign : styles.assistantBubbleAlign]}>
-                {!isUser && (
-                    <View style={styles.aiAvatar}>
-                        <Ionicons name="sparkles" size={14} color="#FFF" />
-                    </View>
-                )}
-                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "80%" }}>
+                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", width: isUser ? undefined : "100%", maxWidth: isUser ? "80%" : "100%" }}>
                     <View
                         style={[
-                            styles.messageBubble,
-                            isUser ? styles.userBubble : styles.assistantBubble,
+                            isUser ? [styles.messageBubble, styles.userBubble] : styles.assistantOverlayContainer,
                             item.isError && styles.errorBubble,
                         ]}
                     >
                         {isUser ? (
-                            <Text style={[styles.messageText, styles.userMessageText]}>
+                            <Text selectable style={[styles.messageText, styles.userMessageText]}>
                                 {item.content}
                             </Text>
                         ) : (
@@ -107,14 +178,42 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 content={item.content}
                                 textColor={colors.textPrimary}
                                 onCloseOverlay={onClose}
+                                selectable
                             />
                         )}
                     </View>
+
                     {item.isError && (
                         <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
                             <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
                             <Text style={styles.retryText}>Gửi thất bại, chạm để thử lại</Text>
                         </Pressable>
+                    )}
+
+                    {!isUser && (
+                        <View style={[styles.actionRow, styles.assistantActionRow]}>
+                            <Pressable
+                                style={styles.actionIconButton}
+                                onPress={() => handleCopy(item.content, item.id)}
+                            >
+                                <Ionicons
+                                    name={isCopied ? "checkmark-outline" : "copy-outline"}
+                                    size={15}
+                                    color={isCopied ? colors.primary : colors.textSecondary}
+                                />
+                            </Pressable>
+
+                            <Pressable
+                                style={styles.actionIconButton}
+                                onPress={() => handleSpeak(item.content, item.id)}
+                            >
+                                <Ionicons
+                                    name={isSpeaking ? "stop-circle-outline" : "volume-high-outline"}
+                                    size={15}
+                                    color={isSpeaking ? colors.primary : colors.textSecondary}
+                                />
+                            </Pressable>
+                        </View>
                     )}
                 </View>
             </View>
@@ -127,7 +226,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    style={[styles.overlayContainer, { height: SCREEN_HEIGHT * 0.8 }]}
+                    style={[styles.overlayContainer, { height: SCREEN_HEIGHT  }]}
                 >
                     {/* Header */}
                     <View style={styles.header}>
@@ -142,11 +241,21 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                             />
                         </Pressable>
 
-                        <Text style={styles.headerTitle} numberOfLines={1}>
-                            {showSessionsDrawer
-                                ? "Lịch sử trò chuyện"
-                                : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
-                        </Text>
+                        <View style={styles.headerTitleContainer}>
+                            <Text style={styles.headerTitle} numberOfLines={1}>
+                                {showSessionsDrawer
+                                    ? "Lịch sử trò chuyện"
+                                    : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
+                            </Text>
+                            {!showSessionsDrawer && screenContext?.screenName && (
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 1 }}>
+                                    <Ionicons name="location-sharp" size={11} color={colors.primary} style={{ marginRight: 3 }} />
+                                    <Text style={styles.headerSubTitle} numberOfLines={1}>
+                                        Đang xem: <Text style={styles.headerSubTitleHighlight}>{screenContext.screenName}</Text>
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
 
                         <Pressable style={styles.newChatHeaderButton} onPress={() => handleCreateNewSession()}>
                             <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
@@ -248,19 +357,14 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
                                 ) : displayMessages.length === 0 ? (
                                     <View style={styles.emptyContainer}>
-                                        <Ionicons name="sparkles-outline" size={48} color={colors.primary} />
+                                        <View style={styles.emptyMascotCircle}>
+                                            <MascotRotator size={42} />
+                                            <TwinklingStars mode="fab" />
+                                        </View>
                                         <Text style={styles.emptyTitle}>Xin chào! Tôi có thể giúp gì cho bạn?</Text>
                                         <Text style={styles.emptySub}>
                                             Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!
                                         </Text>
-                                        {screenContext?.screenName && (
-                                            <View style={styles.contextBadge}>
-                                                <Ionicons name="location-outline" size={12} color={colors.primary} style={{ marginRight: 4 }} />
-                                                <Text style={styles.contextBadgeText}>
-                                                    Đang xem: {screenContext.screenName}
-                                                </Text>
-                                            </View>
-                                        )}
                                     </View>
                                 ) : (
                                     <FlatList
@@ -433,6 +537,17 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     </View>
                 </View>
             </Modal>
+
+            {/* Error Notification Modal */}
+            <CustomModal
+                visible={errorModal.visible}
+                title={errorModal.title}
+                message={errorModal.message}
+                confirmText="Đồng ý"
+                onConfirm={() => setErrorModal((prev) => ({ ...prev, visible: false }))}
+                showMascot
+                mascotExpression="sad"
+            />
         </Modal>
     );
 };
@@ -465,11 +580,23 @@ const styles = StyleSheet.create({
         padding: 4,
         marginRight: 8,
     },
-    headerTitle: {
+    headerTitleContainer: {
         flex: 1,
-        fontSize: 16,
+        justifyContent: "center",
+    },
+    headerTitle: {
+        fontSize: 15,
         fontWeight: "600",
         color: colors.textPrimary,
+    },
+    headerSubTitle: {
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 1,
+    },
+    headerSubTitleHighlight: {
+        fontWeight: "600",
+        color: colors.primary,
     },
     newChatHeaderButton: {
         padding: 4,
@@ -491,7 +618,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 12,
         paddingVertical: 5,
-        borderRadius: 30, // pill button border radius = 30
+        borderRadius: 30,
         backgroundColor: colors.surface,
     },
     modePillActive: {
@@ -560,6 +687,17 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         paddingHorizontal: 32,
     },
+    emptyMascotCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: "#FFF",
+        backgroundColor: colors.primary,
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "visible",
+    },
     emptyTitle: {
         fontSize: 16,
         fontWeight: "600",
@@ -599,29 +737,20 @@ const styles = StyleSheet.create({
     assistantBubbleAlign: {
         justifyContent: "flex-start",
     },
-    aiAvatar: {
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        backgroundColor: colors.primary,
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 8,
-        marginBottom: 2,
-    },
     messageBubble: {
         maxWidth: "100%",
         paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 12, // container border radius = 12
+        borderRadius: 12,
     },
     userBubble: {
         backgroundColor: colors.primary,
         borderBottomRightRadius: 4,
     },
-    assistantBubble: {
-        backgroundColor: colors.surfaceVariant,
-        borderBottomLeftRadius: 4,
+    assistantOverlayContainer: {
+        width: "100%",
+        paddingVertical: 4,
+        paddingHorizontal: 4,
     },
     messageText: {
         fontSize: 14,
@@ -634,6 +763,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.errorContainer,
         borderColor: colors.error,
         borderWidth: 1,
+        borderRadius: 12,
     },
     retryButton: {
         flexDirection: "row",
@@ -645,6 +775,26 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: colors.error,
         marginLeft: 4,
+    },
+    actionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 4,
+        gap: 8,
+    },
+    userActionRow: {
+        justifyContent: "flex-end",
+    },
+    assistantActionRow: {
+        justifyContent: "flex-start",
+    },
+    actionIconButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: colors.surfaceVariant,
     },
     bottomContainer: {
         backgroundColor: colors.surface,

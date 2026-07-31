@@ -16,7 +16,7 @@ export function useAiChatFab({ onPress }: UseAiChatFabOptions) {
     const isDragging = useRef(false);
     const lastOffset = useRef({ x: 0, y: 0 });
 
-    const FAB_SIZE = 54;
+    const FAB_SIZE = 56;
     const MARGIN = 8;
 
     const defaultLeft = SCREEN_WIDTH - FAB_SIZE - 20;

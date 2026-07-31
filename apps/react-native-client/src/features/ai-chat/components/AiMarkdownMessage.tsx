@@ -8,12 +8,14 @@ interface AiMarkdownMessageProps {
     content: string;
     textColor?: string;
     onCloseOverlay?: () => void;
+    selectable?: boolean;
 }
 
 export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
     content,
     textColor = colors.textPrimary,
     onCloseOverlay,
+    selectable = true,
 }) => {
     const router = useRouter();
 
@@ -78,19 +80,36 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
                 );
             }
 
-            // Parse bold (**text**) inside normal text part
-            const boldParts = part.value.split(/(\*\*[^*]+\*\*)/g);
+            // Parse bold (**text**), italic (*text* or _text_), and standalone tags ([tag]) inside normal text part
+            const tokens = part.value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_|\[[^\]]+\])/g);
             return (
                 <Text key={`text-${index}`} style={baseStyle}>
-                    {boldParts.map((bPart, bIdx) => {
-                        if (bPart.startsWith("**") && bPart.endsWith("**")) {
+                    {tokens.map((tPart, tIdx) => {
+                        if (tPart.startsWith("**") && tPart.endsWith("**")) {
                             return (
-                                <Text key={bIdx} style={styles.boldText}>
-                                    {bPart.slice(2, -2)}
+                                <Text key={tIdx} style={styles.boldText}>
+                                    {tPart.slice(2, -2)}
                                 </Text>
                             );
                         }
-                        return bPart;
+                        if (
+                            (tPart.startsWith("*") && tPart.endsWith("*") && tPart.length > 2) ||
+                            (tPart.startsWith("_") && tPart.endsWith("_") && tPart.length > 2)
+                        ) {
+                            return (
+                                <Text key={tIdx} style={styles.italicText}>
+                                    {tPart.slice(1, -1)}
+                                </Text>
+                            );
+                        }
+                        if (tPart.startsWith("[") && tPart.endsWith("]") && tPart.length > 2) {
+                            return (
+                                <Text key={tIdx} style={styles.tagBadge}>
+                                    {tPart.slice(1, -1)}
+                                </Text>
+                            );
+                        }
+                        return tPart;
                     })}
                 </Text>
             );
@@ -111,23 +130,39 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
                 // Headers
                 if (trimmed.startsWith("# ")) {
                     return (
-                        <Text key={index} style={[styles.header1, { color: textColor }]}>
+                        <Text key={index} selectable={selectable} style={[styles.header1, { color: textColor }]}>
                             {renderInlineText(trimmed.replace("# ", ""), styles.header1)}
                         </Text>
                     );
                 }
                 if (trimmed.startsWith("## ")) {
                     return (
-                        <Text key={index} style={[styles.header2, { color: textColor }]}>
+                        <Text key={index} selectable={selectable} style={[styles.header2, { color: textColor }]}>
                             {renderInlineText(trimmed.replace("## ", ""), styles.header2)}
                         </Text>
                     );
                 }
                 if (trimmed.startsWith("### ")) {
                     return (
-                        <Text key={index} style={[styles.header3, { color: textColor }]}>
+                        <Text key={index} selectable={selectable} style={[styles.header3, { color: textColor }]}>
                             {renderInlineText(trimmed.replace("### ", ""), styles.header3)}
                         </Text>
+                    );
+                }
+
+                // Task list items (- [ ] or - [x])
+                if (trimmed.startsWith("- [ ] ") || trimmed.startsWith("- [x] ") || trimmed.startsWith("- [X] ")) {
+                    const isChecked = trimmed.startsWith("- [x] ") || trimmed.startsWith("- [X] ");
+                    const taskText = trimmed.substring(6);
+                    return (
+                        <View key={index} style={styles.bulletRow}>
+                            <Text style={[styles.bulletPoint, { color: textColor }]}>
+                                {isChecked ? "☑" : "☐"}
+                            </Text>
+                            <Text selectable={selectable} style={[styles.bodyText, { color: textColor, flex: 1 }]}>
+                                {renderInlineText(taskText, [styles.bodyText, { color: textColor }])}
+                            </Text>
+                        </View>
                     );
                 }
 
@@ -137,8 +172,20 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
                     return (
                         <View key={index} style={styles.bulletRow}>
                             <Text style={[styles.bulletPoint, { color: textColor }]}>•</Text>
-                            <Text style={[styles.bodyText, { color: textColor, flex: 1 }]}>
+                            <Text selectable={selectable} style={[styles.bodyText, { color: textColor, flex: 1 }]}>
                                 {renderInlineText(bulletText, [styles.bodyText, { color: textColor }])}
+                            </Text>
+                        </View>
+                    );
+                }
+
+                // Blockquote / Callout note block (> ...)
+                if (trimmed.startsWith(">")) {
+                    const quoteText = trimmed.replace(/^>\s*/, "");
+                    return (
+                        <View key={index} style={styles.noteBox}>
+                            <Text selectable={selectable} style={styles.noteText}>
+                                {renderInlineText(quoteText, styles.noteText)}
                             </Text>
                         </View>
                     );
@@ -148,7 +195,7 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
                 if (trimmed.startsWith("*Lưu ý:") || trimmed.startsWith("_Lưu ý:")) {
                     return (
                         <View key={index} style={styles.noteBox}>
-                            <Text style={styles.noteText}>
+                            <Text selectable={selectable} style={styles.noteText}>
                                 {renderInlineText(trimmed, styles.noteText)}
                             </Text>
                         </View>
@@ -157,7 +204,7 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
 
                 // Normal Paragraph
                 return (
-                    <Text key={index} style={[styles.bodyText, { color: textColor }]}>
+                    <Text key={index} selectable={selectable} style={[styles.bodyText, { color: textColor }]}>
                         {renderInlineText(trimmed, [styles.bodyText, { color: textColor }])}
                     </Text>
                 );
@@ -178,6 +225,9 @@ const styles = StyleSheet.create({
     boldText: {
         fontFamily: typography.fonts.bold,
         fontWeight: "700",
+    },
+    italicText: {
+        fontStyle: "italic",
     },
     linkText: {
         color: colors.primary,
@@ -222,5 +272,16 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: colors.textSecondary,
         fontStyle: "italic",
+    },
+    tagBadge: {
+        fontFamily: typography.fonts.bold,
+        fontWeight: "600",
+        color: colors.primary,
+        backgroundColor: "rgba(218, 165, 32, 0.15)",
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 12,
+        fontSize: 12,
+        overflow: "hidden",
     },
 });
