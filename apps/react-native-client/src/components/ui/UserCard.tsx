@@ -144,13 +144,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 30,
-        borderWidth: 2,
-        borderColor: colors.warning,
-        backgroundColor: "transparent",
+        borderWidth: 0,
+        backgroundColor: colors.warningContainer,
     },
     levelText: {
         fontSize: 11,
         fontFamily: typography.fonts.semiBold,
-        color: colors.warning,
+        color: colors.textWarning,
     },
 });

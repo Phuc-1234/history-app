@@ -20,12 +20,12 @@ export const styles = StyleSheet.create({
     },
 
     // ─── Search box (SearchUsersScreen) ──────────────────────────────────
+    // Không viền — đồng bộ với style "mặt nạ nền xám" của SegmentTabs.
     searchBox: {
         height: 48,
         borderRadius: 12,
-        borderWidth: 2,
-        borderColor: colors.borderDark,
-        backgroundColor: colors.surface,
+        borderWidth: 0,
+        backgroundColor: colors.inputBackground,
         paddingHorizontal: 14,
         flexDirection: "row",
         alignItems: "center",
@@ -92,14 +92,13 @@ export const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 30,
-        borderWidth: 2,
-        borderColor: colors.warning,
-        backgroundColor: "transparent",
+        borderWidth: 0,
+        backgroundColor: colors.warningContainer,
     },
     levelText: {
         fontSize: 11,
         fontFamily: typography.fonts.semiBold,
-        color: colors.warning,
+        color: colors.textWarning,
     },
     searchButtonRow: {
         flexDirection: "row",
@@ -144,7 +143,7 @@ export const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 12,
         backgroundColor: "transparent",
-        borderWidth: 2,
+        borderWidth: 0,
         padding: 14,
         alignItems: "center",
         gap: 8,
