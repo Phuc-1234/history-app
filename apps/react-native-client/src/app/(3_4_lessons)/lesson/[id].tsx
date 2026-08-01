@@ -46,6 +46,7 @@ export default function LessonSummaryScreen() {
                                 pathname: "/(3_4_lessons)/lesson/node/[nodeId]",
                                 params: {
                                     nodeId: String(nodeId),
+                                    lessonId: id,
                                     sectionNodeIds: allNodeIds.join(","),
                                     lessonName: summaryData.name,
                                 },

@@ -8,11 +8,12 @@ import type { CardAction } from "./types";
  * Nút hành động dùng trong thẻ tìm bạn (SearchUserCard).
  *
  * Hai chế độ:
- * - Mặc định (icon-only): nút vuông 40×40, chỉ icon.
+ * - Mặc định (icon-only): nút tròn 40×40, chỉ icon.
  * - Có `showLabel`: hiển thị chữ + icon (pill), dùng cho nút "Theo dõi"
  *   để rõ nghĩa (theo chuẩn Twitter/Instagram) thay vì chỉ icon.
  *
- * `type="outline"` vẽ viền, `type="filled"` đổ màu nền.
+ * `type="outline"` = nền cream không viền (đồng bộ với style "không viền"
+ * của các màn social); `type="filled"` đổ màu nền primary.
  */
 export function SearchActionButton({
     action,
@@ -31,9 +32,8 @@ export function SearchActionButton({
     const btnStyle =
         type === "outline"
             ? {
-                  backgroundColor: "transparent" as const,
-                  borderWidth: 2,
-                  borderColor: colors.primary,
+                  backgroundColor: colors.primaryContainer,
+                  borderWidth: 0,
               }
             : {
                   backgroundColor: disabled ? colors.inputBackground : colors.primary,
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     searchBtn: {
         width: 40,
         height: 40,
-        borderRadius: 4,
+        borderRadius: 20,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.primary,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
         height: 36,
         minWidth: 92,
         paddingHorizontal: 14,
-        borderRadius: 4,
+        borderRadius: 30,
     },
     label: {
         fontSize: 13,

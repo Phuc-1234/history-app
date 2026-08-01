@@ -20,8 +20,8 @@ export const createSession = async (req: Request, res: Response) => {
         const userId = req.user?.id;
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-        const { title } = req.body;
-        const session = await aiChatService.createSession(userId, title);
+        const { title, mode } = req.body;
+        const session = await aiChatService.createSession(userId, title, mode);
         return res.status(201).json({ session });
     } catch (err: any) {
         return res.status(500).json({ error: err.message || "Failed to create chat session." });
@@ -47,12 +47,12 @@ export const sendMessage = async (req: Request, res: Response) => {
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
         const { sessionId } = req.params;
-        const { content } = req.body;
+        const { content, screenContext } = req.body;
         if (!content || typeof content !== "string" || !content.trim()) {
             return res.status(400).json({ error: "Content is required." });
         }
 
-        const result = await aiChatService.sendMessage(userId, sessionId, content.trim());
+        const result = await aiChatService.sendMessage(userId, sessionId, content.trim(), screenContext);
         return res.status(200).json(result);
     } catch (err: any) {
         return res.status(500).json({ error: err.message || "Failed to process chat message." });
@@ -78,14 +78,11 @@ export const updateSession = async (req: Request, res: Response) => {
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
         const { sessionId } = req.params;
-        const { title } = req.body;
-        if (!title || typeof title !== "string" || !title.trim()) {
-            return res.status(400).json({ error: "Title is required." });
-        }
+        const { title, mode } = req.body;
 
-        const session = await aiChatService.updateSessionTitle(userId, sessionId, title.trim());
+        const session = await aiChatService.updateSession(userId, sessionId, { title, mode });
         return res.status(200).json({ session });
     } catch (err: any) {
-        return res.status(500).json({ error: err.message || "Failed to update chat session title." });
+        return res.status(500).json({ error: err.message || "Failed to update chat session." });
     }
 };

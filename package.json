@@ -7,6 +7,9 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "npm run start --workspace=react-native-client",
+    "android": "npm run android --workspace=react-native-client",
+    "ios": "npm run ios --workspace=react-native-client",
     "db:push": "cd packages/shared && prisma db push",
     "client": "npm start --workspace=react-native-client",
     "client:local": "npm run start:local --workspace=react-native-client",
@@ -20,7 +23,8 @@
     "build:shared": "npm run build --workspace=@history-app/shared",
     "build:server": "npm run build --workspace=express-server",
     "build:render": "npm install && npx prisma generate --schema=packages/shared/prisma/schema.prisma && npm run build:shared && npm run build:server",
-    "start:render": "node apps/express-server/dist/index.js"
+    "start:render": "node apps/express-server/dist/index.js",
+    "dev": ""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",

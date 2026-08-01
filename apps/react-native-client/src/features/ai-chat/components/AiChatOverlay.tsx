@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -11,228 +11,209 @@ import {
     KeyboardAvoidingView,
     Platform,
     Dimensions,
-    Keyboard,
+    Clipboard,
 } from "react-native";
+import * as Speech from "expo-speech";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
-import {
-    useListSessionsQuery,
-    useCreateSessionMutation,
-    useDeleteSessionMutation,
-    useUpdateSessionTitleMutation,
-    useGetSessionMessagesQuery,
-    useSendMessageMutation,
-    AiChatMessageDto,
-    AiChatSessionDto,
-} from "../services/aiChatApi";
 import { AiSkeletonBubble } from "./AiSkeletonBubble";
+import { VibratingVoiceInput } from "./VibratingVoiceInput";
+import { AiMarkdownMessage } from "./AiMarkdownMessage";
+import { MascotRotator } from "./MascotRotator";
+import { TwinklingStars } from "./TwinklingStars";
+import { CustomModal } from "@/components/Modal";
+import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
+import { AiChatModeType } from "../services/aiChatApi";
 
 interface AiChatOverlayProps {
     visible: boolean;
     onClose: () => void;
 }
 
-interface DisplayChatMessage extends AiChatMessageDto {
-    isPending?: boolean;
-    isError?: boolean;
-}
-
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const OVERLAY_HEIGHT = SCREEN_HEIGHT * 0.8;
 
+const MODES: { id: AiChatModeType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { id: "COURSE_ONLY", label: "Chỉ Giáo Trình", icon: "book" },
+    { id: "COURSE_FIRST", label: "Ưu Tiên Giáo Trình", icon: "school" },
+    { id: "GENERAL", label: "Chung", icon: "chatbubbles" },
+];
+
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
     const insets = useSafeAreaInsets();
-    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-    const [inputText, setInputText] = useState("");
-    const [showSessionsDrawer, setShowSessionsDrawer] = useState(false);
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
-    const [pendingMessage, setPendingMessage] = useState<{
-        id: string;
-        content: string;
-        status: "sending" | "error";
-    } | null>(null);
-
-    useEffect(() => {
-        setPendingMessage(null);
-    }, [selectedSessionId]);
-
-    useEffect(() => {
-        if (Platform.OS === "android") {
-            const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-                setKeyboardHeight(e.endCoordinates.height);
-            });
-            const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-                setKeyboardHeight(0);
-            });
-            return () => {
-                showSub.remove();
-                hideSub.remove();
-            };
-        }
-    }, []);
-
-    const [actionSession, setActionSession] = useState<AiChatSessionDto | null>(null);
-    const [showRenameModal, setShowRenameModal] = useState(false);
-    const [renameTitleInput, setRenameTitleInput] = useState("");
-
-    const { data: sessionsData, isLoading: isLoadingSessions } = useListSessionsQuery(undefined, { skip: !visible });
-    const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
-    const [deleteSession] = useDeleteSessionMutation();
-    const [updateSessionTitle, { isLoading: isUpdatingTitle }] = useUpdateSessionTitleMutation();
-
-    const { data: messagesData, isLoading: isLoadingMessages } = useGetSessionMessagesQuery(
-        selectedSessionId!,
-        { skip: !selectedSessionId || !visible }
-    );
-
-    const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
-
     const flatListRef = useRef<FlatList>(null);
+    const [speakingId, setSpeakingId] = useState<string | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
-    const sessions = sessionsData?.sessions || [];
-    const messages = messagesData?.messages || [];
+    const {
+        selectedSessionId,
+        setSelectedSessionId,
+        inputText,
+        setInputText,
+        showSessionsDrawer,
+        setShowSessionsDrawer,
+        keyboardHeight,
+        pendingMessage,
+        actionSession,
+        setActionSession,
+        showRenameModal,
+        setShowRenameModal,
+        renameTitleInput,
+        setRenameTitleInput,
+        activeMode,
+        handleChangeMode,
+        errorModal,
+        setErrorModal,
+        screenContext,
 
-    const displayMessages: DisplayChatMessage[] = [
-        ...messages,
-        ...(pendingMessage && selectedSessionId
-            ? [
-                  {
-                      id: pendingMessage.id,
-                      sessionId: selectedSessionId,
-                      sender: "user" as const,
-                      content: pendingMessage.content,
-                      createdAt: new Date().toISOString(),
-                      isPending: pendingMessage.status === "sending",
-                      isError: pendingMessage.status === "error",
-                  },
-              ]
-            : []),
-    ];
+        isListening,
+        isTranscribing,
+        transcript,
+        startListening,
+        stopListening,
+        forceStopImmediate,
 
-    // Auto-select latest session or create one when opened if empty
+        isLoadingSessions,
+        isUpdatingTitle,
+        isLoadingMessages,
+        isSending,
+
+        sessions,
+        displayMessages,
+
+        handleCreateNewSession,
+        handleLongPressSession,
+        handleOpenRename,
+        handleSaveRename,
+        handleConfirmDelete,
+        handleSend,
+    } = useAiChatOverlay({ visible });
+
+    const speakingIdRef = useRef<string | null>(null);
+
+    const updateSpeakingId = (id: string | null) => {
+        speakingIdRef.current = id;
+        setSpeakingId(id);
+    };
+
     useEffect(() => {
-        if (visible && sessions.length > 0 && !selectedSessionId) {
-            setSelectedSessionId(sessions[0].id);
+        if (!visible) {
+            Speech.stop();
+            updateSpeakingId(null);
         }
-    }, [visible, sessions, selectedSessionId]);
+    }, [visible]);
 
-    const handleCreateNewSession = async () => {
-        try {
-            const res = await createSession().unwrap();
-            setSelectedSessionId(res.session.id);
-            setShowSessionsDrawer(false);
-        } catch (err) {
-            console.error("Failed to create chat session:", err);
-        }
+    const stripMarkdown = (text: string): string => {
+        return text
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+            .replace(/^#{1,6}\s+/gm, "")
+            .replace(/^>\s*/gm, "")
+            .replace(/^-\s*\[[ xX]\]\s*/gm, "")
+            .replace(/^[\*\-]\s+/gm, "")
+            .replace(/\*\*([^*]+)\*\*/g, "$1")
+            .replace(/\*([^*]+)\*/g, "$1")
+            .replace(/_([^_]+)_/g, "$1")
+            .replace(/\[([^\]]+)\]/g, "$1")
+            .trim();
     };
 
-    const handleDeleteSession = async (id: string) => {
-        try {
-            await deleteSession(id).unwrap();
-            if (selectedSessionId === id) {
-                const remaining = sessions.filter((s) => s.id !== id);
-                setSelectedSessionId(remaining.length > 0 ? remaining[0].id : null);
-            }
-        } catch (err) {
-            console.error("Failed to delete session:", err);
-        }
+    const handleCopy = (content: string, id: string) => {
+        Clipboard.setString(content);
+        setCopiedId(id);
+        setTimeout(() => {
+            setCopiedId((prev) => (prev === id ? null : prev));
+        }, 2000);
     };
 
-    const handleLongPressSession = (session: AiChatSessionDto) => {
-        setActionSession(session);
-    };
-
-    const handleOpenRename = () => {
-        if (actionSession) {
-            setRenameTitleInput(actionSession.title);
-            setShowRenameModal(true);
-        }
-    };
-
-    const handleSaveRename = async () => {
-        if (!actionSession || !renameTitleInput.trim()) return;
-        try {
-            await updateSessionTitle({ sessionId: actionSession.id, title: renameTitleInput.trim() }).unwrap();
-            setShowRenameModal(false);
-            setActionSession(null);
-        } catch (err) {
-            console.error("Failed to rename session:", err);
-        }
-    };
-
-    const handleConfirmDelete = async () => {
-        if (!actionSession) return;
-        const idToDelete = actionSession.id;
-        setActionSession(null);
-        await handleDeleteSession(idToDelete);
-    };
-
-    const handleSend = async (contentToSend?: string) => {
-        const text = (contentToSend || inputText).trim();
-        if (!text || (isSending && pendingMessage?.status === "sending")) return;
-
-        let activeSessionId = selectedSessionId;
-        if (!activeSessionId) {
-            try {
-                const res = await createSession().unwrap();
-                activeSessionId = res.session.id;
-                setSelectedSessionId(activeSessionId);
-            } catch {
-                return;
-            }
-        }
-
-        if (!contentToSend) {
-            setInputText("");
-        }
-        const tempId = `temp-user-${Date.now()}`;
-        setPendingMessage({ id: tempId, content: text, status: "sending" });
-
-        try {
-            await sendMessage({ sessionId: activeSessionId, content: text }).unwrap();
-            setPendingMessage(null);
-        } catch (err) {
-            console.error("Failed to send message:", err);
-            setPendingMessage({ id: tempId, content: text, status: "error" });
+    const handleSpeak = (content: string, id: string) => {
+        if (speakingIdRef.current === id) {
+            Speech.stop();
+            updateSpeakingId(null);
+        } else {
+            Speech.stop();
+            updateSpeakingId(id);
+            const plainText = stripMarkdown(content);
+            Speech.speak(plainText, {
+                language: "vi-VN",
+                onDone: () => {
+                    if (speakingIdRef.current === id) {
+                        updateSpeakingId(null);
+                    }
+                },
+                onError: () => {
+                    if (speakingIdRef.current === id) {
+                        updateSpeakingId(null);
+                    }
+                },
+                onStopped: () => {
+                    if (speakingIdRef.current === id) {
+                        updateSpeakingId(null);
+                    }
+                },
+            });
         }
     };
 
     const renderMessageItem = ({ item }: { item: DisplayChatMessage }) => {
         const isUser = item.sender === "user";
+        const isSpeaking = speakingId === item.id;
+        const isCopied = copiedId === item.id;
+
         return (
             <View style={[styles.messageBubbleContainer, isUser ? styles.userBubbleAlign : styles.assistantBubbleAlign]}>
-                {!isUser && (
-                    <View style={styles.aiAvatar}>
-                        <Ionicons name="sparkles" size={14} color="#FFF" />
-                    </View>
-                )}
-                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", maxWidth: "65%" }}>
+                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", width: isUser ? undefined : "100%", maxWidth: isUser ? "80%" : "100%" }}>
                     <View
                         style={[
-                            styles.messageBubble,
-                            isUser ? styles.userBubble : styles.assistantBubble,
+                            isUser ? [styles.messageBubble, styles.userBubble] : styles.assistantOverlayContainer,
                             item.isError && styles.errorBubble,
                         ]}
                     >
-                        <Text
-                            style={[
-                                styles.messageText,
-                                item.isError
-                                    ? styles.errorMessageText
-                                    : isUser
-                                    ? styles.userMessageText
-                                    : styles.assistantMessageText,
-                            ]}
-                        >
-                            {item.content}
-                        </Text>
+                        {isUser ? (
+                            <Text selectable style={[styles.messageText, styles.userMessageText]}>
+                                {item.content}
+                            </Text>
+                        ) : (
+                            <AiMarkdownMessage
+                                content={item.content}
+                                textColor={colors.textPrimary}
+                                onCloseOverlay={onClose}
+                                selectable
+                            />
+                        )}
                     </View>
+
                     {item.isError && (
                         <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
                             <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
-                            <Text style={styles.retryText}>Gửi thất bại. Chạm để thử lại</Text>
+                            <Text style={styles.retryText}>Gửi thất bại, chạm để thử lại</Text>
                         </Pressable>
+                    )}
+
+                    {!isUser && (
+                        <View style={[styles.actionRow, styles.assistantActionRow]}>
+                            <Pressable
+                                style={styles.actionIconButton}
+                                onPress={() => handleCopy(item.content, item.id)}
+                            >
+                                <Ionicons
+                                    name={isCopied ? "checkmark-outline" : "copy-outline"}
+                                    size={15}
+                                    color={isCopied ? colors.primary : colors.textSecondary}
+                                />
+                            </Pressable>
+
+                            <Pressable
+                                style={styles.actionIconButton}
+                                onPress={() => handleSpeak(item.content, item.id)}
+                            >
+                                <Ionicons
+                                    name={isSpeaking ? "stop-circle-outline" : "volume-high-outline"}
+                                    size={15}
+                                    color={isSpeaking ? colors.primary : colors.textSecondary}
+                                />
+                            </Pressable>
+                        </View>
                     )}
                 </View>
             </View>
@@ -245,7 +226,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    style={[styles.overlayContainer, { height: SCREEN_HEIGHT * 0.8 }]}
+                    style={[styles.overlayContainer, { height: SCREEN_HEIGHT  }]}
                 >
                     {/* Header */}
                     <View style={styles.header}>
@@ -260,13 +241,23 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                             />
                         </Pressable>
 
-                        <Text style={styles.headerTitle} numberOfLines={1}>
-                            {showSessionsDrawer
-                                ? "Lịch sử trò chuyện"
-                                : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
-                        </Text>
+                        <View style={styles.headerTitleContainer}>
+                            <Text style={styles.headerTitle} numberOfLines={1}>
+                                {showSessionsDrawer
+                                    ? "Lịch sử trò chuyện"
+                                    : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
+                            </Text>
+                            {!showSessionsDrawer && screenContext?.screenName && (
+                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 1 }}>
+                                    <Ionicons name="location-sharp" size={11} color={colors.primary} style={{ marginRight: 3 }} />
+                                    <Text style={styles.headerSubTitle} numberOfLines={1}>
+                                        Đang xem: <Text style={styles.headerSubTitleHighlight}>{screenContext.screenName}</Text>
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
 
-                        <Pressable style={styles.newChatHeaderButton} onPress={handleCreateNewSession}>
+                        <Pressable style={styles.newChatHeaderButton} onPress={() => handleCreateNewSession()}>
                             <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
                         </Pressable>
 
@@ -275,12 +266,45 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         </Pressable>
                     </View>
 
+                    {/* Mode Selector Sub-header */}
+                    {!showSessionsDrawer && (
+                        <View style={styles.modeSelectorBar}>
+                            {MODES.map((mode) => {
+                                const isActive = activeMode === mode.id;
+                                return (
+                                    <Pressable
+                                        key={mode.id}
+                                        style={[
+                                            styles.modePill,
+                                            isActive && styles.modePillActive,
+                                        ]}
+                                        onPress={() => handleChangeMode(mode.id)}
+                                    >
+                                        <Ionicons
+                                            name={mode.icon}
+                                            size={12}
+                                            color={isActive ? "#FFF" : colors.textSecondary}
+                                            style={{ marginRight: 4 }}
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.modePillText,
+                                                isActive && styles.modePillTextActive,
+                                            ]}
+                                        >
+                                            {mode.label}
+                                        </Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </View>
+                    )}
+
                     {/* View Switch: Full Sessions List OR Chat View */}
                     {showSessionsDrawer ? (
                         <View style={styles.sessionsListFullContainer}>
                             <View style={styles.drawerHeader}>
                                 <Text style={styles.drawerTitle}>Danh sách hội thoại</Text>
-                                
                             </View>
                             {isLoadingSessions ? (
                                 <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
@@ -302,15 +326,24 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             }}
                                             onLongPress={() => handleLongPressSession(item)}
                                         >
-                                            <Text
-                                                style={[
-                                                    styles.sessionItemText,
-                                                    item.id === selectedSessionId && styles.sessionItemTextActive,
-                                                ]}
-                                                numberOfLines={1}
-                                            >
-                                                {item.title}
-                                            </Text>
+                                            <View style={{ flex: 1 }}>
+                                                <Text
+                                                    style={[
+                                                        styles.sessionItemText,
+                                                        item.id === selectedSessionId && styles.sessionItemTextActive,
+                                                    ]}
+                                                    numberOfLines={1}
+                                                >
+                                                    {item.title}
+                                                </Text>
+                                                <Text style={styles.sessionItemModeText}>
+                                                    {item.mode === "COURSE_ONLY"
+                                                        ? "Chỉ Giáo Trình"
+                                                        : item.mode === "COURSE_FIRST"
+                                                        ? "Ưu Tiên Giáo Trình"
+                                                        : "Chung"}
+                                                </Text>
+                                            </View>
                                         </Pressable>
                                     )}
                                 />
@@ -324,7 +357,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
                                 ) : displayMessages.length === 0 ? (
                                     <View style={styles.emptyContainer}>
-                                        <Ionicons name="sparkles-outline" size={48} color={colors.primary} />
+                                        <View style={styles.emptyMascotCircle}>
+                                            <MascotRotator size={42} />
+                                            <TwinklingStars mode="fab" />
+                                        </View>
                                         <Text style={styles.emptyTitle}>Xin chào! Tôi có thể giúp gì cho bạn?</Text>
                                         <Text style={styles.emptySub}>
                                             Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!
@@ -357,23 +393,63 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 ]}
                             >
                                 <View style={styles.inputContainer}>
-                                    <TextInput
-                                        style={styles.textInput}
-                                        placeholder="Nhập câu hỏi..."
-                                        placeholderTextColor={colors.textPlaceholder}
-                                        value={inputText}
-                                        onChangeText={setInputText}
-                                        multiline
-                                        maxLength={1000}
-                                    />
+                                    {isListening || isTranscribing ? (
+                                        <VibratingVoiceInput
+                                            isTranscribing={isTranscribing}
+                                            transcript={transcript}
+                                        />
+                                    ) : (
+                                        <TextInput
+                                            style={styles.textInput}
+                                            placeholder={
+                                                activeMode === "COURSE_ONLY"
+                                                    ? "Hỏi về giáo trình bài học..."
+                                                    : activeMode === "COURSE_FIRST"
+                                                    ? "Hỏi ưu tiên giáo trình..."
+                                                    : "Nhập câu hỏi..."
+                                            }
+                                            placeholderTextColor={colors.textPlaceholder}
+                                            value={inputText}
+                                            onChangeText={setInputText}
+                                            multiline
+                                            maxLength={1000}
+                                        />
+                                    )}
+                                    <Pressable
+                                        style={[
+                                            styles.micButton,
+                                            isListening && styles.micButtonActive,
+                                        ]}
+                                        onPress={isListening ? stopListening : startListening}
+                                        disabled={isTranscribing}
+                                    >
+                                        <Ionicons
+                                            name={isListening ? "square" : "mic"}
+                                            size={18}
+                                            color={isListening ? colors.error : colors.primary}
+                                        />
+                                    </Pressable>
                                     <Pressable
                                         style={[
                                             styles.sendButton,
-                                            (!inputText.trim() || pendingMessage?.status === "sending") &&
+                                            (!inputText.trim() && !isListening && !transcript.trim() || pendingMessage?.status === "sending") &&
                                                 styles.sendButtonDisabled,
                                         ]}
-                                        onPress={() => handleSend()}
-                                        disabled={!inputText.trim() || pendingMessage?.status === "sending"}
+                                        onPress={() => {
+                                            if (isListening) {
+                                                const textFromVoice = forceStopImmediate();
+                                                const textToSend = [inputText, textFromVoice].filter(Boolean).join(" ");
+                                                if (textToSend.trim()) {
+                                                    handleSend(textToSend);
+                                                }
+                                            } else {
+                                                handleSend();
+                                            }
+                                        }}
+                                        disabled={
+                                            (!inputText.trim() && !isListening && !transcript.trim()) ||
+                                            pendingMessage?.status === "sending"
+                                        }
                                     >
                                         <Ionicons name="arrow-up" size={20} color="#FFF" />
                                     </Pressable>
@@ -461,6 +537,17 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     </View>
                 </View>
             </Modal>
+
+            {/* Error Notification Modal */}
+            <CustomModal
+                visible={errorModal.visible}
+                title={errorModal.title}
+                message={errorModal.message}
+                confirmText="Đồng ý"
+                onConfirm={() => setErrorModal((prev) => ({ ...prev, visible: false }))}
+                showMascot
+                mascotExpression="sad"
+            />
         </Modal>
     );
 };
@@ -470,9 +557,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.4)",
         justifyContent: "flex-end",
-    },
-    backdropDismiss: {
-        flex: 1,
     },
     overlayContainer: {
         height: OVERLAY_HEIGHT,
@@ -496,11 +580,23 @@ const styles = StyleSheet.create({
         padding: 4,
         marginRight: 8,
     },
-    headerTitle: {
+    headerTitleContainer: {
         flex: 1,
-        fontSize: 16,
+        justifyContent: "center",
+    },
+    headerTitle: {
+        fontSize: 15,
         fontWeight: "600",
         color: colors.textPrimary,
+    },
+    headerSubTitle: {
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 1,
+    },
+    headerSubTitleHighlight: {
+        fontWeight: "600",
+        color: colors.primary,
     },
     newChatHeaderButton: {
         padding: 4,
@@ -508,6 +604,33 @@ const styles = StyleSheet.create({
     },
     closeButton: {
         padding: 4,
+    },
+    modeSelectorBar: {
+        flexDirection: "row",
+        backgroundColor: colors.surfaceVariant,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        gap: 6,
+        justifyContent: "center",
+    },
+    modePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 30,
+        backgroundColor: colors.surface,
+    },
+    modePillActive: {
+        backgroundColor: colors.primary,
+    },
+    modePillText: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: colors.textSecondary,
+    },
+    modePillTextActive: {
+        color: "#FFF",
     },
     sessionsListFullContainer: {
         flex: 1,
@@ -526,26 +649,12 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: colors.textSecondary,
     },
-    addSessionBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 30,
-    },
-    addSessionBtnText: {
-        color: "#FFF",
-        fontSize: 12,
-        fontWeight: "600",
-        marginLeft: 4,
-    },
     sessionItem: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 12,
         paddingHorizontal: 12,
-        borderRadius: 12,
+        borderRadius: 12, // container border radius = 12
         overflow: "hidden",
     },
     sessionItemActive: {
@@ -563,8 +672,10 @@ const styles = StyleSheet.create({
         color: colors.primary,
         fontWeight: "600",
     },
-    deleteSessionBtn: {
-        padding: 4,
+    sessionItemModeText: {
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 2,
     },
     messagesContainer: {
         flex: 1,
@@ -575,6 +686,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 32,
+    },
+    emptyMascotCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        borderWidth: 2,
+        borderColor: "#FFF",
+        backgroundColor: colors.primary,
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "visible",
     },
     emptyTitle: {
         fontSize: 16,
@@ -590,6 +712,20 @@ const styles = StyleSheet.create({
         textAlign: "center",
         lineHeight: 18,
     },
+    contextBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.primaryContainer,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 30,
+        marginTop: 12,
+    },
+    contextBadgeText: {
+        fontSize: 11,
+        color: colors.primary,
+        fontWeight: "600",
+    },
     messageBubbleContainer: {
         flexDirection: "row",
         marginVertical: 6,
@@ -601,29 +737,20 @@ const styles = StyleSheet.create({
     assistantBubbleAlign: {
         justifyContent: "flex-start",
     },
-    aiAvatar: {
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        backgroundColor: colors.primary,
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 8,
-        marginBottom: 2,
-    },
     messageBubble: {
         maxWidth: "100%",
         paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 16,
+        borderRadius: 12,
     },
     userBubble: {
         backgroundColor: colors.primary,
         borderBottomRightRadius: 4,
     },
-    assistantBubble: {
-        backgroundColor: colors.surfaceVariant,
-        borderBottomLeftRadius: 4,
+    assistantOverlayContainer: {
+        width: "100%",
+        paddingVertical: 4,
+        paddingHorizontal: 4,
     },
     messageText: {
         fontSize: 14,
@@ -632,16 +759,11 @@ const styles = StyleSheet.create({
     userMessageText: {
         color: "#FFF",
     },
-    assistantMessageText: {
-        color: colors.textPrimary,
-    },
     errorBubble: {
         backgroundColor: colors.errorContainer,
         borderColor: colors.error,
         borderWidth: 1,
-    },
-    errorMessageText: {
-        color: colors.textError,
+        borderRadius: 12,
     },
     retryButton: {
         flexDirection: "row",
@@ -653,6 +775,26 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: colors.error,
         marginLeft: 4,
+    },
+    actionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 4,
+        gap: 8,
+    },
+    userActionRow: {
+        justifyContent: "flex-end",
+    },
+    assistantActionRow: {
+        justifyContent: "flex-start",
+    },
+    actionIconButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: colors.surfaceVariant,
     },
     bottomContainer: {
         backgroundColor: colors.surface,
@@ -678,6 +820,18 @@ const styles = StyleSheet.create({
         paddingBottom: 10,
         fontSize: 14,
         color: colors.textPrimary,
+    },
+    micButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.surfaceVariant,
+        alignItems: "center",
+        justifyContent: "center",
+        marginLeft: 8,
+    },
+    micButtonActive: {
+        backgroundColor: colors.errorContainer,
     },
     sendButton: {
         width: 36,

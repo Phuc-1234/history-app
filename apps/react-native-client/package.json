@@ -3,19 +3,23 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
+    "start": "node .qldatn-tracker/run-dev.mjs start",
     "start:local": "cross-env EXPO_PUBLIC_APP_ENV=local expo start",
     "start:feature": "cross-env EXPO_PUBLIC_APP_ENV=feature expo start",
     "start:dev": "cross-env EXPO_PUBLIC_APP_ENV=dev expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "download-sdk": "node ./scripts/download-zalopay-sdk.js",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web",
+    "android": "node .qldatn-tracker/run-dev.mjs android",
+    "ios": "node .qldatn-tracker/run-dev.mjs ios",
+    "web": "node .qldatn-tracker/run-dev.mjs web",
     "lint": "expo lint",
     "prebuild": "npx expo prebuild",
     "prebuild:clean": "npx expo prebuild --clean",
-    "build:android": "npx expo run:android"
+    "build:android": "npx expo run:android",
+    "qldatn:start:original": "expo start",
+    "qldatn:android:original": "expo run:android",
+    "qldatn:ios:original": "expo run:ios",
+    "qldatn:web:original": "expo start --web"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
