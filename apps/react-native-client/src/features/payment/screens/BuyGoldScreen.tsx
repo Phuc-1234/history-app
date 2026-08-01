@@ -14,7 +14,10 @@ import {
     Clipboard,
     Alert,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { usePayment } from "../hooks/usePayment";
+
+// ─── Gold packages ────────────────────────────────────────────────────────────
 import { PaymentProvider } from "../api/paymentApi";
 import { API_BASE_URL } from "../../../services/config";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,15 +29,7 @@ interface GoldPackage {
     goldAmount: number;
     priceVnd: number;
     label: string;
-    popular?: boolean;
 }
-
-const GOLD_PACKAGES: GoldPackage[] = [
-    { id: "pkg-1", goldAmount: 1, priceVnd: 2_000, label: "1 Gold" },
-    { id: "pkg-2", goldAmount: 5, priceVnd: 10_000, label: "5 Gold", popular: true },
-    { id: "pkg-3", goldAmount: 10, priceVnd: 20_000, label: "10 Gold" },
-    { id: "pkg-4", goldAmount: 20, priceVnd: 40_000, label: "20 Gold" },
-];
 
 const PAYMENT_PROVIDERS: PaymentProvider[] = ["ZALOPAY", "SEPAY"];
 
@@ -62,13 +57,48 @@ function getProviderColor(provider: PaymentProvider) {
 
 export const BuyGoldScreen: React.FC = () => {
     const { state, pay, reset } = usePayment();
-    const [selectedPackage, setSelectedPackage] = useState<GoldPackage>(GOLD_PACKAGES[1]);
+    const [goldPackages, setGoldPackages] = useState<GoldPackage[]>([]);
+    const [selectedPackage, setSelectedPackage] = useState<GoldPackage | null>(null);
     const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("ZALOPAY");
     const [isSimulating, setIsSimulating] = useState(false);
+    const [fetchingPackages, setFetchingPackages] = useState(true);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const fetchGoldPackages = async () => {
+                try {
+                    setFetchingPackages(true);
+                    const res = await fetch(`${API_BASE_URL}/api/packages/gold`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (Array.isArray(data) && data.length > 0) {
+                            const formattedList: GoldPackage[] = data.map((pkg: any) => {
+                                const totalGold = pkg.goldAmount + (pkg.bonusGold || 0);
+                                return {
+                                    id: pkg.id,
+                                    goldAmount: totalGold,
+                                    priceVnd: pkg.priceVnd,
+                                    label: `${totalGold} Gold`,
+                                };
+                            });
+                            setGoldPackages(formattedList);
+                            setSelectedPackage(formattedList[0]);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch dynamic gold packages:", e);
+                } finally {
+                    setFetchingPackages(false);
+                }
+            };
+            fetchGoldPackages();
+        }, [])
+    );
 
     const isLoading = state.phase === "loading" || (state.phase === "waiting" && !state.vietQrUrl);
 
     const handlePay = () => {
+        if (!selectedPackage) return;
         pay(selectedProvider, selectedPackage.goldAmount);
     };
 
@@ -131,30 +161,30 @@ export const BuyGoldScreen: React.FC = () => {
 
                 {/* Gold Package Selector */}
                 <Text style={styles.sectionLabel}>Chọn gói</Text>
-                <View style={styles.packagesGrid}>
-                    {GOLD_PACKAGES.map((pkg) => (
-                        <TouchableOpacity
-                            key={pkg.id}
-                            style={[
-                                styles.packageCard,
-                                selectedPackage.id === pkg.id && styles.packageCardSelected,
-                                pkg.popular && styles.packageCardPopular,
-                            ]}
-                            onPress={() => setSelectedPackage(pkg)}
-                            activeOpacity={0.8}
-                        >
-                            {pkg.popular && (
-                                <View style={styles.popularBadge}>
-                                    <Text style={styles.popularBadgeText}>Phổ biến</Text>
-                                </View>
-                            )}
-                            <Text style={styles.packageGoldLabel}>{pkg.label}</Text>
-                            <Text style={styles.packagePrice}>
-                                {pkg.priceVnd.toLocaleString("vi-VN")}đ
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                {fetchingPackages ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                        <ActivityIndicator size="large" color="#4E3FE0" />
+                    </View>
+                ) : (
+                    <View style={styles.packagesGrid}>
+                        {goldPackages.map((pkg) => (
+                            <TouchableOpacity
+                                key={pkg.id}
+                                style={[
+                                    styles.packageCard,
+                                    selectedPackage?.id === pkg.id && styles.packageCardSelected,
+                                ]}
+                                onPress={() => setSelectedPackage(pkg)}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.packageGoldLabel}>{pkg.label}</Text>
+                                <Text style={styles.packagePrice}>
+                                    {pkg.priceVnd.toLocaleString("vi-VN")}đ
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
 
                 {/* Provider Selector */}
                 <Text style={styles.sectionLabel}>Phương thức thanh toán</Text>
@@ -202,26 +232,28 @@ export const BuyGoldScreen: React.FC = () => {
                 </View>
 
                 {/* Order Summary */}
-                <View style={styles.summaryCard}>
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryKey}>Gói</Text>
-                        <Text style={styles.summaryValue}>{selectedPackage.label}</Text>
+                {selectedPackage && (
+                    <View style={styles.summaryCard}>
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.summaryKey}>Gói</Text>
+                            <Text style={styles.summaryValue}>{selectedPackage.label}</Text>
+                        </View>
+                        <View style={styles.summaryDivider} />
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.summaryKey}>Thanh toán qua</Text>
+                            <Text style={styles.summaryValue}>
+                                {getProviderLabel(selectedProvider)}
+                            </Text>
+                        </View>
+                        <View style={styles.summaryDivider} />
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.summaryKeyBold}>Tổng cộng</Text>
+                            <Text style={styles.summaryValueBold}>
+                                {selectedPackage.priceVnd.toLocaleString("vi-VN")}đ
+                            </Text>
+                        </View>
                     </View>
-                    <View style={styles.summaryDivider} />
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryKey}>Thanh toán qua</Text>
-                        <Text style={styles.summaryValue}>
-                            {getProviderLabel(selectedProvider)}
-                        </Text>
-                    </View>
-                    <View style={styles.summaryDivider} />
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryKeyBold}>Tổng cộng</Text>
-                        <Text style={styles.summaryValueBold}>
-                            {selectedPackage.priceVnd.toLocaleString("vi-VN")}đ
-                        </Text>
-                    </View>
-                </View>
+                )}
 
                 {/* Status while waiting */}
                 {state.phase === "waiting" && (
@@ -235,16 +267,16 @@ export const BuyGoldScreen: React.FC = () => {
 
                 {/* CTA Button */}
                 <TouchableOpacity
-                    style={[styles.payButton, isLoading && styles.payButtonDisabled]}
+                    style={[styles.payButton, (isLoading || !selectedPackage) && styles.payButtonDisabled]}
                     onPress={handlePay}
                     activeOpacity={0.85}
-                    disabled={isLoading}
+                    disabled={isLoading || !selectedPackage}
                 >
                     {isLoading ? (
                         <ActivityIndicator color="#FFFFFF" />
                     ) : (
                         <Text style={styles.payButtonText}>
-                            Thanh toán {selectedPackage.priceVnd.toLocaleString("vi-VN")}đ
+                            {selectedPackage ? `Thanh toán ${selectedPackage.priceVnd.toLocaleString("vi-VN")}đ` : "Đang tải gói nạp..."}
                         </Text>
                     )}
                 </TouchableOpacity>

@@ -267,7 +267,9 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
             const errMsg = err?.data?.error ?? err?.message ?? "Không thể nộp bài";
             setError(errMsg);
             if (Platform.OS === "web") {
-                window.alert(`Lỗi nộp bài: ${errMsg}`);
+                if (typeof window !== "undefined" && window.alert) {
+                    window.alert(`Lỗi nộp bài: ${errMsg}`);
+                }
             } else {
                 Alert.alert("Lỗi nộp bài", errMsg);
             }

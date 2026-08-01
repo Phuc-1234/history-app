@@ -106,13 +106,13 @@ export function useSubscriptionPayment() {
     );
 
     const subscribe = useCallback(
-        async (provider: PaymentProvider) => {
+        async (provider: PaymentProvider, packageId?: string) => {
             setState({ phase: "loading" });
             stopPolling();
             attemptsRef.current = 0;
 
             try {
-                const initRes = await initiateSubscription({ provider }).unwrap();
+                const initRes = await initiateSubscription({ provider, packageId }).unwrap();
                 const { orderId, payUrl, zpTransToken, vietQrUrl, bankId, accountNo, accountName, providerOrderId, amountVnd } = initRes;
 
                 if (provider === "SEPAY" && vietQrUrl) {
