@@ -87,6 +87,11 @@ export const colors = {
     socialFriends: "#3182CE", // Blue — friends stat/tab
     socialFollowers: "#FF6B00", // Orange — followers stat/tab
     socialFollowing: "#10B981", // Green — following stat/tab
+    // Tint pastel nhẹ (container) cho các ô thống kê social — nền mềm,
+    // không viền, hòa với bảng màu ấm của app.
+    socialFriendsContainer: "#EAF2FB", // Blue tint
+    socialFollowersContainer: "#FFF0E6", // Orange tint
+    socialFollowingContainer: "#E8F7F0", // Green tint
 
     // -------------------------------------------------------------
     // Match Questions Matching Cells

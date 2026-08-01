@@ -155,19 +155,21 @@ export function OtherProfileScreen() {
                             label="Bạn bè"
                             variant="social-outline"
                             backgroundColor={colors.socialFriends}
+                            tintBackgroundColor={colors.socialFriendsContainer}
                         />
                         <StatCard
                             value={String(apiProfile?.stats.followers ?? 0)}
                             label="Người theo dõi"
                             variant="social-outline"
                             backgroundColor={colors.socialFollowers}
+                            tintBackgroundColor={colors.socialFollowersContainer}
                         />
                     </View>
                     <View style={styles.actionRow}>
                         <PrimaryButton
                             label={actions.follow.label}
                             icon={following ? "checkmark" : "eye-outline"}
-                            variant="outline"
+                            variant="softFill"
                             onPress={handleFollow}
                         />
                         <PrimaryButton
