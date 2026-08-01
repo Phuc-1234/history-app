@@ -11,7 +11,7 @@ import {
     Clipboard,
     Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSubscriptionPayment } from "../hooks/useSubscriptionPayment";
 import { PaymentProvider } from "../api/paymentApi";
 import { useAppSelector } from "@/store/storeHook";
@@ -50,13 +50,36 @@ export const SubscriptionScreen: React.FC = () => {
     const { state, subscribe, cancelSubscription, reset } = useSubscriptionPayment();
     const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("ZALOPAY");
     const [isSimulating, setIsSimulating] = useState(false);
+    const [proPackages, setProPackages] = useState<any[]>([]);
+    const [selectedProPackage, setSelectedProPackage] = useState<any>(null);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const fetchProPackages = async () => {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/api/packages/pro`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (Array.isArray(data) && data.length > 0) {
+                            setProPackages(data);
+                            const initial = data.find((p: any) => p.isRecommended) || data[0];
+                            setSelectedProPackage(initial);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch dynamic pro packages:", e);
+                }
+            };
+            fetchProPackages();
+        }, [])
+    );
 
     const isLoading = state.phase === "loading" || (state.phase === "waiting" && !state.vietQrUrl);
     const showResultModal = state.phase === "success" || state.phase === "failed";
     const isSuccess = state.phase === "success";
 
     const handleSubscribe = () => {
-        subscribe(selectedProvider);
+        subscribe(selectedProvider, selectedProPackage?.id);
     };
 
     const handleCancel = () => {
@@ -232,10 +255,41 @@ export const SubscriptionScreen: React.FC = () => {
                         </View>
                     </View>
 
-                    <View style={styles.priceContainer}>
-                        <Text style={styles.pricePeriod}>Gói tháng</Text>
-                        <Text style={styles.priceAmount}>2.000đ<Text style={styles.priceUnit}>/tháng</Text></Text>
-                    </View>
+                    {proPackages.length > 0 ? (
+                        <View style={{ gap: 10, marginBottom: 24 }}>
+                            {proPackages.map((pkg: any) => {
+                                const isSelected = selectedProPackage?.id === pkg.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={pkg.id}
+                                        onPress={() => setSelectedProPackage(pkg)}
+                                        activeOpacity={0.8}
+                                        style={[
+                                            styles.priceContainer,
+                                            { marginBottom: 0 },
+                                            isSelected && { borderColor: colors.primary, borderWidth: 2, backgroundColor: colors.secondaryContainer }
+                                        ]}
+                                    >
+                                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                                            <View>
+                                                <Text style={styles.pricePeriod}>{pkg.name} ({pkg.durationDays} ngày)</Text>
+                                                <Text style={styles.priceAmount}>{pkg.priceVnd.toLocaleString("vi-VN")}đ</Text>
+                                            </View>
+                                            {pkg.isRecommended && (
+                                                <View style={{ backgroundColor: "#F5A623", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                                                    <Text style={{ color: "#FFF", fontSize: 11, fontWeight: "700" }}>Gợi ý</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    ) : (
+                        <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                            <ActivityIndicator size="large" color={colors.primary} />
+                        </View>
+                    )}
 
                     <Text style={styles.sectionLabel}>Phương thức thanh toán</Text>
                     <View style={styles.providerRow}>
@@ -308,7 +362,9 @@ export const SubscriptionScreen: React.FC = () => {
                                 <ActivityIndicator color={colors.textLight} />
                             ) : (
                                 <Text style={styles.payButtonText}>
-                                    Đăng ký ngay (2.000đ/tháng)
+                                    {selectedProPackage
+                                        ? `Đăng ký ngay (${selectedProPackage.priceVnd.toLocaleString("vi-VN")}đ${selectedProPackage.durationDays === 30 ? '/tháng' : ''})`
+                                        : "Đăng ký ngay"}
                                 </Text>
                             )}
                         </LinearGradient>

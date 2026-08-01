@@ -35,6 +35,7 @@ export interface GetPaymentStatusResponse {
 
 export interface InitiateSubscriptionRequestBody {
     provider: PaymentProvider;
+    packageId?: string;
 }
 
 export interface InitiateSubscriptionResponse {

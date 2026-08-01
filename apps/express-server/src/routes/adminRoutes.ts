@@ -66,6 +66,16 @@ import {
     updateTier,
     deleteTier,
 } from "../controllers/adminController";
+import {
+    listGoldPackagesAdmin,
+    createGoldPackageAdmin,
+    updateGoldPackageAdmin,
+    deleteGoldPackageAdmin,
+    listProPackagesAdmin,
+    createProPackageAdmin,
+    updateProPackageAdmin,
+    deleteProPackageAdmin,
+} from "../controllers/packageController";
 import { listAllFeedbacks } from "../controllers/feedbackController";
 
 // Cấu hình lưu trữ file tạm của multer
@@ -272,6 +282,25 @@ router.post("/tiers", createTier);
 router.patch("/tiers/:index", updateTier);
 // DELETE /api/admin/tiers/:index
 router.delete("/tiers/:index", deleteTier);
+
+// ─── Packages (Gold & Pro) ───────────────────────────────────────────────────
+// GET    /api/admin/packages/gold
+router.get("/packages/gold", listGoldPackagesAdmin);
+// POST   /api/admin/packages/gold
+router.post("/packages/gold", createGoldPackageAdmin);
+// PUT    /api/admin/packages/gold/:id
+router.put("/packages/gold/:id", updateGoldPackageAdmin);
+// DELETE /api/admin/packages/gold/:id
+router.delete("/packages/gold/:id", deleteGoldPackageAdmin);
+
+// GET    /api/admin/packages/pro
+router.get("/packages/pro", listProPackagesAdmin);
+// POST   /api/admin/packages/pro
+router.post("/packages/pro", createProPackageAdmin);
+// PUT    /api/admin/packages/pro/:id
+router.put("/packages/pro/:id", updateProPackageAdmin);
+// DELETE /api/admin/packages/pro/:id
+router.delete("/packages/pro/:id", deleteProPackageAdmin);
 
 export default router;
 

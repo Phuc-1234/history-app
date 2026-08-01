@@ -42,6 +42,7 @@ app.use(cors({
 }));
 app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies onto req.body
 
+import packageRoutes from "./routes/packageRoutes";
 import aiChatRoutes from "./routes/aiChatRoutes";
 
 // API Route Bindings
@@ -55,6 +56,7 @@ app.use("/api/social", socialRoutes);
 app.use("/api/tests-v2", testRoutesV2);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/packages", packageRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/home", homeRoutes);
 app.use("/api/shop", shopRoutes);

@@ -169,7 +169,8 @@ export class PaymentService {
     async initiatePayment(
         userId: string,
         provider: PaymentProvider,
-        goldAmount: number,
+        goldAmount?: number,
+        packageId?: string,
     ): Promise<{
         orderId: string;
         payUrl: string;
@@ -182,7 +183,24 @@ export class PaymentService {
         accountName?: string;
         providerOrderId?: string;
     }> {
-        const amountVnd = goldAmount * GOLD_PRICE_VND;
+        let amountVnd = 0;
+        let finalGoldAmount = goldAmount || 0;
+
+        if (packageId) {
+            const pkg = await prisma.goldPackage.findUnique({ where: { id: packageId } });
+            if (!pkg || !pkg.isActive) {
+                throw new Error("Gói nạp vàng không tồn tại hoặc đã bị ẩn.");
+            }
+            amountVnd = pkg.priceVnd;
+            finalGoldAmount = pkg.goldAmount + pkg.bonusGold;
+        } else {
+            if (!goldAmount || goldAmount < 1) {
+                throw new Error("Số lượng vàng không hợp lệ.");
+            }
+            amountVnd = goldAmount * GOLD_PRICE_VND;
+            finalGoldAmount = goldAmount;
+        }
+
         const orderId = crypto.randomUUID();
         // Expose webhook/IPN URL based on configured environment variable or local computer IP
         const ipnUrl = process.env.PAYMENT_IPN_URL || `http://${process.env.LOCAL_COMPUTER_IP || 'localhost'}:5000`;
@@ -229,7 +247,7 @@ export class PaymentService {
             data: {
                 id: orderId,
                 userId,
-                goldAmount,
+                goldAmount: finalGoldAmount,
                 amountVnd,
                 provider,
                 status: "PENDING",
@@ -242,7 +260,7 @@ export class PaymentService {
             payUrl,
             zpTransToken,
             amountVnd,
-            goldAmount,
+            goldAmount: finalGoldAmount,
             vietQrUrl,
             bankId,
             accountNo,
@@ -455,9 +473,13 @@ export class PaymentService {
     /**
      * Creates a new pending Pro Subscription.
      */
+    /**
+     * Creates a new pending Pro Subscription.
+     */
     async initiateSubscription(
         userId: string,
         provider: PaymentProvider,
+        packageId?: string,
     ): Promise<{
         orderId: string;
         payUrl: string;
@@ -469,7 +491,18 @@ export class PaymentService {
         accountName?: string;
         providerOrderId?: string;
     }> {
-        const amountVnd = 2000; // Fixed 2000đ for Pro package
+        let amountVnd = 2000; // Fallback default 2000đ
+        let durationDays = 30; // Fallback default 30 days
+
+        if (packageId) {
+            const pkg = await prisma.proPackage.findUnique({ where: { id: packageId } });
+            if (!pkg || !pkg.isActive) {
+                throw new Error("Gói Đăng ký Pro không tồn tại hoặc đã bị ẩn.");
+            }
+            amountVnd = pkg.priceVnd;
+            durationDays = pkg.durationDays;
+        }
+
         const orderId = crypto.randomUUID();
         const ipnUrl = process.env.PAYMENT_IPN_URL || `http://${process.env.LOCAL_COMPUTER_IP || 'localhost'}:5000`;
 
@@ -535,7 +568,7 @@ export class PaymentService {
     /**
      * Activates a pending subscription and marks the user as Pro.
      */
-    async activateSubscription(subscriptionId: string, providerTransId: string): Promise<void> {
+    async activateSubscription(subscriptionId: string, providerTransId: string, durationDays: number = 30): Promise<void> {
         const subscription = await prisma.subscription.findUnique({
             where: { id: subscriptionId },
         });
@@ -543,7 +576,7 @@ export class PaymentService {
 
         const startDate = new Date();
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() + 30); // 30 days of Pro
+        endDate.setDate(endDate.getDate() + durationDays);
 
         await prisma.$transaction([
             prisma.subscription.update({
@@ -563,7 +596,7 @@ export class PaymentService {
                 },
             }),
         ]);
-        console.log(`[Subscription Service] Activated subscription ${subscriptionId} for User: ${subscription.userId}`);
+        console.log(`[Subscription Service] Activated subscription ${subscriptionId} for User: ${subscription.userId} (${durationDays} days)`);
     }
 
     /**

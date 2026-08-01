@@ -11,25 +11,25 @@ import {
 
 // POST /api/payment/initiate
 export const initiatePayment = async (
-    req: Request<{}, InitiatePaymentResponse | { error: string }, InitiatePaymentRequestBody>,
-    res: Response<InitiatePaymentResponse | { error: string }>,
+    req: Request<{}, any, any>,
+    res: Response,
 ): Promise<Response> => {
     try {
         if (!req.user) {
             return res.status(401).json({ error: "Access denied. Valid session missing." });
         }
 
-        const { provider, goldAmount } = req.body;
+        const { provider, goldAmount, packageId } = req.body;
 
         if (!provider || !["ZALOPAY", "SEPAY"].includes(provider)) {
             return res.status(400).json({ error: "provider phải là ZALOPAY hoặc SEPAY." });
         }
 
-        if (!goldAmount || !Number.isInteger(goldAmount) || goldAmount < 1 || goldAmount > 100) {
-            return res.status(400).json({ error: "goldAmount phải là số nguyên từ 1 đến 100." });
+        if (!packageId && (!goldAmount || !Number.isInteger(goldAmount) || goldAmount < 1)) {
+            return res.status(400).json({ error: "Vui lòng chọn gói nạp vàng hợp lệ (packageId) hoặc số lượng vàng." });
         }
 
-        const result = await paymentService.initiatePayment(req.user.id, provider, goldAmount);
+        const result = await paymentService.initiatePayment(req.user.id, provider, goldAmount, packageId);
         return res.status(200).json(result);
     } catch (error: any) {
         console.error("initiatePayment error:", error);
