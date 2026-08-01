@@ -25,18 +25,18 @@ const MASCOTS = [
 
 // App Usage & Encouragement Tips List
 const STATIC_TIPS = [
-    "💡 Ôn tập Flashcard mỗi ngày để ghi nhớ các mốc sự kiện quan trọng nhanh chóng và bền lâu!",
-    "🛒 Dùng Vàng tích lũy trong Cửa hàng để mua vật phẩm nhân đôi XP hoặc Vàng khi làm bài.",
-    "🖼️ Ghé thăm Cửa hàng để sở hữu các khung ảnh đại diện và danh hiệu độc quyền thể hiện phong cách của bạn!",
-    "📝 Thử sức với các bộ Đề thi THPT Quốc gia để rèn luyện áp lực thời gian và cấu trúc đề thi thực tế.",
-    "🏆 Thi đua top Bảng xếp hạng tuần để khẳng định bản thân và nhận về nhiều phần thưởng hấp dẫn!",
-    "🗺️ Sử dụng Sơ đồ tư duy để hệ thống hóa toàn bộ kiến thức lịch sử theo tiến trình thời gian một cách trực quan.",
-    "🔄 Đừng quên xem lại danh sách câu hỏi làm sai trong lịch sử để rút kinh nghiệm cho lần thi sau.",
-    "🎙️ Trải nghiệm tính năng luyện tập bằng giọng nói để việc học Lịch sử trở nên mới mẻ và thú vị hơn!",
-    "✨ Mỗi câu hỏi trả lời đúng là một bước tiến gần hơn tới điểm số mục tiêu của bạn!",
-    "💪 Kiên trì mỗi ngày là chìa khóa vạn năng để chinh phục mọi đỉnh cao tri thức!",
-    "🌟 Đừng lo lắng về lỗi sai, đó chính là cơ hội tuyệt vời để bạn học hỏi và tiến bộ hơn!",
-    "🚀 Tập trung cao độ và làm hết sức mình, kết quả rực rỡ đang chờ đón bạn phía trước!",
+    "Ôn tập Flashcard mỗi ngày để ghi nhớ các mốc sự kiện quan trọng nhanh chóng và bền lâu!",
+    "Dùng Vàng tích lũy trong Cửa hàng để mua vật phẩm nhân đôi XP hoặc Vàng khi làm bài.",
+    "Ghé thăm Cửa hàng để sở hữu các khung ảnh đại diện và danh hiệu độc quyền thể hiện phong cách của bạn!",
+    "Thử sức với các bộ Đề thi THPT Quốc gia để rèn luyện áp lực thời gian và cấu trúc đề thi thực tế.",
+    "Thi đua top Bảng xếp hạng tuần để khẳng định bản thân và nhận về nhiều phần thưởng hấp dẫn!",
+    "Sử dụng Sơ đồ tư duy để hệ thống hóa toàn bộ kiến thức lịch sử theo tiến trình thời gian một cách trực quan.",
+    "Đừng quên xem lại danh sách câu hỏi làm sai trong lịch sử để rút kinh nghiệm cho lần thi sau.",
+    "Trải nghiệm tính năng luyện tập bằng giọng nói để việc học Lịch sử trở nên mới mẻ và thú vị hơn!",
+    "Mỗi câu hỏi trả lời đúng là một bước tiến gần hơn tới điểm số mục tiêu của bạn!",
+    "Kiên trì mỗi ngày là chìa khóa vạn năng để chinh phục mọi đỉnh cao tri thức!",
+    "Đừng lo lắng về lỗi sai, đó chính là cơ hội tuyệt vời để bạn học hỏi và tiến bộ hơn!",
+    "Tập trung cao độ và làm hết sức mình, kết quả rực rỡ đang chờ đón bạn phía trước!",
 ];
 
 /**
@@ -47,19 +47,19 @@ function getTipsList(currentStreak: number, hasCompletedToday: boolean, isLogged
 
     if (isLoggedIn) {
         if (currentStreak > 0) {
-            tips.push(`🔥 Tuyệt vời! Bạn đã đạt chuỗi ${currentStreak} ngày học liên tiếp. Tiếp tục phát huy nhé!`);
+            tips.push(`Tuyệt vời! Bạn đã đạt chuỗi ${currentStreak} ngày học liên tiếp. Tiếp tục phát huy nhé!`);
         } else {
-            tips.push("🔥 Hãy duy trì chuỗi học tập mỗi ngày để nhận thêm nhiều điểm thưởng và quà hấp dẫn!");
+            tips.push("Hãy duy trì chuỗi học tập mỗi ngày để nhận thêm nhiều điểm thưởng và quà hấp dẫn!");
         }
 
         if (!hasCompletedToday) {
-            tips.push("📚 Bạn chưa học bài hôm nay đấy! Dành 5 phút hoàn thành một bài luyện tập ngay thôi nào.");
+            tips.push("Bạn chưa học bài hôm nay đấy! Dành 5 phút hoàn thành một bài luyện tập ngay thôi nào.");
         } else {
-            tips.push("🎉 Bạn đã hoàn thành nhiệm vụ học tập hôm nay! Hãy giữ vững phong độ này nhé.");
+            tips.push("Bạn đã hoàn thành nhiệm vụ học tập hôm nay! Hãy giữ vững phong độ này nhé.");
         }
     } else {
-        tips.push("🔥 Hãy đăng nhập để tích lũy chuỗi ngày học tập và nhận nhiều phần thưởng hấp dẫn!");
-        tips.push("📚 Dành 5 phút mỗi ngày học Lịch sử sẽ tạo nên sự khác biệt lớn cho kỳ thi của bạn!");
+        tips.push("Hãy đăng nhập để tích lũy chuỗi ngày học tập và nhận nhiều phần thưởng hấp dẫn!");
+        tips.push("Dành 5 phút mỗi ngày học Lịch sử sẽ tạo nên sự khác biệt lớn cho kỳ thi của bạn!");
     }
 
     return tips;
