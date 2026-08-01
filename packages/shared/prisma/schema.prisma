@@ -739,10 +739,17 @@ model FcmToken {
   @@map("fcm_tokens")
 }
 
+enum AiChatMode {
+  COURSE_ONLY
+  COURSE_FIRST
+  GENERAL
+}
+
 model AiChatSession {
   id        String          @id @default(uuid())
   userId    String          @map("user_id")
   title     String
+  mode      AiChatMode      @default(GENERAL)
   createdAt DateTime        @default(now()) @map("created_at")
   updatedAt DateTime        @updatedAt @map("updated_at")
 
@@ -753,14 +760,16 @@ model AiChatSession {
 }
 
 model AiChatMessage {
-  id        String        @id @default(uuid())
-  sessionId String        @map("session_id")
-  sender    String        // "user" | "assistant"
-  content   String        @db.Text
-  createdAt DateTime      @default(now()) @map("created_at")
+  id            String        @id @default(uuid())
+  sessionId     String        @map("session_id")
+  sender        String        // "user" | "assistant"
+  content       String        @db.Text
+  screenContext Json?         @map("screen_context")
+  createdAt     DateTime      @default(now()) @map("created_at")
 
-  session   AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session       AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("ai_chat_messages")
 }
+
 
