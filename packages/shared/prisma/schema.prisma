@@ -573,6 +573,36 @@ model UserEquippedItem {
   @@map("user_equipped_items")
 }
 
+model GoldPackage {
+  id           String   @id @default(uuid())
+  name         String
+  goldAmount   Int      @map("gold_amount")
+  bonusGold    Int      @default(0) @map("bonus_gold")
+  priceVnd     Int      @map("price_vnd")
+  isActive     Boolean  @default(true) @map("is_active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("gold_packages")
+}
+
+model ProPackage {
+  id               String   @id @default(uuid())
+  name             String
+  durationDays     Int      @map("duration_days")
+  priceVnd         Int      @map("price_vnd")
+  originalPriceVnd Int?     @map("original_price_vnd")
+  description      String?
+  isRecommended    Boolean  @default(false) @map("is_recommended")
+  isActive         Boolean  @default(true) @map("is_active")
+  displayOrder     Int      @default(0) @map("display_order")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("pro_packages")
+}
+
 enum HierachyState {
   PUBLIC
   PRIVATE

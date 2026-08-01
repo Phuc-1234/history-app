@@ -70,12 +70,12 @@ export function FriendsAndFollowScreen() {
             return {
                 primaryLabel: "Xem hồ sơ",
                 primaryIcon: "eye-outline" as const,
-                primaryVariant: "soft" as const,
+                primaryVariant: "softFill" as const,
                 primaryOnPress: () =>
                     pushRoute(router, `/(social)/profile?userId=${user.id}`),
                 secondaryLabel: "Huỷ kết bạn",
                 secondaryIcon: "person-remove" as const,
-                secondaryVariant: "outline" as const,
+                secondaryVariant: "softFill" as const,
                 secondaryOnPress: () => removeFriend(user.id),
             };
         }
@@ -84,11 +84,11 @@ export function FriendsAndFollowScreen() {
             return {
                 primaryLabel: "Bỏ theo dõi",
                 primaryIcon: "eye-off-outline" as const,
-                primaryVariant: "outline" as const,
+                primaryVariant: "softFill" as const,
                 primaryOnPress: () => unfollowUser(user.id),
                 secondaryLabel: "Xem hồ sơ",
                 secondaryIcon: "eye-outline" as const,
-                secondaryVariant: "soft" as const,
+                secondaryVariant: "softFill" as const,
                 secondaryOnPress: () =>
                     pushRoute(router, `/(social)/profile?userId=${user.id}`),
             };
@@ -129,18 +129,21 @@ export function FriendsAndFollowScreen() {
                         label="Bạn bè"
                         variant="social-outline"
                         backgroundColor={colors.socialFriends}
+                        tintBackgroundColor={colors.socialFriendsContainer}
                     />
                     <StatCard
                         value={followersQuery.isFetching ? "--" : String(followers.length)}
                         label="Người theo dõi"
                         variant="social-outline"
                         backgroundColor={colors.socialFollowers}
+                        tintBackgroundColor={colors.socialFollowersContainer}
                     />
                     <StatCard
                         value={followingQuery.isFetching ? "--" : String(following.length)}
                         label="Đang theo dõi"
                         variant="social-outline"
                         backgroundColor={colors.socialFollowing}
+                        tintBackgroundColor={colors.socialFollowingContainer}
                     />
                 </View>
                 <SegmentTabs

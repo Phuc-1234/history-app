@@ -12,13 +12,13 @@ export const initiateSubscription = async (
             return res.status(401).json({ error: "Access denied. Valid session missing." });
         }
 
-        const { provider } = req.body;
+        const { provider, packageId } = req.body;
 
         if (!provider || !["ZALOPAY", "SEPAY"].includes(provider)) {
             return res.status(400).json({ error: "provider phải là ZALOPAY hoặc SEPAY." });
         }
 
-        const result = await paymentService.initiateSubscription(req.user.id, provider);
+        const result = await paymentService.initiateSubscription(req.user.id, provider, packageId);
         return res.status(200).json(result);
     } catch (error: any) {
         console.error("initiateSubscription error:", error);

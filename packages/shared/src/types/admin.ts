@@ -525,4 +525,72 @@ export interface AdminTierDto {
     rewardRule?: RewardRuleDto | null;
 }
 
+// ─── Gold Package ─────────────────────────────────────────────────────────────
 
+export interface GoldPackageDto {
+    id: string;
+    name: string;
+    goldAmount: number;
+    bonusGold: number;
+    priceVnd: number;
+    isActive: boolean;
+    displayOrder: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateGoldPackageBody {
+    name: string;
+    goldAmount: number;
+    bonusGold?: number;
+    priceVnd: number;
+    isActive?: boolean;
+    displayOrder?: number;
+}
+
+export interface UpdateGoldPackageBody {
+    name?: string;
+    goldAmount?: number;
+    bonusGold?: number;
+    priceVnd?: number;
+    isActive?: boolean;
+    displayOrder?: number;
+}
+
+// ─── Pro Package ──────────────────────────────────────────────────────────────
+
+export interface ProPackageDto {
+    id: string;
+    name: string;
+    durationDays: number;
+    priceVnd: number;
+    originalPriceVnd: number | null;
+    description: string | null;
+    isRecommended: boolean;
+    isActive: boolean;
+    displayOrder: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateProPackageBody {
+    name: string;
+    durationDays: number;
+    priceVnd: number;
+    originalPriceVnd?: number | null;
+    description?: string | null;
+    isRecommended?: boolean;
+    isActive?: boolean;
+    displayOrder?: number;
+}
+
+export interface UpdateProPackageBody {
+    name?: string;
+    durationDays?: number;
+    priceVnd?: number;
+    originalPriceVnd?: number | null;
+    description?: string | null;
+    isRecommended?: boolean;
+    isActive?: boolean;
+    displayOrder?: number;
+}

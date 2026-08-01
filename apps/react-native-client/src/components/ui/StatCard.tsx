@@ -6,11 +6,14 @@ export function StatCard({
     value,
     label,
     backgroundColor,
+    tintBackgroundColor,
     variant = "solid",
 }: {
     value: string;
     label: string;
     backgroundColor?: string;
+    /** Nền pastel nhẹ cho variant `social-outline` (thay cho viền cũ). */
+    tintBackgroundColor?: string;
     variant?: "solid" | "accent-outline" | "social-outline";
 }) {
     // accent-outline: viền + chữ dùng primary (đồng) — dùng cho "Thắng"
@@ -32,9 +35,8 @@ export function StatCard({
         );
     }
 
-    // social-outline: viền + chữ cùng màu social, nền trong suốt.
-    // Dùng cho 3 thẻ Bạn bè / Người theo dõi / Đang theo dõi — nhẹ, hòa
-    // với bảng màu ấm của app thay vì đổ nền đặc gây chói.
+    // social-outline: nền tint pastel + chữ màu social, KHÔNG viền — mềm,
+    // hòa với bảng màu ấm của app (thay cho viền 2px cũ gây chói/gây "viền viền").
     if (variant === "social-outline") {
         const accent = backgroundColor ?? colors.primary;
         return (
@@ -42,9 +44,8 @@ export function StatCard({
                 style={[
                     styles.statCard,
                     {
-                        backgroundColor: "transparent",
-                        borderWidth: 2,
-                        borderColor: accent,
+                        backgroundColor: tintBackgroundColor ?? colors.primaryContainer,
+                        borderWidth: 0,
                     },
                 ]}
             >

@@ -4,7 +4,7 @@ import type { ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
 
-export type PrimaryButtonVariant = "primary" | "outline" | "soft" | "danger";
+export type PrimaryButtonVariant = "primary" | "outline" | "soft" | "softFill" | "danger";
 
 export function PrimaryButton({
     label,
@@ -23,6 +23,9 @@ export function PrimaryButton({
 }) {
     const isPrimary = variant === "primary";
     const isDanger = variant === "danger";
+    // softFill: nền cream, KHÔNG viền, chữ primary — "soft thật sự".
+    // Khác với `soft`/`outline` cũ (đều là viền 2px) gây cảm giác "viền viền".
+    const isSoftFill = variant === "softFill";
     return (
         <TouchableOpacity
             style={[
@@ -30,6 +33,7 @@ export function PrimaryButton({
                 isPrimary && styles.buttonPrimary,
                 variant === "outline" && styles.buttonOutline,
                 variant === "soft" && styles.buttonSoft,
+                isSoftFill && styles.buttonSoftFill,
                 isDanger && styles.buttonDanger,
                 iconOnly && styles.buttonIconOnly,
                 style,
@@ -86,6 +90,11 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: colors.primary,
         backgroundColor: "transparent",
+    },
+    buttonSoftFill: {
+        flex: 1,
+        borderWidth: 0,
+        backgroundColor: colors.primaryContainer,
     },
     buttonDanger: {
         flex: 1,
