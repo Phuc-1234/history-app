@@ -7,6 +7,9 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "npm run start --workspace=react-native-client",
+    "android": "npm run android --workspace=react-native-client",
+    "ios": "npm run ios --workspace=react-native-client",
     "db:push": "cd packages/shared && prisma db push",
     "client": "npm start --workspace=react-native-client",
     "client:local": "npm run start:local --workspace=react-native-client",
