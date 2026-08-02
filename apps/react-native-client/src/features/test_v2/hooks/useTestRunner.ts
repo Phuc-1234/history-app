@@ -21,6 +21,7 @@ import {
 } from "../services/testApi";
 import { evaluateQuestion, isSingleChoice } from "../services/scoreEngine";
 import { useLoading } from "../../loading";
+import { playPracticeCorrectSound, playPracticeWrongSound } from "../../../services/soundService";
 
 export type TestRunnerStatus = "idle" | "loading" | "running" | "submitting" | "completed";
 
@@ -325,6 +326,12 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
 
         const evalResult = evaluateQuestion(currentQuestion, userAnswer);
         setEvaluations((prev) => ({ ...prev, [questionId]: evalResult }));
+
+        if (evalResult.isCorrect) {
+            playPracticeCorrectSound();
+        } else {
+            playPracticeWrongSound();
+        }
     }, [purposeType, currentQuestion, draftAnswers]);
 
     // ── Utilities ────────────────────────────────────────────────────
