@@ -7,4 +7,6 @@ export { EmptyState } from "./EmptyState";
 export { UserCard } from "./UserCard";
 export { ScreenShell } from "./ScreenShell";
 export { SearchActionButton } from "./SearchActionButton";
+export { FaintStarsOverlay } from "./FaintStarsOverlay";
 export type { CardUser, CardAction, CardActionVariant } from "./types";
+

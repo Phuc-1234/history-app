@@ -262,6 +262,7 @@ model User {
   notifications          Notification[]
   fcmTokens              FcmToken[]
   aiChatSessions         AiChatSession[]
+  aiQuotas               UserAiQuota[]
   tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
 
   @@map("users")
@@ -750,6 +751,7 @@ model AiChatSession {
   userId    String          @map("user_id")
   title     String
   mode      AiChatMode      @default(GENERAL)
+  summary   String?         @db.Text
   createdAt DateTime        @default(now()) @map("created_at")
   updatedAt DateTime        @updatedAt @map("updated_at")
 
@@ -770,6 +772,20 @@ model AiChatMessage {
   session       AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("ai_chat_messages")
+}
+
+model UserAiQuota {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  date       String   // "YYYY-MM-DD" in UTC+7
+  tokensUsed Int      @default(0) @map("tokens_used")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("user_ai_quotas")
 }
 
 

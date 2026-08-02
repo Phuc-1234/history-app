@@ -13,6 +13,7 @@ import {
     Dimensions,
     Clipboard,
 } from "react-native";
+import { useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +24,7 @@ import { AiMarkdownMessage } from "./AiMarkdownMessage";
 import { MascotRotator } from "./MascotRotator";
 import { TwinklingStars } from "./TwinklingStars";
 import { CustomModal } from "@/components/Modal";
+import { PremiumModal } from "@/components/PremiumModal";
 import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
 import { AiChatModeType } from "../services/aiChatApi";
 
@@ -41,6 +43,7 @@ const MODES: { id: AiChatModeType; label: string; icon: keyof typeof Ionicons.gl
 ];
 
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const flatListRef = useRef<FlatList>(null);
     const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -65,7 +68,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         handleChangeMode,
         errorModal,
         setErrorModal,
+        showPremiumModal,
+        setShowPremiumModal,
         screenContext,
+        quotaData,
 
         isListening,
         isTranscribing,
@@ -303,6 +309,56 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     {/* View Switch: Full Sessions List OR Chat View */}
                     {showSessionsDrawer ? (
                         <View style={styles.sessionsListFullContainer}>
+                            {/* Quota Progress Card */}
+                            {(() => {
+                                const usedRatio = (quotaData?.tokensUsed || 0) / (quotaData?.dailyLimit || 50000);
+                                const usedPercent = Math.min(100, Math.round(usedRatio * 100));
+                                return (
+                                    <View style={styles.quotaCard}>
+                                        <View style={styles.quotaCardHeader}>
+                                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                                <Ionicons name="sparkles" size={14} color={colors.primary} style={{ marginRight: 6 }} />
+                                                <Text style={styles.quotaCardTitle}>Hạn mức AI hôm nay</Text>
+                                            </View>
+
+                                            {quotaData?.isPro ? (
+                                                <View style={styles.proBadgePill}>
+                                                    <Ionicons name="ribbon" size={12} color="#FFF" style={{ marginRight: 4 }} />
+                                                    <Text style={styles.proBadgeText}>PRO (Hạn mức x10)</Text>
+                                                </View>
+                                            ) : (
+                                                <Pressable
+                                                    style={styles.upgradeBtnPill}
+                                                    onPress={() => {
+                                                        onClose();
+                                                        router.push("/(10_proflie)/10_8_subscription" as any);
+                                                    }}
+                                                >
+                                                    <Ionicons name="flash" size={12} color={colors.primary} style={{ marginRight: 4 }} />
+                                                    <Text style={styles.upgradeBtnText}>Nâng cấp PRO (x10)</Text>
+                                                </Pressable>
+                                            )}
+                                        </View>
+
+                                        <View style={styles.quotaProgressTrack}>
+                                            <View
+                                                style={[
+                                                    styles.quotaProgressFill,
+                                                    {
+                                                        width: `${usedPercent}%`,
+                                                        backgroundColor: usedPercent >= 90 ? colors.error : colors.primary,
+                                                    },
+                                                ]}
+                                            />
+                                        </View>
+
+                                        <View style={styles.quotaInfoRow}>
+                                            <Text style={styles.quotaUsageText}>Đã dùng {usedPercent}% hạn mức ngày</Text>
+                                        </View>
+                                    </View>
+                                );
+                            })()}
+
                             <View style={styles.drawerHeader}>
                                 <Text style={styles.drawerTitle}>Danh sách hội thoại</Text>
                             </View>
@@ -547,6 +603,13 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 onConfirm={() => setErrorModal((prev) => ({ ...prev, visible: false }))}
                 showMascot
                 mascotExpression="sad"
+            />
+
+            {/* Quota Exceeded Premium Mascot Modal */}
+            <PremiumModal
+                visible={showPremiumModal}
+                onClose={() => setShowPremiumModal(false)}
+                featureName="lượt dùng Trợ lý AI hôm nay"
             />
         </Modal>
     );
@@ -939,5 +1002,73 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         color: "#FFF",
+    },
+    quotaCard: {
+        backgroundColor: colors.surfaceVariant,
+        borderRadius: 12, // container border radius = 12
+        padding: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    quotaCardHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    quotaCardTitle: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: colors.textPrimary,
+    },
+    proBadgePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#F5A623",
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 30, // pill button border radius = 30
+    },
+    proBadgeText: {
+        fontSize: 11,
+        fontWeight: "700",
+        color: "#FFF",
+    },
+    upgradeBtnPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.primaryContainer,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 30, // pill button border radius = 30
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+    upgradeBtnText: {
+        fontSize: 11,
+        fontWeight: "700",
+        color: colors.primary,
+    },
+    quotaProgressTrack: {
+        height: 8,
+        backgroundColor: colors.surface,
+        borderRadius: 4,
+        overflow: "hidden",
+        marginVertical: 4,
+    },
+    quotaProgressFill: {
+        height: "100%",
+        borderRadius: 4,
+    },
+    quotaInfoRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginTop: 4,
+    },
+    quotaUsageText: {
+        fontSize: 11,
+        color: colors.textSecondary,
     },
 });

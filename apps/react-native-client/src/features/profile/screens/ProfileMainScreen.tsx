@@ -18,6 +18,7 @@ import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import Button from "../../../components/Button";
+import { FaintStarsOverlay } from "../../../components/ui";
 
 export default function ProfileMainScreen() {
     const router = useRouter();
@@ -118,19 +119,6 @@ export default function ProfileMainScreen() {
                         <Text style={styles.tierText}>{profile.tierName}</Text>
                     </View>
                 )}
-
-                {profile?.isPro && (
-                    <View style={styles.proBadgeContainer}>
-                        <LinearGradient
-                            colors={colors.proGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.proBadge}
-                        >
-                            <Text style={styles.proBadgeText}>Người dùng Pro</Text>
-                        </LinearGradient>
-                    </View>
-                )}
             </View>
 
 
@@ -149,6 +137,7 @@ export default function ProfileMainScreen() {
                             end={{ x: 1, y: 1 }}
                             style={styles.squareButtonPro}
                         >
+                            <FaintStarsOverlay />
                             {/* shimmer strip */}
                             <LinearGradient
                                 colors={["transparent", "rgba(255,255,255,0.35)", "transparent"]}
@@ -158,7 +147,7 @@ export default function ProfileMainScreen() {
                             />
                             <Ionicons name="sparkles" size={22} color="#fff" />
                             <Text style={styles.squareLabelPro}>
-                                {profile?.isPro ? "Gói Pro" : "Đăng ký Pro"}
+                                {profile?.isPro ? "Bạn đã là người dùng PRO!" : "Đăng ký Pro"}
                             </Text>
                         </LinearGradient>
                     </TouchableOpacity>

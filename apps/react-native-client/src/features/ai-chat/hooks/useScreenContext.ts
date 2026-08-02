@@ -70,6 +70,7 @@ export function useScreenContext(): ScreenContextPayload {
             screenName: grade ? `Môn học Lớp ${grade}` : "Danh sách bài học",
             topicId,
             grade,
+            isSupported: true,
         };
     }
 
@@ -82,6 +83,7 @@ export function useScreenContext(): ScreenContextPayload {
             nodeId,
             lessonId,
             grade,
+            isSupported: true,
         };
     }
 
@@ -90,6 +92,7 @@ export function useScreenContext(): ScreenContextPayload {
             screenName: resolvedLessonName ? `Sơ đồ tư duy: ${resolvedLessonName}` : (lessonId ? `Sơ đồ tư duy Bài #${lessonId}` : "Sơ đồ tư duy"),
             lessonId,
             grade,
+            isSupported: true,
         };
     }
 
@@ -98,6 +101,7 @@ export function useScreenContext(): ScreenContextPayload {
             screenName: resolvedLessonName ? `Thẻ ghi nhớ: ${resolvedLessonName}` : (lessonId ? `Thẻ ghi nhớ Bài #${lessonId}` : "Thẻ ghi nhớ"),
             lessonId,
             grade,
+            isSupported: true,
         };
     }
 
@@ -106,6 +110,7 @@ export function useScreenContext(): ScreenContextPayload {
             screenName: resolvedLessonName ? resolvedLessonName : (lessonId ? `Bài học #${lessonId}` : "Tóm tắt bài học"),
             lessonId,
             grade,
+            isSupported: true,
         };
     }
 
@@ -114,31 +119,33 @@ export function useScreenContext(): ScreenContextPayload {
             screenName: params.scopeType ? `Bài luyện tập / kiểm tra (${params.scopeType})` : "Màn hình bài kiểm tra",
             lessonId,
             grade,
+            isSupported: false,
         };
     }
 
     if (routeStr.includes("home")) {
-        return { screenName: "Trang chủ" };
+        return { screenName: "Trang chủ", isSupported: false };
     }
     if (routeStr.includes("9_1_leaderboard")) {
-        return { screenName: "Bảng xếp hạng" };
+        return { screenName: "Bảng xếp hạng", isSupported: false };
     }
     if (routeStr.includes("8_2_buy_gold")) {
-        return { screenName: "Cửa hàng vàng" };
+        return { screenName: "Cửa hàng vàng", isSupported: false };
     }
     if (routeStr.includes("7_1_item")) {
-        return { screenName: "Tủ đồ vật phẩm" };
+        return { screenName: "Tủ đồ vật phẩm", isSupported: false };
     }
     if (routeStr.includes("5_1_national_tests")) {
-        return { screenName: "Thi thử quốc gia" };
+        return { screenName: "Thi thử quốc gia", isSupported: false };
     }
     if (routeStr.includes("10_1_profile")) {
-        return { screenName: "Hồ sơ cá nhân" };
+        return { screenName: "Hồ sơ cá nhân", isSupported: false };
     }
 
     return {
         screenName: routeStr ? `Màn hình: ${routeStr}` : "Trang chủ",
         lessonId,
         grade,
+        isSupported: false,
     };
 }

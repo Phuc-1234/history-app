@@ -6,6 +6,7 @@ import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/item
 
 export interface ProcessedTopBarData {
     isLoggedIn: boolean;
+    isPro: boolean;
     name: string;
     avatarUri: string;
     equippedFrameUrl: string | null;
@@ -53,6 +54,7 @@ export function useTopBarData() {
 
     const processedData: ProcessedTopBarData = {
         isLoggedIn,
+        isPro: profile?.isPro === true,
         name,
         avatarUri,
         equippedFrameUrl,
