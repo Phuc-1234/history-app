@@ -19,6 +19,17 @@ const STOP_WORDS = new Set([
     "thì", "đó", "này", "ở", "trên", "màn", "hình", "đang", "xem", "hỏi", "biết"
 ]);
 
+function getNodeTitle(node: { header?: string | null; body: string }) {
+    if (node.header && node.header.trim()) {
+        return node.header.trim();
+    }
+    if (node.body && node.body.trim()) {
+        const clean = node.body.trim().replace(/[\n\r]+/g, " ");
+        return clean.length > 35 ? clean.slice(0, 35).trim() + "..." : clean;
+    }
+    return "Chi tiết kiến thức";
+}
+
 export class ContentSearchService {
     async searchCourseContent(
         query: string,
@@ -83,7 +94,7 @@ export class ContentSearchService {
                 }
             });
             if (activeNode) {
-                const nodeTitle = activeNode.header || activeNode.section.name || (activeNode.body ? activeNode.body.slice(0, 35).trim() + "..." : "Chi tiết kiến thức");
+                const nodeTitle = getNodeTitle(activeNode);
                 contextBlocks.push(
                     `[GỢI Ý BỐI CẢNH MÀN HÌNH - NÚT KIẾN THỨC DÙNG KHI NGƯỜI DÙNG NÓI "nút này", "bài này", "ở đây": "${nodeTitle}"]\nLiên kết: [${nodeTitle}](node:${activeNode.id})\nThuộc [Bài ${activeNode.section.lesson.position}: ${activeNode.section.lesson.name}](lesson:${activeNode.section.lessonId}) (Lớp ${activeNode.section.lesson.topic.gradeId})\nNội dung: ${activeNode.body}`
                 );
@@ -116,7 +127,7 @@ export class ContentSearchService {
                 for (const sec of activeLesson.sections) {
                     text += `\n- Mục: ${sec.name}`;
                     for (const nd of sec.nodes) {
-                        const ndTitle = nd.header || (nd.body ? nd.body.slice(0, 30).trim() + "..." : "Chi tiết");
+                        const ndTitle = getNodeTitle(nd);
                         text += `\n  + [${ndTitle}](node:${nd.id}): ${nd.body.slice(0, 150)}`;
                     }
                 }
@@ -130,23 +141,23 @@ export class ContentSearchService {
             }
         }
 
-        // 4. Perform keyword search across Nodes (searches ALL nodes unless explicit grade query parameter exists)
-        if (keywords.length > 0) {
-            const searchORs = keywords.map((k) => ({
-                OR: [
-                    { header: { contains: k, mode: "insensitive" as const } },
-                    { body: { contains: k, mode: "insensitive" as const } }
-                ]
-            }));
-
+        // 4. Perform search across Nodes (searches ALL nodes unless explicit grade query parameter exists)
+        const cleanQuery = query.trim();
+        if (keywords.length > 0 || cleanQuery.length > 2) {
             const gradeFilterNode = searchGradeFilter
                 ? { section: { lesson: { topic: { gradeId: searchGradeFilter } } } }
                 : {};
 
-            const matchingNodes = await prisma.node.findMany({
+            // Priority 1: Full phrase match
+            let matchingNodes = await prisma.node.findMany({
                 where: {
                     AND: [
-                        { OR: searchORs.flatMap((x) => x.OR) },
+                        {
+                            OR: [
+                                { header: { contains: cleanQuery, mode: "insensitive" as const } },
+                                { body: { contains: cleanQuery, mode: "insensitive" as const } }
+                            ]
+                        },
                         gradeFilterNode
                     ]
                 },
@@ -163,9 +174,46 @@ export class ContentSearchService {
                 }
             });
 
+            // Priority 2: Multi-keyword AND match
+            if (matchingNodes.length < limit && keywords.length > 1) {
+                const andConditions = keywords.map((k) => ({
+                    OR: [
+                        { header: { contains: k, mode: "insensitive" as const } },
+                        { body: { contains: k, mode: "insensitive" as const } }
+                    ]
+                }));
+
+                const existingNodeIds = new Set(matchingNodes.map((n) => n.id));
+                const secondaryNodes = await prisma.node.findMany({
+                    where: {
+                        AND: [
+                            ...andConditions,
+                            gradeFilterNode
+                        ]
+                    },
+                    take: limit - matchingNodes.length,
+                    include: {
+                        section: {
+                            select: {
+                                id: true,
+                                name: true,
+                                lessonId: true,
+                                lesson: { select: { id: true, name: true, position: true } }
+                            }
+                        }
+                    }
+                });
+
+                for (const node of secondaryNodes) {
+                    if (!existingNodeIds.has(node.id)) {
+                        matchingNodes.push(node);
+                    }
+                }
+            }
+
             for (const node of matchingNodes) {
                 if (!references.some((r) => r.type === "node" && r.id === node.id)) {
-                    const nodeTitle = node.header || node.section.name || (node.body ? node.body.slice(0, 35).trim() + "..." : "Chi tiết kiến thức");
+                    const nodeTitle = getNodeTitle(node);
                     contextBlocks.push(
                         `[NÚT KIẾN THỨC KẾT QUẢ TÌM KIẾM: "${nodeTitle}"]\nLiên kết: [${nodeTitle}](node:${node.id})\nThuộc [Bài ${node.section.lesson.position}: ${node.section.lesson.name}](lesson:${node.section.lessonId})\nNội dung: ${node.body}`
                     );

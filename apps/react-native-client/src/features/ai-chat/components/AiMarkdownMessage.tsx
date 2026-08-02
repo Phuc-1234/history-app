@@ -30,13 +30,19 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
         } else if (url.startsWith("node:")) {
             const nodeId = url.replace("node:", "");
             router.push(`/(3_4_lessons)/lesson/node/${nodeId}` as any);
+        } else if (url.startsWith("grade:")) {
+            const grade = url.replace("grade:", "");
+            router.push({
+                pathname: "/(3_4_lessons)/lesson_menu",
+                params: { grade },
+            } as any);
         }
     };
 
     // Helper to render formatted inline text (bold, italic, links)
     const renderInlineText = (text: string, baseStyle: any) => {
         // Link pattern: [Label](url)
-        const linkRegex = /\[([^\]]+)\]\((lesson:\d+|node:\d+|https?:\/\/[^\)]+)\)/g;
+        const linkRegex = /\[([^\]]+)\]\((lesson:\d+|node:\d+|grade:\d+|https?:\/\/[^\)]+)\)/g;
         type InlinePart =
             | { type: "text"; value: string }
             | { type: "link"; label: string; url: string };

@@ -98,11 +98,11 @@ export class AIService {
         const currentDateStr = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "numeric", day: "numeric" });
         let systemPrompt = `Thời gian thực tế hôm nay: ${currentDateStr} (Múi giờ Việt Nam).\n` +
             "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n" +
-            "QUY TẮC HIỂN THỊ LIÊN KẾT NÚT KIẾN THỨC (QUAN TRỌNG):\n" +
-            "- TUYỆT ĐỐI KHÔNG DÙNG \"Nút id ___\", \"Nút ___\", \"Nút ID ___\" hay bất kỳ mã ID nào làm tên hiển thị của liên kết (CẤM CỤT THỂ: [Nút id 12](node:12) hoặc [Nút 12](node:12)).\n" +
-            "- Luôn sử dụng Tiêu đề của nút kiến thức làm tên hiển thị (ví dụ: [Diễn biến cuộc khởi nghĩa](node:12)).\n" +
-            "- KHÔNG đặt ngoặc vuông [] quanh các từ văn bản thuần túy (ví dụ: viết \"Lớp 11\" thay vì \"[Lớp 11]\"), trừ khi tạo liên kết Markdown dạng [Tên nhãn](lesson:ID) hoặc [Tên nhãn](node:ID).\n" +
-            "- Nếu nút kiến thức không có tiêu đề, hãy tự sáng tạo một tiêu đề tóm tắt ngắn gọn (3-6 từ) thể hiện đúng nội dung của nút đó làm tên hiển thị liên kết (ví dụ: [Bối cảnh lịch sử](node:12)).\n\n";
+            "QUY TẮC HIỂN THỊ LIÊN KẾT BÀI HỌC, NÚT KIẾN THỨC VÀ KHỐI LỚP (QUAN TRỌNG):\n" +
+            "- LIÊN KẾT KHỐI LỚP: Khi gợi ý hoặc nhắc tới chương trình học của các khối lớp (Lớp 10, Lớp 11, Lớp 12), BẮT BUỘC sử dụng cú pháp: [Lịch sử lớp 10](grade:10), [Lịch sử lớp 11](grade:11), [Lịch sử lớp 12](grade:12). TUYỆT ĐỐI KHÔNG DÙNG lesson:ID cho khối lớp!\n" +
+            "- LIÊN KẾT BÀI HỌC: Chỉ sử dụng [Tên bài học](lesson:ID) khi ID đó thực sự tồn tại trong phần 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' bên dưới. KHÔNG tự suy đoán hay bịa mã ID bài học.\n" +
+            "- LIÊN KẾT NÚT KIẾN THỨC: Chỉ sử dụng [Tiêu đề nút](node:ID) khi ID đó thực sự xuất hiện trong dữ liệu giáo trình bên dưới. TUYỆT ĐỐI KHÔNG DÙNG \"Nút id ___\", \"Nút ___\", \"Nút ID ___\" hay bất kỳ mã ID nào làm tên hiển thị của liên kết (CẤM CỤT THỂ: [Nút id 12](node:12) hoặc [Nút 12](node:12)). Luôn dùng Tiêu đề nút hoặc một cụm từ tóm tắt nội dung ngắn gọn (3-6 từ) làm tên hiển thị.\n" +
+            "- KHÔNG đặt ngoặc vuông [] quanh các từ văn bản thuần túy, trừ khi tạo liên kết Markdown đúng định dạng (lesson:ID, node:ID, grade:ID).\n\n";
 
         if (options?.summary) {
             systemPrompt += `TÓM TẮT BỐI CẢNH CÁC TIN NHẮN TRƯỚC ĐÓ TRONG CUỘC TRÒ CHUYỆN:\n${options.summary}\n\n`;
