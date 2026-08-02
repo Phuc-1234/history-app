@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Zap, Coins, Sparkles, ChevronRight } from "lucide-react-native";
+import { Zap, Coins } from "lucide-react-native";
 import { useAppSelector } from "@/store/storeHook";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useGetHomeDataQuery } from "../services/homeApi";
@@ -423,49 +423,32 @@ export default function HomeScreen() {
                                 onPress={streakManager.openStreakDrawer}
                             />
 
-                            {/* ── Purchase suggestion banner for non-PRO users ── */}
-                            {!isPro && (
-                                <TouchableOpacity
-                                    activeOpacity={0.85}
-                                    onPress={() =>
-                                        router.push(
-                                            "/(10_proflie)/10_8_subscription" as never
-                                        )
-                                    }
-                                    style={styles.proBannerCard}
+                            {/* Pro button — shiny gradient */}
+                            <TouchableOpacity
+                                style={styles.proButtonWrapper}
+                                onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
+                                activeOpacity={0.82}
+                            >
+                                <LinearGradient
+                                    colors={colors.proGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.squareButtonPro}
                                 >
+                                    <FaintStarsOverlay />
+                                    {/* shimmer strip */}
                                     <LinearGradient
-                                        colors={["#FFF9EE", "#FAF0E6"]}
-                                        style={styles.proBannerGradient}
-                                    >
-                                        <View style={styles.proBannerContent}>
-                                            <View style={styles.proBannerIconBox}>
-                                                <Sparkles
-                                                    size={20}
-                                                    color="#D97706"
-                                                />
-                                            </View>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.proBannerTitle}>
-                                                    Nâng cấp Sắc Sử Pro
-                                                </Text>
-                                                <Text style={styles.proBannerSubtitle}>
-                                                    Mở khóa toàn bộ bài học & tính năng cao cấp
-                                                </Text>
-                                            </View>
-                                            <View style={styles.proBannerPillBtn}>
-                                                <Text style={styles.proBannerPillBtnText}>
-                                                    Đăng ký
-                                                </Text>
-                                                <ChevronRight
-                                                    size={14}
-                                                    color="#FFFFFF"
-                                                />
-                                            </View>
-                                        </View>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            )}
+                                        colors={["transparent", "rgba(255,255,255,0.35)", "transparent"]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.proShimmer}
+                                    />
+                                    <Ionicons name="sparkles" size={22} color="#fff" />
+                                    <Text style={styles.squareLabelPro}>
+                                        {profile?.isPro ? "Bạn đã là người dùng PRO!" : "Đăng ký Sắc Sử PRO"}
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
 
                             {/* ── Section: Bài học ── */}
                             <View style={styles.sectionHeader}>
@@ -613,54 +596,34 @@ const styles = StyleSheet.create({
         position: "relative",
         overflow: "hidden",
     },
-    proBannerCard: {
+    proButtonWrapper: {
+        width: "100%",
+        height: 50,
         borderRadius: 12,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: "rgba(217, 119, 6, 0.25)",
         overflow: "hidden",
+        marginBottom: 16,
     },
-    proBannerGradient: {
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-    },
-    proBannerContent: {
+    squareButtonPro: {
+        flex: 1,
         flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-    },
-    proBannerIconBox: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: "rgba(217, 119, 6, 0.12)",
         alignItems: "center",
         justifyContent: "center",
+        gap: 8,
+        overflow: "hidden",
     },
-    proBannerTitle: {
-        fontFamily: typography.fonts.semiBold,
+    proShimmer: {
+        position: "absolute",
+        top: 0,
+        left: "-30%",
+        width: "60%",
+        height: "100%",
+        transform: [{ skewX: "-20deg" }],
+    },
+    squareLabelPro: {
+        fontFamily: typography.fonts.bold,
         fontSize: 14,
-        color: "#92400E",
-        marginBottom: 2,
-    },
-    proBannerSubtitle: {
-        fontFamily: typography.fonts.regular,
-        fontSize: 11,
-        color: "#B45309",
-    },
-    proBannerPillBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#D97706",
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 30,
-        gap: 2,
-    },
-    proBannerPillBtnText: {
-        fontFamily: typography.fonts.medium,
-        fontSize: 12,
-        color: "#FFFFFF",
+        color: "#fff",
+        textAlign: "center",
     },
     headerRow: {
         flexDirection: "row",

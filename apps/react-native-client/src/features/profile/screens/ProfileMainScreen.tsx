@@ -147,7 +147,7 @@ export default function ProfileMainScreen() {
                             />
                             <Ionicons name="sparkles" size={22} color="#fff" />
                             <Text style={styles.squareLabelPro}>
-                                {profile?.isPro ? "Bạn đã là người dùng PRO!" : "Đăng ký Pro"}
+                                {profile?.isPro ? "Bạn đã là người dùng PRO!" : "Đăng ký Sắc Sử PRO"}
                             </Text>
                         </LinearGradient>
                     </TouchableOpacity>
