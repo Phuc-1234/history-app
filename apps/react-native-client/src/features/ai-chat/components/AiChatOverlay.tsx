@@ -18,6 +18,7 @@ import * as Speech from "expo-speech";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { AiSkeletonBubble } from "./AiSkeletonBubble";
 import { VibratingVoiceInput } from "./VibratingVoiceInput";
 import { AiMarkdownMessage } from "./AiMarkdownMessage";
@@ -48,6 +49,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
     const flatListRef = useRef<FlatList>(null);
     const [speakingId, setSpeakingId] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [showScreenContextModal, setShowScreenContextModal] = useState(false);
 
     const {
         selectedSessionId,
@@ -167,64 +169,79 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         const isCopied = copiedId === item.id;
 
         return (
-            <View style={[styles.messageBubbleContainer, isUser ? styles.userBubbleAlign : styles.assistantBubbleAlign]}>
-                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", width: isUser ? undefined : "100%", maxWidth: isUser ? "80%" : "100%" }}>
-                    <View
-                        style={[
-                            isUser ? [styles.messageBubble, styles.userBubble] : styles.assistantOverlayContainer,
-                            item.isError && styles.errorBubble,
-                        ]}
-                    >
-                        {isUser ? (
-                            <Text selectable style={[styles.messageText, styles.userMessageText]}>
-                                {item.content}
-                            </Text>
-                        ) : (
-                            <AiMarkdownMessage
-                                content={item.content}
-                                textColor={colors.textPrimary}
-                                onCloseOverlay={onClose}
-                                selectable
-                            />
+            <View style={{ width: "100%" }}>
+                <View style={[styles.messageBubbleContainer, isUser ? styles.userBubbleAlign : styles.assistantBubbleAlign]}>
+                    <View style={{ alignItems: isUser ? "flex-end" : "flex-start", width: isUser ? undefined : "100%", maxWidth: isUser ? "80%" : "100%" }}>
+                        <View
+                            style={[
+                                isUser ? [styles.messageBubble, styles.userBubble] : styles.assistantOverlayContainer,
+                                item.isError && styles.errorBubble,
+                            ]}
+                        >
+                            {isUser ? (
+                                <Text selectable style={[styles.messageText, styles.userMessageText]}>
+                                    {item.content}
+                                </Text>
+                            ) : (
+                                <AiMarkdownMessage
+                                    content={item.content}
+                                    textColor={colors.textPrimary}
+                                    onCloseOverlay={onClose}
+                                    selectable
+                                />
+                            )}
+                        </View>
+
+                        {item.isError && (
+                            <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
+                                <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+                                <Text style={styles.retryText}>Gửi thất bại, chạm để thử lại</Text>
+                            </Pressable>
+                        )}
+
+                        {!isUser && (
+                            <View style={[styles.actionRow, styles.assistantActionRow]}>
+                                <Pressable
+                                    style={styles.actionIconButton}
+                                    onPress={() => handleCopy(item.content, item.id)}
+                                >
+                                    <Ionicons
+                                        name={isCopied ? "checkmark-outline" : "copy-outline"}
+                                        size={15}
+                                        color={isCopied ? colors.primary : colors.textSecondary}
+                                    />
+                                </Pressable>
+
+                                <Pressable
+                                    style={styles.actionIconButton}
+                                    onPress={() => handleSpeak(item.content, item.id)}
+                                >
+                                    <Ionicons
+                                        name={isSpeaking ? "stop-circle-outline" : "volume-high-outline"}
+                                        size={15}
+                                        color={isSpeaking ? colors.primary : colors.textSecondary}
+                                    />
+                                </Pressable>
+                            </View>
                         )}
                     </View>
-
-                    {item.isError && (
-                        <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
-                            <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
-                            <Text style={styles.retryText}>Gửi thất bại, chạm để thử lại</Text>
-                        </Pressable>
-                    )}
-
-                    {!isUser && (
-                        <View style={[styles.actionRow, styles.assistantActionRow]}>
-                            <Pressable
-                                style={styles.actionIconButton}
-                                onPress={() => handleCopy(item.content, item.id)}
-                            >
-                                <Ionicons
-                                    name={isCopied ? "checkmark-outline" : "copy-outline"}
-                                    size={15}
-                                    color={isCopied ? colors.primary : colors.textSecondary}
-                                />
-                            </Pressable>
-
-                            <Pressable
-                                style={styles.actionIconButton}
-                                onPress={() => handleSpeak(item.content, item.id)}
-                            >
-                                <Ionicons
-                                    name={isSpeaking ? "stop-circle-outline" : "volume-high-outline"}
-                                    size={15}
-                                    color={isSpeaking ? colors.primary : colors.textSecondary}
-                                />
-                            </Pressable>
-                        </View>
-                    )}
                 </View>
+
+                {item.isQuotaExceeded && (
+                    <Pressable
+                        style={styles.quotaNoteContainer}
+                        onPress={() => setShowPremiumModal(true)}
+                    >
+                        <Text style={styles.quotaNoteText}>
+                            Bạn đã dùng hết hạn mức AI Chat hôm nay.
+                            {"\n"}
+                            <Text style={styles.quotaNoteHighlight}>Nâng cấp PRO</Text>
+                        </Text>
+                    </Pressable>
+                )}
             </View>
         );
-    };
+};
 
     return (
         <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
@@ -254,12 +271,15 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
                             </Text>
                             {!showSessionsDrawer && screenContext?.screenName && (
-                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 1 }}>
+                                <Pressable
+                                    style={{ flexDirection: "row", alignItems: "center", marginTop: 1 }}
+                                    onPress={() => setShowScreenContextModal(true)}
+                                >
                                     <Ionicons name="location-sharp" size={11} color={colors.primary} style={{ marginRight: 3 }} />
                                     <Text style={styles.headerSubTitle} numberOfLines={1}>
                                         Đang xem: <Text style={styles.headerSubTitleHighlight}>{screenContext.screenName}</Text>
                                     </Text>
-                                </View>
+                                </Pressable>
                             )}
                         </View>
 
@@ -289,7 +309,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                         <Ionicons
                                             name={mode.icon}
                                             size={12}
-                                            color={isActive ? "#FFF" : colors.textSecondary}
+                                            color={isActive ? colors.textLight : colors.textSecondary}
                                             style={{ marginRight: 4 }}
                                         />
                                         <Text
@@ -314,7 +334,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 const usedRatio = (quotaData?.tokensUsed || 0) / (quotaData?.dailyLimit || 50000);
                                 const usedPercent = Math.min(100, Math.round(usedRatio * 100));
                                 return (
-                                    <View style={styles.quotaCard}>
+                                    <>
                                         <View style={styles.quotaCardHeader}>
                                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                                 <Ionicons name="sparkles" size={14} color={colors.primary} style={{ marginRight: 6 }} />
@@ -323,7 +343,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
 
                                             {quotaData?.isPro ? (
                                                 <View style={styles.proBadgePill}>
-                                                    <Ionicons name="ribbon" size={12} color="#FFF" style={{ marginRight: 4 }} />
+                                                    <Ionicons name="ribbon" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
                                                     <Text style={styles.proBadgeText}>PRO (Hạn mức x10)</Text>
                                                 </View>
                                             ) : (
@@ -334,7 +354,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                         router.push("/(10_proflie)/10_8_subscription" as any);
                                                     }}
                                                 >
-                                                    <Ionicons name="flash" size={12} color={colors.primary} style={{ marginRight: 4 }} />
+                                                    <Ionicons name="flash" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
                                                     <Text style={styles.upgradeBtnText}>Nâng cấp PRO (x10)</Text>
                                                 </Pressable>
                                             )}
@@ -355,10 +375,11 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                         <View style={styles.quotaInfoRow}>
                                             <Text style={styles.quotaUsageText}>Đã dùng {usedPercent}% hạn mức ngày</Text>
                                         </View>
-                                    </View>
+                                    </>
                                 );
                             })()}
 
+                            <View style={styles.divider} />
                             <View style={styles.drawerHeader}>
                                 <Text style={styles.drawerTitle}>Danh sách hội thoại</Text>
                             </View>
@@ -609,7 +630,24 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             <PremiumModal
                 visible={showPremiumModal}
                 onClose={() => setShowPremiumModal(false)}
-                featureName="lượt dùng Trợ lý AI hôm nay"
+                title="Hạn mức AI Chat"
+                description="Bạn đã đạt hạn mức AI Chat hôm nay. Nâng cấp PRO để nhận thêm hạn mức cao gấp 10 lần:"
+            />
+
+            {/* Screen Context Info Modal */}
+            <CustomModal
+                visible={showScreenContextModal}
+                title="Ngữ cảnh màn hình"
+                message={
+                    `Đang xem: ${screenContext?.screenName || "Màn hình ứng dụng"}\n\n` +
+                    (screenContext?.isSupported
+                        ? "AI hỗ trợ đọc và giải đáp trực tiếp nội dung trên màn hình này (Bài học, nút kiến thức, sơ đồ tư duy, thẻ ghi nhớ)."
+                        : "Màn hình này hiện chưa hỗ trợ AI đọc nội dung trực tiếp (Bài thi, bảng xếp hạng, cửa hàng, cá nhân,...). AI vẫn sẽ hỗ trợ bạn giải đáp kiến thức lịch sử tổng quan.")
+                }
+                confirmText="Đã hiểu"
+                onConfirm={() => setShowScreenContextModal(false)}
+                showMascot
+                mascotExpression={screenContext?.isSupported ? "happy" : "thinking"}
             />
         </Modal>
     );
@@ -648,17 +686,18 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     headerTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 15,
-        fontWeight: "600",
         color: colors.textPrimary,
     },
     headerSubTitle: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textMuted,
         marginTop: 1,
     },
     headerSubTitleHighlight: {
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.primary,
     },
     newChatHeaderButton: {
@@ -688,12 +727,12 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
     },
     modePillText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 11,
-        fontWeight: "600",
         color: colors.textSecondary,
     },
     modePillTextActive: {
-        color: "#FFF",
+        color: colors.textLight,
     },
     sessionsListFullContainer: {
         flex: 1,
@@ -708,8 +747,8 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     drawerTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 14,
-        fontWeight: "600",
         color: colors.textSecondary,
     },
     sessionItem: {
@@ -717,7 +756,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingVertical: 12,
         paddingHorizontal: 12,
-        borderRadius: 12, // container border radius = 12
+        borderRadius: 12,
         overflow: "hidden",
     },
     sessionItemActive: {
@@ -728,14 +767,16 @@ const styles = StyleSheet.create({
         opacity: 0.75,
     },
     sessionItemText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 14,
         color: colors.textPrimary,
     },
     sessionItemTextActive: {
+        fontFamily: typography.fonts.semiBold,
         color: colors.primary,
-        fontWeight: "600",
     },
     sessionItemModeText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textMuted,
         marginTop: 2,
@@ -755,20 +796,21 @@ const styles = StyleSheet.create({
         height: 56,
         borderRadius: 28,
         borderWidth: 2,
-        borderColor: "#FFF",
+        borderColor: colors.textLight,
         backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
         overflow: "visible",
     },
     emptyTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 16,
-        fontWeight: "600",
         color: colors.textPrimary,
         marginTop: 16,
         textAlign: "center",
     },
     emptySub: {
+        fontFamily: typography.fonts.regular,
         fontSize: 13,
         color: colors.textMuted,
         marginTop: 8,
@@ -785,9 +827,9 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     contextBadgeText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 11,
         color: colors.primary,
-        fontWeight: "600",
     },
     messageBubbleContainer: {
         flexDirection: "row",
@@ -816,11 +858,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     messageText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 14,
         lineHeight: 20,
     },
     userMessageText: {
-        color: "#FFF",
+        color: colors.textLight,
     },
     errorBubble: {
         backgroundColor: colors.errorContainer,
@@ -835,6 +878,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     retryText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.error,
         marginLeft: 4,
@@ -873,6 +917,7 @@ const styles = StyleSheet.create({
         paddingBottom: 4,
     },
     textInput: {
+        fontFamily: typography.fonts.regular,
         flex: 1,
         maxHeight: 100,
         minHeight: 40,
@@ -909,6 +954,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.textPlaceholder,
     },
     disclaimerText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textMuted,
         textAlign: "center",
@@ -929,8 +975,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     actionModalTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 15,
-        fontWeight: "600",
         color: colors.textPrimary,
         marginBottom: 12,
         paddingHorizontal: 4,
@@ -943,9 +989,9 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     actionOptionText: {
+        fontFamily: typography.fonts.medium,
         fontSize: 15,
         color: colors.textPrimary,
-        fontWeight: "500",
     },
     actionOptionDivider: {
         height: 1,
@@ -959,12 +1005,13 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     renameModalTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 16,
-        fontWeight: "600",
         color: colors.textPrimary,
         marginBottom: 14,
     },
     renameInput: {
+        fontFamily: typography.fonts.regular,
         backgroundColor: colors.inputBackground,
         borderRadius: 12,
         paddingHorizontal: 14,
@@ -985,8 +1032,8 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     renameCancelText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 14,
-        fontWeight: "600",
         color: colors.textMuted,
     },
     renameSaveBtn: {
@@ -999,17 +1046,9 @@ const styles = StyleSheet.create({
         backgroundColor: colors.textPlaceholder,
     },
     renameSaveText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 14,
-        fontWeight: "600",
-        color: "#FFF",
-    },
-    quotaCard: {
-        backgroundColor: colors.surfaceVariant,
-        borderRadius: 12, // container border radius = 12
-        padding: 12,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
+        color: colors.textLight,
     },
     quotaCardHeader: {
         flexDirection: "row",
@@ -1018,41 +1057,41 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     quotaCardTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 13,
-        fontWeight: "600",
         color: colors.textPrimary,
     },
     proBadgePill: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F5A623",
+        backgroundColor: colors.orange,
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 30, // pill button border radius = 30
+        borderRadius: 30,
     },
     proBadgeText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 11,
-        fontWeight: "700",
-        color: "#FFF",
+        color: colors.textLight,
     },
     upgradeBtnPill: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: colors.primaryContainer,
+        backgroundColor: colors.orange,
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 30, // pill button border radius = 30
-        borderWidth: 1,
-        borderColor: colors.primary,
+        borderRadius: 30,
     },
     upgradeBtnText: {
+        fontFamily: typography.fonts.bold,
         fontSize: 11,
-        fontWeight: "700",
-        color: colors.primary,
+        color: colors.textLight,
     },
     quotaProgressTrack: {
         height: 8,
         backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.surfaceVariant,
         borderRadius: 4,
         overflow: "hidden",
         marginVertical: 4,
@@ -1066,9 +1105,36 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         marginTop: 4,
+        marginBottom: 12,
     },
     quotaUsageText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textSecondary,
+    },
+    quotaNoteContainer: {
+        alignSelf: "center",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 6,
+        marginBottom: 8,
+        paddingHorizontal: 12,
+    },
+    quotaNoteText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 11,
+        color: colors.textMuted,
+        textAlign: "center",
+        lineHeight: 16,
+    },
+    quotaNoteHighlight: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 11,
+        color: colors.primary,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: colors.divider,
+        marginVertical: 12,
     },
 });

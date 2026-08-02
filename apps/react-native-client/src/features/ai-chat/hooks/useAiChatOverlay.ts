@@ -18,6 +18,7 @@ import { useScreenContext } from "./useScreenContext";
 export interface DisplayChatMessage extends AiChatMessageDto {
     isPending?: boolean;
     isError?: boolean;
+    isQuotaExceeded?: boolean;
 }
 
 interface UseAiChatOverlayOptions {
@@ -32,8 +33,9 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     const [keyboardHeight, setKeyboardHeight] = useState(0);
     const [pendingMessage, setPendingMessage] = useState<{
         id: string;
+        sessionId?: string | null;
         content: string;
-        status: "sending" | "error";
+        status: "sending" | "error" | "quota_exceeded";
     } | null>(null);
     const [showPremiumModal, setShowPremiumModal] = useState(false);
 
@@ -55,8 +57,10 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     });
 
     useEffect(() => {
-        setPendingMessage(null);
-    }, [selectedSessionId]);
+        if (pendingMessage && pendingMessage.sessionId !== undefined && pendingMessage.sessionId !== selectedSessionId) {
+            setPendingMessage(null);
+        }
+    }, [selectedSessionId, pendingMessage]);
 
     useEffect(() => {
         if (Platform.OS === "android") {
@@ -79,7 +83,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     const [renameTitleInput, setRenameTitleInput] = useState("");
     const hasInitializedSessionRef = useRef(false);
 
-    const { data: sessionsData, isLoading: isLoadingSessions } = useListSessionsQuery(undefined, { skip: !visible });
+    const { data: sessionsData, isLoading: isLoadingSessions, isFetching: isFetchingSessions } = useListSessionsQuery(undefined, { skip: !visible });
     const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
     const [deleteSession] = useDeleteSessionMutation();
     const [updateSession, { isLoading: isUpdatingSession }] = useUpdateSessionMutation();
@@ -93,7 +97,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
 
     const sessions = sessionsData?.sessions || [];
     const activeSession = sessions.find((s) => s.id === selectedSessionId);
-    const messages = selectedSessionId && activeSession ? messagesData?.messages || [] : [];
+    const messages = selectedSessionId ? messagesData?.messages || [] : [];
 
     // Sync selectedMode with activeSession mode when session changes
     useEffect(() => {
@@ -104,12 +108,13 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
 
     // Reset selectedSessionId if active session is deleted or session list becomes empty
     useEffect(() => {
-        if (selectedSessionId && sessions.length > 0 && !activeSession) {
+        if (isLoadingSessions || isFetchingSessions || isSending || isCreatingSession) return;
+        if (selectedSessionId && sessions.length > 0 && !activeSession && !pendingMessage) {
             setSelectedSessionId(sessions[0].id);
-        } else if (sessions.length === 0 && selectedSessionId) {
+        } else if (sessions.length === 0 && selectedSessionId && !pendingMessage) {
             setSelectedSessionId(null);
         }
-    }, [sessions, selectedSessionId, activeSession]);
+    }, [sessions, selectedSessionId, activeSession, isLoadingSessions, isFetchingSessions, isSending, pendingMessage, isCreatingSession]);
 
     const displayMessages: DisplayChatMessage[] = [
         ...messages,
@@ -123,6 +128,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
                       createdAt: new Date().toISOString(),
                       isPending: pendingMessage.status === "sending",
                       isError: pendingMessage.status === "error",
+                      isQuotaExceeded: pendingMessage.status === "quota_exceeded",
                   },
               ]
             : []),
@@ -215,23 +221,27 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         const text = (contentToSend || inputText).trim();
         if (!text || (isSending && pendingMessage?.status === "sending")) return;
 
+        if (!contentToSend) {
+            setInputText("");
+        }
+
+        const tempId = `temp-user-${Date.now()}`;
         let activeSessionId = selectedSessionId;
+
+        setPendingMessage({ id: tempId, sessionId: activeSessionId, content: text, status: "sending" });
+
         if (!activeSessionId) {
             try {
                 const res = await createSession({ mode: selectedMode }).unwrap();
                 activeSessionId = res.session.id;
                 setSelectedSessionId(activeSessionId);
+                setPendingMessage((prev) => (prev ? { ...prev, sessionId: activeSessionId } : null));
             } catch (err) {
                 console.error("Failed to create session on first send:", err);
+                setPendingMessage(null);
                 return;
             }
         }
-
-        if (!contentToSend) {
-            setInputText("");
-        }
-        const tempId = `temp-user-${Date.now()}`;
-        setPendingMessage({ id: tempId, content: text, status: "sending" });
 
         try {
             await sendMessage({
@@ -244,8 +254,10 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
             console.error("Failed to send message:", err);
             if (err?.status === 429 || err?.data?.error === "QUOTA_EXCEEDED" || err?.data?.message?.includes("QUOTA_EXCEEDED")) {
                 setShowPremiumModal(true);
+                setPendingMessage({ id: tempId, sessionId: activeSessionId, content: text, status: "quota_exceeded" });
+            } else {
+                setPendingMessage({ id: tempId, sessionId: activeSessionId, content: text, status: "error" });
             }
-            setPendingMessage({ id: tempId, content: text, status: "error" });
         }
     }, [inputText, isSending, pendingMessage, selectedSessionId, selectedMode, createSession, sendMessage, screenContext]);
 

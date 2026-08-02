@@ -9,6 +9,7 @@ import Animated, {
     Easing,
 } from "react-native-reanimated";
 import { colors } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 
 interface VibratingVoiceInputProps {
     isTranscribing: boolean;
@@ -91,15 +92,15 @@ const styles = StyleSheet.create({
         marginHorizontal: 2,
     },
     listeningText: {
+        fontFamily: typography.fonts.medium,
         flex: 1,
         fontSize: 14,
         color: colors.primary,
-        fontWeight: "500",
     },
     transcribingText: {
+        fontFamily: typography.fonts.italic,
         flex: 1,
         fontSize: 14,
         color: colors.textSecondary,
-        fontStyle: "italic",
     },
 });

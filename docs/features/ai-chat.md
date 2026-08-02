@@ -18,9 +18,9 @@ The AI Chat feature provides students with an interactive Vietnamese & World His
   - *Mid-Session Switching:* Users can change the active mode at any point during a chat session via the top mode selector pills. Mode changes trigger a `PATCH /api/ai-chat/sessions/:sessionId` update and apply immediately to subsequent messages.
 - **RAG Course Content Search Engine:** Automatically searches top 5 relevant lessons and nodes via [contentSearchService.ts](../../apps/express-server/src/services/contentSearchService.ts) to ground AI responses across the entire course database without restricting searches to active screen grade.
 - **Rich Markdown & Deep Link Navigation:** Render chat bubbles with bold, headers, lists, and clickable custom links (`[Title](lesson:ID)`, `[Title](node:ID)`) that navigate to target Expo Router screens ([AiMarkdownMessage.tsx](../../apps/react-native-client/src/features/ai-chat/components/AiMarkdownMessage.tsx)).
-- **Active Screen Context as Suggestion (v2.1):** Detects user location (`LessonMenuScreen`, `LessonSummaryScreen`, `NodeScreen`) via [useScreenContext.ts](../../apps/react-native-client/src/features/ai-chat/hooks/useScreenContext.ts) and uses active screen as a contextual suggestion for resolving ambiguous terms (e.g. "bài này", "nút này", "ở đây") rather than a hard boundary limit on course scope.
+- **Active Screen Context & Info Modal (v2.1/v2.5):** Detects user location across all app screens (LessonMenu, LessonSummary, Node, MindMap, Flashcard, Subscription, Tests, Leaderboards, etc.) via [useScreenContext.ts](../../apps/react-native-client/src/features/ai-chat/hooks/useScreenContext.ts) and uses active screen as contextual suggestion. Clicking the screen location tag in the AI Chat header opens an interactive modal explaining screen support status (whether AI directly reads the content or provides general history answers).
 - **Periodic Context Summarizer (v2.2):** Replaces rigid 16-message cutoff with a 15-message sliding window plus async background AI context summarization (`aiService.summarizeContext`) every 15 messages. Persists accumulated summary in `AiChatSession.summary` and injects it into Gemini prompt context.
-- **Daily Token Quota System & Visual Progress Bar (v2.3/v2.4):** Enforces token limits reset at midnight ICT (UTC+7). Shows visual percentage quota bar in chat session drawer (`AiChatOverlay.tsx`). Free users see "Nâng cấp PRO (x10)" pill button linking to Subscription screen (`/(10_proflie)/10_8_subscription`), while PRO users display gold PRO badge. Raw token counts are hidden on FE; descriptions state "Hạn mức gấp 10 lần". Exceeding quota returns HTTP 429 (`QUOTA_EXCEEDED`) and pops up mascot upgrade modal (`PremiumModal`).
+- **Daily Token Quota System & Visual Progress Bar (v2.3/v2.4/v2.6):** Enforces token limits reset at midnight ICT (UTC+7). Shows visual percentage quota bar in chat session drawer (`AiChatOverlay.tsx`). Free users see "Nâng cấp PRO (x10)" pill button linking to Subscription screen (`/(10_proflie)/10_8_subscription`), while PRO users display gold PRO badge. Raw token counts are hidden on FE; descriptions state "Hạn mức gấp 10 lần". Exceeding quota returns HTTP 429 (`QUOTA_EXCEEDED`), pops up mascot upgrade modal (`PremiumModal`), and displays a horizontally centered inline note in chat below the message instead of an error state with retry.
 - **Floating Action Button (FAB):** Draggable button ([AiChatFab](../../apps/react-native-client/src/features/ai-chat/components/AiChatFab.tsx)) using `PanResponder`.
 - **Voice Recognition Input:** Speech-to-text via `expo-speech-recognition` (`vi-VN`) with animated waveform UI ([VibratingVoiceInput](../../apps/react-native-client/src/features/ai-chat/components/VibratingVoiceInput.tsx)).
 
@@ -157,12 +157,17 @@ model AiChatMessage {
 
 ### High severity/priority 
 
-
-### Medium severity/priority
+### Medium / Low severity & Future Upgrades
 
 1. **Streaming Responses (Server-Sent Events / WebSockets):** Replace chunked POST response with streaming text output.
 2. **Offline Cache & Retry Queue:** Store pending messages in AsyncStorage for offline handling when network drops.
 3. **Voice Output (Text-to-Speech):** Add optional audio response playback for AI answers.
+4. **Real-time Web Search Grounding:**
+   - *Current Behavior:* AI relies on pre-trained parametric knowledge (cutoff 2024) and RAG course data. Real-time date context (`Asia/Ho_Chi_Minh`) is injected into system prompts in [aiService.ts](../../apps/express-server/src/services/aiService.ts).
+   - *Future Upgrade:* Enable real-time Google Search grounding by adding `tools: [{ googleSearch: {} }]` to the Gemini API request payload in `aiService.ts` for live web search capabilities.
+5. **Model Versioning & API Key Compatibility:**
+   - Model name is configured via `GEMINI_MODEL` in `.env` (defaults to `gemini-2.5-flash` in [aiService.ts](../../apps/express-server/src/services/aiService.ts)).
+   - Existing Google Gemini API keys (`GEMINI_API_KEY_1..3`) work seamlessly across model versions (`gemini-1.5-flash`, `gemini-2.0-flash`, `gemini-2.5-flash`) without requiring new keys.
 
 ---
 

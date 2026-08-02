@@ -54,6 +54,20 @@ export const aiChatApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body: body || {},
             }),
+            async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if (data?.session) {
+                        dispatch(
+                            aiChatApi.util.updateQueryData("listSessions", undefined, (draft) => {
+                                if (!draft.sessions.some((s) => s.id === data.session.id)) {
+                                    draft.sessions.unshift(data.session);
+                                }
+                            })
+                        );
+                    }
+                } catch {}
+            },
             invalidatesTags: ["AiChatSession"],
         }),
         deleteSession: builder.mutation<{ success: boolean }, string>({
@@ -103,11 +117,33 @@ export const aiChatApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body: { content, screenContext },
             }),
-            invalidatesTags: (_result, _error, { sessionId }) => [
-                { type: "AiChatMessage", id: sessionId },
-                "AiChatSession",
-                "AiQuota",
-            ],
+            async onQueryStarted({ sessionId }, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if (data?.userMessage && data?.assistantMessage) {
+                        dispatch(
+                            aiChatApi.util.updateQueryData("getSessionMessages", sessionId, (draft) => {
+                                if (!draft.messages) draft.messages = [];
+                                if (!draft.messages.some((m) => m.id === data.userMessage.id)) {
+                                    draft.messages.push(data.userMessage);
+                                }
+                                if (!draft.messages.some((m) => m.id === data.assistantMessage.id)) {
+                                    draft.messages.push(data.assistantMessage);
+                                }
+                            })
+                        );
+                        dispatch(
+                            aiChatApi.util.updateQueryData("listSessions", undefined, (draft) => {
+                                const session = draft.sessions.find((s) => s.id === sessionId);
+                                if (session) {
+                                    session.updatedAt = new Date().toISOString();
+                                }
+                            })
+                        );
+                    }
+                } catch {}
+            },
+            invalidatesTags: ["AiQuota"],
         }),
     }),
 });

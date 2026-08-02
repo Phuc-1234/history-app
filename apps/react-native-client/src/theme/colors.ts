@@ -59,6 +59,7 @@ export const colors = {
     silver: "#C0C0C0",
     bronze: "#CD7F32",
     streak: "#c37938",
+    orange: "#FF9500",
 
     // -------------------------------------------------------------
     // Borders, Dividers & Lines

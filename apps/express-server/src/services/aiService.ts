@@ -95,7 +95,9 @@ export class AIService {
         let lastError: Error | null = null;
         const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
 
-        let systemPrompt = "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n" +
+        const currentDateStr = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "numeric", day: "numeric" });
+        let systemPrompt = `Thời gian thực tế hôm nay: ${currentDateStr} (Múi giờ Việt Nam).\n` +
+            "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n" +
             "QUY TẮC HIỂN THỊ LIÊN KẾT NÚT KIẾN THỨC (QUAN TRỌNG):\n" +
             "- TUYỆT ĐỐI KHÔNG DÙNG \"Nút id ___\", \"Nút ___\", \"Nút ID ___\" hay bất kỳ mã ID nào làm tên hiển thị của liên kết (CẤM CỤT THỂ: [Nút id 12](node:12) hoặc [Nút 12](node:12)).\n" +
             "- Luôn sử dụng Tiêu đề của nút kiến thức làm tên hiển thị (ví dụ: [Diễn biến cuộc khởi nghĩa](node:12)).\n" +

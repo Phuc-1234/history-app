@@ -40,18 +40,12 @@ const styles = StyleSheet.create({
         height: 56,
         borderRadius: 28,
         borderWidth: 2,
-        borderColor: "#FFF", // white border
+        borderColor: colors.textLight,
         backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
         zIndex: 999,
         overflow: "visible",
-        // Shadow configuration
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
     },
     fabInner: {
         width: "100%",
