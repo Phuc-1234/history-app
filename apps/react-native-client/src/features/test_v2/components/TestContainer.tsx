@@ -48,6 +48,8 @@ import {
     getQuestionPointsRange,
 } from "../services/scoreEngine";
 import FeedbackModal from "@/components/FeedbackModal";
+import PracticeFeedbackMascot from "./PracticeFeedbackMascot";
+import { playTestPassSound, playTestFailSound } from "@/services/soundService";
 
 import type {
     StartTestV2Request,
@@ -200,6 +202,16 @@ export default function TestContainerV2({
             actions.start();
         }
     }, [skipIntro, status, actions.start]);
+
+    useEffect(() => {
+        if (status === "completed" && result?.userTestLog) {
+            if (result.userTestLog.isPassed) {
+                playTestPassSound();
+            } else {
+                playTestFailSound();
+            }
+        }
+    }, [status, result?.userTestLog?.isPassed]);
 
     const practiceEarned = React.useMemo(() => {
         return Object.values(evaluations).reduce(
@@ -955,16 +967,19 @@ export default function TestContainerV2({
                                 : styles.feedbackDrawerWrong,
                         ]}
                     >
-                        <Text
-                            style={[
-                                styles.feedbackDrawerTitle,
-                                evalResult.isCorrect
-                                    ? styles.feedbackDrawerTitleCorrect
-                                    : styles.feedbackDrawerTitleWrong,
-                            ]}
-                        >
-                            {evalResult.isCorrect ? "Chính xác!" : "Chưa đúng!"}
-                        </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                            <PracticeFeedbackMascot isCorrect={evalResult.isCorrect} size={42} />
+                            <Text
+                                style={[
+                                    styles.feedbackDrawerTitle,
+                                    evalResult.isCorrect
+                                        ? styles.feedbackDrawerTitleCorrect
+                                        : styles.feedbackDrawerTitleWrong,
+                                ]}
+                            >
+                                {evalResult.isCorrect ? "Chính xác!" : "Chưa đúng!"}
+                            </Text>
+                        </View>
                         {currentQuestion?.explanation ? (
                             <ScrollView
                                 style={styles.feedbackDrawerScroll}
