@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProcessedTopBarData } from "../hooks/useTopBarData";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
-import { AvatarWithFrame } from "../../../components/ui";
+import { AvatarWithFrame, FaintStarsOverlay } from "../../../components/ui";
 import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
 
 interface TopBarProps {
@@ -43,11 +43,17 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
     const insets = useSafeAreaInsets();
     const { openDrawer } = useSideDrawer();
 
+    const isPro = !!data?.isPro;
+    const gradientColors = isPro
+        ? (["#e08c3d", "#c37938"] as const)
+        : ([colors.accent, "#d89b65ff"] as const);
+
     return (
         <LinearGradient
-            colors={[colors.accent, "#d89b65ff"]}
+            colors={gradientColors as any}
             style={[styles.container, { paddingTop: insets.top }]}
         >
+            {isPro && <FaintStarsOverlay />}
             {/* --- Main Stats Bar --- */}
             {showStatsBar && data && (
                 <View style={[styles.purpleBar, branchConfig && styles.purpleBarWithBranch]}>
@@ -101,6 +107,11 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                     name={data.name}
                                     borderWidth={1.5}
                                 />
+                                {data.isPro && (
+                                    <View style={styles.proBadgeChip}>
+                                        <Text style={styles.proBadgeText}>PRO</Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
 
                             <View style={styles.statsContainer}>
@@ -390,5 +401,18 @@ const styles = StyleSheet.create({
         ...typography.bodyMedium,
         color: "rgba(255, 255, 255, 0.85)",
         marginTop: 2,
+    },
+    proBadgeChip: {
+        backgroundColor: "#FFD700",
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 30,
+        marginLeft: 6,
+    },
+    proBadgeText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 10,
+        color: "#5C3516",
+        letterSpacing: 0.5,
     },
 });

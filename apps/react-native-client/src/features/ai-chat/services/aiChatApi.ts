@@ -17,6 +17,7 @@ export interface ScreenContextPayload {
     nodeId?: number;
     topicId?: number;
     grade?: number;
+    isSupported?: boolean;
 }
 
 export interface AiChatMessageDto {
@@ -28,8 +29,18 @@ export interface AiChatMessageDto {
     createdAt: string;
 }
 
+export interface UserAiQuotaDto {
+    tokensUsed: number;
+    dailyLimit: number;
+    isPro: boolean;
+}
+
 export const aiChatApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        getUserQuota: builder.query<UserAiQuotaDto, void>({
+            query: () => "/api/ai-chat/quota",
+            providesTags: ["AiQuota"],
+        }),
         listSessions: builder.query<{ sessions: AiChatSessionDto[] }, void>({
             query: () => "/api/ai-chat/sessions",
             providesTags: ["AiChatSession"],
@@ -95,12 +106,14 @@ export const aiChatApi = apiSlice.injectEndpoints({
             invalidatesTags: (_result, _error, { sessionId }) => [
                 { type: "AiChatMessage", id: sessionId },
                 "AiChatSession",
+                "AiQuota",
             ],
         }),
     }),
 });
 
 export const {
+    useGetUserQuotaQuery,
     useListSessionsQuery,
     useCreateSessionMutation,
     useDeleteSessionMutation,

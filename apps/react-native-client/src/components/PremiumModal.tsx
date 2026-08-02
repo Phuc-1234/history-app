@@ -78,6 +78,10 @@ export function PremiumModal({
                             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
                             <Text style={styles.benefitText}>Mở khoá mind map</Text>
                         </View>
+                        <View style={styles.benefitItem}>
+                            <Ionicons name="sparkles" size={16} color={colors.secondary} />
+                            <Text style={styles.benefitText}>Hạn mức AI Chat cao gấp 10 lần</Text>
+                        </View>
                     </View>
 
                     {/* Buttons */}

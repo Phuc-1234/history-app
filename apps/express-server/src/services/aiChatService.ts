@@ -10,6 +10,7 @@ export interface ScreenContextPayload {
     nodeId?: number;
     topicId?: number;
     grade?: number;
+    isSupported?: boolean;
 }
 
 export class AiChatService {
@@ -75,6 +76,24 @@ export class AiChatService {
             throw new Error("Chat session not found or unauthorized.");
         }
 
+        // Check user PRO status and daily token quota limit
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { isPro: true, proExpiresAt: true }
+        });
+
+        const isUserPro = Boolean(user?.isPro && user?.proExpiresAt && user.proExpiresAt > new Date());
+        const dailyLimit = isUserPro ? 500000 : 50000;
+        const todayStr = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+        const currentQuota = await prisma.userAiQuota.findUnique({
+            where: { userId_date: { userId, date: todayStr } }
+        });
+
+        if (currentQuota && currentQuota.tokensUsed >= dailyLimit) {
+            throw new Error("QUOTA_EXCEEDED");
+        }
+
         // Save user message
         const userMsg = await prisma.aiChatMessage.create({
             data: {
@@ -123,18 +142,33 @@ export class AiChatService {
             if (screenContext.nodeId) screenContextText += ` (Nút kiến thức ID: ${screenContext.nodeId})`;
         }
 
-        // Prepare context (sliding window of last 16 messages)
-        const history = [...session.messages, userMsg].slice(-16);
+        // Prepare context (sliding window of last 15 messages)
+        const history = [...session.messages, userMsg].slice(-15);
         const formattedContents = history.map((msg) => ({
             role: (msg.sender === "user" ? "user" : "model") as "user" | "model",
             parts: [{ text: msg.content }]
         }));
 
-        // Call Gemini with mode & grounding context
-        const assistantText = await aiService.callGeminiChat(formattedContents, {
+        // Call Gemini with mode, summary & grounding context
+        const { text: assistantText, usageTokens } = await aiService.callGeminiChat(formattedContents, {
             mode: session.mode,
             groundingContext,
-            screenContextText
+            screenContextText,
+            isSupportedScreen: screenContext?.isSupported,
+            summary: session.summary || undefined
+        });
+
+        // Update token quota tracking
+        await prisma.userAiQuota.upsert({
+            where: { userId_date: { userId, date: todayStr } },
+            create: {
+                userId,
+                date: todayStr,
+                tokensUsed: usageTokens
+            },
+            update: {
+                tokensUsed: { increment: usageTokens }
+            }
         });
 
         // Save assistant response
@@ -145,6 +179,23 @@ export class AiChatService {
                 content: assistantText
             }
         });
+
+        // Async context summarization every 15 messages
+        const totalMessages = [...session.messages, userMsg, assistantMsg];
+        if (totalMessages.length % 15 === 0) {
+            const chunkToSummarize = totalMessages.slice(-15);
+            aiService
+                .summarizeContext(chunkToSummarize, session.summary || undefined)
+                .then(async (newSummary) => {
+                    if (newSummary) {
+                        await prisma.aiChatSession.update({
+                            where: { id: sessionId },
+                            data: { summary: newSummary }
+                        });
+                    }
+                })
+                .catch((err) => console.error("Async summarization error:", err));
+        }
 
         // Update session updatedAt
         await prisma.aiChatSession.update({
@@ -190,5 +241,26 @@ export class AiChatService {
             }
         });
         return updated;
+    }
+
+    async getUserQuota(userId: string) {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { isPro: true, proExpiresAt: true }
+        });
+
+        const isUserPro = Boolean(user?.isPro && user?.proExpiresAt && user.proExpiresAt > new Date());
+        const dailyLimit = isUserPro ? 500000 : 50000;
+        const todayStr = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+        const currentQuota = await prisma.userAiQuota.findUnique({
+            where: { userId_date: { userId, date: todayStr } }
+        });
+
+        return {
+            tokensUsed: currentQuota?.tokensUsed || 0,
+            dailyLimit,
+            isPro: isUserPro
+        };
     }
 }

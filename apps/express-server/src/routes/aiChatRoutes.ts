@@ -6,13 +6,15 @@ import {
     getSessionMessages,
     sendMessage,
     deleteSession,
-    updateSession
+    updateSession,
+    getUserQuota
 } from "../controllers/aiChatController";
 
 const router = Router();
 
 router.use(requireStudent);
 
+router.get("/quota", getUserQuota);
 router.get("/sessions", listSessions);
 router.post("/sessions", createSession);
 router.patch("/sessions/:sessionId", updateSession);

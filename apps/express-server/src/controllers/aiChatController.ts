@@ -55,6 +55,12 @@ export const sendMessage = async (req: Request, res: Response) => {
         const result = await aiChatService.sendMessage(userId, sessionId, content.trim(), screenContext);
         return res.status(200).json(result);
     } catch (err: any) {
+        if (err.message === "QUOTA_EXCEEDED") {
+            return res.status(429).json({
+                error: "QUOTA_EXCEEDED",
+                message: "Bạn đã dùng hết hạn mức AI Chat hôm nay. Nâng cấp PRO để có hạn mức cao gấp 10 lần!"
+            });
+        }
         return res.status(500).json({ error: err.message || "Failed to process chat message." });
     }
 };
@@ -84,5 +90,17 @@ export const updateSession = async (req: Request, res: Response) => {
         return res.status(200).json({ session });
     } catch (err: any) {
         return res.status(500).json({ error: err.message || "Failed to update chat session." });
+    }
+};
+
+export const getUserQuota = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+        const quota = await aiChatService.getUserQuota(userId);
+        return res.status(200).json(quota);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch user AI quota." });
     }
 };
