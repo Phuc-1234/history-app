@@ -4,6 +4,7 @@ import {
     Text,
     View,
     TouchableOpacity,
+    TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Zap, Coins } from "lucide-react-native";
@@ -30,6 +31,100 @@ interface PracticeSectionProps {
     isActiveTab?: boolean;
 }
 
+interface QuestionCountSelectorProps {
+    value: number;
+    onChange: (val: number) => void;
+    maxCount: number;
+}
+
+const QuestionCountSelector: React.FC<QuestionCountSelectorProps> = ({
+    value,
+    onChange,
+    maxCount,
+}) => {
+    const [inputText, setInputText] = useState(String(value));
+
+    useEffect(() => {
+        setInputText(String(value));
+    }, [value]);
+
+    const suggestions = useMemo(() => {
+        if (maxCount <= 0) return [];
+        const list: number[] = [];
+        if (maxCount > 10) list.push(10);
+        if (maxCount > 20) list.push(20);
+        if (!list.includes(maxCount)) list.push(maxCount);
+        return list;
+    }, [maxCount]);
+
+    const handleTextChange = (text: string) => {
+        const cleaned = text.replace(/[^0-9]/g, "");
+        setInputText(cleaned);
+        if (cleaned !== "") {
+            const num = parseInt(cleaned, 10);
+            if (num > maxCount) {
+                onChange(maxCount);
+                setInputText(String(maxCount));
+            } else if (num > 0) {
+                onChange(num);
+            }
+        }
+    };
+
+    const handleBlur = () => {
+        if (!inputText || parseInt(inputText, 10) <= 0) {
+            const defaultVal = Math.min(10, maxCount);
+            onChange(defaultVal);
+            setInputText(String(defaultVal));
+        }
+    };
+
+    return (
+        <View style={styles.selectorContainer}>
+            <Text style={styles.practiceOptionLabel}>Số lượng câu hỏi</Text>
+            <View style={styles.selectorRow}>
+                <TextInput
+                    style={styles.countInput}
+                    value={inputText}
+                    onChangeText={handleTextChange}
+                    onBlur={handleBlur}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                />
+                <View style={styles.suggestionsRow}>
+                    {suggestions.map((val) => {
+                        const isActive = value === val;
+                        const label = val === maxCount ? `Tất cả (${val})` : String(val);
+                        return (
+                            <TouchableOpacity
+                                key={val}
+                                style={[
+                                    styles.suggestionBtn,
+                                    isActive && styles.suggestionBtnActive,
+                                ]}
+                                onPress={() => {
+                                    onChange(val);
+                                    setInputText(String(val));
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text
+                                    style={[
+                                        styles.suggestionText,
+                                        isActive && styles.suggestionTextActive,
+                                    ]}
+                                >
+                                    {label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            </View>
+        </View>
+    );
+};
+
 export const PracticeSection: React.FC<PracticeSectionProps> = ({
     scopeType,
     scopeId,
@@ -51,56 +146,21 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
     const [practiceCount, setPracticeCount] = useState(10);
     const [wrongPracticeCount, setWrongPracticeCount] = useState(10);
 
-    const wrongOptions = useMemo(() => {
-        if (wrongQuestionCount <= 10) return [];
-        const opts = [10];
-        if (wrongQuestionCount > 20) opts.push(20);
-        if (wrongQuestionCount > 30) opts.push(30);
-        if (!opts.includes(wrongQuestionCount)) opts.push(wrongQuestionCount);
-        return opts;
-    }, [wrongQuestionCount]);
-
-    const practiceOptions = useMemo(() => {
-        const n = answeredQuestionCount;
-        const options: { value: number; label: string }[] = [];
-        let addedAll = false;
-
-        for (const count of [10, 20, 30]) {
-            if (count < n) {
-                options.push({ value: count, label: String(count) });
-            } else if (count === n) {
-                options.push({ value: count, label: `Tất cả (${n})` });
-                addedAll = true;
-            } else {
-                if (!addedAll) {
-                    options.push({ value: n, label: `Tất cả (${n})` });
-                    addedAll = true;
-                }
-            }
-        }
-        return options;
-    }, [answeredQuestionCount]);
-
     useEffect(() => {
         if (wrongQuestionCount <= 10) {
             setWrongPracticeCount(wrongQuestionCount);
-        } else {
-            if (!wrongOptions.includes(wrongPracticeCount)) {
-                setWrongPracticeCount(wrongOptions[0] || 10);
-            }
+        } else if (wrongPracticeCount > wrongQuestionCount) {
+            setWrongPracticeCount(wrongQuestionCount);
         }
-    }, [wrongQuestionCount, wrongOptions]);
+    }, [wrongQuestionCount]);
 
     useEffect(() => {
         if (answeredQuestionCount <= 10) {
             setPracticeCount(answeredQuestionCount);
-        } else {
-            const optionValues = practiceOptions.map((o) => o.value);
-            if (!optionValues.includes(practiceCount)) {
-                setPracticeCount(optionValues[0] || 10);
-            }
+        } else if (practiceCount > answeredQuestionCount) {
+            setPracticeCount(answeredQuestionCount);
         }
-    }, [answeredQuestionCount, practiceOptions]);
+    }, [answeredQuestionCount]);
 
     const { data: wrongTestInfo } = useGetTestInfoQuery(
         {
@@ -146,32 +206,12 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                             : `Bạn có ${wrongQuestionCount} câu trả lời sai. Hãy ôn luyện để sửa đổi và củng cố nhé!`}
                 </Text>
 
-                {wrongQuestionCount > 10 && (
-                    <>
-                        <Text style={styles.practiceOptionLabel}>Số lượng câu hỏi</Text>
-                        <View style={styles.practiceOptionsRow}>
-                            {wrongOptions.map((count) => (
-                                <TouchableOpacity
-                                    key={count}
-                                    style={[
-                                        styles.practiceOptionBtn,
-                                        wrongPracticeCount === count && styles.practiceOptionBtnActive,
-                                    ]}
-                                    onPress={() => setWrongPracticeCount(count)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.practiceOptionText,
-                                            wrongPracticeCount === count && styles.practiceOptionTextActive,
-                                        ]}
-                                    >
-                                        {count === wrongQuestionCount ? `Tất cả (${count})` : count}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </>
+                {wrongQuestionCount > 0 && (
+                    <QuestionCountSelector
+                        value={wrongPracticeCount}
+                        onChange={setWrongPracticeCount}
+                        maxCount={wrongQuestionCount}
+                    />
                 )}
 
                 <View style={[styles.practiceRewardRow, { marginBottom: 12 }]}>
@@ -225,24 +265,22 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                     ))}
                 </View>
 
-                <TouchableOpacity
-                    style={[
-                        styles.practiceStartBtn,
-                        wrongQuestionCount === 0 && { backgroundColor: colors.textPlaceholder },
-                    ]}
-                    onPress={() =>
-                        onPracticePress({
-                            scopeType,
-                            scopeId,
-                            questionCount: wrongPracticeCount,
-                            autoPickStrategy: "WRONG",
-                        })
-                    }
-                    disabled={wrongQuestionCount === 0}
-                    activeOpacity={0.8}
-                >
-                    <Text style={styles.practiceStartBtnText}>Làm lại ngay</Text>
-                </TouchableOpacity>
+                {wrongQuestionCount > 0 && (
+                    <TouchableOpacity
+                        style={styles.practiceStartBtn}
+                        onPress={() =>
+                            onPracticePress({
+                                scopeType,
+                                scopeId,
+                                questionCount: wrongPracticeCount,
+                                autoPickStrategy: "WRONG",
+                            })
+                        }
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.practiceStartBtnText}>Làm lại ngay</Text>
+                    </TouchableOpacity>
+                )}
             </Card>
 
             {/* Luyện tập cá nhân Card */}
@@ -257,39 +295,13 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                         : "Củng cố kiến thức bằng cách ôn lại các câu hỏi đã làm để tăng cấp độ thành thạo. Ưu tiên các câu hỏi chưa vững."}
                 </Text>
 
-                {answeredQuestionCount > 0 &&
-                    (answeredQuestionCount < 10 ? (
-                        <Text style={[styles.practiceOptionLabel, { marginBottom: 20 }]}>
-                            Số lượng câu hỏi:{" "}
-                            <Text style={{ color: colors.accent }}>{answeredQuestionCount}</Text>
-                        </Text>
-                    ) : (
-                        <>
-                            <Text style={styles.practiceOptionLabel}>Số lượng câu hỏi</Text>
-                            <View style={styles.practiceOptionsRow}>
-                                {practiceOptions.map((opt) => (
-                                    <TouchableOpacity
-                                        key={opt.value}
-                                        style={[
-                                            styles.practiceOptionBtn,
-                                            practiceCount === opt.value && styles.practiceOptionBtnActive,
-                                        ]}
-                                        onPress={() => setPracticeCount(opt.value)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.practiceOptionText,
-                                                practiceCount === opt.value && styles.practiceOptionTextActive,
-                                            ]}
-                                        >
-                                            {opt.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </>
-                    ))}
+                {answeredQuestionCount > 0 && (
+                    <QuestionCountSelector
+                        value={practiceCount}
+                        onChange={setPracticeCount}
+                        maxCount={answeredQuestionCount}
+                    />
+                )}
 
                 <View style={[styles.practiceRewardRow, { marginBottom: 12 }]}>
                     <Text style={styles.practiceRewardLabel}>Yêu cầu đạt:</Text>
@@ -342,24 +354,22 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                     ))}
                 </View>
 
-                <TouchableOpacity
-                    style={[
-                        styles.practiceStartBtn,
-                        answeredQuestionCount === 0 && { backgroundColor: colors.textPlaceholder },
-                    ]}
-                    onPress={() =>
-                        onPracticePress({
-                            scopeType,
-                            scopeId,
-                            questionCount: practiceCount,
-                            autoPickStrategy: "LOW_MASTERY",
-                        })
-                    }
-                    disabled={answeredQuestionCount === 0}
-                    activeOpacity={0.8}
-                >
-                    <Text style={styles.practiceStartBtnText}>Bắt đầu luyện tập</Text>
-                </TouchableOpacity>
+                {answeredQuestionCount > 0 && (
+                    <TouchableOpacity
+                        style={styles.practiceStartBtn}
+                        onPress={() =>
+                            onPracticePress({
+                                scopeType,
+                                scopeId,
+                                questionCount: practiceCount,
+                                autoPickStrategy: "LOW_MASTERY",
+                            })
+                        }
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.practiceStartBtnText}>Bắt đầu luyện tập</Text>
+                    </TouchableOpacity>
+                )}
             </Card>
         </View>
     );
@@ -373,7 +383,7 @@ const styles = StyleSheet.create({
     practiceCard: {
         padding: 20,
         marginBottom: 24,
-        borderRadius: 12, // Container border radius = 12
+        borderRadius: 12,
     },
     practiceCardHeader: {
         flexDirection: "row",
@@ -397,33 +407,55 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.semiBold,
         fontSize: 14,
         color: colors.textPrimary,
-        marginBottom: 12,
+        marginBottom: 8,
     },
-    practiceOptionsRow: {
+    selectorContainer: {
+        marginBottom: 20,
+    },
+    selectorRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
-        marginBottom: 24,
+        alignItems: "center",
+        gap: 8,
     },
-    practiceOptionBtn: {
-        flex: 1,
-        paddingVertical: 12,
-        marginHorizontal: 4,
-        borderRadius: 30, // Pill button border radius = 30
+    countInput: {
+        width: 64,
+        height: 36,
         borderWidth: 1.5,
         borderColor: colors.borderMedium,
-        alignItems: "center",
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        textAlign: "center",
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 14,
+        color: colors.textPrimary,
         backgroundColor: colors.surface,
     },
-    practiceOptionBtnActive: {
+    suggestionsRow: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    suggestionBtn: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 30,
+        borderWidth: 1.5,
+        borderColor: colors.borderMedium,
+        backgroundColor: colors.surface,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    suggestionBtnActive: {
         backgroundColor: colors.primary,
         borderColor: colors.primary,
     },
-    practiceOptionText: {
+    suggestionText: {
         fontFamily: typography.fonts.semiBold,
-        fontSize: 14,
+        fontSize: 12,
         color: colors.textSecondary,
     },
-    practiceOptionTextActive: {
+    suggestionTextActive: {
         color: "#FFFFFF",
     },
     practiceRewardRow: {
@@ -456,7 +488,7 @@ const styles = StyleSheet.create({
     },
     practiceStartBtn: {
         backgroundColor: colors.primary,
-        borderRadius: 30, // Pill button border radius = 30
+        borderRadius: 30,
         paddingVertical: 14,
         alignItems: "center",
     },
