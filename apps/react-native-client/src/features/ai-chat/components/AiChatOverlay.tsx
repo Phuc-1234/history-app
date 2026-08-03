@@ -28,6 +28,7 @@ import { CustomModal } from "@/components/Modal";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
 import { AiChatModeType } from "../services/aiChatApi";
+import { useEasterEgg } from "@/features/easter_egg";
 
 interface AiChatOverlayProps {
     visible: boolean;
@@ -37,13 +38,14 @@ interface AiChatOverlayProps {
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const OVERLAY_HEIGHT = SCREEN_HEIGHT * 0.8;
 
-const MODES: { id: AiChatModeType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: "COURSE_ONLY", label: "Chỉ Giáo Trình", icon: "book" },
-    { id: "COURSE_FIRST", label: "Ưu Tiên Giáo Trình", icon: "school" },
-    { id: "GENERAL", label: "Chung", icon: "chatbubbles" },
+const MODES: { id: AiChatModeType; label: string; labelEn: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { id: "COURSE_ONLY", label: "Chỉ Giáo Trình", labelEn: "Course Only", icon: "book" },
+    { id: "COURSE_FIRST", label: "Ưu Tiên Giáo Trình", labelEn: "Course First", icon: "school" },
+    { id: "GENERAL", label: "Chung", labelEn: "General", icon: "chatbubbles" },
 ];
 
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
+    const { isEngMode } = useEasterEgg();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const flatListRef = useRef<FlatList>(null);
@@ -195,7 +197,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         {item.isError && (
                             <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
                                 <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
-                                <Text style={styles.retryText}>Gửi thất bại, chạm để thử lại</Text>
+                                <Text style={styles.retryText}>
+                                    {isEngMode ? "Failed to send, tap to retry" : "Gửi thất bại, chạm để thử lại"}
+                                </Text>
                             </Pressable>
                         )}
 
@@ -233,9 +237,11 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         onPress={() => setShowPremiumModal(true)}
                     >
                         <Text style={styles.quotaNoteText}>
-                            Bạn đã dùng hết hạn mức AI Chat hôm nay.
+                            {isEngMode ? "You have reached today's AI Chat limit." : "Bạn đã dùng hết hạn mức AI Chat hôm nay."}
                             {"\n"}
-                            <Text style={styles.quotaNoteHighlight}>Nâng cấp PRO</Text>
+                            <Text style={styles.quotaNoteHighlight}>
+                                {isEngMode ? "Upgrade PRO" : "Nâng cấp PRO"}
+                            </Text>
                         </Text>
                     </Pressable>
                 )}
@@ -267,8 +273,8 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <View style={styles.headerTitleContainer}>
                             <Text style={styles.headerTitle} numberOfLines={1}>
                                 {showSessionsDrawer
-                                    ? "Lịch sử trò chuyện"
-                                    : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
+                                    ? (isEngMode ? "Chat History" : "Lịch sử trò chuyện")
+                                    : sessions.find((s) => s.id === selectedSessionId)?.title || (isEngMode ? "Viet History AI Assistant" : "Trợ lý AI Sử Việt")}
                             </Text>
                             {!showSessionsDrawer && screenContext?.screenName && (
                                 <Pressable
@@ -277,7 +283,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 >
                                     <Ionicons name="location-sharp" size={11} color={colors.primary} style={{ marginRight: 3 }} />
                                     <Text style={styles.headerSubTitle} numberOfLines={1}>
-                                        Đang xem: <Text style={styles.headerSubTitleHighlight}>{screenContext.screenName}</Text>
+                                        {isEngMode ? "Viewing: " : "Đang xem: "}<Text style={styles.headerSubTitleHighlight}>{screenContext.screenName}</Text>
                                     </Text>
                                 </Pressable>
                             )}
@@ -318,7 +324,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                 isActive && styles.modePillTextActive,
                                             ]}
                                         >
-                                            {mode.label}
+                                            {isEngMode ? mode.labelEn : mode.label}
                                         </Text>
                                     </Pressable>
                                 );
@@ -338,13 +344,17 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                         <View style={styles.quotaCardHeader}>
                                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                                 <Ionicons name="sparkles" size={14} color={colors.primary} style={{ marginRight: 6 }} />
-                                                <Text style={styles.quotaCardTitle}>Hạn mức AI hôm nay</Text>
+                                                <Text style={styles.quotaCardTitle}>
+                                                    {isEngMode ? "Today's AI Quota" : "Hạn mức AI hôm nay"}
+                                                </Text>
                                             </View>
 
                                             {quotaData?.isPro ? (
                                                 <View style={styles.proBadgePill}>
                                                     <Ionicons name="ribbon" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
-                                                    <Text style={styles.proBadgeText}>PRO (Hạn mức x10)</Text>
+                                                    <Text style={styles.proBadgeText}>
+                                                        {isEngMode ? "PRO (Limit x10)" : "PRO (Hạn mức x10)"}
+                                                    </Text>
                                                 </View>
                                             ) : (
                                                 <Pressable
@@ -355,7 +365,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                     }}
                                                 >
                                                     <Ionicons name="flash" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
-                                                    <Text style={styles.upgradeBtnText}>Nâng cấp PRO (x10)</Text>
+                                                    <Text style={styles.upgradeBtnText}>
+                                                        {isEngMode ? "Upgrade PRO (x10)" : "Nâng cấp PRO (x10)"}
+                                                    </Text>
                                                 </Pressable>
                                             )}
                                         </View>
@@ -373,7 +385,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                         </View>
 
                                         <View style={styles.quotaInfoRow}>
-                                            <Text style={styles.quotaUsageText}>Đã dùng {usedPercent}% hạn mức ngày</Text>
+                                            <Text style={styles.quotaUsageText}>
+                                                {isEngMode ? `Used ${usedPercent}% of daily limit` : `Đã dùng ${usedPercent}% hạn mức ngày`}
+                                            </Text>
                                         </View>
                                     </>
                                 );
@@ -381,7 +395,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
 
                             <View style={styles.divider} />
                             <View style={styles.drawerHeader}>
-                                <Text style={styles.drawerTitle}>Danh sách hội thoại</Text>
+                                <Text style={styles.drawerTitle}>
+                                    {isEngMode ? "Chat List" : "Danh sách hội thoại"}
+                                </Text>
                             </View>
                             {isLoadingSessions ? (
                                 <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
@@ -415,10 +431,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                 </Text>
                                                 <Text style={styles.sessionItemModeText}>
                                                     {item.mode === "COURSE_ONLY"
-                                                        ? "Chỉ Giáo Trình"
+                                                        ? (isEngMode ? "Course Only" : "Chỉ Giáo Trình")
                                                         : item.mode === "COURSE_FIRST"
-                                                        ? "Ưu Tiên Giáo Trình"
-                                                        : "Chung"}
+                                                        ? (isEngMode ? "Course First" : "Ưu Tiên Giáo Trình")
+                                                        : (isEngMode ? "General" : "Chung")}
                                                 </Text>
                                             </View>
                                         </Pressable>
@@ -438,9 +454,13 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             <MascotRotator size={42} />
                                             <TwinklingStars mode="fab" />
                                         </View>
-                                        <Text style={styles.emptyTitle}>Xin chào! Tôi có thể giúp gì cho bạn?</Text>
+                                        <Text style={styles.emptyTitle}>
+                                            {isEngMode ? "Hello! How can I help you?" : "Xin chào! Tôi có thể giúp gì cho bạn?"}
+                                        </Text>
                                         <Text style={styles.emptySub}>
-                                            Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!
+                                            {isEngMode
+                                                ? "Ask anything about Vietnamese history, timelines, historical figures, or lessons!"
+                                                : "Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!"}
                                         </Text>
                                     </View>
                                 ) : (
@@ -480,10 +500,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             style={styles.textInput}
                                             placeholder={
                                                 activeMode === "COURSE_ONLY"
-                                                    ? "Hỏi về giáo trình bài học..."
+                                                    ? (isEngMode ? "Ask about course materials..." : "Hỏi về giáo trình bài học...")
                                                     : activeMode === "COURSE_FIRST"
-                                                    ? "Hỏi ưu tiên giáo trình..."
-                                                    : "Nhập câu hỏi..."
+                                                    ? (isEngMode ? "Ask course first..." : "Hỏi ưu tiên giáo trình...")
+                                                    : (isEngMode ? "Enter your question..." : "Nhập câu hỏi...")
                                             }
                                             placeholderTextColor={colors.textPlaceholder}
                                             value={inputText}
@@ -532,7 +552,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     </Pressable>
                                 </View>
                                 <Text style={styles.disclaimerText}>
-                                    AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng.
+                                    {isEngMode
+                                        ? "AI may make mistakes. Please verify important information."
+                                        : "AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng."}
                                 </Text>
                             </View>
                         </>
@@ -555,12 +577,16 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         </Text>
                         <Pressable style={styles.actionOptionRow} onPress={handleOpenRename}>
                             <Ionicons name="pencil-outline" size={20} color={colors.textPrimary} style={{ marginRight: 12 }} />
-                            <Text style={styles.actionOptionText}>Đổi tên</Text>
+                            <Text style={styles.actionOptionText}>
+                                {isEngMode ? "Rename" : "Đổi tên"}
+                            </Text>
                         </Pressable>
                         <View style={styles.actionOptionDivider} />
                         <Pressable style={styles.actionOptionRow} onPress={handleConfirmDelete}>
                             <Ionicons name="trash-outline" size={20} color={colors.error} style={{ marginRight: 12 }} />
-                            <Text style={[styles.actionOptionText, { color: colors.error }]}>Xóa hội thoại</Text>
+                            <Text style={[styles.actionOptionText, { color: colors.error }]}>
+                                {isEngMode ? "Delete conversation" : "Xóa hội thoại"}
+                            </Text>
                         </Pressable>
                     </View>
                 </View>
@@ -576,12 +602,14 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 <View style={styles.actionModalBackdrop}>
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowRenameModal(false)} />
                     <View style={styles.renameModalContainer}>
-                        <Text style={styles.renameModalTitle}>Đổi tên cuộc trò chuyện</Text>
+                        <Text style={styles.renameModalTitle}>
+                            {isEngMode ? "Rename Conversation" : "Đổi tên cuộc trò chuyện"}
+                        </Text>
                         <TextInput
                             style={styles.renameInput}
                             value={renameTitleInput}
                             onChangeText={setRenameTitleInput}
-                            placeholder="Nhập tên mới..."
+                            placeholder={isEngMode ? "Enter new name..." : "Nhập tên mới..."}
                             placeholderTextColor={colors.textPlaceholder}
                             autoFocus
                             maxLength={100}
@@ -594,7 +622,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     setActionSession(null);
                                 }}
                             >
-                                <Text style={styles.renameCancelText}>Hủy</Text>
+                                <Text style={styles.renameCancelText}>
+                                    {isEngMode ? "Cancel" : "Hủy"}
+                                </Text>
                             </Pressable>
                             <Pressable
                                 style={[
@@ -607,7 +637,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 {isUpdatingTitle ? (
                                     <ActivityIndicator size="small" color="#FFF" />
                                 ) : (
-                                    <Text style={styles.renameSaveText}>Lưu</Text>
+                                    <Text style={styles.renameSaveText}>
+                                        {isEngMode ? "Save" : "Lưu"}
+                                    </Text>
                                 )}
                             </Pressable>
                         </View>
@@ -620,7 +652,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 visible={errorModal.visible}
                 title={errorModal.title}
                 message={errorModal.message}
-                confirmText="Đồng ý"
+                confirmText={isEngMode ? "OK" : "Đồng ý"}
                 onConfirm={() => setErrorModal((prev) => ({ ...prev, visible: false }))}
                 showMascot
                 mascotExpression="sad"
@@ -630,21 +662,30 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             <PremiumModal
                 visible={showPremiumModal}
                 onClose={() => setShowPremiumModal(false)}
-                title="Hạn mức AI Chat"
-                description="Bạn đã đạt hạn mức AI Chat hôm nay. Nâng cấp PRO để nhận thêm hạn mức cao gấp 10 lần:"
+                title={isEngMode ? "AI Chat Quota Limit" : "Hạn mức AI Chat"}
+                description={
+                    isEngMode
+                        ? "You have reached your AI Chat limit for today. Upgrade to PRO to get 10x higher quota:"
+                        : "Bạn đã đạt hạn mức AI Chat hôm nay. Nâng cấp PRO để nhận thêm hạn mức cao gấp 10 lần:"
+                }
             />
 
             {/* Screen Context Info Modal */}
             <CustomModal
                 visible={showScreenContextModal}
-                title="Ngữ cảnh màn hình"
+                title={isEngMode ? "Screen Context" : "Ngữ cảnh màn hình"}
                 message={
-                    `Đang xem: ${screenContext?.screenName || "Màn hình ứng dụng"}\n\n` +
-                    (screenContext?.isSupported
-                        ? "AI hỗ trợ đọc và giải đáp trực tiếp nội dung trên màn hình này (Bài học, nút kiến thức, sơ đồ tư duy, thẻ ghi nhớ)."
-                        : "Màn hình này hiện chưa hỗ trợ AI đọc nội dung trực tiếp (Bài thi, bảng xếp hạng, cửa hàng, cá nhân,...). AI vẫn sẽ hỗ trợ bạn giải đáp kiến thức lịch sử tổng quan.")
+                    isEngMode
+                        ? `Viewing: ${screenContext?.screenName || "App screen"}\n\n` +
+                          (screenContext?.isSupported
+                              ? "AI supports reading and directly answering content on this screen (Lessons, knowledge nodes, mindmaps, flashcards)."
+                              : "This screen does not currently support direct AI content reading (Exams, leaderboards, shop, profile,...). AI will still assist you with general historical knowledge.")
+                        : `Đang xem: ${screenContext?.screenName || "Màn hình ứng dụng"}\n\n` +
+                          (screenContext?.isSupported
+                              ? "AI hỗ trợ đọc và giải đáp trực tiếp nội dung trên màn hình này (Bài học, nút kiến thức, sơ đồ tư duy, thẻ ghi nhớ)."
+                              : "Màn hình này hiện chưa hỗ trợ AI đọc nội dung trực tiếp (Bài thi, bảng xếp hạng, cửa hàng, cá nhân,...). AI vẫn sẽ hỗ trợ bạn giải đáp kiến thức lịch sử tổng quan.")
                 }
-                confirmText="Đã hiểu"
+                confirmText={isEngMode ? "Got it" : "Đã hiểu"}
                 onConfirm={() => setShowScreenContextModal(false)}
                 showMascot
                 mascotExpression={screenContext?.isSupported ? "happy" : "thinking"}

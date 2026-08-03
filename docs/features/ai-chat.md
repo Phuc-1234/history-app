@@ -8,7 +8,7 @@
 ---
 
 ## 1. Feature Overview
-The AI Chat feature provides students with an interactive Vietnamese & World History AI study assistant inside the React Native Expo client, backed by an Express.js server, Prisma PostgreSQL database, and Google Gemini LLM API.
+The AI Chat feature provides students with an interactive Vietnamese History AI study assistant inside the React Native Expo client, backed by an Express.js server, Prisma PostgreSQL database, and Google Gemini LLM API.
 
 ### Key Capabilities (v2.2)
 - **3 Chat Modes per Session (Switchable Mid-Session):**
@@ -150,6 +150,7 @@ model AiChatMessage {
 | 2.3 | 2026-08-02 | Implemented daily token quota system (`UserAiQuota` model, 50k Free / 500k Pro tokens/day) reset at midnight ICT, HTTP 429 handling, and `PremiumModal` mascot popups on mobile client. |
 | 2.4 | 2026-08-02 | Added unsupported screen context boundary handling (`isSupported` flag in `useScreenContext` & `ScreenContextPayload`) so AI politely informs user when screen context is unsupported while continuing to answer general history questions. |
 | 2.5 | 2026-08-02 | Enabled local UI mode selection on new un-persisted empty chats prior to database session creation; deferred DB chat session creation until the user sends their first message. |
+| 2.6 | 2026-08-03 | Added Easter Egg (`eng on` / `eng off`) feature via `CourseMenuScreen` search bar to toggle `ai-chat` UI text translation, and updated Gemini system prompt to automatically respond in English when user message is in English. |
 
 ---
 

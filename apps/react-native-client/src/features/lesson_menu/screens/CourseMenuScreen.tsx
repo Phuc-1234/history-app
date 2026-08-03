@@ -20,6 +20,9 @@ import { Card } from "../../../components/Card";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "../../../store/storeHook";
 import { PremiumModal } from "../../../components/PremiumModal";
+import { toastService } from "../../../services/toastService";
+import { easterEggService } from "../../easter_egg";
+
 
 function CourseCard({
     grade,
@@ -279,6 +282,19 @@ export function CourseMenuScreen() {
         });
     };
 
+    const handleSearchSubmit = () => {
+        const code = searchQuery.trim().toLowerCase();
+        if (code === "eng on") {
+            easterEggService.setEngMode(true);
+            toastService.show("English mode activated!", "success");
+            setSearchQuery("");
+        } else if (code === "eng off") {
+            easterEggService.setEngMode(false);
+            toastService.show("English mode deactivated!", "info");
+            setSearchQuery("");
+        }
+    };
+
     return (
         <ScreenWrapper>
             <View style={styles.container}>
@@ -300,6 +316,8 @@ export function CourseMenuScreen() {
                         underlineColorAndroid="transparent"
                         onFocus={() => setIsSearchFocused(true)}
                         onBlur={() => setIsSearchFocused(false)}
+                        returnKeyType="done"
+                        onSubmitEditing={handleSearchSubmit}
                     />
                 </View>
 
