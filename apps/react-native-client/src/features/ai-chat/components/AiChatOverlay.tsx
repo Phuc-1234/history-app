@@ -145,7 +145,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             updateSpeakingId(id);
             const plainText = stripMarkdown(content);
             Speech.speak(plainText, {
-                language: "vi-VN",
+                language: isEngMode ? "en-US" : "vi-VN",
                 onDone: () => {
                     if (speakingIdRef.current === id) {
                         updateSpeakingId(null);
