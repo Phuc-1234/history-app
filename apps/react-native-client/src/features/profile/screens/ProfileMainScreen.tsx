@@ -69,6 +69,10 @@ export default function ProfileMainScreen() {
         router.push("/(10_proflie)/10_2_profile_edit");
     };
 
+    const handleLinkAccounts = () => {
+        router.push("/(10_proflie)/10_9_link_accounts" as any);
+    };
+
     const handleChangePassword = () => {
         router.push("/(10_proflie)/10_3_password_change");
     };
@@ -100,10 +104,10 @@ export default function ProfileMainScreen() {
             enableRefresh={true}
             refreshing={isFetching}
             onRefresh={refetch}
-            contentContainerStyle={styles.contentContainer}
+            showTopBar={true}
             style={styles.container}
+            contentContainerStyle={styles.contentContainer}
         >
-            <View>
             <View style={styles.avatarSection}>
                 <ProfileAvatar
                     uri={profile?.profileImgUrl}
@@ -112,8 +116,7 @@ export default function ProfileMainScreen() {
                     name={profile?.name}
                     showEditButton={false}
                 />
-                <Text style={styles.userName}>{profile?.name || "Người dùng"}</Text>
-                
+                <Text style={styles.userName}>{profile?.name}</Text>
                 {profile?.tierName && (
                     <View style={styles.tierBadge}>
                         <Text style={styles.tierText}>{profile.tierName}</Text>
@@ -121,11 +124,8 @@ export default function ProfileMainScreen() {
                 )}
             </View>
 
-
             <View style={styles.menuSection}>
-                {/* Quick action buttons */}
                 <View style={styles.quickGrid}>
-                    {/* Pro button — shiny gradient */}
                     <TouchableOpacity
                         style={styles.proButtonWrapper}
                         onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
@@ -138,13 +138,6 @@ export default function ProfileMainScreen() {
                             style={styles.squareButtonPro}
                         >
                             <FaintStarsOverlay />
-                            {/* shimmer strip */}
-                            <LinearGradient
-                                colors={["transparent", "rgba(255,255,255,0.35)", "transparent"]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.proShimmer}
-                            />
                             <Ionicons name="sparkles" size={22} color="#fff" />
                             <Text style={styles.squareLabelPro}>
                                 {profile?.isPro ? "Bạn đã là người dùng PRO!" : "Đăng ký Sắc Sử PRO"}
@@ -152,7 +145,6 @@ export default function ProfileMainScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* Row 1: Test history & Friends */}
                     <View style={styles.gridRow}>
                         <TouchableOpacity
                             style={styles.squareButtonWrapper}
@@ -177,7 +169,6 @@ export default function ProfileMainScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Row 2: Vật phẩm & Feedback */}
                     <View style={styles.gridRow}>
                         <TouchableOpacity
                             style={styles.squareButtonWrapper}
@@ -211,8 +202,13 @@ export default function ProfileMainScreen() {
                         onPress={handleEditProfile}
                     />
                     <ProfileMenuItem
+                        icon="link-outline"
+                        label="Liên kết tài khoản"
+                        onPress={handleLinkAccounts}
+                    />
+                    <ProfileMenuItem
                         icon="lock-closed-outline"
-                        label="Đổi mật khẩu"
+                        label={profile?.hasPassword !== false ? "Đổi mật khẩu" : "Tạo mật khẩu"}
                         onPress={handleChangePassword}
                     />
                 </Card>
@@ -226,7 +222,6 @@ export default function ProfileMainScreen() {
                 <Ionicons name="log-out-outline" size={20} color={colors.textLight} />
                 <Text style={styles.logoutText}>Đăng xuất</Text>
             </TouchableOpacity>
-            </View>
         </ScreenWrapper>
     );
 }

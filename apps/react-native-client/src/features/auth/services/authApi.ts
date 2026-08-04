@@ -363,6 +363,36 @@ export const authApi = apiSlice.injectEndpoints({
                 body: { newPassword },
             }),
         }),
+
+        setUserPassword: builder.mutation<{ message: string }, { newPassword: string }>({
+            query: (body) => ({
+                url: "/api/user/set-password",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+                } catch (error) {}
+            },
+        }),
+
+        linkFacebookAccount: builder.mutation<{ message: string; facebookId?: string }, { accessToken: string }>({
+            query: (body) => ({
+                url: "/api/user/link-facebook",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["User"],
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+                } catch (error) {}
+            },
+        }),
     }),
     overrideExisting: __DEV__, // Safe hot-reloading for Expo local servers
 });
@@ -385,4 +415,7 @@ export const {
     useForgotPasswordMutation,
     useVerifyForgotOtpMutation,
     useCompleteResetMutation,
+    useSetUserPasswordMutation,
+    useLinkFacebookAccountMutation,
 } = authApi;
+

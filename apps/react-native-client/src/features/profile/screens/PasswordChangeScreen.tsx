@@ -92,7 +92,7 @@ export default function PasswordChangeScreen() {
             showTopBar={false}
             branchConfig={{
                 hierarchy: "Cá nhân",
-                title: text.title,
+                title: state.isPasswordless ? "Tạo mật khẩu" : text.title,
                 onBackPress: () => router.back(),
             }}
         >
@@ -110,28 +110,36 @@ export default function PasswordChangeScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.card}>
-                        <Text style={styles.description}>{text.description}</Text>
+                        <Text style={styles.description}>
+                            {state.isPasswordless
+                                ? "Tài khoản của bạn chưa có mật khẩu. Vui lòng tạo mật khẩu mới để có thể đăng nhập bằng Email & Mật khẩu."
+                                : text.description}
+                        </Text>
 
-                        <Text style={styles.fieldLabel}>{text.currentLabel}</Text>
-                        <Input
-                            icon={Lock}
-                            placeholder={text.currentPlaceholder}
-                            isPassword
-                            value={state.currentPassword}
-                            onChangeText={state.setCurrentPassword}
-                            style={styles.inputField}
-                            containerStyle={styles.inputContainer}
-                        />
-                        {state.currentPasswordError ? (
-                            <Text style={styles.errorText}>{state.currentPasswordError}</Text>
-                        ) : null}
-                        <TouchableOpacity
-                            onPress={() => router.push("/(1_auth)/1_3_forgot")}
-                            style={styles.forgotButton}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.forgotText}>Quên mật khẩu?</Text>
-                        </TouchableOpacity>
+                        {!state.isPasswordless && (
+                            <>
+                                <Text style={styles.fieldLabel}>{text.currentLabel}</Text>
+                                <Input
+                                    icon={Lock}
+                                    placeholder={text.currentPlaceholder}
+                                    isPassword
+                                    value={state.currentPassword}
+                                    onChangeText={state.setCurrentPassword}
+                                    style={styles.inputField}
+                                    containerStyle={styles.inputContainer}
+                                />
+                                {state.currentPasswordError ? (
+                                    <Text style={styles.errorText}>{state.currentPasswordError}</Text>
+                                ) : null}
+                                <TouchableOpacity
+                                    onPress={() => router.push("/(1_auth)/1_3_forgot")}
+                                    style={styles.forgotButton}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.forgotText}>Quên mật khẩu?</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
 
                         <Text style={styles.fieldLabel}>{text.newLabel}</Text>
                         <Input
@@ -150,13 +158,17 @@ export default function PasswordChangeScreen() {
                                     label: text.reqMinLength,
                                     met: state.newPassword.length >= 8,
                                 },
-                                {
-                                    key: "notSame",
-                                    label: text.reqNotSame,
-                                    met:
-                                        state.newPassword.length > 0 &&
-                                        state.newPassword !== state.currentPassword,
-                                },
+                                ...(!state.isPasswordless
+                                    ? [
+                                          {
+                                              key: "notSame",
+                                              label: text.reqNotSame,
+                                              met:
+                                                  state.newPassword.length > 0 &&
+                                                  state.newPassword !== state.currentPassword,
+                                          },
+                                      ]
+                                    : []),
                                 {
                                     key: "confirm",
                                     label: text.reqConfirm,

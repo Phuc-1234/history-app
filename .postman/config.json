@@ -5,7 +5,7 @@
   "entities": {
     "environments": [],
     "flows": [],
-    "globals": [],
+    "globals": [], 
     "mocks": [],
     "specs": [],
     "collections": []
