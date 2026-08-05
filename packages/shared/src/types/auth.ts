@@ -95,6 +95,8 @@ export interface UserProfileSummary {
     id: string;
     name: string;
     email: string | null;
+    facebookId?: string | null;
+    hasPassword?: boolean;
     totalXp: number;
     totalGold: number;
     profileImgUrl: string | null;

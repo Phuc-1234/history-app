@@ -4,6 +4,8 @@ import {
     getUserProfile,
     updateUserProfile,
     changeUserPassword,
+    setUserPassword,
+    linkFacebookAccount,
     updateUserData,
     updateUserEmail,
     verifyUserEmailChange,
@@ -20,6 +22,12 @@ router.put("/profile", requireStudent, updateUserProfile);
 
 // Route target: PUT /api/user/change-password
 router.put("/change-password", requireStudent, changeUserPassword);
+
+// Route target: POST /api/user/set-password
+router.post("/set-password", requireStudent, setUserPassword);
+
+// Route target: POST /api/user/link-facebook
+router.post("/link-facebook", requireStudent, linkFacebookAccount);
 
 // New Routes
 // Route target: PUT /api/user/data
@@ -41,3 +49,4 @@ router.post("/feedback", requireStudent, createFeedback);
 router.get("/feedback/history", requireStudent, getUserFeedbackHistory);
 
 export default router;
+

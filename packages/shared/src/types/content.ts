@@ -98,20 +98,29 @@ export interface CompactTestDto {
     isPassed?: boolean | null;
 }
 
+export interface ProgressCounts {
+    completedNodes: number;
+    totalNodes: number;
+}
+
 export interface TopicWithContentsDto {
     id: number;
     name: string;
     position: number;
     gradeId: number;
-    lessons: LessonDto[];
+    lessons: (LessonDto & { progress?: ProgressCounts | null })[];
     testPassed?: boolean | null;
     masteryPercentage?: number | null;
+    progress?: ProgressCounts | null;
 }
 
 export interface GradeStructureDto {
     topics: TopicWithContentsDto[];
     testPassed?: boolean | null;
     masteryPercentage?: number | null;
+    progress?: ProgressCounts | null;
+    wrongQuestionCount?: number;
+    answeredQuestionCount?: number;
 }
 
 export type GetGradeStructureParams = { gradeId: string };

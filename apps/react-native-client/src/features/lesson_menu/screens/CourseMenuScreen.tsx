@@ -31,17 +31,19 @@ function CourseCard({
     isPro,
     isUserPro,
     imgUrl,
+    isLoading,
     onPress,
 }: {
     grade: number;
-    completed: number;
-    total: number;
+    completed: number | null;
+    total: number | null;
     isPro: boolean;
     isUserPro: boolean;
     imgUrl?: string | null;
+    isLoading?: boolean;
     onPress: () => void;
 }) {
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const percentage = (total && total > 0 && completed !== null) ? Math.round((completed / total) * 100) : 0;
 
     let themeColor = colors.primary;
     if (grade === 11) {
@@ -71,11 +73,6 @@ function CourseCard({
                     <Ionicons name="book" size={40} color={themeColor} />
                 )}
 
-                {/* Overlapping Pill Badge */}
-                <View style={[styles.badge, { backgroundColor: themeColor }]}>
-                    <Text style={styles.badgeText}>{percentage}%</Text>
-                </View>
-
                 {isPro && !isUserPro && (
                     <View style={styles.lockOverlay}>
                         <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
@@ -98,7 +95,7 @@ function CourseCard({
                 </View>
 
                 <Text style={styles.courseSubtitle}>
-                    {completed}/{total} phần đã học
+                    {isLoading || completed === null || total === null ? "... phần đã hoàn thành" : `${completed}/${total} phần đã hoàn thành`}
                 </Text>
 
                 {/* Modern mini progress bar */}
@@ -122,123 +119,50 @@ function CourseCard({
     );
 }
 
-function matchesSearch(text: string, query: string, isTest: boolean = false): boolean {
-    const normText = text.toLowerCase().trim();
-    const normQuery = query.toLowerCase().trim();
-
-    if (normText.includes(normQuery)) return true;
-
-    const testKeywords = ["quiz", "test", "kiểm tra", "đề", "exam"];
-
-    if (isTest) {
-        const isGeneric = testKeywords.some(k => normQuery === k);
-        if (isGeneric) return true;
-    }
-
-    const queryHasTestKey = testKeywords.some(k => normQuery.includes(k) && (k !== "đề" || !normQuery.includes("chủ đề")));
-
-    if (isTest && queryHasTestKey) {
-        let cleanQuery = normQuery;
-        let cleanText = normText;
-        testKeywords.forEach(k => {
-            cleanQuery = cleanQuery.replace(k, "").trim();
-            cleanText = cleanText.replace(k, "").trim();
-        });
-
-        cleanQuery = cleanQuery.replace("chủ đề", "").trim();
-        cleanText = cleanText.replace("chủ đề", "").trim();
-
-        if (cleanQuery && (cleanText.includes(cleanQuery) || cleanQuery.includes(cleanText))) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-function matchesTopicOrLesson(name: string, position: number, prefix: string, query: string): boolean {
-    const normQuery = query.toLowerCase().trim();
-    const normName = name.toLowerCase().trim();
-    const prefixWithPos = `${prefix} ${position}`.toLowerCase();
-    const fullName = `${prefixWithPos}: ${normName}`;
-
-    if (fullName.includes(normQuery) || normName.includes(normQuery)) return true;
-
-    if (/^\d+$/.test(normQuery) && parseInt(normQuery, 10) === position) {
-        return true;
-    }
-
-    return false;
-}
-
-function matchesGradeStructure(grade: number, structure: any, query: string): boolean {
+function matchesGradeOnly(grade: number, query: string): boolean {
     const q = query.trim().toLowerCase();
     if (!q) return true;
 
-    const gradeTitle = `sách giáo khoa lớp ${grade}`.toLowerCase();
-    if (gradeTitle.includes(q) || String(grade).includes(q)) return true;
+    const title = `lịch sử lớp ${grade}`.toLowerCase();
+    const altTitle = `lớp ${grade}`.toLowerCase();
 
-    if (!structure || !structure.topics) return false;
-
-    for (const topic of structure.topics) {
-        if (matchesTopicOrLesson(topic.name, topic.position, "chủ đề", query)) {
-            return true;
-        }
-        if (topic.lessons) {
-            for (const lesson of topic.lessons) {
-                if (matchesTopicOrLesson(lesson.name, lesson.position, "bài", query)) {
-                    return true;
-                }
-            }
-        }
-        const testTitle = `Kiểm tra Chủ đề ${topic.position}`;
-        if (matchesSearch(testTitle, query, true)) {
-            return true;
-        }
-    }
-
-    const finalTestTitle = `Kiểm tra Lớp ${grade}`;
-    if (matchesSearch(finalTestTitle, query, true)) {
-        return true;
-    }
-
-    return false;
+    return title.includes(q) || altTitle.includes(q) || String(grade).includes(q);
 }
 
-export function CourseMenuScreen() {
-    const router = useRouter();
-    const profile = useAppSelector((state) => state.auth.profile);
-    const isUserPro = profile?.isPro === true;
+function GradeCourseCard({
+    grade,
+    isUserPro,
+    searchQuery,
+    isRefreshing,
+    onCoursePress,
+    onVisibilityChange,
+}: {
+    grade: any;
+    isUserPro: boolean;
+    searchQuery: string;
+    isRefreshing: boolean;
+    onCoursePress: (gradeId: number) => void;
+    onVisibilityChange: (gradeId: number, isVisible: boolean) => void;
+}) {
+    const { data: structure, isLoading, refetch } = useGetGradeStructureQuery(grade.id, {
+        refetchOnMountOrArgChange: true,
+    });
 
-    const { data: struct10, isLoading: loading10, refetch: refetch10, isFetching: isFetching10 } = useGetGradeStructureQuery(10);
-    const { data: struct11, isLoading: loading11, refetch: refetch11, isFetching: isFetching11 } = useGetGradeStructureQuery(11);
-    const { data: struct12, isLoading: loading12, refetch: refetch12, isFetching: isFetching12 } = useGetGradeStructureQuery(12);
+    React.useEffect(() => {
+        if (isRefreshing) {
+            refetch();
+        }
+    }, [isRefreshing, refetch]);
 
-    const { data: gradesData } = useGetGradesQuery();
-
-    const [premiumModalVisible, setPremiumModalVisible] = useState(false);
-    const [lockedFeatureName, setLockedFeatureName] = useState("");
-
-    const isLoading = loading10 || loading11 || loading12;
-    const isFetching = isFetching10 || isFetching11 || isFetching12;
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
-
-    const handleRefresh = () => {
-        refetch10();
-        refetch11();
-        refetch12();
-    };
-
-    const getProgress = (structure: any) => {
-        if (!structure) return { completed: 0, total: 0 };
+    const progress = React.useMemo(() => {
+        if (!structure) return null;
         if (structure.progress) {
             return {
                 completed: structure.progress.completedNodes,
                 total: structure.progress.totalNodes,
             };
         }
-        if (!structure.topics) return { completed: 0, total: 0 };
+        if (!structure.topics) return null;
         let total = 0;
         let completed = 0;
         for (const t of structure.topics) {
@@ -246,24 +170,67 @@ export function CourseMenuScreen() {
             completed += t.progress?.completedNodes ?? 0;
         }
         return { completed, total };
+    }, [structure]);
+
+    const isVisible = React.useMemo(() => {
+        return matchesGradeOnly(grade.id, searchQuery);
+    }, [grade.id, searchQuery]);
+
+    React.useEffect(() => {
+        onVisibilityChange(grade.id, isVisible);
+        return () => onVisibilityChange(grade.id, false);
+    }, [grade.id, isVisible, onVisibilityChange]);
+
+    if (!isVisible) return null;
+
+    return (
+        <CourseCard
+            grade={grade.id}
+            completed={progress ? progress.completed : null}
+            total={progress ? progress.total : null}
+            isLoading={isLoading || !structure}
+            isPro={!!grade.isPro}
+            isUserPro={isUserPro}
+            imgUrl={grade.imgUrl}
+            onPress={() => onCoursePress(grade.id)}
+        />
+    );
+}
+
+export function CourseMenuScreen() {
+    const router = useRouter();
+    const profile = useAppSelector((state) => state.auth.profile);
+    const isUserPro = profile?.isPro === true;
+
+    const { data: gradesData, isLoading, isFetching, refetch } = useGetGradesQuery();
+
+    const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+    const [lockedFeatureName, setLockedFeatureName] = useState("");
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [visibleMap, setVisibleMap] = useState<Record<number, boolean>>({});
+
+    const publicGrades = React.useMemo(() => {
+        return (gradesData?.grades || [])
+            .filter((g: any) => g.state === "PUBLIC")
+            .sort((a: any, b: any) => a.id - b.id);
+    }, [gradesData]);
+
+    const handleVisibilityChange = React.useCallback((gradeId: number, isVisible: boolean) => {
+        setVisibleMap((prev) => {
+            if (prev[gradeId] === isVisible) return prev;
+            return { ...prev, [gradeId]: isVisible };
+        });
+    }, []);
+
+    const handleRefresh = () => {
+        refetch();
     };
-
-    const prog10 = getProgress(struct10);
-    const prog11 = getProgress(struct11);
-    const prog12 = getProgress(struct12);
-
-    const show10 = matchesGradeStructure(10, struct10, searchQuery);
-    const show11 = matchesGradeStructure(11, struct11, searchQuery);
-    const show12 = matchesGradeStructure(12, struct12, searchQuery);
 
     const isGradePro = (gradeId: number) => {
         const gradeObj = gradesData?.grades?.find((g) => g.id === gradeId);
         return !!gradeObj?.isPro;
-    };
-
-    const getGradeImgUrl = (gradeId: number) => {
-        const gradeObj = gradesData?.grades?.find((g) => g.id === gradeId);
-        return gradeObj?.imgUrl;
     };
 
     const showProModal = (feature: string) => {
@@ -295,6 +262,8 @@ export function CourseMenuScreen() {
         }
     };
 
+    const hasVisibleCards = publicGrades.length > 0 && publicGrades.some((g: any) => visibleMap[g.id] !== false);
+
     return (
         <ScreenWrapper>
             <View style={styles.container}>
@@ -309,7 +278,7 @@ export function CourseMenuScreen() {
                             styles.searchInput,
                             isSearchFocused && styles.searchInputFocused
                         ]}
-                        placeholder="Tìm kiếm bài học, chủ đề..."
+                        placeholder="Tìm kiếm khối lớp..."
                         placeholderTextColor={colors.textPlaceholder}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -339,40 +308,18 @@ export function CourseMenuScreen() {
                         </View>
                     ) : (
                         <View style={styles.listContainer}>
-                            {show10 && (
-                                <CourseCard
-                                    grade={10}
-                                    completed={prog10.completed}
-                                    total={prog10.total}
-                                    isPro={isGradePro(10)}
+                            {publicGrades.map((grade: any) => (
+                                <GradeCourseCard
+                                    key={grade.id}
+                                    grade={grade}
                                     isUserPro={isUserPro}
-                                    imgUrl={getGradeImgUrl(10)}
-                                    onPress={() => handleCoursePress(10)}
+                                    searchQuery={searchQuery}
+                                    isRefreshing={isFetching}
+                                    onCoursePress={handleCoursePress}
+                                    onVisibilityChange={handleVisibilityChange}
                                 />
-                            )}
-                            {show11 && (
-                                <CourseCard
-                                    grade={11}
-                                    completed={prog11.completed}
-                                    total={prog11.total}
-                                    isPro={isGradePro(11)}
-                                    isUserPro={isUserPro}
-                                    imgUrl={getGradeImgUrl(11)}
-                                    onPress={() => handleCoursePress(11)}
-                                />
-                            )}
-                            {show12 && (
-                                <CourseCard
-                                    grade={12}
-                                    completed={prog12.completed}
-                                    total={prog12.total}
-                                    isPro={isGradePro(12)}
-                                    isUserPro={isUserPro}
-                                    imgUrl={getGradeImgUrl(12)}
-                                    onPress={() => handleCoursePress(12)}
-                                />
-                            )}
-                            {!show10 && !show11 && !show12 && (
+                            ))}
+                            {!hasVisibleCards && (
                                 <Text style={styles.noResultsText}>
                                     Không tìm thấy khóa học nào phù hợp.
                                 </Text>
@@ -467,7 +414,7 @@ const styles = StyleSheet.create({
     },
     courseSubtitle: {
         fontFamily: typography.fonts.regular,
-        fontSize: 13,
+        fontSize: 11,
         color: "#000000",
         marginBottom: 10,
     },

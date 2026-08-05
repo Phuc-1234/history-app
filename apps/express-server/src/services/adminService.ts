@@ -377,9 +377,6 @@ export class AdminService {
             data: {
                 ...(data.role !== undefined && { role: data.role as any }),
                 ...(data.isHidden !== undefined && { isHidden: data.isHidden }),
-                ...(data.isVerified !== undefined && { isVerified: data.isVerified }),
-                ...(data.totalXp !== undefined && { totalXp: data.totalXp }),
-                ...(data.totalGold !== undefined && { totalGold: data.totalGold }),
             },
         });
 
