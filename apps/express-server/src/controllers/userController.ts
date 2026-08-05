@@ -8,7 +8,7 @@ import {
     UpdateUserDataRequestBody,
     UpdateUserEmailRequestBody,
 } from "@history-app/shared";
-import { supabase, getSupabaseUserClient, supabaseAdmin } from "../config/supabaseClient";
+import { supabase, getSupabaseUserClient } from "../config/supabaseClient";
 
 export const getBearerToken = (req: Request) => {
     const authHeader = req.headers.authorization;
@@ -68,8 +68,6 @@ export const getUserProfile = async (
                 id: true,
                 name: true,
                 email: true,
-                facebookId: true,
-                hasPassword: true,
                 totalXp: true,
                 totalGold: true,
                 profileImgUrl: true,
@@ -111,8 +109,6 @@ export const getUserProfile = async (
             id: fullProfile.id,
             name: fullProfile.name,
             email: fullProfile.email,
-            facebookId: fullProfile.facebookId,
-            hasPassword: fullProfile.hasPassword,
             totalXp: fullProfile.totalXp,
             totalGold: fullProfile.totalGold,
             profileImgUrl: fullProfile.profileImgUrl,
@@ -315,96 +311,6 @@ export const changeUserPassword = async (
     }
 };
 
-export const setUserPassword = async (
-    req: Request<{}, { message: string } | { error: string }, { newPassword?: string }>,
-    res: Response<{ message: string } | { error: string }>,
-): Promise<Response<{ message: string } | { error: string }>> => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ error: "Access denied. Valid session missing." });
-        }
-
-        const { newPassword } = req.body;
-
-        if (!newPassword || newPassword.length < 6) {
-            return res.status(400).json({ error: "Mật khẩu mới phải có ít nhất 6 ký tự." });
-        }
-
-        // Update password using Supabase Admin API for accounts that have no initial password
-        const { error: adminError } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
-            password: newPassword,
-        });
-
-        if (adminError) {
-            return res.status(400).json({ error: adminError.message });
-        }
-
-        // Mark hasPassword = true in Prisma DB
-        await prisma.user.update({
-            where: { id: req.user.id },
-            data: { hasPassword: true },
-        });
-
-        return res.status(200).json({ message: "Thiết lập mật khẩu thành công!" });
-    } catch (error) {
-        console.error("Express Set Password Controller Crash:", error);
-        return res.status(500).json({
-            error: "Lỗi hệ thống khi thiết lập mật khẩu.",
-        });
-    }
-};
-
-export const linkFacebookAccount = async (
-    req: Request<{}, { message: string; facebookId?: string } | { error: string }, { accessToken?: string }>,
-    res: Response<{ message: string; facebookId?: string } | { error: string }>,
-): Promise<Response<{ message: string; facebookId?: string } | { error: string }>> => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ error: "Access denied. Valid session missing." });
-        }
-
-        const { accessToken } = req.body;
-        if (!accessToken) {
-            return res.status(400).json({ error: "Vui lòng cung cấp Facebook Access Token." });
-        }
-
-        // Fetch FB user profile
-        const fbRes = await fetch(`https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`);
-        if (!fbRes.ok) {
-            const errJson = await fbRes.json().catch(() => ({}));
-            return res.status(400).json({ error: errJson?.error?.message || "Không thể xác thực tài khoản Facebook." });
-        }
-
-        const fbData = (await fbRes.json()) as { id: string; name: string; email?: string };
-        const fbId = fbData.id;
-
-        // Check if this facebookId is already linked to another account
-        const existingLinkedUser = await prisma.user.findUnique({
-            where: { facebookId: fbId },
-        });
-
-        if (existingLinkedUser && existingLinkedUser.id !== req.user.id) {
-            return res.status(400).json({ error: "Tài khoản Facebook này đã được liên kết với một người dùng khác." });
-        }
-
-        // Link facebookId to current user account
-        await prisma.user.update({
-            where: { id: req.user.id },
-            data: { facebookId: fbId },
-        });
-
-        return res.status(200).json({
-            message: "Liên kết tài khoản Facebook thành công!",
-            facebookId: fbId,
-        });
-    } catch (error) {
-        console.error("Express Link Facebook Controller Crash:", error);
-        return res.status(500).json({
-            error: "Lỗi hệ thống khi liên kết Facebook.",
-        });
-    }
-};
-
 export const updateUserData = async (
     req: Request<{}, { message: string } | { error: string }, UpdateUserDataRequestBody>,
     res: Response<{ message: string } | { error: string }>,
@@ -462,13 +368,13 @@ export const updateUserEmail = async (
         }
 
         const { newEmail } = req.body;
-        const trimmedEmail = newEmail?.trim().toLowerCase();
+        const trimmedEmail = newEmail?.trim();
 
         if (!trimmedEmail) {
             return res.status(400).json({ error: "Email mới không được để trống." });
         }
 
-        if (trimmedEmail === req.user.email?.toLowerCase()) {
+        if (trimmedEmail === req.user.email) {
             return res.status(400).json({ error: "Email mới phải khác email hiện tại." });
         }
 
@@ -476,7 +382,7 @@ export const updateUserEmail = async (
         const existingUser = await prisma.user.findUnique({
             where: { email: trimmedEmail },
         });
-        if (existingUser && existingUser.id !== req.user.id) {
+        if (existingUser) {
             return res.status(400).json({
                 error: "Email này đã được sử dụng bởi một tài khoản khác.",
             });
@@ -514,7 +420,7 @@ export const verifyUserEmailChange = async (
         }
 
         const { newEmail, token } = req.body;
-        const trimmedEmail = newEmail?.trim().toLowerCase();
+        const trimmedEmail = newEmail?.trim();
         const trimmedToken = token?.trim();
 
         if (!trimmedEmail || !trimmedToken) {
@@ -546,10 +452,10 @@ export const verifyUserEmailChange = async (
             return res.status(400).json({ error: error.message || "Mã OTP không chính xác hoặc đã hết hạn." });
         }
 
-        // Update email & mark isVerified in Prisma DB after successful OTP verification
+        // Update email in Prisma DB after successful OTP verification
         await prisma.user.update({
             where: { id: req.user.id },
-            data: { email: trimmedEmail, isVerified: true },
+            data: { email: trimmedEmail },
         });
 
         return res.status(200).json({

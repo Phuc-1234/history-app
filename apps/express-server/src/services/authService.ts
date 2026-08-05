@@ -83,43 +83,25 @@ const exchangeFacebookAccessToken = async (accessToken: string) => {
     }
     const fbData = (await fbRes.json()) as { id: string; name: string; email?: string };
 
-    const fbId = fbData.id;
-    const rawEmail = fbData.email?.trim().toLowerCase();
+    // 2. Resolve email fallback (Facebook users might not have email enabled)
+    const email = fbData.email || `fb_${fbData.id}@facebook.placeholder`;
     const name = fbData.name || "Facebook User";
 
-    // 2. Primary lookup by facebookId
-    let existingDbUser = await prisma.user.findUnique({
-        where: { facebookId: fbId },
+    // 3. Check if user already registered in DB (syndicated from Supabase)
+    const existingDbUser = await prisma.user.findUnique({
+        where: { email },
     });
 
-    // 3. Fallback lookup by normalized email if facebookId not yet linked
-    if (!existingDbUser && rawEmail) {
-        existingDbUser = await prisma.user.findUnique({
-            where: { email: rawEmail },
-        });
-        if (existingDbUser) {
-            // Link facebookId to existing account
-            await prisma.user.update({
-                where: { id: existingDbUser.id },
-                data: { facebookId: fbId },
-            });
-        }
-    }
-
-    let targetEmail: string;
     let user;
-
     if (existingDbUser) {
-        targetEmail = existingDbUser.email || `fb_${fbId}@facebook.local`;
         const { data, error } = await supabaseAdmin.auth.admin.getUserById(existingDbUser.id);
         if (error || !data?.user) {
             throw error || new Error("Failed to retrieve existing Supabase user by ID.");
         }
         user = data.user;
     } else {
-        targetEmail = rawEmail || `fb_${fbId}@facebook.local`;
         const { data, error } = await supabaseAdmin.auth.admin.createUser({
-            email: targetEmail,
+            email,
             email_confirm: true,
             user_metadata: { name },
         });
@@ -127,20 +109,12 @@ const exchangeFacebookAccessToken = async (accessToken: string) => {
             throw error || new Error("Failed to create new user in Supabase.");
         }
         user = data.user;
-        // Update DB record with facebookId & set hasPassword to false for social account
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                facebookId: fbId,
-                hasPassword: false,
-            },
-        });
     }
 
     // 4. Generate magic link token hash for the target user's email
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: "magiclink",
-        email: targetEmail,
+        email: email,
     });
 
     if (linkError || !linkData) {
@@ -168,13 +142,13 @@ export class AuthService {
      * Registers a brand new user session with Supabase Auth
      */
     async signUpUser(credentials: RegisterCredentials): Promise<AuthResponse> {
-        const email = credentials.email.trim().toLowerCase();
-        const { password, name } = credentials;
+        const { email, password, name } = credentials;
 
         return await supabase.auth.signUp({
             email,
             password,
             options: {
+                // Stashing the name in raw metadata so the DB trigger can grab it
                 data: { name },
             },
         });
@@ -184,8 +158,7 @@ export class AuthService {
      * Authenticates an existing user and returns JWT sessions
      */
     async signInUser(credentials: LoginCredentials): Promise<AuthResponse> {
-        const email = credentials.email.trim().toLowerCase();
-        const { password } = credentials;
+        const { email, password } = credentials;
 
         return await supabase.auth.signInWithPassword({
             email,
@@ -199,13 +172,12 @@ export class AuthService {
     async verifyOtpToken(
         credentials: VerifyOtpCredentials,
     ): Promise<AuthResponse> {
-        const email = credentials.email.trim().toLowerCase();
-        const { token } = credentials;
+        const { email, token } = credentials;
 
         return await supabase.auth.verifyOtp({
             email,
             token,
-            type: "email",
+            type: "email", // Dictates we are validating a standard signup email token
         });
     }
 
@@ -219,7 +191,11 @@ export class AuthService {
     async resendSignUpOtp(email: string) {
         return await supabase.auth.resend({
             type: "signup",
-            email: email.trim().toLowerCase(),
+            email: email,
+            options: {
+                // Optional: If you ever want to redirect them to a specific site page after clicking a link
+                // redirectTo: 'https://your-app.com/welcome'
+            },
         });
     }
 
