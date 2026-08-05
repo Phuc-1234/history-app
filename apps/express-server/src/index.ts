@@ -44,6 +44,7 @@ app.use(express.json()); // CRITICAL: Parses incoming raw JSON request bodies on
 
 import packageRoutes from "./routes/packageRoutes";
 import aiChatRoutes from "./routes/aiChatRoutes";
+import pvpRoutes from "./routes/pvpRoutes";
 
 // API Route Bindings
 app.use("/api/auth", authRoutes);
@@ -62,6 +63,7 @@ app.use("/api/home", homeRoutes);
 app.use("/api/shop", shopRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/ai-chat", aiChatRoutes);
+app.use("/api/pvp", pvpRoutes);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {

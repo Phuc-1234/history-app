@@ -263,6 +263,8 @@ model User {
   fcmTokens              FcmToken[]
   aiChatSessions         AiChatSession[]
   aiQuotas               UserAiQuota[]
+  hostPvpRooms           PvpRoom[]             @relation("HostPvpRooms")
+  pvpParticipants        PvpParticipant[]
   tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
 
   @@map("users")
@@ -787,5 +789,47 @@ model UserAiQuota {
   @@unique([userId, date])
   @@map("user_ai_quotas")
 }
+
+enum PvpRoomStatus {
+  LOBBY
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+}
+
+model PvpRoom {
+  id                   String           @id @default(uuid())
+  code                 String           @unique
+  hostUserId           String           @map("host_user_id")
+  status               PvpRoomStatus    @default(LOBBY)
+  questionCount        Int              @default(10) @map("question_count")
+  timePerQuestion      Int              @default(15) @map("time_per_question")
+  questionSequenceJson Json             @map("question_sequence_json")
+  currentQuestionIndex Int              @default(0) @map("current_question_index")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+
+  host                 User             @relation("HostPvpRooms", fields: [hostUserId], references: [id], onDelete: Cascade)
+  participants         PvpParticipant[]
+
+  @@map("pvp_rooms")
+}
+
+model PvpParticipant {
+  id          String   @id @default(uuid())
+  roomId      String   @map("room_id")
+  userId      String   @map("user_id")
+  score       Float    @default(0)
+  answersJson Json     @default("[]") @map("answers_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  room        PvpRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("pvp_participants")
+}
+
 
 

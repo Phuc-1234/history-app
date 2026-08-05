@@ -493,7 +493,7 @@ async function autoPickQuestionsInternal(
     return selected;
 }
 
-async function autoPickQuestions(
+export async function autoPickQuestions(
     userId: string,
     scopeType: string | null | undefined,
     scopeId: number | null | undefined,
