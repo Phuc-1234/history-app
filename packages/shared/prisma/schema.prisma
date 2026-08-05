@@ -228,8 +228,6 @@ model User {
   role                   UserRole              @default(STUDENT)
   name                   String
   email                  String?               @unique
-  facebookId             String?               @unique @map("facebook_id")
-  hasPassword            Boolean               @default(false) @map("has_password")
   totalXp                Int                   @default(0) @map("total_xp")
   totalGold              Int                   @default(0) @map("total_gold")
   isHidden               Boolean               @default(false) @map("is_hidden")

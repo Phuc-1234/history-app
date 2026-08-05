@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { useChangePasswordMutation, useSetUserPasswordMutation } from "@/features/auth/services/authApi";
-import { useAppSelector } from "@/store/storeHook";
+import { useChangePasswordMutation } from "@/features/auth/services/authApi";
 
 const message = {
     currentRequired: "Vui lòng nhập mật khẩu cũ.",
@@ -10,13 +9,10 @@ const message = {
     newSame: "Mật khẩu mới không được trùng mật khẩu cũ.",
     confirmRequired: "Vui lòng xác nhận mật khẩu mới.",
     confirmMismatch: "Mật khẩu xác nhận không khớp.",
-    success: "Cập nhật mật khẩu thành công",
+    success: "Đổi mật khẩu thành công",
 };
 
 export function useChangePassword() {
-    const profile = useAppSelector((state) => state.auth.profile);
-    const isPasswordless = profile?.hasPassword === false;
-
     const [currentPassword, setCurrentPassword] = useState("");
     const [currentPasswordError, setCurrentPasswordError] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -27,24 +23,22 @@ export function useChangePassword() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState("");
     const [changePasswordApi] = useChangePasswordMutation();
-    const [setPasswordApi] = useSetUserPasswordMutation();
 
     const validateFields = () => {
         let isValid = true;
 
-        if (!isPasswordless) {
-            if (!currentPassword) {
-                setCurrentPasswordError(message.currentRequired);
-                isValid = false;
-            } else {
-                setCurrentPasswordError("");
-            }
+        if (!currentPassword) {
+            setCurrentPasswordError(message.currentRequired);
+            isValid = false;
+        } else {
+            setCurrentPasswordError("");
         }
 
         if (!newPassword) {
             setNewPasswordError(message.newRequired);
             isValid = false;
-        } else if (!isPasswordless && newPassword === currentPassword) {
+        } else if (newPassword === currentPassword) {
+            // Ưu tiên báo lỗi trùng mật khẩu cũ (yêu cầu nghiệp vụ: không được nhập trùng mk cũ)
             setNewPasswordError(message.newSame);
             isValid = false;
         } else if (newPassword.length < 8) {
@@ -74,15 +68,11 @@ export function useChangePassword() {
         setFeedbackMessage("");
         
         try {
-            if (isPasswordless) {
-                await setPasswordApi({ newPassword }).unwrap();
-            } else {
-                await changePasswordApi({
-                    currentPassword,
-                    oldPassword: currentPassword,
-                    newPassword,
-                }).unwrap();
-            }
+            await changePasswordApi({
+                currentPassword,
+                oldPassword: currentPassword,
+                newPassword,
+            }).unwrap();
             setIsSuccess(true);
             setFeedbackMessage(message.success);
             setCurrentPassword("");
@@ -102,7 +92,6 @@ export function useChangePassword() {
     };
 
     return {
-        isPasswordless,
         currentPassword,
         setCurrentPassword,
         currentPasswordError,
