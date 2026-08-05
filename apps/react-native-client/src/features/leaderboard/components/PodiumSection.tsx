@@ -93,7 +93,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                         name="trophy"
                         size={isSmallDevice ? 20 : 24}
                         color={colors.secondary}
-                        style={{ marginBottom: -2, zIndex: 3 }}
+                        style={{ marginBottom: 10, zIndex: 3 }}
                     />
                     <View style={styles.avatarWrapper}>
                         <AvatarWithFrame
