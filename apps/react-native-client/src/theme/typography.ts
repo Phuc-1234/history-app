@@ -70,6 +70,26 @@ export const typography = {
     caption: {
         fontFamily: "Nunito-Regular",
         fontSize: 12,
+    },
+    titleLarge: {
+        fontFamily: "Nunito-ExtraBold",
+        fontSize: 22,
+    },
+    titleMedium: {
+        fontFamily: "Nunito-Bold",
+        fontSize: 18,
+    },
+    labelLarge: {
+        fontFamily: "Nunito-Bold",
+        fontSize: 16,
+    },
+    labelMedium: {
+        fontFamily: "Nunito-SemiBold",
+        fontSize: 14,
+    },
+    labelSmall: {
+        fontFamily: "Nunito-SemiBold",
+        fontSize: 12,
     }
 };
 
