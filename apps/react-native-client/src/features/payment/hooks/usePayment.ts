@@ -1,6 +1,6 @@
 // features/payment/hooks/usePayment.ts
-import { useState, useRef, useCallback } from "react";
-import { Linking } from "react-native";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Linking, AppState } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useInitiatePaymentMutation } from "../api/paymentApi";
 import { paymentApi, GetPaymentStatusResponse, PaymentProvider } from "../api/paymentApi";
@@ -35,12 +35,15 @@ type PaymentState =
     | { phase: "failed"; error: string };
 
 const POLL_INTERVAL_MS = 2000;
-const POLL_MAX_ATTEMPTS = 150; // 300 seconds (5 phút) max
+const POLL_MAX_ATTEMPTS_DEFAULT = 150; // 300 seconds (5 phút) max cho SePay / VietQR
+const POLL_MAX_ATTEMPTS_ZALOPAY = 30; // 60 seconds (1 phút) max cho ZaloPay
 
 export function usePayment() {
     const [state, setState] = useState<PaymentState>({ phase: "idle" });
     const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const attemptsRef = useRef(0);
+    const currentOrderIdRef = useRef<string | null>(null);
+    const currentProviderRef = useRef<PaymentProvider | null>(null);
 
     const dispatch = useDispatch<AppDispatch>();
     const [initiatePayment] = useInitiatePaymentMutation();
@@ -52,13 +55,55 @@ export function usePayment() {
         }
     }, []);
 
-    const pollStatus = useCallback(
+    const checkStatusImmediately = useCallback(
         async (orderId: string) => {
-            attemptsRef.current += 1;
+            try {
+                const result = await dispatch(
+                    paymentApi.endpoints.getPaymentStatus.initiate(orderId, { forceRefetch: true }),
+                ).unwrap();
 
-            if (attemptsRef.current > POLL_MAX_ATTEMPTS) {
+                if (result.status === "SUCCESS") {
+                    stopPolling();
+                    try {
+                        WebBrowser.dismissBrowser();
+                    } catch (e) {
+                        console.warn("[WebBrowser] dismiss failed:", e);
+                    }
+                    dispatch(apiSlice.util.invalidateTags(["User"]));
+                    setState({ phase: "success", result });
+                    return true;
+                }
+
+                if (result.status === "FAILED") {
+                    stopPolling();
+                    try {
+                        WebBrowser.dismissBrowser();
+                    } catch (e) {
+                        console.warn("[WebBrowser] dismiss failed:", e);
+                    }
+                    setState({ phase: "failed", error: "Giao dịch thất bại hoặc đã bị hủy." });
+                    return true;
+                }
+            } catch (err) {
+                console.warn("[ZaloPay] Immediate check failed:", err);
+            }
+            return false;
+        },
+        [dispatch, stopPolling],
+    );
+
+    const pollStatus = useCallback(
+        async (orderId: string, provider: PaymentProvider) => {
+            attemptsRef.current += 1;
+            const maxAttempts = provider === "ZALOPAY" ? POLL_MAX_ATTEMPTS_ZALOPAY : POLL_MAX_ATTEMPTS_DEFAULT;
+
+            if (attemptsRef.current > maxAttempts) {
                 stopPolling();
-                setState({ phase: "failed", error: "Hết thời gian chờ xác nhận thanh toán." });
+                const timeoutError =
+                    provider === "ZALOPAY"
+                        ? "Thanh toán ZaloPay quá thời gian chờ (60s). Vui lòng kiểm tra lại ứng dụng ZaloPay hoặc thử lại."
+                        : "Hết thời gian chờ xác nhận thanh toán.";
+                setState({ phase: "failed", error: timeoutError });
                 return;
             }
 
@@ -87,19 +132,36 @@ export function usePayment() {
                     } catch (e) {
                         console.warn("[WebBrowser] dismiss failed:", e);
                     }
-                    setState({ phase: "failed", error: "Giao dịch thất bại hoặc bị hủy." });
+                    setState({ phase: "failed", error: "Giao dịch thất bại hoặc đã bị hủy." });
                     return;
                 }
 
                 // Still PENDING — poll again
-                pollingRef.current = setTimeout(() => pollStatus(orderId), POLL_INTERVAL_MS);
+                pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
             } catch {
                 // Network error during polling — try again
-                pollingRef.current = setTimeout(() => pollStatus(orderId), POLL_INTERVAL_MS);
+                pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
             }
         },
         [dispatch, stopPolling],
     );
+
+    // Listen for AppState changes to check status instantly when user returns to app from ZaloPay
+    useEffect(() => {
+        const subscription = AppState.addEventListener("change", (nextAppState) => {
+            if (
+                nextAppState === "active" &&
+                currentOrderIdRef.current &&
+                currentProviderRef.current === "ZALOPAY"
+            ) {
+                console.log("[ZaloPay] User returned to app, checking payment status immediately...");
+                checkStatusImmediately(currentOrderIdRef.current);
+            }
+        });
+        return () => {
+            subscription.remove();
+        };
+    }, [checkStatusImmediately]);
 
     const pay = useCallback(
         async (provider: PaymentProvider, goldAmount: number) => {
@@ -110,6 +172,9 @@ export function usePayment() {
             try {
                 const initRes = await initiatePayment({ provider, goldAmount }).unwrap();
                 const { orderId, payUrl, zpTransToken, vietQrUrl, bankId, accountNo, accountName, providerOrderId, amountVnd } = initRes;
+
+                currentOrderIdRef.current = orderId;
+                currentProviderRef.current = provider;
 
                 if (provider === "SEPAY" && vietQrUrl) {
                     setState({
@@ -123,7 +188,7 @@ export function usePayment() {
                         amountVnd,
                         provider,
                     });
-                    pollStatus(orderId);
+                    pollStatus(orderId, provider);
                     return;
                 }
 
@@ -134,7 +199,7 @@ export function usePayment() {
                         amountVnd,
                         provider,
                     });
-                    pollStatus(orderId);
+                    pollStatus(orderId, provider);
 
                     if (zpTransToken && ReactNativeZalopay) {
                         try {
@@ -150,9 +215,10 @@ export function usePayment() {
                                 return;
                             } else if (result.status === "error") {
                                 stopPolling();
-                                setState({ phase: "failed", error: `Lỗi thanh toán: ${result.errorCode || "Unknown"}` });
+                                setState({ phase: "failed", error: `Lỗi thanh toán ZaloPay: ${result.errorCode || "Unknown"}` });
                                 return;
                             } else if (result.status === "success") {
+                                await checkStatusImmediately(orderId);
                                 return;
                             }
                         } catch (sdkError: any) {
@@ -179,7 +245,10 @@ export function usePayment() {
                         await Linking.openURL(payUrl);
                     } catch (err) {
                         console.warn("[ZaloPay] Linking.openURL failed:", err);
-                        await WebBrowser.openBrowserAsync(payUrl);
+                        const browserRes = await WebBrowser.openBrowserAsync(payUrl);
+                        if (browserRes.type === "cancel" || browserRes.type === "dismiss") {
+                            await checkStatusImmediately(orderId);
+                        }
                     }
                 } else {
                     // Open the payment URL in the in-app browser (SePay VietQR or web fallback)
@@ -189,16 +258,11 @@ export function usePayment() {
                         amountVnd,
                         provider,
                     });
-                    pollStatus(orderId);
-                    await WebBrowser.openBrowserAsync(payUrl);
-                    // User closed the browser — if still pending, stop polling and go back to idle
-                    stopPolling();
-                    setState((prev) => {
-                        if (prev.phase === "waiting") {
-                            return { phase: "idle" };
-                        }
-                        return prev;
-                    });
+                    pollStatus(orderId, provider);
+                    const browserRes = await WebBrowser.openBrowserAsync(payUrl);
+                    if (browserRes.type === "cancel" || browserRes.type === "dismiss") {
+                        await checkStatusImmediately(orderId);
+                    }
                 }
             } catch (error: any) {
                 const message =
@@ -208,14 +272,17 @@ export function usePayment() {
                 setState({ phase: "failed", error: message });
             }
         },
-        [initiatePayment, pollStatus, stopPolling],
+        [initiatePayment, pollStatus, stopPolling, checkStatusImmediately],
     );
 
     const reset = useCallback(() => {
         stopPolling();
         attemptsRef.current = 0;
+        currentOrderIdRef.current = null;
+        currentProviderRef.current = null;
         setState({ phase: "idle" });
     }, [stopPolling]);
 
     return { state, pay, reset };
 }
+

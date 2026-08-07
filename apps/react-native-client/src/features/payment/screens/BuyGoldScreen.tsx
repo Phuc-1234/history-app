@@ -83,10 +83,18 @@ export const BuyGoldScreen: React.FC = () => {
                             });
                             setGoldPackages(formattedList);
                             setSelectedPackage(formattedList[0]);
+                        } else {
+                            setGoldPackages([]);
+                            setSelectedPackage(null);
                         }
+                    } else {
+                        setGoldPackages([]);
+                        setSelectedPackage(null);
                     }
                 } catch (e) {
                     console.error("Failed to fetch dynamic gold packages:", e);
+                    setGoldPackages([]);
+                    setSelectedPackage(null);
                 } finally {
                     setFetchingPackages(false);
                 }
@@ -165,7 +173,7 @@ export const BuyGoldScreen: React.FC = () => {
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
                         <ActivityIndicator size="large" color="#4E3FE0" />
                     </View>
-                ) : (
+                ) : goldPackages.length > 0 ? (
                     <View style={styles.packagesGrid}>
                         {goldPackages.map((pkg) => (
                             <TouchableOpacity
@@ -183,6 +191,14 @@ export const BuyGoldScreen: React.FC = () => {
                                 </Text>
                             </TouchableOpacity>
                         ))}
+                    </View>
+                ) : (
+                    <View style={styles.emptyPackageCard}>
+                        <Ionicons name="cube-outline" size={40} color="#8E8E93" style={{ marginBottom: 8 }} />
+                        <Text style={styles.emptyPackageTitle}>Hiện chưa có gói nạp Gold nào</Text>
+                        <Text style={styles.emptyPackageSub}>
+                            Các gói nạp Gold đang được cập nhật hoặc tạm ẩn. Vui lòng quay lại sau!
+                        </Text>
                     </View>
                 )}
 
@@ -257,11 +273,16 @@ export const BuyGoldScreen: React.FC = () => {
 
                 {/* Status while waiting */}
                 {state.phase === "waiting" && (
-                    <View style={styles.waitingBanner}>
-                        <ActivityIndicator color="#4E3FE0" />
-                        <Text style={styles.waitingText}>
-                            Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
-                        </Text>
+                    <View style={styles.waitingContainer}>
+                        <View style={styles.waitingBanner}>
+                            <ActivityIndicator color="#4E3FE0" />
+                            <Text style={styles.waitingText}>
+                                Đang chờ xác nhận từ {getProviderLabel(selectedProvider)} (tối đa 60s)...
+                            </Text>
+                        </View>
+                        <TouchableOpacity style={styles.cancelWaitingBtn} onPress={reset}>
+                            <Text style={styles.cancelWaitingText}>Hủy / Thử lại</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
 
@@ -414,23 +435,7 @@ export const BuyGoldScreen: React.FC = () => {
                                         </View>
                                     </View>
 
-                                    {/* Simulate button */}
-                                    <TouchableOpacity
-                                        style={[styles.simulateButton, isSimulating && { opacity: 0.7 }]}
-                                        onPress={simulateNativePayment}
-                                        disabled={isSimulating}
-                                    >
-                                        {isSimulating ? (
-                                            <ActivityIndicator color="#FFFFFF" size="small" />
-                                        ) : (
-                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                                                <Ionicons name="flask-outline" size={16} color="#FFFFFF" />
-                                                <Text style={styles.simulateButtonText}>
-                                                    Mô phỏng chuyển khoản
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
+
 
                                     {/* Cancel */}
                                     <TouchableOpacity style={styles.cancelButton} onPress={reset}>
@@ -639,6 +644,9 @@ const styles = StyleSheet.create({
     },
 
     // Waiting banner
+    waitingContainer: {
+        marginBottom: 16,
+    },
     waitingBanner: {
         flexDirection: "row",
         alignItems: "center",
@@ -646,13 +654,23 @@ const styles = StyleSheet.create({
         backgroundColor: "#EEF0FF",
         borderRadius: 14,
         padding: 14,
-        marginBottom: 16,
+        marginBottom: 8,
     },
     waitingText: {
         fontSize: 14,
         color: PRIMARY,
         fontWeight: "500",
         flex: 1,
+    },
+    cancelWaitingBtn: {
+        alignSelf: "center",
+        paddingVertical: 6,
+        paddingHorizontal: 16,
+    },
+    cancelWaitingText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#E4002B",
     },
 
     // Pay button
@@ -923,5 +941,33 @@ const styles = StyleSheet.create({
         color: "#FF453A",
         fontSize: 14,
         fontWeight: "600",
+    },
+
+    // Empty package styles
+    emptyPackageCard: {
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        borderRadius: 16,
+        paddingVertical: 28,
+        paddingHorizontal: 20,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.08)",
+        borderStyle: "dashed",
+    },
+    emptyPackageTitle: {
+        fontSize: 15,
+        fontWeight: "700",
+        color: "#1C1C1E",
+        marginBottom: 4,
+        textAlign: "center",
+    },
+    emptyPackageSub: {
+        fontSize: 12,
+        fontWeight: "400",
+        color: "#8E8E93",
+        textAlign: "center",
+        lineHeight: 18,
     },
 });

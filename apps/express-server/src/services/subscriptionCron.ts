@@ -94,13 +94,49 @@ export async function checkExpiredSubscriptions() {
 }
 
 /**
+ * Sweeps and cancels all PENDING orders (GoldPurchase & Subscription) created more than 24 hours ago.
+ */
+export async function cancelExpiredPendingOrders(hoursThreshold: number = 24) {
+    const cutoffDate = new Date(Date.now() - hoursThreshold * 60 * 60 * 1000);
+    console.log(`[Payment Cleanup] Bắt đầu quét đơn hàng PENDING quá ${hoursThreshold}h (tạo trước ${cutoffDate.toISOString()})...`);
+
+    try {
+        const [expiredGold, expiredSub] = await prisma.$transaction([
+            prisma.goldPurchase.updateMany({
+                where: {
+                    status: "PENDING",
+                    createdAt: { lte: cutoffDate },
+                },
+                data: {
+                    status: "FAILED",
+                },
+            }),
+            prisma.subscription.updateMany({
+                where: {
+                    status: "PENDING",
+                    createdAt: { lte: cutoffDate },
+                },
+                data: {
+                    status: "FAILED",
+                },
+            }),
+        ]);
+
+        console.log(`[Payment Cleanup] Đã hủy thành công: ${expiredGold.count} đơn nạp Gold quá hạn và ${expiredSub.count} đơn đăng ký Pro quá hạn.`);
+    } catch (error: any) {
+        console.error("[Payment Cleanup] Lỗi dọn dẹp đơn hàng PENDING:", error.message);
+    }
+}
+
+/**
  * Schedules the checker to run daily at 00:00 midnight.
  */
 export function startDailySubscriptionCron() {
     console.log("[Subscription Cron] Lập lịch quét gia hạn định kỳ (00:00 hàng ngày) đã khởi chạy.");
 
-    // Run once on startup to process any missed periods
+    // Run once on startup to process any missed periods or stale pending orders
     checkExpiredSubscriptions();
+    cancelExpiredPendingOrders(24);
 
     const getMsUntilMidnight = () => {
         const now = new Date();
@@ -122,6 +158,7 @@ export function startDailySubscriptionCron() {
         
         setTimeout(async () => {
             await checkExpiredSubscriptions();
+            await cancelExpiredPendingOrders(24);
             scheduleNextRun();
         }, msUntilMidnight);
     };
