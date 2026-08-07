@@ -1,6 +1,6 @@
 # Real-time PVP Competition Feature Documentation
 
-**Current Version:** 1.0  
+**Current Version:** 2.1  
 **Module Location:**
 - Backend Routes: [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts)
 - Backend Controllers: [pvpController.ts](file:///e:/history-app/apps/express-server/src/controllers/pvpController.ts)
@@ -156,15 +156,20 @@ Submits player answer for current question.
 
 ## 6. Scoring System & Speed Bonus Calculation
 
-Evaluated in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts#L293-L308) using [scoreEngine.ts](file:///e:/history-app/apps/express-server/src/services/scoreEngine.ts):
+Evaluated in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts) using the shared [scoreEngine.ts](file:///e:/history-app/apps/express-server/src/services/scoreEngine.ts) from `test_v2`:
 
-1. **Base Score:** Evaluated from `scoreQuestion`. Correct answers yield `scoreAwarded = 1.0` (or partial score for match types), multiplied by base 400 points:
+1. **Parity with Test V2 Evaluation:**
+   - **CHOOSE Single:** `maxScore = 0.25` → Exact match yields `0.25`. Base score = $0.25 \times 400 = 100$ pts.
+   - **CHOOSE Multi:** `maxScore = Math.max(0.25, Math.floor(N / 2) * 0.25)`. Partial credit awarded per correct option, deducted per wrong option. Base score = $\text{scoreAwarded} \times 400$.
+   - **FILL:** `maxScore = 0.5` → Text normalized (case-insensitive, punctuation stripped), digit exact match enforced, Levenshtein distance typo tolerance. Exact match yields `0.5`. Base score = $0.5 \times 400 = 200$ pts.
+   - **MATCH:** `maxScore = Math.max(0.25, Math.floor(P / 2) * 0.25)`. All left-right pairs must match correctly. Base score = $\text{scoreAwarded} \times 400$.
+2. **Base Score Formula:**
    $$\text{baseScore} = \text{scoreAwarded} \times 400$$
-2. **Speed Bonus Multiplier:**
+3. **Speed Multiplier Formula:**
    $$\text{speedBonus} = 1 + \frac{\max(0, \text{timePerQuestion} - \text{timeTakenSeconds})}{\text{timePerQuestion}}$$
-3. **Total Points Earned:**
+4. **Total Points Earned:**
    $$\text{scoreEarned} = \text{Math.round}(\text{baseScore} \times \text{speedBonus})$$
-   *(Maximum single question score: 800 points for immediate submission)*.
+   *(Example: Single choice answered instantly yields $100 \times 2.0 = 200$ pts; Fill answered instantly yields $200 \times 2.0 = 400$ pts)*.
 
 ---
 
@@ -243,16 +248,19 @@ sequenceDiagram
 ## 9. Known Issues & Remediation Strategy
 
 ### Issue 1 (Small): Host can start room with 1 player
+- **Status:** FIXED
 - **Existence:** Confirmed.
 - **Root Cause:** Neither `PvpLobbyView.tsx` nor backend `startRoom` in `pvpService.ts` checks if `participants.length >= 2`.
 - **Remediation:** Enforce `participants.length >= 2` validation in backend `startRoom` service and disable host "Start" button on FE with descriptive helper message when single player.
 
 ### Issue 2 (Small): Result modal does not display correct answer
+- **Status:** FIXED
 - **Existence:** Confirmed.
 - **Root Cause:** Backend sends `correctAnswerData` in `QUESTION_RESULT` broadcast payload, but `PvpGameScreen.tsx` inter-question result modal (`<Modal visible={!!questionResult}>`) only renders explanation text and ignores `correctAnswerData`.
 - **Remediation:** Render a formatted "Đáp án đúng" preview section inside the result modal for `CHOOSE`, `FILL`, and `MATCH` question types.
 
 ### Issue 3 (Big): No re-join flow if player leaves app/screen
+- **Status:** FIXED
 - **Existence:** Confirmed.
 - **Root Cause:** Room state (`currentRoom`) is stored solely in local React `useState` of `PvpMainScreen.tsx`. Back navigation unmounts the component and clears room state. No active session recovery API exists.
 - **Remediation:**
@@ -260,8 +268,32 @@ sequenceDiagram
   2. Call active room recovery on FE `PvpMainScreen` mount and restore lobby/game session automatically.
 
 ### Issue 4 (Big): Old players appear in newly created rooms after game finish
+- **Status:** FIXED
 - **Existence:** Confirmed.
 - **Root Cause:** `usePvpRealtime.ts` initializes `participants` state once with `useState(initialParticipants)`. Calling `resetState()` on game finish does not clear `participants` (`setParticipants([])`), nor does the hook re-sync `participants` when a new room is set. `PvpMainScreen.tsx` falls back to `participants.length > 0 ? participants : currentRoom.participants`, displaying leftover players.
 - **Remediation:**
   1. Update `resetState()` in `usePvpRealtime.ts` to call `setParticipants([])`.
   2. Add `useEffect` in `usePvpRealtime.ts` to sync `setParticipants(initialParticipants)` whenever `roomCode` or `initialParticipants` changes.
+
+---
+
+## 10. Changelog & System Upgrades (Version 2.1)
+
+### 1. 4-State Game Loop Progression Flow
+- **State 1 (Answering):** Active question widgets (`CHOOSE`, `FILL`, `MATCH`).
+- **State 2 (Inline Results):** Correct answer options, explanation, and mascot score gain rendered directly on screen body inside [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx). Question controls disabled.
+- **State 3 (Leaderboard Modal):** Broadcast `SHOW_LEADERBOARD` triggers modal standings overlay (answer details omitted).
+- **State 4 (Next Question):** Advance `currentQuestionIndex` or end match.
+
+### 2. Transition Mode Control (`autoNext` & `transitionInterval`)
+- Added `autoNext` (Boolean) and `transitionInterval` (Int) fields to `PvpRoom` model in [schema.prisma](file:///e:/history-app/packages/shared/prisma/schema.prisma).
+- Added room creation settings in [CreateRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/CreateRoomTab.tsx).
+- Added `POST /api/pvp/next-state` endpoint in [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts) allowing room host to manually advance from State 2 → 3 → 4 when `autoNext = false`.
+
+### 3. Leaderboard Placement Differences
+- Calculated rank deltas (`prevRank - currentRank`) in [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts).
+- Rendered green `+N` and red `-N` rank badges next to participant ranks inside leaderboard modal.
+
+### 4. Test V2 Scoring Parity & Partial Credit Support
+- Aligned PVP answer evaluation in `submitAnswer` with `scoreEngine.ts`.
+- Used `evalRes.scoreAwarded * 400` as base score to preserve partial credit, multiplied by speed bonus ($1.0\times - 2.0\times$).

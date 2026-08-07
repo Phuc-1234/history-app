@@ -362,10 +362,11 @@ export class PvpService {
                 userAnswer,
             );
 
-            if (evalRes.isCorrect) {
-                // Base 400 max score
+            if (evalRes.scoreAwarded > 0) {
+                // Base score derived from test-v2 scoreEngine rules multiplied by 400
+                // Single choice: 0.25 * 400 = 100 base pts; Fill: 0.5 * 400 = 200 base pts
                 const baseScore = evalRes.scoreAwarded * 400;
-                // Speed bonus: up to 2x multiplier for instantaneous answer
+                // Time-based speed bonus: 1.0x to 2.0x multiplier based on remaining seconds
                 const remainingSec = Math.max(0, room.timePerQuestion - timeTakenSeconds);
                 const speedBonus = 1 + remainingSec / room.timePerQuestion;
                 scoreEarned = Math.round(baseScore * speedBonus);
