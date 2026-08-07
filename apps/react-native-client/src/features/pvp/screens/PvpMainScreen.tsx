@@ -37,6 +37,8 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
         questionResult,
         finalLeaderboard,
         answeredUserIds,
+        showLeaderboard,
+        rankChanges,
         resetState,
     } = usePvpRealtime(currentRoom?.code ?? null, currentRoom?.participants ?? []);
 
@@ -62,6 +64,11 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
                 finalLeaderboard={finalLeaderboard}
                 answeredUserIds={answeredUserIds}
                 currentUserId={currentUserId}
+                showLeaderboard={showLeaderboard}
+                rankChanges={rankChanges}
+                isHost={currentRoom.hostUserId === currentUserId}
+                autoNext={currentRoom.autoNext}
+                transitionInterval={currentRoom.transitionInterval}
                 onExitGame={handleLeaveRoom}
             />
         );

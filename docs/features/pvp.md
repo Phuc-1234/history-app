@@ -203,8 +203,21 @@ sequenceDiagram
         end
 
         Server->>DB: Fetch ordered leaderboard & correct answer
-        Server->>Channel: Broadcast QUESTION_RESULT
-        Server->>Server: Inter-question delay (4 seconds)
+        Server->>Channel: Broadcast QUESTION_RESULT (State 2: Inline Correct Answer & Points)
+        
+        alt autoNext is enabled
+            Server->>Server: Wait transitionInterval seconds
+        else autoNext is disabled
+            Host->>Server: POST /api/pvp/next-state (targetState = LEADERBOARD)
+        end
+
+        Server->>Channel: Broadcast SHOW_LEADERBOARD (State 3: Leaderboard modal)
+        
+        alt autoNext is enabled
+            Server->>Server: Wait transitionInterval seconds
+        else autoNext is disabled
+            Host->>Server: POST /api/pvp/next-state (targetState = NEXT_QUESTION)
+        end
     end
 
     Server->>DB: Update status = FINISHED

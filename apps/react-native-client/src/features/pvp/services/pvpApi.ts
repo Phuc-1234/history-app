@@ -50,6 +50,14 @@ export const pvpApi = apiSlice.injectEndpoints({
                 body,
             }),
         }),
+
+        nextPvpState: builder.mutation<void, { roomCode: string; targetState: "LEADERBOARD" | "NEXT_QUESTION" }>({
+            query: (body) => ({
+                url: "/api/pvp/next-state",
+                method: "POST",
+                body,
+            }),
+        }),
     }),
     overrideExisting: __DEV__,
 });
@@ -63,4 +71,5 @@ export const {
     useLazyGetActivePvpRoomQuery,
     useStartPvpRoomMutation,
     useSubmitPvpAnswerMutation,
+    useNextPvpStateMutation,
 } = pvpApi;

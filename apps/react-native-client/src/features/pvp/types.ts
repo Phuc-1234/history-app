@@ -7,6 +7,8 @@ export interface CreatePvpRoomRequest {
     testId?: string;
     questionCount?: number;
     timePerQuestion?: number; // 10, 15, 30
+    autoNext?: boolean;
+    transitionInterval?: number;
 }
 
 export interface JoinPvpRoomRequest {
@@ -35,6 +37,8 @@ export interface PvpRoom {
     status: "LOBBY" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
     questionCount: number;
     timePerQuestion: number;
+    autoNext: boolean;
+    transitionInterval: number;
     currentQuestionIndex: number;
     participants: PvpParticipant[];
     questions?: QuestionV2[];

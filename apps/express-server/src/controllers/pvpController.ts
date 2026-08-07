@@ -83,3 +83,18 @@ export const submitAnswer = async (req: Request, res: Response) => {
         return res.status(500).json({ error: "Failed to submit PVP answer" });
     }
 };
+
+export const nextState = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const { roomCode, targetState } = req.body;
+        if (!roomCode || !targetState) return res.status(400).json({ error: "Missing required fields" });
+        await pvpService.triggerNextState(req.user.id, roomCode.trim(), targetState);
+        return res.status(200).json({ success: true });
+    } catch (err: any) {
+        console.error("nextState error:", err?.message ?? err);
+        if (err?.code === "ROOM_NOT_FOUND") return res.status(404).json({ error: err.message });
+        if (err?.code === "UNAUTHORIZED") return res.status(403).json({ error: err.message });
+        return res.status(500).json({ error: "Failed to transition state" });
+    }
+};

@@ -6,6 +6,7 @@ import {
     getActiveRoom,
     startRoom,
     submitAnswer,
+    nextState,
 } from "../controllers/pvpController";
 import { requireStudent } from "../middlewares/authMiddleware";
 
@@ -28,5 +29,8 @@ router.post("/start", requireStudent, startRoom);
 
 // POST /api/pvp/submit-answer
 router.post("/submit-answer", requireStudent, submitAnswer);
+
+// POST /api/pvp/next-state
+router.post("/next-state", requireStudent, nextState);
 
 export default router;

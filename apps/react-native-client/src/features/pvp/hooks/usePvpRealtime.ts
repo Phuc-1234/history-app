@@ -28,8 +28,11 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
     const [questionResult, setQuestionResult] = useState<PvpRealtimeState["questionResult"]>(null);
     const [finalLeaderboard, setFinalLeaderboard] = useState<PvpLeaderboardEntry[] | null>(null);
     const [answeredUserIds, setAnsweredUserIds] = useState<string[]>([]);
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [rankChanges, setRankChanges] = useState<Record<string, number>>({});
 
     const channelRef = useRef<any>(null);
+    const prevRanksRef = useRef<Record<string, number>>({});
 
     const resetState = useCallback(() => {
         setParticipants([]);
@@ -39,6 +42,9 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
         setQuestionResult(null);
         setFinalLeaderboard(null);
         setAnsweredUserIds([]);
+        setShowLeaderboard(false);
+        setRankChanges({});
+        prevRanksRef.current = {};
     }, []);
 
     useEffect(() => {
@@ -66,6 +72,7 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
                 setIsGameStarted(true);
                 setQuestionResult(null);
                 setFinalLeaderboard(null);
+                setShowLeaderboard(false);
             })
             .on("broadcast", { event: "QUESTION_START" }, ({ payload }) => {
                 setIsGameStarted(true);
@@ -75,6 +82,7 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
                 setCurrentQuestion(payload.question ?? null);
                 setQuestionResult(null);
                 setAnsweredUserIds([]);
+                setShowLeaderboard(false);
             })
             .on("broadcast", { event: "PLAYER_ANSWERED" }, ({ payload }) => {
                 if (payload?.userId) {
@@ -82,14 +90,40 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
                 }
             })
             .on("broadcast", { event: "QUESTION_RESULT" }, ({ payload }) => {
+                const leaderboard = payload.leaderboard ?? [];
+                const sorted = [...leaderboard].sort((a, b) => b.score - a.score);
+                const changes: Record<string, number> = {};
+
+                sorted.forEach((item, index) => {
+                    const newRank = index + 1;
+                    const prevRank = prevRanksRef.current[item.userId];
+                    if (prevRank !== undefined) {
+                        changes[item.userId] = prevRank - newRank;
+                    } else {
+                        changes[item.userId] = 0;
+                    }
+                });
+
+                const nextRanks: Record<string, number> = {};
+                sorted.forEach((item, index) => {
+                    nextRanks[item.userId] = index + 1;
+                });
+                prevRanksRef.current = nextRanks;
+
+                setRankChanges(changes);
                 setQuestionResult({
                     correctAnswerData: payload.correctAnswerData,
                     explanation: payload.explanation ?? null,
-                    leaderboard: payload.leaderboard ?? [],
+                    leaderboard,
                 });
+                setShowLeaderboard(false);
+            })
+            .on("broadcast", { event: "SHOW_LEADERBOARD" }, () => {
+                setShowLeaderboard(true);
             })
             .on("broadcast", { event: "GAME_OVER" }, ({ payload }) => {
                 setFinalLeaderboard(payload.leaderboard ?? []);
+                setShowLeaderboard(false);
             })
             .subscribe();
 
@@ -113,6 +147,8 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
         questionResult,
         finalLeaderboard,
         answeredUserIds,
+        showLeaderboard,
+        rankChanges,
         resetState,
     };
 }

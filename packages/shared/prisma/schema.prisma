@@ -804,6 +804,8 @@ model PvpRoom {
   status               PvpRoomStatus    @default(LOBBY)
   questionCount        Int              @default(10) @map("question_count")
   timePerQuestion      Int              @default(15) @map("time_per_question")
+  autoNext             Boolean          @default(true) @map("auto_next")
+  transitionInterval   Int              @default(4) @map("transition_interval")
   questionSequenceJson Json             @map("question_sequence_json")
   currentQuestionIndex Int              @default(0) @map("current_question_index")
   createdAt            DateTime         @default(now()) @map("created_at")

@@ -16,8 +16,15 @@ function serviceError(message: string, code?: string) {
     return e;
 }
 
+interface RoomTimerState {
+    timeout?: ReturnType<typeof setTimeout>;
+    resolveAnswer?: () => void;
+    resolveTransition?: (target: "LEADERBOARD" | "NEXT_QUESTION") => void;
+    pendingTarget?: "LEADERBOARD" | "NEXT_QUESTION";
+}
+
 // In-memory timer references for active room loops
-const activeRoomTimers = new Map<string, { timeout?: ReturnType<typeof setTimeout>; resolveAnswer?: () => void }>();
+const activeRoomTimers = new Map<string, RoomTimerState>();
 
 async function generate4DigitCode(): Promise<string> {
     for (let i = 0; i < 20; i++) {
@@ -62,6 +69,8 @@ export class PvpService {
         let sequence: number[] = [];
         const questionCount = req.questionCount ?? 10;
         const timePerQuestion = req.timePerQuestion ?? 15;
+        const autoNext = req.autoNext ?? true;
+        const transitionInterval = req.transitionInterval ?? 4;
 
         if (req.testId) {
             const test = await prisma.test.findUnique({
@@ -97,6 +106,8 @@ export class PvpService {
                 status: "LOBBY",
                 questionCount: sequence.length,
                 timePerQuestion,
+                autoNext,
+                transitionInterval,
                 questionSequenceJson: sequence,
                 currentQuestionIndex: 0,
                 participants: {
@@ -134,6 +145,8 @@ export class PvpService {
             status: room.status,
             questionCount: room.questionCount,
             timePerQuestion: room.timePerQuestion,
+            autoNext: room.autoNext,
+            transitionInterval: room.transitionInterval,
             currentQuestionIndex: room.currentQuestionIndex,
             participants: room.participants.map((p) => ({
                 userId: p.userId,
@@ -200,6 +213,8 @@ export class PvpService {
             status: updatedRoom!.status,
             questionCount: updatedRoom!.questionCount,
             timePerQuestion: updatedRoom!.timePerQuestion,
+            autoNext: updatedRoom!.autoNext,
+            transitionInterval: updatedRoom!.transitionInterval,
             currentQuestionIndex: updatedRoom!.currentQuestionIndex,
             participants: participantDtos,
             questions: orderedQuestions,
@@ -231,6 +246,8 @@ export class PvpService {
             status: room.status,
             questionCount: room.questionCount,
             timePerQuestion: room.timePerQuestion,
+            autoNext: room.autoNext,
+            transitionInterval: room.transitionInterval,
             currentQuestionIndex: room.currentQuestionIndex,
             participants: room.participants.map((p) => ({
                 userId: p.userId,
@@ -271,6 +288,8 @@ export class PvpService {
             status: room.status,
             questionCount: room.questionCount,
             timePerQuestion: room.timePerQuestion,
+            autoNext: room.autoNext,
+            transitionInterval: room.transitionInterval,
             currentQuestionIndex: room.currentQuestionIndex,
             participants: room.participants.map((p) => ({
                 userId: p.userId,
@@ -450,7 +469,7 @@ export class PvpService {
                     score: p.score,
                 }));
 
-                // Broadcast QUESTION_RESULT
+                // Broadcast QUESTION_RESULT (State 2: correct answer & points on screen)
                 await this.broadcast(roomCode, "QUESTION_RESULT", {
                     questionIndex: idx,
                     correctAnswerData: questionRecord?.answerDataJson,
@@ -458,8 +477,45 @@ export class PvpService {
                     leaderboard,
                 });
 
-                // Inter-question pause (4 seconds)
-                await new Promise((r) => setTimeout(r, 4000));
+                // Transition from State 2 -> State 3 (Leaderboard)
+                if (room.autoNext) {
+                    await new Promise((r) => setTimeout(r, room.transitionInterval * 1000));
+                } else {
+                    await new Promise<void>((resolve) => {
+                        activeRoomTimers.set(roomId, {
+                            pendingTarget: "LEADERBOARD",
+                            resolveTransition: (target) => {
+                                if (target === "LEADERBOARD") {
+                                    activeRoomTimers.delete(roomId);
+                                    resolve();
+                                }
+                            }
+                        });
+                    });
+                }
+
+                // Broadcast SHOW_LEADERBOARD (State 3: Leaderboard modal)
+                await this.broadcast(roomCode, "SHOW_LEADERBOARD", {
+                    questionIndex: idx,
+                    leaderboard,
+                });
+
+                // Transition from State 3 -> State 4 (Next question)
+                if (room.autoNext) {
+                    await new Promise((r) => setTimeout(r, room.transitionInterval * 1000));
+                } else {
+                    await new Promise<void>((resolve) => {
+                        activeRoomTimers.set(roomId, {
+                            pendingTarget: "NEXT_QUESTION",
+                            resolveTransition: (target) => {
+                                if (target === "NEXT_QUESTION") {
+                                    activeRoomTimers.delete(roomId);
+                                    resolve();
+                                }
+                            }
+                        });
+                    });
+                }
             }
 
             // 4. Game finished
@@ -485,6 +541,17 @@ export class PvpService {
             await this.broadcast(roomCode, "GAME_OVER", { leaderboard: finalLeaderboard });
         } catch (err) {
             console.error(`[PVP Cycle Error] Room ${roomCode}:`, err);
+        }
+    }
+
+    async triggerNextState(userId: string, roomCode: string, targetState: "LEADERBOARD" | "NEXT_QUESTION"): Promise<void> {
+        const room = await prisma.pvpRoom.findFirst({ where: { code: roomCode } });
+        if (!room) throw serviceError("Phòng không tồn tại", "ROOM_NOT_FOUND");
+        if (room.hostUserId !== userId) throw serviceError("Chỉ chủ phòng mới có quyền chuyển tiếp", "UNAUTHORIZED");
+
+        const roomState = activeRoomTimers.get(room.id);
+        if (roomState?.resolveTransition && roomState.pendingTarget === targetState) {
+            roomState.resolveTransition(targetState);
         }
     }
 }

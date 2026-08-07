@@ -11,6 +11,8 @@ interface CreateRoomTabProps {
 export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
     const [questionCount, setQuestionCount] = useState<number>(10);
     const [timePerQuestion, setTimePerQuestion] = useState<number>(15);
+    const [autoNext, setAutoNext] = useState<boolean>(true);
+    const [transitionInterval, setTransitionInterval] = useState<number>(5);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const [createRoomMut, { isLoading }] = useCreatePvpRoomMutation();
@@ -21,6 +23,8 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
             const room = await createRoomMut({
                 questionCount,
                 timePerQuestion,
+                autoNext,
+                transitionInterval,
             }).unwrap();
             onRoomCreated(room);
         } catch (err: any) {
@@ -60,6 +64,41 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
                     >
                         <Text style={[styles.pillText, timePerQuestion === t && styles.pillTextActive]}>
                             {t} giây
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+
+            {/* Auto Next Selection */}
+            <Text style={styles.label}>Chuyển câu</Text>
+            <View style={styles.optionsRow}>
+                {[
+                    { key: true, label: "Tự động" },
+                    { key: false, label: "Thủ công" },
+                ].map((opt) => (
+                    <TouchableOpacity
+                        key={opt.key ? "auto" : "manual"}
+                        style={[styles.pill, autoNext === opt.key && styles.pillActive]}
+                        onPress={() => setAutoNext(opt.key)}
+                    >
+                        <Text style={[styles.pillText, autoNext === opt.key && styles.pillTextActive]}>
+                            {opt.label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+
+            {/* Transition Interval Selection */}
+            <Text style={styles.label}>Thời gian chờ chuyển câu</Text>
+            <View style={styles.optionsRow}>
+                {[3, 5, 8, 12].map((sec) => (
+                    <TouchableOpacity
+                        key={sec}
+                        style={[styles.pill, transitionInterval === sec && styles.pillActive]}
+                        onPress={() => setTransitionInterval(sec)}
+                    >
+                        <Text style={[styles.pillText, transitionInterval === sec && styles.pillTextActive]}>
+                            {sec} giây
                         </Text>
                     </TouchableOpacity>
                 ))}
