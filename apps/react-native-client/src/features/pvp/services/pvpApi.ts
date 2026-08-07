@@ -28,6 +28,10 @@ export const pvpApi = apiSlice.injectEndpoints({
             query: (code) => `/api/pvp/room/${code}`,
         }),
 
+        getActivePvpRoom: builder.query<PvpRoom | null, void>({
+            query: () => "/api/pvp/active-room",
+        }),
+
         startPvpRoom: builder.mutation<{ started: boolean }, { roomCode: string }>({
             query: (body) => ({
                 url: "/api/pvp/start",
@@ -55,6 +59,8 @@ export const {
     useJoinPvpRoomMutation,
     useGetPvpRoomInfoQuery,
     useLazyGetPvpRoomInfoQuery,
+    useGetActivePvpRoomQuery,
+    useLazyGetActivePvpRoomQuery,
     useStartPvpRoomMutation,
     useSubmitPvpAnswerMutation,
 } = pvpApi;

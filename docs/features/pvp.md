@@ -1,0 +1,254 @@
+# Real-time PVP Competition Feature Documentation
+
+**Current Version:** 1.0  
+**Module Location:**
+- Backend Routes: [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts)
+- Backend Controllers: [pvpController.ts](file:///e:/history-app/apps/express-server/src/controllers/pvpController.ts)
+- Backend Services: [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts)
+- Backend Types: [pvpTypes.ts](file:///e:/history-app/apps/express-server/src/types/pvpTypes.ts)
+- Frontend Feature: [pvp](file:///e:/history-app/apps/react-native-client/src/features/pvp)
+  - Screens: [PvpMainScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpMainScreen.tsx), [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx)
+  - Components: [CreateRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/CreateRoomTab.tsx), [JoinRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/JoinRoomTab.tsx), [PvpLobbyView.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/PvpLobbyView.tsx)
+  - Hooks: [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts)
+  - Services & API: [pvpApi.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/services/pvpApi.ts)
+  - Types: [types.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/types.ts)
+- Database Schema: [schema.prisma](file:///e:/history-app/packages/shared/prisma/schema.prisma)
+
+---
+
+## 1. Feature Overview
+
+The PVP (Player vs Player) Competition system provides real-time synchronous multiplayer quiz battles for up to 8 participants per room.
+
+### Core Key Capabilities
+- **Room Creation & Configuration:** Host selects question count (5, 10, 15) and time limit per question (10s, 15s, 30s). Questions can be generated from specific test presets (`testId`) or auto-picked based on scope.
+- **Unique 4-Digit Room Codes:** Non-conflicting short numeric codes generated for room entry.
+- **Real-time Synchronized Gameplay:** Server-driven game loop using Supabase Admin WebSockets (`pvp_{roomCode}`) for broadcast events.
+- **Dynamic Speed Bonus Scoring:** Score rewards both correctness and answer speed (up to 2x multiplier for immediate responses).
+- **Auto-Advancing Timer Cycle:** Server manages per-question duration and automatically resolves early if all room participants answer before timeout.
+- **Live Leaderboard & Inter-Question Animations:** Real-time point gain notifications, mascot feedback, and final game standings.
+
+---
+
+## 2. Architecture & File Structure
+
+```
+history-app/
+├── apps/express-server/src/
+│   ├── controllers/
+│   │   └── pvpController.ts       # Route handlers (create, join, info, start, submit)
+│   ├── routes/
+│   │   └── pvpRoutes.ts           # Express router for /api/pvp/*
+│   ├── services/
+│   │   └── pvpService.ts          # Core PVP engine, room lifecycle & timer loop
+│   └── types/
+│       └── pvpTypes.ts            # Backend DTO contracts
+├── apps/react-native-client/src/features/pvp/
+│   ├── components/
+│   │   ├── CreateRoomTab.tsx      # Room creation form component
+│   │   ├── JoinRoomTab.tsx        # 4-digit code room join input component
+│   │   └── PvpLobbyView.tsx       # Pre-game lobby view displaying player cards
+│   ├── hooks/
+│   │   └── usePvpRealtime.ts      # Custom hook managing Supabase Realtime channel
+│   ├── screens/
+│   │   ├── PvpMainScreen.tsx      # Main tab/lobby container screen
+│   │   └── PvpGameScreen.tsx      # Full-screen active game view with live timer
+│   ├── services/
+│   │   └── pvpApi.ts              # RTK Query API slice for PVP HTTP endpoints
+│   ├── types.ts                   # Frontend TypeScript types
+│   └── index.ts                   # Module barrel export
+└── packages/shared/prisma/
+    └── schema.prisma              # PvpRoom & PvpParticipant data models
+```
+
+---
+
+## 3. Data Models & Database Schemas
+
+### Prisma Models ([schema.prisma](file:///e:/history-app/packages/shared/prisma/schema.prisma#L793-L832))
+
+#### `PvpRoom`
+- `id` (`String @id @default(uuid())`): Internal room UUID.
+- `code` (`String @unique`): 4-digit public room code.
+- `hostUserId` (`String`): User ID of room creator.
+- `status` (`PvpRoomStatus`): Status enum (`LOBBY`, `IN_PROGRESS`, `FINISHED`, `CANCELLED`).
+- `questionCount` (`Int`): Total questions in room (default `10`).
+- `timePerQuestion` (`Int`): Seconds allowed per question (default `15`).
+- `questionSequenceJson` (`Json`): Ordered array of question IDs `[number]`.
+- `currentQuestionIndex` (`Int`): Active question index (0-indexed).
+
+#### `PvpParticipant`
+- `id` (`String @id @default(uuid())`): Participant entry ID.
+- `roomId` (`String`): Foreign key to `PvpRoom`.
+- `userId` (`String`): Foreign key to `User`.
+- `score` (`Float`): Total cumulative score in room (default `0`).
+- `answersJson` (`Json`): Array of submitted answer records `[{ questionIndex, questionId, userAnswer, scoreEarned, timeTakenSeconds }]`.
+
+---
+
+## 4. API Endpoints & Request/Response Contracts
+
+### HTTP REST Endpoints ([pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts))
+
+#### 1. `POST /api/pvp/create`
+Creates a new room with host as first participant.
+- **Request Body (`CreatePvpRoomRequest`):**
+  ```json
+  {
+    "questionCount": 10,
+    "timePerQuestion": 15,
+    "testId": "optional-test-uuid",
+    "scopeType": "LESSON",
+    "scopeId": 12
+  }
+  ```
+- **Response (`PvpRoomDto`):** Room details including 4-digit code and initial ordered question list.
+
+#### 2. `POST /api/pvp/join`
+Joins an existing room in `LOBBY` status. Maximum 8 participants.
+- **Request Body (`JoinPvpRoomRequest`):**
+  ```json
+  { "roomCode": "1234" }
+  ```
+- **Response (`PvpRoomDto`):** Updated room object. Also triggers `PLAYER_JOINED` broadcast event.
+
+#### 3. `GET /api/pvp/room/:code`
+Fetches room details by code.
+
+#### 4. `POST /api/pvp/start`
+Host-only action to start the match.
+- **Request Body:** `{ "roomCode": "1234" }`
+- **Behavior:** Updates status to `IN_PROGRESS`, broadcasts `GAME_START`, and starts `runRoomQuestionCycle` loop.
+
+#### 5. `POST /api/pvp/submit-answer`
+Submits player answer for current question.
+- **Request Body (`SubmitPvpAnswerRequest`):**
+  ```json
+  {
+    "roomCode": "1234",
+    "questionIndex": 0,
+    "userAnswer": { "selectedOptions": [1] },
+    "timeTakenSeconds": 4
+  }
+  ```
+- **Response:** `{ "scoreEarned": 560, "totalScore": 560 }`
+- **Behavior:** Calculates score, updates participant record, broadcasts `PLAYER_ANSWERED`. If all participants have answered, cancels active question timer early.
+
+---
+
+## 5. Real-time Supabase Broadcast Channel Protocol
+
+- **Channel Identifier:** `pvp_${roomCode}`
+- **Client Handler:** [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts)
+
+### Broadcast Events
+
+| Event Name | Trigger | Payload Contents |
+| :--- | :--- | :--- |
+| `PLAYER_JOINED` | Participant joins lobby | `{ participants: PvpParticipantDto[] }` |
+| `GAME_START` | Host starts game | `{ roomCode: string, questionCount: number }` |
+| `QUESTION_START` | Server moves to question | `{ questionIndex, totalQuestions, timeLimitSeconds, question: QuestionV2Dto }` |
+| `PLAYER_ANSWERED` | Participant submits answer | `{ userId: string, questionIndex: number }` |
+| `QUESTION_RESULT` | Question timer ends / all answered | `{ questionIndex, correctAnswerData, explanation, leaderboard: PvpParticipantDto[] }` |
+| `GAME_OVER` | All questions finished | `{ leaderboard: PvpLeaderboardEntry[] }` |
+
+---
+
+## 6. Scoring System & Speed Bonus Calculation
+
+Evaluated in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts#L293-L308) using [scoreEngine.ts](file:///e:/history-app/apps/express-server/src/services/scoreEngine.ts):
+
+1. **Base Score:** Evaluated from `scoreQuestion`. Correct answers yield `scoreAwarded = 1.0` (or partial score for match types), multiplied by base 400 points:
+   $$\text{baseScore} = \text{scoreAwarded} \times 400$$
+2. **Speed Bonus Multiplier:**
+   $$\text{speedBonus} = 1 + \frac{\max(0, \text{timePerQuestion} - \text{timeTakenSeconds})}{\text{timePerQuestion}}$$
+3. **Total Points Earned:**
+   $$\text{scoreEarned} = \text{Math.round}(\text{baseScore} \times \text{speedBonus})$$
+   *(Maximum single question score: 800 points for immediate submission)*.
+
+---
+
+## 7. Game Timer Cycle Lifecycle
+
+Managed asynchronously in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts#L346-L444):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Host
+    actor Client
+    participant Server as PvpService
+    participant Timer as In-Memory Timer
+    participant DB as Prisma DB
+    participant Channel as Supabase Realtime
+
+    Host->>Server: POST /api/pvp/start
+    Server->>DB: Update room status = IN_PROGRESS
+    Server->>Channel: Broadcast GAME_START
+    Server->>Server: Kick off runRoomQuestionCycle()
+
+    loop For each question in sequence
+        Server->>DB: Update currentQuestionIndex
+        Server->>Channel: Broadcast QUESTION_START (question DTO)
+        
+        par Wait timer OR all answered
+            Server->>Timer: Set setTimeout(timePerQuestion * 1000 + 500)
+        and Players submit answers
+            Client->>Server: POST /api/pvp/submit-answer
+            Server->>DB: Update score & answerJson
+            Server->>Channel: Broadcast PLAYER_ANSWERED
+            alt All active participants answered
+                Server->>Timer: Call resolveAnswer() (cancel timeout early)
+            end
+        end
+
+        Server->>DB: Fetch ordered leaderboard & correct answer
+        Server->>Channel: Broadcast QUESTION_RESULT
+        Server->>Server: Inter-question delay (4 seconds)
+    end
+
+    Server->>DB: Update status = FINISHED
+    Server->>Channel: Broadcast GAME_OVER (final leaderboard)
+```
+
+---
+
+## 8. Frontend User Experience & Components
+
+1. **[PvpMainScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpMainScreen.tsx):** Root feature entry point. Manages active tab state (`create` / `join`), room join/create handlers, and conditionally renders `PvpLobbyView` or full-screen `PvpGameScreen`.
+2. **[CreateRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/CreateRoomTab.tsx):** Pill selection UI for question count (5, 10, 15) and time limit (10s, 15s, 30s).
+3. **[JoinRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/JoinRoomTab.tsx):** 4-digit code input field with auto-submit validation.
+4. **[PvpLobbyView.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/PvpLobbyView.tsx):** Lobby screen displaying 4-digit room code badge, participant list (up to 8), host "Start Match" button, and non-host waiting indicator.
+5. **[PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx):**
+   - Animated top countdown bar using Reanimated `withTiming`.
+   - Question components reuse: `ChooseQuestion`, `FillQuestion`, `MatchQuestion`.
+   - Inter-question result modal featuring `PracticeFeedbackMascot`, point gain badges (`+560 điểm!`), and rank updates.
+   - Final game-over victory/ranking screen with exit options.
+
+---
+
+## 9. Known Issues & Remediation Strategy
+
+### Issue 1 (Small): Host can start room with 1 player
+- **Existence:** Confirmed.
+- **Root Cause:** Neither `PvpLobbyView.tsx` nor backend `startRoom` in `pvpService.ts` checks if `participants.length >= 2`.
+- **Remediation:** Enforce `participants.length >= 2` validation in backend `startRoom` service and disable host "Start" button on FE with descriptive helper message when single player.
+
+### Issue 2 (Small): Result modal does not display correct answer
+- **Existence:** Confirmed.
+- **Root Cause:** Backend sends `correctAnswerData` in `QUESTION_RESULT` broadcast payload, but `PvpGameScreen.tsx` inter-question result modal (`<Modal visible={!!questionResult}>`) only renders explanation text and ignores `correctAnswerData`.
+- **Remediation:** Render a formatted "Đáp án đúng" preview section inside the result modal for `CHOOSE`, `FILL`, and `MATCH` question types.
+
+### Issue 3 (Big): No re-join flow if player leaves app/screen
+- **Existence:** Confirmed.
+- **Root Cause:** Room state (`currentRoom`) is stored solely in local React `useState` of `PvpMainScreen.tsx`. Back navigation unmounts the component and clears room state. No active session recovery API exists.
+- **Remediation:**
+  1. Add `GET /api/pvp/active-room` backend endpoint returning user's active `LOBBY` or `IN_PROGRESS` room.
+  2. Call active room recovery on FE `PvpMainScreen` mount and restore lobby/game session automatically.
+
+### Issue 4 (Big): Old players appear in newly created rooms after game finish
+- **Existence:** Confirmed.
+- **Root Cause:** `usePvpRealtime.ts` initializes `participants` state once with `useState(initialParticipants)`. Calling `resetState()` on game finish does not clear `participants` (`setParticipants([])`), nor does the hook re-sync `participants` when a new room is set. `PvpMainScreen.tsx` falls back to `participants.length > 0 ? participants : currentRoom.participants`, displaying leftover players.
+- **Remediation:**
+  1. Update `resetState()` in `usePvpRealtime.ts` to call `setParticipants([])`.
+  2. Add `useEffect` in `usePvpRealtime.ts` to sync `setParticipants(initialParticipants)` whenever `roomCode` or `initialParticipants` changes.

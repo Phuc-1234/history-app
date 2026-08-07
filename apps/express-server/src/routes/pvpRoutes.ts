@@ -3,12 +3,16 @@ import {
     createRoom,
     joinRoom,
     getRoomInfo,
+    getActiveRoom,
     startRoom,
     submitAnswer,
 } from "../controllers/pvpController";
 import { requireStudent } from "../middlewares/authMiddleware";
 
 const router = Router();
+
+// GET /api/pvp/active-room
+router.get("/active-room", requireStudent, getActiveRoom);
 
 // POST /api/pvp/create
 router.post("/create", requireStudent, createRoom);

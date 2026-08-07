@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { SlidingTabBar } from "@/components/SlidingTabBar";
@@ -8,6 +8,7 @@ import { JoinRoomTab } from "../components/JoinRoomTab";
 import { PvpLobbyView } from "../components/PvpLobbyView";
 import { PvpGameScreen } from "./PvpGameScreen";
 import { usePvpRealtime } from "../hooks/usePvpRealtime";
+import { useGetActivePvpRoomQuery } from "../services/pvpApi";
 import { useSelector } from "react-redux";
 import type { PvpRoom } from "../types";
 
@@ -17,6 +18,14 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
 
     const [activeTab, setActiveTab] = useState<"create" | "join">("create");
     const [currentRoom, setCurrentRoom] = useState<PvpRoom | null>(null);
+
+    const { data: activeRoomData } = useGetActivePvpRoomQuery();
+
+    useEffect(() => {
+        if (activeRoomData && !currentRoom) {
+            setCurrentRoom(activeRoomData);
+        }
+    }, [activeRoomData, currentRoom]);
 
     const {
         participants,

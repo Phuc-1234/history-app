@@ -333,6 +333,48 @@ export function PvpGameScreen({
 
                             <Text style={styles.modalTitle}>Kết quả câu {currentQuestionIndex + 1}</Text>
 
+                            {/* Correct Answer Display */}
+                            {(() => {
+                                if (!questionResult?.correctAnswerData) return null;
+                                const data = questionResult.correctAnswerData;
+                                if (data.options && Array.isArray(data.correctOption)) {
+                                    const correctTexts = data.correctOption
+                                        .map((idx: number) => data.options[idx])
+                                        .filter(Boolean);
+                                    if (correctTexts.length > 0) {
+                                        return (
+                                            <View style={styles.correctAnswerBox}>
+                                                <Text style={styles.correctAnswerTitle}>🎯 Đáp án đúng:</Text>
+                                                {correctTexts.map((text: string, i: number) => (
+                                                    <Text key={i} style={styles.correctAnswerText}>• {text}</Text>
+                                                ))}
+                                            </View>
+                                        );
+                                    }
+                                }
+                                if (Array.isArray(data.acceptedAnswers)) {
+                                    return (
+                                        <View style={styles.correctAnswerBox}>
+                                            <Text style={styles.correctAnswerTitle}>🎯 Đáp án đúng:</Text>
+                                            <Text style={styles.correctAnswerText}>• {data.acceptedAnswers.join(" / ")}</Text>
+                                        </View>
+                                    );
+                                }
+                                if (Array.isArray(data.correctPairs) && data.leftItems && data.rightItems) {
+                                    return (
+                                        <View style={styles.correctAnswerBox}>
+                                            <Text style={styles.correctAnswerTitle}>🎯 Nối đúng:</Text>
+                                            {data.correctPairs.map((pair: { left: number; right: number }, i: number) => (
+                                                <Text key={i} style={styles.correctAnswerText}>
+                                                    • {data.leftItems[pair.left]} ➔ {data.rightItems[pair.right]}
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    );
+                                }
+                                return null;
+                            })()}
+
                             {questionResult?.explanation ? (
                                 <View style={styles.explanationBox}>
                                     <RenderHtml
@@ -561,6 +603,24 @@ const styles = StyleSheet.create({
         color: colors.primary700,
         textAlign: "center",
         marginBottom: spacing.xs,
+    },
+    correctAnswerBox: {
+        backgroundColor: colors.successContainer,
+        padding: spacing.sm,
+        borderRadius: radii.container,
+        marginBottom: spacing.xs,
+    },
+    correctAnswerTitle: {
+        fontSize: 14,
+        fontFamily: typography.fonts.bold,
+        color: colors.success,
+        marginBottom: spacing.xxs,
+    },
+    correctAnswerText: {
+        fontSize: 14,
+        fontFamily: typography.fonts.medium,
+        color: colors.neutral900,
+        marginLeft: spacing.xs,
     },
     explanationBox: {
         backgroundColor: colors.neutral100,

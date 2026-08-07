@@ -32,6 +32,7 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
     const channelRef = useRef<any>(null);
 
     const resetState = useCallback(() => {
+        setParticipants([]);
         setIsGameStarted(false);
         setCurrentQuestionIndex(0);
         setCurrentQuestion(null);
@@ -39,6 +40,14 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
         setFinalLeaderboard(null);
         setAnsweredUserIds([]);
     }, []);
+
+    useEffect(() => {
+        if (initialParticipants && initialParticipants.length > 0) {
+            setParticipants(initialParticipants);
+        } else if (!roomCode) {
+            setParticipants([]);
+        }
+    }, [roomCode, initialParticipants]);
 
     useEffect(() => {
         if (!roomCode) return;

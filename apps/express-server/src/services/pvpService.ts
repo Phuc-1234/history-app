@@ -242,13 +242,59 @@ export class PvpService {
         };
     }
 
+    // ── Get Active Room ────────────────────────────────────────────────────
+    async getActiveRoom(userId: string): Promise<PvpRoomDto | null> {
+        const room = await prisma.pvpRoom.findFirst({
+            where: {
+                status: { in: ["LOBBY", "IN_PROGRESS"] },
+                participants: { some: { userId } },
+            },
+            orderBy: { createdAt: "desc" },
+            include: {
+                participants: {
+                    include: { user: { select: { id: true, name: true, profileImgUrl: true } } },
+                },
+            },
+        });
+
+        if (!room) return null;
+
+        const seq = (room.questionSequenceJson as number[]) ?? [];
+        const questionRecords = await prisma.question.findMany({ where: { id: { in: seq } } });
+        const questionMap = new Map(questionRecords.map((q) => [q.id, q]));
+        const orderedQuestions = seq.map((id) => questionMap.get(id)).filter(Boolean).map(toQuestionDto);
+
+        return {
+            id: room.id,
+            code: room.code,
+            hostUserId: room.hostUserId,
+            status: room.status,
+            questionCount: room.questionCount,
+            timePerQuestion: room.timePerQuestion,
+            currentQuestionIndex: room.currentQuestionIndex,
+            participants: room.participants.map((p) => ({
+                userId: p.userId,
+                name: p.user.name,
+                profileImgUrl: p.user.profileImgUrl,
+                score: p.score,
+            })),
+            questions: orderedQuestions,
+        };
+    }
+
     // ── Start Room ─────────────────────────────────────────────────────────
     async startRoom(userId: string, roomCode: string): Promise<void> {
-        const room = await prisma.pvpRoom.findFirst({ where: { code: roomCode } });
+        const room = await prisma.pvpRoom.findFirst({
+            where: { code: roomCode },
+            include: { participants: true },
+        });
 
         if (!room) throw serviceError("Phòng không tồn tại", "ROOM_NOT_FOUND");
         if (room.hostUserId !== userId) throw serviceError("Chỉ chủ phòng mới có quyền bắt đầu", "UNAUTHORIZED");
         if (room.status !== "LOBBY") throw serviceError("Phòng đã bắt đầu", "ALREADY_STARTED");
+        if (room.participants.length < 2) {
+            throw serviceError("Cần ít nhất 2 người chơi để bắt đầu", "MIN_PLAYERS_REQUIRED");
+        }
 
         await prisma.pvpRoom.update({
             where: { id: room.id },

@@ -42,6 +42,17 @@ export const getRoomInfo = async (req: Request, res: Response) => {
     }
 };
 
+export const getActiveRoom = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const room = await pvpService.getActiveRoom(req.user.id);
+        return res.status(200).json(room);
+    } catch (err: any) {
+        console.error("getActiveRoom error:", err?.message ?? err);
+        return res.status(500).json({ error: "Failed to get active PVP room" });
+    }
+};
+
 export const startRoom = async (req: Request, res: Response) => {
     try {
         if (!req.user) return res.status(401).json({ error: "Unauthorized" });
@@ -54,6 +65,7 @@ export const startRoom = async (req: Request, res: Response) => {
         if (err?.code === "ROOM_NOT_FOUND") return res.status(404).json({ error: err.message });
         if (err?.code === "UNAUTHORIZED") return res.status(403).json({ error: err.message });
         if (err?.code === "ALREADY_STARTED") return res.status(400).json({ error: err.message });
+        if (err?.code === "MIN_PLAYERS_REQUIRED") return res.status(400).json({ error: err.message });
         return res.status(500).json({ error: "Failed to start PVP room" });
     }
 };
