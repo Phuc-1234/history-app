@@ -277,23 +277,25 @@ sequenceDiagram
 
 ---
 
-## 10. Changelog & System Upgrades (Version 2.1)
+## 10. Version Log
 
-### 1. 4-State Game Loop Progression Flow
+### Version 2.1
+
+#### 1. 4-State Game Loop Progression Flow
 - **State 1 (Answering):** Active question widgets (`CHOOSE`, `FILL`, `MATCH`).
 - **State 2 (Inline Results):** Correct answer options, explanation, and mascot score gain rendered directly on screen body inside [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx). Question controls disabled.
 - **State 3 (Leaderboard Modal):** Broadcast `SHOW_LEADERBOARD` triggers modal standings overlay (answer details omitted).
 - **State 4 (Next Question):** Advance `currentQuestionIndex` or end match.
 
-### 2. Transition Mode Control (`autoNext` & `transitionInterval`)
+#### 2. Transition Mode Control (`autoNext` & `transitionInterval`)
 - Added `autoNext` (Boolean) and `transitionInterval` (Int) fields to `PvpRoom` model in [schema.prisma](file:///e:/history-app/packages/shared/prisma/schema.prisma).
 - Added room creation settings in [CreateRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/CreateRoomTab.tsx).
 - Added `POST /api/pvp/next-state` endpoint in [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts) allowing room host to manually advance from State 2 → 3 → 4 when `autoNext = false`.
 
-### 3. Leaderboard Placement Differences
+#### 3. Leaderboard Placement Differences
 - Calculated rank deltas (`prevRank - currentRank`) in [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts).
 - Rendered green `+N` and red `-N` rank badges next to participant ranks inside leaderboard modal.
 
-### 4. Test V2 Scoring Parity & Partial Credit Support
+#### 4. Test V2 Scoring Parity & Partial Credit Support
 - Aligned PVP answer evaluation in `submitAnswer` with `scoreEngine.ts`.
 - Used `evalRes.scoreAwarded * 400` as base score to preserve partial credit, multiplied by speed bonus ($1.0\times - 2.0\times$).
