@@ -6,6 +6,9 @@ export interface CreatePvpRoomRequest {
     testId?: string;
     questionCount?: number;
     timePerQuestion?: number; // 10, 15, 30
+    autoNext?: boolean;
+    transitionInterval?: number;
+    isPublic?: boolean;
 }
 
 export interface JoinPvpRoomRequest {
@@ -34,7 +37,24 @@ export interface PvpRoomDto {
     status: string;
     questionCount: number;
     timePerQuestion: number;
+    autoNext: boolean;
+    transitionInterval: number;
     currentQuestionIndex: number;
+    isPublic: boolean;
     participants: PvpParticipantDto[];
     questions?: QuestionV2Dto[];
 }
+
+export interface PvpPublicRoomDto {
+    id: string;
+    code: string;
+    hostUserId: string;
+    hostName: string;
+    hostAvatar: string | null;
+    questionCount: number;
+    timePerQuestion: number;
+    participantCount: number;
+    maxParticipants: number;
+    createdAt: string;
+}
+

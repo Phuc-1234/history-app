@@ -867,6 +867,125 @@ export class SocialService {
             ? "outgoing_request"
             : "incoming_request";
     }
+
+    async getXpComparisonData(currentUserId: string, targetUserId: string, range: string) {
+        const now = new Date();
+        let startDate: Date;
+        let mode: "daily" | "weekly" | "monthly" = "daily";
+
+        if (range === "3day") {
+            startDate = new Date(now);
+            startDate.setUTCDate(now.getUTCDate() - 2);
+            startDate.setUTCHours(0, 0, 0, 0);
+            mode = "daily";
+        } else if (range === "week") {
+            startDate = new Date(now);
+            startDate.setUTCDate(now.getUTCDate() - 6);
+            startDate.setUTCHours(0, 0, 0, 0);
+            mode = "daily";
+        } else if (range === "month") {
+            startDate = new Date(now);
+            startDate.setUTCDate(now.getUTCDate() - 29);
+            startDate.setUTCHours(0, 0, 0, 0);
+            mode = "daily";
+        } else if (range === "year") {
+            startDate = new Date(now);
+            startDate.setUTCMonth(now.getUTCMonth() - 11, 1);
+            startDate.setUTCHours(0, 0, 0, 0);
+            mode = "monthly";
+        } else {
+            // "all"
+            const oldestLog = await (prisma as any).userXpLog.findFirst({
+                where: { userId: { in: [currentUserId, targetUserId] } },
+                orderBy: { createdAt: "asc" },
+                select: { createdAt: true },
+            });
+            if (oldestLog) {
+                startDate = new Date(oldestLog.createdAt);
+                startDate.setUTCHours(0, 0, 0, 0);
+            } else {
+                startDate = new Date(now);
+                startDate.setUTCDate(now.getUTCDate() - 6);
+                startDate.setUTCHours(0, 0, 0, 0);
+            }
+            const spanDays = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 3600 * 24));
+            if (spanDays <= 35) mode = "daily";
+            else if (spanDays <= 180) mode = "weekly";
+            else mode = "monthly";
+        }
+
+        const logs = await (prisma as any).userXpLog.findMany({
+            where: {
+                userId: { in: [currentUserId, targetUserId] },
+                createdAt: { gte: startDate },
+            },
+            select: {
+                userId: true,
+                amount: true,
+                createdAt: true,
+            },
+        });
+
+        const getKey = (d: Date): string => {
+            const yyyy = d.getUTCFullYear();
+            const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+            if (mode === "monthly") return `T${mm}/${yyyy.toString().slice(2)}`;
+            if (mode === "weekly") {
+                const w = new Date(d);
+                const dayIdx = (w.getUTCDay() + 6) % 7;
+                w.setUTCDate(w.getUTCDate() - dayIdx);
+                const wMm = String(w.getUTCMonth() + 1).padStart(2, "0");
+                const wDd = String(w.getUTCDate()).padStart(2, "0");
+                return `${wDd}/${wMm}`;
+            }
+            const dd = String(d.getUTCDate()).padStart(2, "0");
+            return `${dd}/${mm}`;
+        };
+
+        const myMap = new Map<string, number>();
+        const targetMap = new Map<string, number>();
+
+        logs.forEach((log: any) => {
+            const key = getKey(new Date(log.createdAt));
+            if (log.userId === currentUserId) {
+                myMap.set(key, (myMap.get(key) || 0) + log.amount);
+            } else {
+                targetMap.set(key, (targetMap.get(key) || 0) + log.amount);
+            }
+        });
+
+        const myXpData: { date: string; xp: number }[] = [];
+        const targetXpData: { date: string; xp: number }[] = [];
+
+        const curr = new Date(startDate);
+        const seenKeys = new Set<string>();
+
+        while (curr <= now || getKey(curr) === getKey(now)) {
+            const key = getKey(curr);
+            if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                myXpData.push({ date: key, xp: myMap.get(key) || 0 });
+                targetXpData.push({ date: key, xp: targetMap.get(key) || 0 });
+            }
+
+            if (mode === "monthly") {
+                curr.setUTCMonth(curr.getUTCMonth() + 1, 1);
+            } else if (mode === "weekly") {
+                curr.setUTCDate(curr.getUTCDate() + 7);
+            } else {
+                curr.setUTCDate(curr.getUTCDate() + 1);
+            }
+        }
+
+        return {
+            range,
+            mode,
+            startDate: startDate.toISOString().slice(0, 10),
+            endDate: now.toISOString().slice(0, 10),
+            myXpData,
+            targetXpData,
+        };
+    }
 }
 
 export const socialService = new SocialService();

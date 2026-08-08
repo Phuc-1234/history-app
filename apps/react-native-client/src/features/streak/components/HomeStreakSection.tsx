@@ -6,7 +6,6 @@ import {
     View,
     ActivityIndicator,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { Flame, CheckCircle2, Trophy, Calendar, ChevronRight } from "lucide-react-native";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
@@ -19,12 +18,29 @@ interface HomeStreakSectionProps {
 
 const WEEK_DAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
+function getWeeklyFlameColors(xp: number, isToday: boolean, isCompleted: boolean) {
+    if (xp > 60) {
+        return { bg: "#FFD8BE", flameColor: "#D97706" };
+    }
+    if (xp > 25) {
+        return { bg: "#FFE8D6", flameColor: "#FF5722" };
+    }
+    if (xp > 0 || isCompleted) {
+        return { bg: "#FFF4E5", flameColor: "#FF9500" };
+    }
+    if (isToday) {
+        return { bg: "#FFF4E5", flameColor: "#FF9500" };
+    }
+    return { bg: "#F2F4F7", flameColor: "#98A2B3" };
+}
+
 export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSectionProps) {
     const { data: streakData, isLoading } = useGetStreakInfoQuery();
 
     const activeStreak = streakData?.currentStreak ?? currentStreak;
     const highestStreak = streakData?.highestStreak ?? activeStreak;
     const hasCompletedToday = streakData?.hasCompletedToday ?? false;
+    const dailyXpList = streakData?.dailyXp ?? [];
 
     // Calculate current day index (0 = Monday, ..., 6 = Sunday)
     const todayIndex = (new Date().getDay() + 6) % 7;
@@ -58,7 +74,7 @@ export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSect
                 </View>
             </View>
 
-            {/* Reminder / Congrat Box */}
+            {/* Reminder / Status Box */}
             <View style={[styles.statusBanner, hasCompletedToday ? styles.statusSuccess : styles.statusWarning]}>
                 {isLoading ? (
                     <ActivityIndicator size="small" color={colors.primary} />
@@ -66,20 +82,20 @@ export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSect
                     <View style={styles.statusRow}>
                         <CheckCircle2 size={16} color={colors.success} />
                         <Text style={styles.statusText} numberOfLines={1}>
-                            Tuyệt vời! Bạn đã học tập hôm nay.
+                            Tuyệt vời! Bạn đã tích lũy XP hôm nay.
                         </Text>
                     </View>
                 ) : (
                     <View style={styles.statusRow}>
                         <Flame size={16} color="#FF9500" />
                         <Text style={styles.statusText} numberOfLines={1}>
-                            Chưa học hôm nay! Học ngay để giữ chuỗi.
+                            Chưa có XP hôm nay! Học ngay để giữ chuỗi.
                         </Text>
                     </View>
                 )}
             </View>
 
-            {/* Weekly Calendar Tracker */}
+            {/* Reused Weekly Heat-Map Calendar */}
             <View style={styles.calendarBlock}>
                 <View style={styles.calendarTitleRow}>
                     <Calendar size={12} color={colors.textMuted} />
@@ -88,32 +104,21 @@ export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSect
                 <View style={styles.daysRow}>
                     {WEEK_DAYS.map((dayLabel, idx) => {
                         const isToday = idx === todayIndex;
-                        const isPast = idx < todayIndex;
-                        const isCompleted = isToday
-                            ? hasCompletedToday
-                            : isPast && activeStreak > (todayIndex - idx);
+                        const dayData = dailyXpList[idx];
+                        const xp = dayData?.xp ?? 0;
+                        const isCompleted = xp > 0;
+                        const colorsConfig = getWeeklyFlameColors(xp, isToday, isCompleted);
 
                         return (
                             <View key={dayLabel} style={styles.dayCol}>
                                 <View
                                     style={[
                                         styles.dayCircle,
-                                        isCompleted && styles.dayCircleCompleted,
+                                        { backgroundColor: colorsConfig.bg },
                                         isToday && !hasCompletedToday && styles.dayCircleTodayPending,
                                     ]}
                                 >
-                                    {isCompleted ? (
-                                        <Flame size={13} color="#FFFFFF" />
-                                    ) : (
-                                        <Text
-                                            style={[
-                                                styles.dayCircleText,
-                                                isToday && styles.dayCircleTextToday,
-                                            ]}
-                                        >
-                                            {idx + 1}
-                                        </Text>
-                                    )}
+                                    <Flame size={13} color={colorsConfig.flameColor} />
                                 </View>
                                 <Text
                                     style={[
@@ -254,26 +259,12 @@ const styles = StyleSheet.create({
         width: 26,
         height: 26,
         borderRadius: 13,
-        backgroundColor: colors.surface,
         alignItems: "center",
         justifyContent: "center",
-    },
-    dayCircleCompleted: {
-        backgroundColor: "#FF9500",
     },
     dayCircleTodayPending: {
         borderWidth: 2,
         borderColor: "#FF9500",
-        backgroundColor: "transparent",
-    },
-    dayCircleText: {
-        fontFamily: typography.fonts.medium,
-        fontSize: 10,
-        color: colors.textMuted,
-    },
-    dayCircleTextToday: {
-        fontFamily: typography.fonts.bold,
-        color: "#FF9500",
     },
     dayLabel: {
         fontFamily: typography.fonts.medium,

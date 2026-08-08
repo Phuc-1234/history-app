@@ -118,9 +118,32 @@ export const socialApi = apiSlice.injectEndpoints({
             query: (userId) => `/api/social/users/${userId}/following`,
             providesTags: ["User"],
         }),
+        getXpComparison: builder.query<
+            XpComparisonResponse,
+            { userId: string; range: string }
+        >({
+            query: ({ userId, range }) => ({
+                url: `/api/social/users/${userId}/xp-comparison`,
+                params: { range },
+            }),
+            providesTags: ["User"],
+        }),
     }),
     overrideExisting: __DEV__,
 });
+
+export interface XpPoint {
+    date: string;
+    xp: number;
+}
+
+export interface XpComparisonResponse {
+    range: string;
+    startDate: string;
+    endDate: string;
+    myXpData: XpPoint[];
+    targetXpData: XpPoint[];
+}
 
 export const {
     useAcceptFriendRequestMutation,
@@ -133,6 +156,7 @@ export const {
     useGetMutualFriendsQuery,
     useGetOutgoingFriendRequestsQuery,
     useGetSocialProfileQuery,
+    useGetXpComparisonQuery,
     useRejectFriendRequestMutation,
     useRemoveFriendMutation,
     useSearchSocialUsersQuery,

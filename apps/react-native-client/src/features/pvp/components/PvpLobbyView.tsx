@@ -75,17 +75,22 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
             {/* Bottom action controls */}
             <View style={styles.footer}>
                 {isHost ? (
-                    <TouchableOpacity
-                        style={[styles.startButton, isStarting && styles.buttonDisabled]}
-                        onPress={handleStart}
-                        disabled={isStarting}
-                    >
-                        {isStarting ? (
-                            <ActivityIndicator color="#FFFFFF" />
-                        ) : (
-                            <Text style={styles.startButtonText}>Bắt đầu thi đấu</Text>
-                        )}
-                    </TouchableOpacity>
+                    <>
+                        {participants.length < 2 ? (
+                            <Text style={styles.minPlayerNotice}>Cần ít nhất 2 người chơi để bắt đầu thi đấu</Text>
+                        ) : null}
+                        <TouchableOpacity
+                            style={[styles.startButton, (isStarting || participants.length < 2) && styles.buttonDisabled]}
+                            onPress={handleStart}
+                            disabled={isStarting || participants.length < 2}
+                        >
+                            {isStarting ? (
+                                <ActivityIndicator color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.startButtonText}>Bắt đầu thi đấu</Text>
+                            )}
+                        </TouchableOpacity>
+                    </>
                 ) : (
                     <View style={styles.waitingBanner}>
                         <ActivityIndicator color={colors.primary600} style={{ marginRight: spacing.sm }} />
@@ -202,6 +207,13 @@ const styles = StyleSheet.create({
         borderRadius: radii.pill,
         paddingVertical: spacing.md,
         alignItems: "center",
+    },
+    minPlayerNotice: {
+        fontSize: 13,
+        fontFamily: typography.fonts.regular,
+        color: colors.neutral500,
+        textAlign: "center",
+        marginBottom: spacing.xs,
     },
     buttonDisabled: {
         opacity: 0.6,
