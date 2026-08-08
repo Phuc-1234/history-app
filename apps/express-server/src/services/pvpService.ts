@@ -6,6 +6,7 @@ import { autoPickQuestions, expandScopeToQuestionWhere } from "./testServiceV2";
 import {
     CreatePvpRoomRequest,
     PvpParticipantDto,
+    PvpPublicRoomDto,
     PvpRoomDto,
     SubmitPvpAnswerRequest,
 } from "../types/pvpTypes";
@@ -28,14 +29,14 @@ interface RoomTimerState {
 const activeRoomTimers = new Map<string, RoomTimerState>();
 
 async function generate4DigitCode(): Promise<string> {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 100; i++) {
         const code = Math.floor(1000 + Math.random() * 9000).toString();
         const existing = await prisma.pvpRoom.findFirst({
             where: { code, status: { in: ["LOBBY", "IN_PROGRESS"] } },
         });
         if (!existing) return code;
     }
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    throw serviceError("Tất cả mã phòng thi đấu đã được sử dụng, vui lòng thử lại sau", "ALL_ROOM_CODES_USED");
 }
 
 function toQuestionDto(q: any): QuestionV2Dto {
@@ -73,6 +74,14 @@ export class PvpService {
         const autoNext = req.autoNext ?? true;
         const transitionInterval = req.transitionInterval ?? 4;
 
+        const availableCount = await this.getAvailableQuestionsCount(req.scopeType, req.scopeId, req.testId);
+        if (availableCount <= 0) {
+            throw serviceError("Không có câu hỏi nào khả dụng cho phạm vi này (0 câu)", "NO_QUESTIONS");
+        }
+        if (questionCount > availableCount) {
+            throw serviceError(`Số câu hỏi yêu cầu (${questionCount}) vượt quá số câu hiện có (${availableCount})`, "NO_QUESTIONS");
+        }
+
         if (req.testId) {
             const test = await prisma.test.findUnique({
                 where: { id: req.testId },
@@ -100,6 +109,8 @@ export class PvpService {
 
         const roomCode = await generate4DigitCode();
 
+        const isPublic = req.isPublic ?? true;
+
         const room = await prisma.pvpRoom.create({
             data: {
                 code: roomCode,
@@ -109,6 +120,7 @@ export class PvpService {
                 timePerQuestion,
                 autoNext,
                 transitionInterval,
+                isPublic,
                 questionSequenceJson: sequence,
                 currentQuestionIndex: 0,
                 participants: {
@@ -149,6 +161,7 @@ export class PvpService {
             autoNext: room.autoNext,
             transitionInterval: room.transitionInterval,
             currentQuestionIndex: room.currentQuestionIndex,
+            isPublic: room.isPublic,
             participants: room.participants.map((p) => ({
                 userId: p.userId,
                 name: p.user.name,
@@ -217,6 +230,7 @@ export class PvpService {
             autoNext: updatedRoom!.autoNext,
             transitionInterval: updatedRoom!.transitionInterval,
             currentQuestionIndex: updatedRoom!.currentQuestionIndex,
+            isPublic: updatedRoom!.isPublic,
             participants: participantDtos,
             questions: orderedQuestions,
         };
@@ -241,16 +255,22 @@ export class PvpService {
             include: { user: { select: { id: true, name: true, profileImgUrl: true } } },
         });
 
+        let newHostUserId: string | null = null;
+
         if (remainingParticipants.length === 0) {
+            const timerState = activeRoomTimers.get(roomCode);
+            if (timerState?.timeout) clearTimeout(timerState.timeout);
+            activeRoomTimers.delete(roomCode);
+
             await prisma.pvpRoom.update({
                 where: { id: room.id },
                 data: { status: "CANCELLED" },
             });
         } else if (room.hostUserId === userId) {
-            const newHost = remainingParticipants[0].userId;
+            newHostUserId = remainingParticipants[0].userId;
             await prisma.pvpRoom.update({
                 where: { id: room.id },
-                data: { hostUserId: newHost },
+                data: { hostUserId: newHostUserId },
             });
         }
 
@@ -261,7 +281,10 @@ export class PvpService {
             score: p.score,
         }));
 
-        await this.broadcast(roomCode, "PLAYER_JOINED", { participants: participantDtos });
+        await this.broadcast(roomCode, "PLAYER_JOINED", {
+            participants: participantDtos,
+            hostUserId: newHostUserId ?? (room.hostUserId === userId ? null : room.hostUserId),
+        });
     }
 
     // ── Get Room Info ──────────────────────────────────────────────────────
@@ -292,6 +315,7 @@ export class PvpService {
             autoNext: room.autoNext,
             transitionInterval: room.transitionInterval,
             currentQuestionIndex: room.currentQuestionIndex,
+            isPublic: room.isPublic,
             participants: room.participants.map((p) => ({
                 userId: p.userId,
                 name: p.user.name,
@@ -334,6 +358,7 @@ export class PvpService {
             autoNext: room.autoNext,
             transitionInterval: room.transitionInterval,
             currentQuestionIndex: room.currentQuestionIndex,
+            isPublic: room.isPublic,
             participants: room.participants.map((p) => ({
                 userId: p.userId,
                 name: p.user.name,
@@ -342,6 +367,37 @@ export class PvpService {
             })),
             questions: orderedQuestions,
         };
+    }
+
+    // ── Get Public Rooms ───────────────────────────────────────────────────
+    async getPublicRooms(userId: string): Promise<PvpPublicRoomDto[]> {
+        const rooms = await prisma.pvpRoom.findMany({
+            where: {
+                isPublic: true,
+                status: "LOBBY",
+                hostUserId: { not: userId },
+                participants: { none: { userId } },
+            },
+            orderBy: { createdAt: "desc" },
+            include: {
+                host: { select: { id: true, name: true, profileImgUrl: true } },
+                _count: { select: { participants: true } },
+            },
+            take: 30,
+        });
+
+        return rooms.map((r) => ({
+            id: r.id,
+            code: r.code,
+            hostUserId: r.hostUserId,
+            hostName: r.host.name,
+            hostAvatar: r.host.profileImgUrl,
+            questionCount: r.questionCount,
+            timePerQuestion: r.timePerQuestion,
+            participantCount: r._count.participants,
+            maxParticipants: 8,
+            createdAt: r.createdAt.toISOString(),
+        }));
     }
 
     // ── Start Room ─────────────────────────────────────────────────────────

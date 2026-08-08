@@ -9,10 +9,12 @@ import {
     TextInput,
     Modal,
     FlatList,
+    RefreshControl,
 } from "react-native";
 import { ChevronDown, ChevronUp } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "@/theme";
+import { toastService } from "@/services/toastService";
 import {
     useCreatePvpRoomMutation,
     useGetCuratedTestsQuery,
@@ -29,24 +31,48 @@ import type { PvpRoom } from "../types";
 
 interface CreateRoomTabProps {
     onRoomCreated: (room: PvpRoom) => void;
+    initialMode?: Mode;
+    initialTestId?: string;
+    initialScopeType?: ScopeType;
+    initialScopeId?: number;
+    initialQuestionCount?: number;
 }
 
 type Mode = "AUTO_PICK" | "CURATED";
 type ScopeType = "NATIONAL" | "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE";
 type PickerType = "GRADE" | "TOPIC" | "LESSON" | "SECTION" | "NODE" | null;
 
-export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
+export function CreateRoomTab({
+    onRoomCreated,
+    initialMode,
+    initialTestId,
+    initialScopeType,
+    initialScopeId,
+    initialQuestionCount,
+}: CreateRoomTabProps) {
     const insets = useSafeAreaInsets();
 
-    const [mode, setMode] = useState<Mode>("AUTO_PICK");
-    const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
+    const [mode, setMode] = useState<Mode>(
+        initialMode ?? (initialTestId ? "CURATED" : "AUTO_PICK")
+    );
+    const [selectedTestId, setSelectedTestId] = useState<string | null>(initialTestId ?? null);
 
-    const [scopeType, setScopeType] = useState<ScopeType>("NATIONAL");
-    const [selectedGradeId, setSelectedGradeId] = useState<number | null>(null);
-    const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
-    const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null);
-    const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
-    const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);
+    const [scopeType, setScopeType] = useState<ScopeType>(initialScopeType ?? "NATIONAL");
+    const [selectedGradeId, setSelectedGradeId] = useState<number | null>(
+        initialScopeType === "GRADE" ? initialScopeId ?? null : null
+    );
+    const [selectedTopicId, setSelectedTopicId] = useState<number | null>(
+        initialScopeType === "TOPIC" ? initialScopeId ?? null : null
+    );
+    const [selectedLessonId, setSelectedLessonId] = useState<number | null>(
+        initialScopeType === "LESSON" ? initialScopeId ?? null : null
+    );
+    const [selectedSectionId, setSelectedSectionId] = useState<number | null>(
+        initialScopeType === "SECTION" ? initialScopeId ?? null : null
+    );
+    const [selectedNodeId, setSelectedNodeId] = useState<number | null>(
+        initialScopeType === "NODE" ? initialScopeId ?? null : null
+    );
 
     // Collapsible states
     const [isScopeCollapsed, setIsScopeCollapsed] = useState<boolean>(true);
@@ -56,11 +82,12 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
     // Modal picker state
     const [activePicker, setActivePicker] = useState<PickerType>(null);
 
-    const [questionCount, setQuestionCount] = useState<number>(10);
-    const [questionCountInput, setQuestionCountInput] = useState<string>("10");
+    const [questionCount, setQuestionCount] = useState<number>(initialQuestionCount ?? 10);
+    const [questionCountInput, setQuestionCountInput] = useState<string>((initialQuestionCount ?? 10).toString());
     const [timePerQuestion, setTimePerQuestion] = useState<number>(15);
     const [autoNext, setAutoNext] = useState<boolean>(true);
     const [transitionInterval, setTransitionInterval] = useState<number>(5);
+    const [isPublic, setIsPublic] = useState<boolean>(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const [createRoomMut, { isLoading: isCreating }] = useCreatePvpRoomMutation();
@@ -120,7 +147,7 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
             ? { testId: selectedTestId ?? undefined }
             : { scopeType, scopeId: activeScopeId ?? undefined };
 
-    const { data: countData, isFetching: fetchingCount } = useGetAvailableQuestionsCountQuery(
+    const { data: countData, isFetching: fetchingCount, refetch: refetchCount } = useGetAvailableQuestionsCountQuery(
         queryParams,
         { skip: skipCountQuery }
     );
@@ -143,10 +170,18 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
     }, [mode, curatedTests, selectedTestId]);
 
     const handleQuestionCountChange = (text: string) => {
-        setQuestionCountInput(text);
-        const parsed = parseInt(text, 10);
+        const digits = text.replace(/[^0-9]/g, "");
+        if (digits === "0") {
+            setQuestionCount(1);
+            setQuestionCountInput("1");
+            return;
+        }
+        setQuestionCountInput(digits);
+        const parsed = parseInt(digits, 10);
         if (!isNaN(parsed) && parsed > 0) {
             setQuestionCount(parsed);
+        } else if (digits === "") {
+            setQuestionCount(1);
         }
     };
 
@@ -155,22 +190,35 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
             setErrorMsg(null);
 
             if (mode === "CURATED" && !selectedTestId) {
-                setErrorMsg("Vui lòng chọn đề thi có sẵn");
+                const msg = "Vui lòng chọn đề thi có sẵn";
+                setErrorMsg(msg);
+                toastService.show(msg, "error");
                 return;
             }
 
             if (mode === "AUTO_PICK" && scopeType !== "NATIONAL" && !activeScopeId) {
-                setErrorMsg("Vui lòng chọn đầy đủ cấp phạm vi đã chọn");
+                const msg = "Vui lòng chọn đầy đủ cấp phạm vi đã chọn";
+                setErrorMsg(msg);
+                toastService.show(msg, "error");
                 return;
             }
 
             let finalCount = questionCount;
-            if (availableCount > 0 && finalCount > availableCount) {
-                finalCount = availableCount;
+            if (isNaN(finalCount) || finalCount <= 0) {
+                finalCount = 1;
             }
 
-            if (finalCount <= 0) {
-                setErrorMsg("Không có câu hỏi nào khả dụng cho cài đặt này");
+            if (!skipCountQuery && availableCount <= 0) {
+                const msg = "Không thể tạo phòng: Phạm vi đã chọn không có câu hỏi nào (0 câu)";
+                setErrorMsg(msg);
+                toastService.show(msg, "error");
+                return;
+            }
+
+            if (!skipCountQuery && finalCount > availableCount) {
+                const msg = `Không thể tạo phòng: Số câu hỏi yêu cầu (${finalCount}) vượt quá số câu hiện có (${availableCount})`;
+                setErrorMsg(msg);
+                toastService.show(msg, "error");
                 return;
             }
 
@@ -179,6 +227,7 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
                 timePerQuestion,
                 autoNext,
                 transitionInterval,
+                isPublic,
                 testId: mode === "CURATED" ? selectedTestId ?? undefined : undefined,
                 scopeType: mode === "AUTO_PICK" ? scopeType : undefined,
                 scopeId: mode === "AUTO_PICK" ? activeScopeId ?? undefined : undefined,
@@ -187,7 +236,9 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
             onRoomCreated(room);
         } catch (err: any) {
             console.error("Failed to create room:", err);
-            setErrorMsg(err?.data?.error ?? err?.message ?? "Không thể tạo phòng");
+            const msg = err?.data?.error ?? err?.message ?? "Không thể tạo phòng";
+            setErrorMsg(msg);
+            toastService.show(msg, "error");
         }
     };
 
@@ -318,8 +369,36 @@ export function CreateRoomTab({ onRoomCreated }: CreateRoomTabProps) {
     };
 
     return (
-        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.container}>
+        <ScrollView
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.container}
+            refreshControl={
+                <RefreshControl refreshing={fetchingCount} onRefresh={() => refetchCount()} />
+            }
+        >
             <Text style={styles.title}>Cấu hình phòng thi đấu</Text>
+
+            {/* Public / Private Room Toggle */}
+            <View style={styles.privacyRow}>
+                <TouchableOpacity
+                    style={[styles.privacyPill, isPublic && styles.privacyPillActive]}
+                    onPress={() => setIsPublic(true)}
+                    activeOpacity={0.8}
+                >
+                    <Text style={[styles.privacyPillText, isPublic && styles.privacyPillTextActive]}>
+                        Công khai
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.privacyPill, !isPublic && styles.privacyPillActive]}
+                    onPress={() => setIsPublic(false)}
+                    activeOpacity={0.8}
+                >
+                    <Text style={[styles.privacyPillText, !isPublic && styles.privacyPillTextActive]}>
+                        Riêng tư
+                    </Text>
+                </TouchableOpacity>
+            </View>
 
             {/* CONTAINER 1: Scope & Test selection (Collapsible, collapsed by default) */}
             <View style={styles.cardContainer}>
@@ -759,8 +838,37 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontFamily: typography.fonts.extraBold,
         color: colors.neutral900,
-        marginBottom: spacing.md,
+        marginBottom: spacing.xs,
         textAlign: "center",
+    },
+    privacyRow: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: colors.neutral100,
+        borderRadius: radii.pill,
+        padding: spacing.xs,
+        marginBottom: spacing.md,
+        alignSelf: "center",
+        width: 220,
+    },
+    privacyPill: {
+        flex: 1,
+        paddingVertical: spacing.xs + 2,
+        borderRadius: radii.pill,
+        alignItems: "center",
+    },
+    privacyPillActive: {
+        backgroundColor: colors.primary600,
+    },
+    privacyPillText: {
+        fontSize: 14,
+        fontFamily: typography.fonts.medium,
+        color: colors.neutral600,
+    },
+    privacyPillTextActive: {
+        color: "#FFFFFF",
+        fontFamily: typography.fonts.bold,
     },
     cardContainer: {
         backgroundColor: colors.surface,

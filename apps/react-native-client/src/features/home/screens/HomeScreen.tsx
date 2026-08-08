@@ -5,12 +5,13 @@ import {
     Text,
     TouchableOpacity,
     View,
+    ScrollView,
     Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Zap, Coins } from "lucide-react-native";
+import { Zap, Coins, Swords } from "lucide-react-native";
 import { useAppSelector } from "@/store/storeHook";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useGetHomeDataQuery } from "../services/homeApi";
@@ -208,6 +209,7 @@ export default function HomeScreen() {
         router.push("/(tabs)/5_1_national_tests" as never);
     const handleGoToFriends = () => router.push("/(social)/friends" as never);
     const handleGoToItems = () => router.push("/(tabs)/7_1_item" as never);
+    const handleGoToPvp = () => router.push("/pvp" as never);
 
     const isPro = !!profile?.isPro;
 
@@ -486,9 +488,13 @@ export default function HomeScreen() {
                                 </Text>
                             </View>
 
-                            <View style={styles.quickGrid}>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.quickScrollContainer}
+                            >
                                 <Card
-                                    style={styles.quickCard}
+                                    style={styles.quickCardHorizontal}
                                     activeOpacity={0.8}
                                     onPress={handleGoToTests}
                                 >
@@ -503,7 +509,21 @@ export default function HomeScreen() {
                                 </Card>
 
                                 <Card
-                                    style={styles.quickCard}
+                                    style={styles.quickCardHorizontal}
+                                    activeOpacity={0.8}
+                                    onPress={handleGoToPvp}
+                                >
+                                    <Swords
+                                        size={22}
+                                        color={colors.primary}
+                                    />
+                                    <Text style={styles.quickLabel}>
+                                        Thi đấu PVP
+                                    </Text>
+                                </Card>
+
+                                <Card
+                                    style={styles.quickCardHorizontal}
                                     activeOpacity={0.8}
                                     onPress={handleGoToItems}
                                 >
@@ -518,7 +538,7 @@ export default function HomeScreen() {
                                 </Card>
 
                                 <Card
-                                    style={styles.quickCard}
+                                    style={styles.quickCardHorizontal}
                                     activeOpacity={0.8}
                                     onPress={handleGoToFriends}
                                 >
@@ -531,7 +551,7 @@ export default function HomeScreen() {
                                         Bạn bè
                                     </Text>
                                 </Card>
-                            </View>
+                            </ScrollView>
 
                             {/* ── Section: Top 3 BXH ── */}
                             <View
@@ -797,8 +817,20 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 10,
     },
+    quickScrollContainer: {
+        gap: 10,
+        paddingRight: 10,
+    },
     quickCard: {
         flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: colors.surfaceVariant,
+        paddingVertical: 16,
+        gap: 6,
+    },
+    quickCardHorizontal: {
+        width: 104,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: colors.surfaceVariant,

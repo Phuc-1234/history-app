@@ -9,6 +9,7 @@ export const createRoom = async (req: Request, res: Response) => {
     } catch (err: any) {
         console.error("createRoom error:", err?.message ?? err);
         if (err?.code === "NO_QUESTIONS") return res.status(404).json({ error: err.message });
+        if (err?.code === "ALL_ROOM_CODES_USED") return res.status(400).json({ error: err.message });
         return res.status(500).json({ error: "Failed to create PVP room" });
     }
 };
@@ -137,3 +138,15 @@ export const getAvailableQuestionsCount = async (req: Request, res: Response) =>
         return res.status(500).json({ error: "Failed to get available questions count" });
     }
 };
+
+export const getPublicRooms = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const rooms = await pvpService.getPublicRooms(req.user.id);
+        return res.status(200).json(rooms);
+    } catch (err: any) {
+        console.error("getPublicRooms error:", err?.message ?? err);
+        return res.status(500).json({ error: "Failed to fetch public rooms" });
+    }
+};
+

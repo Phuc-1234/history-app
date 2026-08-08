@@ -823,6 +823,7 @@ model PvpRoom {
   transitionInterval   Int              @default(4) @map("transition_interval")
   questionSequenceJson Json             @map("question_sequence_json")
   currentQuestionIndex Int              @default(0) @map("current_question_index")
+  isPublic             Boolean          @default(true) @map("is_public")
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
 

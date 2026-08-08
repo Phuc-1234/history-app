@@ -10,10 +10,14 @@ import {
     getCuratedTests,
     getAvailableQuestionsCount,
     leaveRoom,
+    getPublicRooms,
 } from "../controllers/pvpController";
 import { requireStudent } from "../middlewares/authMiddleware";
 
 const router = Router();
+
+// GET /api/pvp/public-rooms
+router.get("/public-rooms", requireStudent, getPublicRooms);
 
 // GET /api/pvp/curated-tests
 router.get("/curated-tests", requireStudent, getCuratedTests);

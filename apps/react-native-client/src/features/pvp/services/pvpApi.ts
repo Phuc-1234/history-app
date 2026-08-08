@@ -2,6 +2,7 @@ import { apiSlice } from "@/services/apiSlice";
 import type {
     CreatePvpRoomRequest,
     JoinPvpRoomRequest,
+    PvpPublicRoomDto,
     PvpRoom,
     SubmitPvpAnswerRequest,
 } from "../types";
@@ -14,6 +15,7 @@ export const pvpApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: ["PvpPublicRooms"],
         }),
 
         joinPvpRoom: builder.mutation<PvpRoom, JoinPvpRoomRequest>({
@@ -22,6 +24,7 @@ export const pvpApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: ["PvpPublicRooms"],
         }),
 
         leavePvpRoom: builder.mutation<void, { roomCode: string }>({
@@ -30,6 +33,7 @@ export const pvpApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: ["PvpPublicRooms"],
         }),
 
         getPvpRoomInfo: builder.query<PvpRoom, string>({
@@ -38,6 +42,11 @@ export const pvpApi = apiSlice.injectEndpoints({
 
         getActivePvpRoom: builder.query<PvpRoom | null, void>({
             query: () => "/api/pvp/active-room",
+        }),
+
+        getPublicRooms: builder.query<PvpPublicRoomDto[], void>({
+            query: () => "/api/pvp/public-rooms",
+            providesTags: ["PvpPublicRooms"],
         }),
 
         startPvpRoom: builder.mutation<{ started: boolean }, { roomCode: string }>({
@@ -91,6 +100,8 @@ export const {
     useLazyGetPvpRoomInfoQuery,
     useGetActivePvpRoomQuery,
     useLazyGetActivePvpRoomQuery,
+    useGetPublicRoomsQuery,
+    useLazyGetPublicRoomsQuery,
     useStartPvpRoomMutation,
     useLeavePvpRoomMutation,
     useSubmitPvpAnswerMutation,
@@ -98,3 +109,4 @@ export const {
     useGetCuratedTestsQuery,
     useGetAvailableQuestionsCountQuery,
 } = pvpApi;
+

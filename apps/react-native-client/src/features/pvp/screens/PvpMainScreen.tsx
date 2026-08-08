@@ -12,7 +12,23 @@ import { useGetActivePvpRoomQuery, useLeavePvpRoomMutation } from "../services/p
 import { useSelector } from "react-redux";
 import type { PvpRoom } from "../types";
 
-export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
+interface PvpMainScreenProps {
+    onExit?: () => void;
+    initialMode?: "AUTO_PICK" | "CURATED";
+    initialTestId?: string;
+    initialScopeType?: string;
+    initialScopeId?: number;
+    initialQuestionCount?: number;
+}
+
+export function PvpMainScreen({
+    onExit,
+    initialMode,
+    initialTestId,
+    initialScopeType,
+    initialScopeId,
+    initialQuestionCount,
+}: PvpMainScreenProps) {
     const profile = useSelector((state: any) => state.auth?.profile);
     const currentUserId = profile?.id ?? "";
 
@@ -42,8 +58,16 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
         answeredUserIds,
         showLeaderboard,
         rankChanges,
+        hostUserId: realtimeHostUserId,
         resetState,
     } = usePvpRealtime(currentRoom?.code ?? null, currentRoom?.participants ?? []);
+
+    const effectiveRoom = currentRoom
+        ? {
+              ...currentRoom,
+              hostUserId: realtimeHostUserId ?? currentRoom.hostUserId,
+          }
+        : null;
 
     const handleRoomJoinedOrCreate = (room: PvpRoom) => {
         setCurrentRoom(room);
@@ -64,10 +88,10 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
     };
 
     // If game has started, switch to full-screen PvpGameScreen
-    if (currentRoom && isGameStarted) {
+    if (effectiveRoom && isGameStarted) {
         return (
             <PvpGameScreen
-                roomCode={currentRoom.code}
+                roomCode={effectiveRoom.code}
                 timeLimitSeconds={timeLimitSeconds}
                 currentQuestionIndex={currentQuestionIndex}
                 totalQuestions={totalQuestions}
@@ -78,9 +102,9 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
                 currentUserId={currentUserId}
                 showLeaderboard={showLeaderboard}
                 rankChanges={rankChanges}
-                isHost={currentRoom.hostUserId === currentUserId}
-                autoNext={currentRoom.autoNext}
-                transitionInterval={currentRoom.transitionInterval}
+                isHost={effectiveRoom.hostUserId === currentUserId}
+                autoNext={effectiveRoom.autoNext}
+                transitionInterval={effectiveRoom.transitionInterval}
                 onExitGame={handleLeaveRoom}
             />
         );
@@ -94,12 +118,12 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
     };
 
     // If in lobby, show PvpLobbyView wrapped in ScreenWrapper
-    if (currentRoom) {
+    if (effectiveRoom) {
         return (
             <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
                 <PvpLobbyView
-                    room={currentRoom}
-                    participants={participants.length > 0 ? participants : currentRoom.participants}
+                    room={effectiveRoom}
+                    participants={participants.length > 0 ? participants : effectiveRoom.participants}
                     currentUserId={currentUserId}
                     onLeaveRoom={handleLeaveRoom}
                 />
@@ -128,7 +152,14 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
 
                 {/* Tab content */}
                 {activeTab === "create" ? (
-                    <CreateRoomTab onRoomCreated={handleRoomJoinedOrCreate} />
+                    <CreateRoomTab
+                        onRoomCreated={handleRoomJoinedOrCreate}
+                        initialMode={initialMode}
+                        initialTestId={initialTestId}
+                        initialScopeType={initialScopeType as any}
+                        initialScopeId={initialScopeId}
+                        initialQuestionCount={initialQuestionCount}
+                    />
                 ) : (
                     <JoinRoomTab onRoomJoined={handleRoomJoinedOrCreate} />
                 )}

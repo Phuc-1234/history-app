@@ -76,6 +76,7 @@ history-app/
 - `timePerQuestion` (`Int`): Seconds allowed per question (default `15`).
 - `questionSequenceJson` (`Json`): Ordered array of question IDs `[number]`.
 - `currentQuestionIndex` (`Int`): Active question index (0-indexed).
+- `isPublic` (`Boolean @default(true)`): Room visibility mode (public vs private).
 
 #### `PvpParticipant`
 - `id` (`String @id @default(uuid())`): Participant entry ID.
@@ -99,7 +100,8 @@ Creates a new room with host as first participant.
     "timePerQuestion": 15,
     "testId": "optional-test-uuid",
     "scopeType": "LESSON",
-    "scopeId": 12
+    "scopeId": 12,
+    "isPublic": true
   }
   ```
 - **Response (`PvpRoomDto`):** Room details including 4-digit code and initial ordered question list.
@@ -142,6 +144,10 @@ Fetches list of available preset tests for room host selection.
 Calculates available active question count for a selected scope or curated test.
 - **Query Params:** `scopeType`, `scopeId`, `testId`
 - **Response:** `{ "availableCount": 24 }`
+
+#### 8. `GET /api/pvp/public-rooms`
+Fetches active public rooms in `LOBBY` status, excluding rooms created by or joined by current user.
+- **Response (`PvpPublicRoomDto[]`):** `Array<{ id, code, hostUserId, hostName, hostAvatar, questionCount, timePerQuestion, participantCount, maxParticipants, createdAt }>`
 
 ---
 
@@ -325,3 +331,19 @@ sequenceDiagram
 
 #### 4. Custom Numeric Question Input
 - Added numeric `TextInput` allowing users to type custom question counts alongside shortcut pills.
+
+#### 5. Room Privacy Settings (Public vs Private)
+- Added `isPublic` (`Boolean`, default `true`) column to `PvpRoom` model in [schema.prisma](file:///e:/history-app/packages/shared/prisma/schema.prisma).
+- Added 2 toggle pill buttons ("Công khai" / "Riêng tư") at top of room creation screen right below screen title in [CreateRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/CreateRoomTab.tsx).
+
+#### 6. Public Room Discovery & Excluded Own Rooms
+- Added `GET /api/pvp/public-rooms` endpoint in [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts) and [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts), querying rooms with `isPublic = true`, `status = LOBBY`, `hostUserId != userId`, and `participants` not containing current user.
+- Integrated public room list into [JoinRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/JoinRoomTab.tsx) with pull-to-refresh, room code badges, host info, participant counts (`X/8`), and direct join actions while retaining manual 4-digit code entry.
+
+#### 7. Host Transfer & Room Cleanup on Participant Leave
+- **Host Transfer:** When room host leaves and participants remain, [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts) automatically reassigns `hostUserId` to the next participant (`remainingParticipants[0].userId`) and broadcasts `hostUserId` in `PLAYER_JOINED` event. [PvpMainScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpMainScreen.tsx) dynamically updates UI controls for the new host.
+- **Room Cleanup:** When the last participant leaves, active question timers are cleared and room status is set to `CANCELLED`.
+
+#### 8. Question Count Clamping & Toast Validation
+- Clamped numeric question input in [CreateRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/CreateRoomTab.tsx) to strictly positive values (`> 0`).
+- Prevented room creation and displayed error toast via `toastService.show` if `questionCount > availableCount`.

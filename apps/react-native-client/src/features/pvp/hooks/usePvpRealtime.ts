@@ -30,6 +30,7 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
     const [answeredUserIds, setAnsweredUserIds] = useState<string[]>([]);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [rankChanges, setRankChanges] = useState<Record<string, number>>({});
+    const [hostUserId, setHostUserId] = useState<string | null>(null);
 
     const channelRef = useRef<any>(null);
     const prevRanksRef = useRef<Record<string, number>>({});
@@ -44,6 +45,7 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
         setAnsweredUserIds([]);
         setShowLeaderboard(false);
         setRankChanges({});
+        setHostUserId(null);
         prevRanksRef.current = {};
     }, []);
 
@@ -66,6 +68,9 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
             .on("broadcast", { event: "PLAYER_JOINED" }, ({ payload }) => {
                 if (payload?.participants) {
                     setParticipants(payload.participants);
+                }
+                if (payload?.hostUserId) {
+                    setHostUserId(payload.hostUserId);
                 }
             })
             .on("broadcast", { event: "GAME_START" }, () => {
@@ -149,6 +154,7 @@ export function usePvpRealtime(roomCode: string | null, initialParticipants: Pvp
         answeredUserIds,
         showLeaderboard,
         rankChanges,
+        hostUserId,
         resetState,
     };
 }

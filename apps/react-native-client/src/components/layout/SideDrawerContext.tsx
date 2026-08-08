@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Zap, Coins } from "lucide-react-native";
+import { Zap, Coins, Swords } from "lucide-react-native";
 import { colors } from "../../theme/colors";
 import { typography } from "../../theme/typography";
 import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
@@ -324,12 +324,20 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                         activeOpacity={0.7}
                                         onPress={() => handleTabPress(tab.route)}
                                     >
-                                        <Ionicons
-                                            name={(isActive ? tab.activeIcon : tab.icon) as any}
-                                            size={22}
-                                            color={isActive ? colors.primary : colors.textSecondary}
-                                            style={styles.tabIcon}
-                                        />
+                                        {tab.id === "pvp" ? (
+                                            <Swords
+                                                size={22}
+                                                color={isActive ? colors.primary : colors.textSecondary}
+                                                style={styles.tabIcon}
+                                            />
+                                        ) : (
+                                            <Ionicons
+                                                name={(isActive ? tab.activeIcon : tab.icon) as any}
+                                                size={22}
+                                                color={isActive ? colors.primary : colors.textSecondary}
+                                                style={styles.tabIcon}
+                                            />
+                                        )}
                                         <Text
                                             style={[
                                                 styles.tabLabel,
