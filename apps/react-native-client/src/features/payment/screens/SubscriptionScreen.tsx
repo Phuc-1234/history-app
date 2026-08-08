@@ -179,6 +179,13 @@ export const SubscriptionScreen: React.FC = () => {
                             </View>
                         </View>
                         <View style={styles.featureItem}>
+                            <Ionicons name="sparkles-outline" size={24} color={colors.secondaryHover} style={{ marginRight: 14 }} />
+                            <View style={styles.featureTextContainer}>
+                                <Text style={styles.featureTitle}>Trợ lý AI Lịch sử thông minh</Text>
+                                <Text style={styles.featureDesc}>Trò chuyện, giải đáp thắc mắc với hạn mức gấp 10 lần.</Text>
+                            </View>
+                        </View>
+                        <View style={styles.featureItem}>
                             <Ionicons name="albums-outline" size={24} color={colors.warning} style={{ marginRight: 14 }} />
                             <View style={styles.featureTextContainer}>
                                 <Text style={styles.featureTitle}>Mở khoá thẻ lật</Text>

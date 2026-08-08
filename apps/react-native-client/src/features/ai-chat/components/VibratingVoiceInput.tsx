@@ -9,6 +9,8 @@ import Animated, {
     Easing,
 } from "react-native-reanimated";
 import { colors } from "@/theme/colors";
+import { typography } from "@/theme/typography";
+import { useEasterEgg } from "@/features/easter_egg";
 
 interface VibratingVoiceInputProps {
     isTranscribing: boolean;
@@ -40,11 +42,15 @@ export const VibratingVoiceInput: React.FC<VibratingVoiceInputProps> = ({
     isTranscribing,
     transcript,
 }) => {
+    const { isEngMode } = useEasterEgg();
+
     if (isTranscribing) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />
-                <Text style={styles.transcribingText}>Đang chép lời...</Text>
+                <Text style={styles.transcribingText}>
+                    {isEngMode ? "Transcribing..." : "Đang chép lời..."}
+                </Text>
             </View>
         );
     }
@@ -59,7 +65,7 @@ export const VibratingVoiceInput: React.FC<VibratingVoiceInputProps> = ({
                 <WaveBar delay={50} maxScale={1.5} />
             </View>
             <Text style={styles.listeningText} numberOfLines={1}>
-                {transcript || "Đang lắng nghe..."}
+                {transcript || (isEngMode ? "Listening..." : "Đang lắng nghe...")}
             </Text>
         </View>
     );
@@ -91,15 +97,15 @@ const styles = StyleSheet.create({
         marginHorizontal: 2,
     },
     listeningText: {
+        fontFamily: typography.fonts.medium,
         flex: 1,
         fontSize: 14,
         color: colors.primary,
-        fontWeight: "500",
     },
     transcribingText: {
+        fontFamily: typography.fonts.italic,
         flex: 1,
         fontSize: 14,
         color: colors.textSecondary,
-        fontStyle: "italic",
     },
 });

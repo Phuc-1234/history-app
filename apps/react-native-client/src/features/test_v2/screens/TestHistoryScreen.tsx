@@ -18,7 +18,6 @@ interface Props {
 export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props = {}) {
     const router = useRouter();
     const { data, isLoading, refetch } = useGetTestHistoryQuery({ scopeType, scopeId, testId });
-    const [restrictedModalVisible, setRestrictedModalVisible] = useState(false);
 
     if (isLoading) {
         return (
@@ -39,11 +38,7 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
     }
 
     const handlePressItem = (item: UserTestLogV2) => {
-        if (item.isPassed) {
-            router.push({ pathname: "/(10_proflie)/10_5_test_detail", params: { logId: item.id } } as any);
-        } else {
-            setRestrictedModalVisible(true);
-        }
+        router.push({ pathname: "/(10_proflie)/10_5_test_detail", params: { logId: item.id } } as any);
     };
 
     const renderItem = ({ item }: { item: UserTestLogV2 }) => {
@@ -98,15 +93,6 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
                 showsVerticalScrollIndicator={false}
                 onRefresh={refetch}
                 refreshing={isLoading}
-            />
-            <CustomModal
-                visible={restrictedModalVisible}
-                title="Không thể xem chi tiết"
-                message="Bạn chỉ có thể xem chi tiết bài làm đối với các lượt thi đã ĐẠT. Hãy thử lại để đạt kết quả tốt hơn nhé!"
-                confirmText="Đã hiểu"
-                onConfirm={() => setRestrictedModalVisible(false)}
-                showMascot={true}
-                mascotExpression="sad"
             />
         </View>
     );

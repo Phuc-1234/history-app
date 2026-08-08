@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { colors } from "@/theme/colors";
 
 interface TwinklingStarProps {
     size: number;
@@ -13,7 +14,7 @@ interface TwinklingStarProps {
 
 const TwinklingStar: React.FC<TwinklingStarProps> = ({
     size,
-    color = "#FCD34D", // Warm yellow star color
+    color = colors.gold, // Warm yellow star color
     style,
     delay = 0,
     duration = 1500,

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { colors } from "../theme/colors";
 import typography from "../theme/typography";
+import { radii } from "../theme";
 
 export interface TabOption {
     key: string;
@@ -23,6 +24,8 @@ interface SlidingTabBarProps {
     activeColor?: string;
     inactiveColor?: string;
     indicatorColor?: string;
+    pill?: boolean;
+    borderRadius?: number;
 }
 
 export const SlidingTabBar: React.FC<SlidingTabBarProps> = ({
@@ -33,12 +36,15 @@ export const SlidingTabBar: React.FC<SlidingTabBarProps> = ({
     activeColor,
     inactiveColor,
     indicatorColor,
+    pill,
+    borderRadius,
 }) => {
     const [containerWidth, setContainerWidth] = useState(0);
     const slideAnim = useRef(new Animated.Value(0)).current;
 
     const activeIndex = tabs.findIndex((tab) => tab.key === activeTab);
     const tabWidth = containerWidth > 0 ? containerWidth / tabs.length : 0;
+    const radius = borderRadius ?? (pill ? radii.pill : 5);
 
     useEffect(() => {
         if (containerWidth > 0 && activeIndex !== -1) {
@@ -57,7 +63,7 @@ export const SlidingTabBar: React.FC<SlidingTabBarProps> = ({
     };
 
     return (
-        <View style={[styles.container, containerStyle]} onLayout={onLayout}>
+        <View style={[styles.container, { borderRadius: radius }, containerStyle]} onLayout={onLayout}>
             {containerWidth > 0 && (
                 <Animated.View
                     style={[
@@ -66,6 +72,7 @@ export const SlidingTabBar: React.FC<SlidingTabBarProps> = ({
                             width: tabWidth - 8,
                             transform: [{ translateX: slideAnim }],
                             backgroundColor: indicatorColor ?? colors.accent,
+                            borderRadius: radius,
                         },
                     ]}
                 />

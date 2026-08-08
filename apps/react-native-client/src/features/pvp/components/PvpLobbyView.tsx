@@ -1,0 +1,236 @@
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, FlatList } from "react-native";
+import { colors, radii, spacing, typography } from "@/theme";
+import type { PvpParticipant, PvpRoom } from "../types";
+import { useStartPvpRoomMutation } from "../services/pvpApi";
+
+interface PvpLobbyViewProps {
+    room: PvpRoom;
+    participants: PvpParticipant[];
+    currentUserId: string;
+    onLeaveRoom: () => void;
+}
+
+export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }: PvpLobbyViewProps) {
+    const isHost = room.hostUserId === currentUserId;
+    const [startRoomMut, { isLoading: isStarting }] = useStartPvpRoomMutation();
+
+    const handleStart = async () => {
+        try {
+            await startRoomMut({ roomCode: room.code }).unwrap();
+        } catch (err) {
+            console.error("Failed to start PVP room:", err);
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            {/* Header / Room Code Badge */}
+            <View style={styles.codeCard}>
+                <Text style={styles.codeLabel}>Mã phòng thi đấu</Text>
+                <Text style={styles.codeText}>{room.code}</Text>
+                <Text style={styles.configSubtitle}>
+                    {room.questionCount} câu hỏi • {room.timePerQuestion}s / câu
+                </Text>
+            </View>
+
+            {/* Participants list */}
+            <Text style={styles.sectionTitle}>
+                Người chơi trong phòng ({participants.length}/8)
+            </Text>
+
+            <FlatList
+                data={participants}
+                keyExtractor={(item) => item.userId}
+                contentContainerStyle={styles.listContainer}
+                renderItem={({ item }) => {
+                    const isMe = item.userId === currentUserId;
+                    const isRoomHost = item.userId === room.hostUserId;
+                    return (
+                        <View style={[styles.playerCard, isMe && styles.playerCardMe]}>
+                            {item.profileImgUrl ? (
+                                <Image source={{ uri: item.profileImgUrl }} style={styles.avatar} />
+                            ) : (
+                                <View style={styles.avatarPlaceholder}>
+                                    <Text style={styles.avatarInitials}>
+                                        {item.name ? item.name[0].toUpperCase() : "U"}
+                                    </Text>
+                                </View>
+                            )}
+                            <View style={styles.playerInfo}>
+                                <Text style={styles.playerName} numberOfLines={1}>
+                                    {item.name} {isMe ? "(Bạn)" : ""}
+                                </Text>
+                            </View>
+                            {isRoomHost ? (
+                                <View style={styles.hostBadge}>
+                                    <Text style={styles.hostBadgeText}>Chủ phòng</Text>
+                                </View>
+                            ) : null}
+                        </View>
+                    );
+                }}
+            />
+
+            {/* Bottom action controls */}
+            <View style={styles.footer}>
+                {isHost ? (
+                    <TouchableOpacity
+                        style={[styles.startButton, isStarting && styles.buttonDisabled]}
+                        onPress={handleStart}
+                        disabled={isStarting}
+                    >
+                        {isStarting ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <Text style={styles.startButtonText}>Bắt đầu thi đấu</Text>
+                        )}
+                    </TouchableOpacity>
+                ) : (
+                    <View style={styles.waitingBanner}>
+                        <ActivityIndicator color={colors.primary600} style={{ marginRight: spacing.sm }} />
+                        <Text style={styles.waitingText}>Đang chờ chủ phòng bắt đầu...</Text>
+                    </View>
+                )}
+
+                <TouchableOpacity style={styles.leaveButton} onPress={onLeaveRoom}>
+                    <Text style={styles.leaveButtonText}>Rời phòng</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: spacing.lg,
+        backgroundColor: colors.neutral50,
+    },
+    codeCard: {
+        backgroundColor: colors.primary600,
+        borderRadius: radii.container,
+        padding: spacing.lg,
+        alignItems: "center",
+        marginBottom: spacing.lg,
+    },
+    codeLabel: {
+        fontSize: 14,
+        fontFamily: typography.fonts.medium,
+        color: colors.primary100,
+        letterSpacing: 1,
+    },
+    codeText: {
+        fontSize: 42,
+        fontFamily: typography.fonts.bold,
+        color: "#FFFFFF",
+        letterSpacing: 8,
+        marginVertical: spacing.xs,
+    },
+    configSubtitle: {
+        fontSize: 13,
+        fontFamily: typography.fonts.regular,
+        color: colors.primary100,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontFamily: typography.fonts.bold,
+        color: colors.neutral900,
+        marginBottom: spacing.md,
+    },
+    listContainer: {
+        gap: spacing.sm,
+    },
+    playerCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderRadius: radii.container,
+        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
+    },
+    playerCardMe: {
+        borderColor: colors.primary500,
+        backgroundColor: colors.primary50,
+    },
+    avatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        marginRight: spacing.md,
+    },
+    avatarPlaceholder: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.primary200,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: spacing.md,
+    },
+    avatarInitials: {
+        fontSize: 18,
+        fontFamily: typography.fonts.bold,
+        color: colors.primary800,
+    },
+    playerInfo: {
+        flex: 1,
+    },
+    playerName: {
+        fontSize: 16,
+        fontFamily: typography.fonts.regular,
+        color: colors.neutral900,
+    },
+    hostBadge: {
+        backgroundColor: colors.primary100,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xxs,
+        borderRadius: radii.pill,
+    },
+    hostBadgeText: {
+        fontSize: 12,
+        fontFamily: typography.fonts.medium,
+        color: colors.primary700,
+    },
+    footer: {
+        marginTop: spacing.md,
+        gap: spacing.sm,
+    },
+    startButton: {
+        backgroundColor: colors.primary600,
+        borderRadius: radii.pill,
+        paddingVertical: spacing.md,
+        alignItems: "center",
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+    },
+    startButtonText: {
+        fontSize: 15,
+        fontFamily: typography.fonts.medium,
+        color: "#FFFFFF",
+    },
+    waitingBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: spacing.md,
+        backgroundColor: colors.primary50,
+        borderRadius: radii.pill,
+    },
+    waitingText: {
+        fontSize: 15,
+        fontFamily: typography.fonts.medium,
+        color: colors.primary700,
+    },
+    leaveButton: {
+        alignItems: "center",
+        paddingVertical: spacing.sm,
+    },
+    leaveButtonText: {
+        fontSize: 14,
+        fontFamily: typography.fonts.medium,
+        color: colors.error600,
+    },
+});

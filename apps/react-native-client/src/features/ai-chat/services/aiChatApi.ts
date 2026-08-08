@@ -17,6 +17,7 @@ export interface ScreenContextPayload {
     nodeId?: number;
     topicId?: number;
     grade?: number;
+    isSupported?: boolean;
 }
 
 export interface AiChatMessageDto {
@@ -28,8 +29,18 @@ export interface AiChatMessageDto {
     createdAt: string;
 }
 
+export interface UserAiQuotaDto {
+    tokensUsed: number;
+    dailyLimit: number;
+    isPro: boolean;
+}
+
 export const aiChatApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        getUserQuota: builder.query<UserAiQuotaDto, void>({
+            query: () => "/api/ai-chat/quota",
+            providesTags: ["AiQuota"],
+        }),
         listSessions: builder.query<{ sessions: AiChatSessionDto[] }, void>({
             query: () => "/api/ai-chat/sessions",
             providesTags: ["AiChatSession"],
@@ -43,6 +54,20 @@ export const aiChatApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body: body || {},
             }),
+            async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if (data?.session) {
+                        dispatch(
+                            aiChatApi.util.updateQueryData("listSessions", undefined, (draft) => {
+                                if (!draft.sessions.some((s) => s.id === data.session.id)) {
+                                    draft.sessions.unshift(data.session);
+                                }
+                            })
+                        );
+                    }
+                } catch {}
+            },
             invalidatesTags: ["AiChatSession"],
         }),
         deleteSession: builder.mutation<{ success: boolean }, string>({
@@ -92,15 +117,39 @@ export const aiChatApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body: { content, screenContext },
             }),
-            invalidatesTags: (_result, _error, { sessionId }) => [
-                { type: "AiChatMessage", id: sessionId },
-                "AiChatSession",
-            ],
+            async onQueryStarted({ sessionId }, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if (data?.userMessage && data?.assistantMessage) {
+                        dispatch(
+                            aiChatApi.util.updateQueryData("getSessionMessages", sessionId, (draft) => {
+                                if (!draft.messages) draft.messages = [];
+                                if (!draft.messages.some((m) => m.id === data.userMessage.id)) {
+                                    draft.messages.push(data.userMessage);
+                                }
+                                if (!draft.messages.some((m) => m.id === data.assistantMessage.id)) {
+                                    draft.messages.push(data.assistantMessage);
+                                }
+                            })
+                        );
+                        dispatch(
+                            aiChatApi.util.updateQueryData("listSessions", undefined, (draft) => {
+                                const session = draft.sessions.find((s) => s.id === sessionId);
+                                if (session) {
+                                    session.updatedAt = new Date().toISOString();
+                                }
+                            })
+                        );
+                    }
+                } catch {}
+            },
+            invalidatesTags: ["AiQuota"],
         }),
     }),
 });
 
 export const {
+    useGetUserQuotaQuery,
     useListSessionsQuery,
     useCreateSessionMutation,
     useDeleteSessionMutation,

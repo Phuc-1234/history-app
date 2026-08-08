@@ -108,9 +108,6 @@ export type DeleteResponse = { message: string } | { error: string };
 export interface UpdateUserBody {
     role?: "STUDENT" | "ADMIN" | "SUPER_ADMIN";
     isHidden?: boolean;
-    isVerified?: boolean;
-    totalXp?: number;
-    totalGold?: number;
 }
 
 export interface AdminUserDto {

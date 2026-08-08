@@ -20,16 +20,10 @@ export const UserSocialBadges: React.FC<UserSocialBadgesProps> = ({
     return (
         <View style={[styles.badgesContainer, style]}>
             {isFriend && (
-                <View style={[styles.badgePill, styles.friendBadge]}>
-                    <Ionicons name="people" size={10} color={colors.socialFriends} />
-                    <Text style={[styles.badgeText, { color: colors.socialFriends }]}>Bạn bè</Text>
-                </View>
+                <Ionicons name="people" size={16} color={colors.socialFriends} />
             )}
             {isFollowing && (
-                <View style={[styles.badgePill, styles.followingBadge]}>
-                    <Ionicons name="eye" size={10} color={colors.socialFollowing} />
-                    <Text style={[styles.badgeText, { color: colors.socialFollowing }]}>Đang theo dõi</Text>
-                </View>
+                <Ionicons name="eye" size={16} color={colors.socialFollowing} />
             )}
         </View>
     );
@@ -39,26 +33,7 @@ const styles = StyleSheet.create({
     badgesContainer: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 4,
+        gap: 6,
         marginTop: 2,
-        flexWrap: "wrap",
-    },
-    badgePill: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 10,
-        gap: 3,
-    },
-    friendBadge: {
-        backgroundColor: "rgba(49, 130, 206, 0.12)",
-    },
-    followingBadge: {
-        backgroundColor: "rgba(16, 185, 129, 0.12)",
-    },
-    badgeText: {
-        fontFamily: typography.fonts.medium,
-        fontSize: 10,
     },
 });

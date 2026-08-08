@@ -554,21 +554,19 @@ export default function TestContainerV2({
                             <Text style={styles.restartBtnText}>Làm lại</Text>
                         </TouchableOpacity>
 
-                        {userTestLog.isPassed && (
-                            <TouchableOpacity
-                                style={styles.viewDetailsBtn}
-                                onPress={() => {
-                                    router.push({
-                                        pathname: "/(10_proflie)/10_5_test_detail",
-                                        params: { logId: String(userTestLog.id) },
-                                    });
-                                }}
-                            >
-                                <Text style={styles.viewDetailsBtnText}>
-                                    Xem chi tiết bài làm
-                                </Text>
-                            </TouchableOpacity>
-                        )}
+                        <TouchableOpacity
+                            style={styles.viewDetailsBtn}
+                            onPress={() => {
+                                router.push({
+                                    pathname: "/(10_proflie)/10_5_test_detail",
+                                    params: { logId: String(userTestLog.id) },
+                                });
+                            }}
+                        >
+                            <Text style={styles.viewDetailsBtnText}>
+                                Xem chi tiết bài làm
+                            </Text>
+                        </TouchableOpacity>
 
                         <TouchableOpacity
                             style={styles.exitBtn}

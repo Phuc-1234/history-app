@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Zap, Coins } from "lucide-react-native";
 import { useAppSelector } from "@/store/storeHook";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
@@ -19,7 +20,7 @@ import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import type { HomeLessonItem } from "../services/homeApi";
 import { PodiumSection } from "../../leaderboard/components/PodiumSection";
-import { AvatarWithFrame } from "../../../components/ui";
+import { AvatarWithFrame, FaintStarsOverlay } from "../../../components/ui";
 import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
 
 // ─── Component: Thẻ bài học ───────────────────────────────────────────────────
@@ -208,6 +209,8 @@ export default function HomeScreen() {
     const handleGoToFriends = () => router.push("/(social)/friends" as never);
     const handleGoToItems = () => router.push("/(tabs)/7_1_item" as never);
 
+    const isPro = !!profile?.isPro;
+
     return (
         <>
             <ScreenWrapper
@@ -218,25 +221,27 @@ export default function HomeScreen() {
                 onRefresh={handleRefresh}
                 showHistoricalBackground={false}
                 contentContainerStyle={styles.scrollContent}
-                backgroundColor={colors.primary}
+                backgroundColor={isPro ? "#e08c3d" : colors.primary}
             >
                 {/* ── Header Block ── */}
-                <View style={styles.headerBlock}>
+                <LinearGradient
+                    colors={isPro ? ["#e08c3d", "#c37938"] : [colors.primary, colors.primary]}
+                    style={styles.headerBlock}
+                >
+                    {isPro && <FaintStarsOverlay />}
                     <View style={styles.headerRow}>
-                        <View style={styles.logoContainer}>
-                            <TouchableOpacity
-                                activeOpacity={0.7}
-                                onPress={openDrawer}
-                                style={styles.menuButton}
-                            >
-                                <Ionicons
-                                    name="menu"
-                                    size={26}
-                                    color="#FFFFFF"
-                                />
-                            </TouchableOpacity>
-                            <Text style={styles.logoText}>Sắc sử</Text>
-                        </View>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={openDrawer}
+                            style={styles.menuButton}
+                        >
+                            <Ionicons
+                                name="menu"
+                                size={26}
+                                color="#FFFFFF"
+                            />
+                        </TouchableOpacity>
+                        <Text style={styles.logoText}>Sắc Sử</Text>
                         <TouchableOpacity
                             activeOpacity={0.7}
                             onPress={() => {
@@ -254,6 +259,11 @@ export default function HomeScreen() {
 
                     {/* Thẻ chào người dùng */}
                     <Card variant="soft" style={styles.userCard}>
+                        {isPro && (
+                            <View style={styles.cardProBadge}>
+                                <Text style={styles.cardProBadgeText}>PRO</Text>
+                            </View>
+                        )}
                         <View
                             style={{
                                 flexDirection: "row",
@@ -354,7 +364,7 @@ export default function HomeScreen() {
                             </View>
                         </View>
                     </Card>
-                </View>
+                </LinearGradient>
 
                 {/* ── Nội dung chính ── */}
                 <View style={styles.bodyBlock}>
@@ -412,6 +422,33 @@ export default function HomeScreen() {
                                 currentStreak={topBarData?.currentStreak}
                                 onPress={streakManager.openStreakDrawer}
                             />
+
+                            {/* Pro button — shiny gradient */}
+                            <TouchableOpacity
+                                style={styles.proButtonWrapper}
+                                onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
+                                activeOpacity={0.82}
+                            >
+                                <LinearGradient
+                                    colors={colors.proGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.squareButtonPro}
+                                >
+                                    <FaintStarsOverlay />
+                                    {/* shimmer strip */}
+                                    <LinearGradient
+                                        colors={["transparent", "rgba(255,255,255,0.35)", "transparent"]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.proShimmer}
+                                    />
+                                    <Ionicons name="sparkles" size={22} color="#fff" />
+                                    <Text style={styles.squareLabelPro}>
+                                        {profile?.isPro ? "Bạn đã là người dùng PRO!" : "Đăng ký Sắc Sử PRO"}
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
 
                             {/* ── Section: Bài học ── */}
                             <View style={styles.sectionHeader}>
@@ -556,6 +593,37 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 16,
         paddingBottom: 32,
+        position: "relative",
+        overflow: "hidden",
+    },
+    proButtonWrapper: {
+        width: "100%",
+        height: 50,
+        borderRadius: 12,
+        overflow: "hidden",
+        marginBottom: 16,
+    },
+    squareButtonPro: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        overflow: "hidden",
+    },
+    proShimmer: {
+        position: "absolute",
+        top: 0,
+        left: "-30%",
+        width: "60%",
+        height: "100%",
+        transform: [{ skewX: "-20deg" }],
+    },
+    squareLabelPro: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: "#fff",
+        textAlign: "center",
     },
     headerRow: {
         flexDirection: "row",
@@ -581,6 +649,7 @@ const styles = StyleSheet.create({
         fontSize: 22,
         color: colors.textLight,
         letterSpacing: 0.5,
+        textAlign: "center",
     },
     bellButton: {
         width: 40,
@@ -601,6 +670,23 @@ const styles = StyleSheet.create({
     userCard: {
         paddingHorizontal: 18,
         paddingVertical: 16,
+        position: "relative",
+    },
+    cardProBadge: {
+        position: "absolute",
+        top: 14,
+        right: 14,
+        backgroundColor: "#FFD700",
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 30,
+        zIndex: 2,
+    },
+    cardProBadgeText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 10,
+        color: "#5C3516",
+        letterSpacing: 0.5,
     },
     greetingText: {
         fontFamily: typography.fonts.medium,

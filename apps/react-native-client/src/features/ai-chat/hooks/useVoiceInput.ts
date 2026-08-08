@@ -3,12 +3,15 @@ import {
     ExpoSpeechRecognitionModule,
     useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
+import { useEasterEgg } from "@/features/easter_egg";
 
 interface UseVoiceInputOptions {
     onTranscriptComplete?: (text: string) => void;
+    lang?: string;
 }
 
 export function useVoiceInput(options?: UseVoiceInputOptions) {
+    const { isEngMode } = useEasterEgg();
     const [isListening, setIsListening] = useState(false);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [transcript, setTranscript] = useState("");
@@ -53,14 +56,15 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
             latestTranscriptRef.current = "";
             setIsListening(true);
             setIsTranscribing(false);
-            ExpoSpeechRecognitionModule.start({ lang: "vi-VN", interimResults: true });
+            const lang = options?.lang || (isEngMode ? "en-US" : "vi-VN");
+            ExpoSpeechRecognitionModule.start({ lang, interimResults: true });
             return true;
         } catch (error) {
             console.error("Failed to start voice recognition:", error);
             setIsListening(false);
             return false;
         }
-    }, []);
+    }, [isEngMode, options?.lang]);
 
     const stopListening = useCallback(() => {
         try {

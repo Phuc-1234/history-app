@@ -64,6 +64,7 @@ export class ContentService {
     async getAllGrades(userId?: string | null): Promise<GradeDto[]> {
         const grades = await prisma.grade.findMany({
             select: { id: true, state: true, isPro: true, imgUrl: true },
+            orderBy: { id: "asc" },
         });
         return Promise.all(
             grades.map(async (g) => ({

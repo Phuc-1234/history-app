@@ -30,13 +30,19 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
         } else if (url.startsWith("node:")) {
             const nodeId = url.replace("node:", "");
             router.push(`/(3_4_lessons)/lesson/node/${nodeId}` as any);
+        } else if (url.startsWith("grade:")) {
+            const grade = url.replace("grade:", "");
+            router.push({
+                pathname: "/(3_4_lessons)/lesson_menu",
+                params: { grade },
+            } as any);
         }
     };
 
     // Helper to render formatted inline text (bold, italic, links)
     const renderInlineText = (text: string, baseStyle: any) => {
         // Link pattern: [Label](url)
-        const linkRegex = /\[([^\]]+)\]\((lesson:\d+|node:\d+|https?:\/\/[^\)]+)\)/g;
+        const linkRegex = /\[([^\]]+)\]\((lesson:\d+|node:\d+|grade:\d+|https?:\/\/[^\)]+)\)/g;
         type InlinePart =
             | { type: "text"; value: string }
             | { type: "link"; label: string; url: string };
@@ -224,10 +230,9 @@ const styles = StyleSheet.create({
     },
     boldText: {
         fontFamily: typography.fonts.bold,
-        fontWeight: "700",
     },
     italicText: {
-        fontStyle: "italic",
+        fontFamily: typography.fonts.italic,
     },
     linkText: {
         color: colors.primary,
@@ -256,11 +261,12 @@ const styles = StyleSheet.create({
         paddingLeft: 4,
     },
     bulletPoint: {
+        fontFamily: typography.fonts.regular,
         fontSize: 14,
         marginRight: 6,
     },
     noteBox: {
-        backgroundColor: "rgba(255, 184, 0, 0.12)",
+        backgroundColor: colors.warningContainer,
         borderLeftWidth: 3,
         borderLeftColor: colors.warning,
         paddingHorizontal: 10,
@@ -269,15 +275,14 @@ const styles = StyleSheet.create({
         marginVertical: 6,
     },
     noteText: {
+        fontFamily: typography.fonts.italic,
         fontSize: 12,
         color: colors.textSecondary,
-        fontStyle: "italic",
     },
     tagBadge: {
-        fontFamily: typography.fonts.bold,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.primary,
-        backgroundColor: "rgba(218, 165, 32, 0.15)",
+        backgroundColor: colors.secondaryContainer,
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 12,

@@ -146,6 +146,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         if (segments.includes("10_4_test_history")) return "test_history";
         if (segments.includes("10_6_feedback")) return "feedback";
         if (segments.includes("10_8_subscription")) return "subscription";
+        if (segments.includes("pvp")) return "pvp";
         return "";
     })();
 
@@ -166,6 +167,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
 
     const tabsConfig = [
         { id: "home", label: "Trang chủ", icon: "home-outline", activeIcon: "home", route: "/(tabs)/home" },
+        { id: "pvp", label: "Thi đấu PVP", icon: "game-controller-outline", activeIcon: "game-controller", route: "/pvp" },
         { id: "lessons", label: "Bài học", icon: "book-outline", activeIcon: "book", route: "/(tabs)/2_1_lessons" },
         { id: "tests", label: "Luyện đề", icon: "clipboard-outline", activeIcon: "clipboard", route: "/(tabs)/5_1_national_tests" },
         { id: "leaderboard", label: "Bảng xếp hạng", icon: "stats-chart-outline", activeIcon: "stats-chart", route: "/(tabs)/9_1_leaderboard" },

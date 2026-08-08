@@ -13,18 +13,22 @@ import {
     Dimensions,
     Clipboard,
 } from "react-native";
+import { useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { AiSkeletonBubble } from "./AiSkeletonBubble";
 import { VibratingVoiceInput } from "./VibratingVoiceInput";
 import { AiMarkdownMessage } from "./AiMarkdownMessage";
 import { MascotRotator } from "./MascotRotator";
 import { TwinklingStars } from "./TwinklingStars";
 import { CustomModal } from "@/components/Modal";
+import { PremiumModal } from "@/components/PremiumModal";
 import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
 import { AiChatModeType } from "../services/aiChatApi";
+import { useEasterEgg } from "@/features/easter_egg";
 
 interface AiChatOverlayProps {
     visible: boolean;
@@ -34,17 +38,20 @@ interface AiChatOverlayProps {
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const OVERLAY_HEIGHT = SCREEN_HEIGHT * 0.8;
 
-const MODES: { id: AiChatModeType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: "COURSE_ONLY", label: "Chỉ Giáo Trình", icon: "book" },
-    { id: "COURSE_FIRST", label: "Ưu Tiên Giáo Trình", icon: "school" },
-    { id: "GENERAL", label: "Chung", icon: "chatbubbles" },
+const MODES: { id: AiChatModeType; label: string; labelEn: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { id: "COURSE_ONLY", label: "Chỉ Giáo Trình", labelEn: "Course Only", icon: "book" },
+    { id: "COURSE_FIRST", label: "Ưu Tiên Giáo Trình", labelEn: "Course First", icon: "school" },
+    { id: "GENERAL", label: "Chung", labelEn: "General", icon: "chatbubbles" },
 ];
 
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
+    const { isEngMode } = useEasterEgg();
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const flatListRef = useRef<FlatList>(null);
     const [speakingId, setSpeakingId] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [showScreenContextModal, setShowScreenContextModal] = useState(false);
 
     const {
         selectedSessionId,
@@ -65,7 +72,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         handleChangeMode,
         errorModal,
         setErrorModal,
+        showPremiumModal,
+        setShowPremiumModal,
         screenContext,
+        quotaData,
 
         isListening,
         isTranscribing,
@@ -135,7 +145,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             updateSpeakingId(id);
             const plainText = stripMarkdown(content);
             Speech.speak(plainText, {
-                language: "vi-VN",
+                language: isEngMode ? "en-US" : "vi-VN",
                 onDone: () => {
                     if (speakingIdRef.current === id) {
                         updateSpeakingId(null);
@@ -161,64 +171,83 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         const isCopied = copiedId === item.id;
 
         return (
-            <View style={[styles.messageBubbleContainer, isUser ? styles.userBubbleAlign : styles.assistantBubbleAlign]}>
-                <View style={{ alignItems: isUser ? "flex-end" : "flex-start", width: isUser ? undefined : "100%", maxWidth: isUser ? "80%" : "100%" }}>
-                    <View
-                        style={[
-                            isUser ? [styles.messageBubble, styles.userBubble] : styles.assistantOverlayContainer,
-                            item.isError && styles.errorBubble,
-                        ]}
-                    >
-                        {isUser ? (
-                            <Text selectable style={[styles.messageText, styles.userMessageText]}>
-                                {item.content}
-                            </Text>
-                        ) : (
-                            <AiMarkdownMessage
-                                content={item.content}
-                                textColor={colors.textPrimary}
-                                onCloseOverlay={onClose}
-                                selectable
-                            />
+            <View style={{ width: "100%" }}>
+                <View style={[styles.messageBubbleContainer, isUser ? styles.userBubbleAlign : styles.assistantBubbleAlign]}>
+                    <View style={{ alignItems: isUser ? "flex-end" : "flex-start", width: isUser ? undefined : "100%", maxWidth: isUser ? "80%" : "100%" }}>
+                        <View
+                            style={[
+                                isUser ? [styles.messageBubble, styles.userBubble] : styles.assistantOverlayContainer,
+                                item.isError && styles.errorBubble,
+                            ]}
+                        >
+                            {isUser ? (
+                                <Text selectable style={[styles.messageText, styles.userMessageText]}>
+                                    {item.content}
+                                </Text>
+                            ) : (
+                                <AiMarkdownMessage
+                                    content={item.content}
+                                    textColor={colors.textPrimary}
+                                    onCloseOverlay={onClose}
+                                    selectable
+                                />
+                            )}
+                        </View>
+
+                        {item.isError && (
+                            <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
+                                <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
+                                <Text style={styles.retryText}>
+                                    {isEngMode ? "Failed to send, tap to retry" : "Gửi thất bại, chạm để thử lại"}
+                                </Text>
+                            </Pressable>
+                        )}
+
+                        {!isUser && (
+                            <View style={[styles.actionRow, styles.assistantActionRow]}>
+                                <Pressable
+                                    style={styles.actionIconButton}
+                                    onPress={() => handleCopy(item.content, item.id)}
+                                >
+                                    <Ionicons
+                                        name={isCopied ? "checkmark-outline" : "copy-outline"}
+                                        size={15}
+                                        color={isCopied ? colors.primary : colors.textSecondary}
+                                    />
+                                </Pressable>
+
+                                <Pressable
+                                    style={styles.actionIconButton}
+                                    onPress={() => handleSpeak(item.content, item.id)}
+                                >
+                                    <Ionicons
+                                        name={isSpeaking ? "stop-circle-outline" : "volume-high-outline"}
+                                        size={15}
+                                        color={isSpeaking ? colors.primary : colors.textSecondary}
+                                    />
+                                </Pressable>
+                            </View>
                         )}
                     </View>
-
-                    {item.isError && (
-                        <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
-                            <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
-                            <Text style={styles.retryText}>Gửi thất bại, chạm để thử lại</Text>
-                        </Pressable>
-                    )}
-
-                    {!isUser && (
-                        <View style={[styles.actionRow, styles.assistantActionRow]}>
-                            <Pressable
-                                style={styles.actionIconButton}
-                                onPress={() => handleCopy(item.content, item.id)}
-                            >
-                                <Ionicons
-                                    name={isCopied ? "checkmark-outline" : "copy-outline"}
-                                    size={15}
-                                    color={isCopied ? colors.primary : colors.textSecondary}
-                                />
-                            </Pressable>
-
-                            <Pressable
-                                style={styles.actionIconButton}
-                                onPress={() => handleSpeak(item.content, item.id)}
-                            >
-                                <Ionicons
-                                    name={isSpeaking ? "stop-circle-outline" : "volume-high-outline"}
-                                    size={15}
-                                    color={isSpeaking ? colors.primary : colors.textSecondary}
-                                />
-                            </Pressable>
-                        </View>
-                    )}
                 </View>
+
+                {item.isQuotaExceeded && (
+                    <Pressable
+                        style={styles.quotaNoteContainer}
+                        onPress={() => setShowPremiumModal(true)}
+                    >
+                        <Text style={styles.quotaNoteText}>
+                            {isEngMode ? "You have reached today's AI Chat limit." : "Bạn đã dùng hết hạn mức AI Chat hôm nay."}
+                            {"\n"}
+                            <Text style={styles.quotaNoteHighlight}>
+                                {isEngMode ? "Upgrade PRO" : "Nâng cấp PRO"}
+                            </Text>
+                        </Text>
+                    </Pressable>
+                )}
             </View>
         );
-    };
+};
 
     return (
         <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
@@ -244,16 +273,19 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <View style={styles.headerTitleContainer}>
                             <Text style={styles.headerTitle} numberOfLines={1}>
                                 {showSessionsDrawer
-                                    ? "Lịch sử trò chuyện"
-                                    : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
+                                    ? (isEngMode ? "Chat History" : "Lịch sử trò chuyện")
+                                    : sessions.find((s) => s.id === selectedSessionId)?.title || (isEngMode ? "Viet History AI Assistant" : "Trợ lý AI Sử Việt")}
                             </Text>
                             {!showSessionsDrawer && screenContext?.screenName && (
-                                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 1 }}>
+                                <Pressable
+                                    style={{ flexDirection: "row", alignItems: "center", marginTop: 1 }}
+                                    onPress={() => setShowScreenContextModal(true)}
+                                >
                                     <Ionicons name="location-sharp" size={11} color={colors.primary} style={{ marginRight: 3 }} />
                                     <Text style={styles.headerSubTitle} numberOfLines={1}>
-                                        Đang xem: <Text style={styles.headerSubTitleHighlight}>{screenContext.screenName}</Text>
+                                        {isEngMode ? "Viewing: " : "Đang xem: "}<Text style={styles.headerSubTitleHighlight}>{screenContext.screenName}</Text>
                                     </Text>
-                                </View>
+                                </Pressable>
                             )}
                         </View>
 
@@ -283,7 +315,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                         <Ionicons
                                             name={mode.icon}
                                             size={12}
-                                            color={isActive ? "#FFF" : colors.textSecondary}
+                                            color={isActive ? colors.textLight : colors.textSecondary}
                                             style={{ marginRight: 4 }}
                                         />
                                         <Text
@@ -292,7 +324,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                 isActive && styles.modePillTextActive,
                                             ]}
                                         >
-                                            {mode.label}
+                                            {isEngMode ? mode.labelEn : mode.label}
                                         </Text>
                                     </Pressable>
                                 );
@@ -303,8 +335,69 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     {/* View Switch: Full Sessions List OR Chat View */}
                     {showSessionsDrawer ? (
                         <View style={styles.sessionsListFullContainer}>
+                            {/* Quota Progress Card */}
+                            {(() => {
+                                const usedRatio = (quotaData?.tokensUsed || 0) / (quotaData?.dailyLimit || 50000);
+                                const usedPercent = Math.min(100, Math.round(usedRatio * 100));
+                                return (
+                                    <>
+                                        <View style={styles.quotaCardHeader}>
+                                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                                <Ionicons name="sparkles" size={14} color={colors.primary} style={{ marginRight: 6 }} />
+                                                <Text style={styles.quotaCardTitle}>
+                                                    {isEngMode ? "Today's AI Quota" : "Hạn mức AI hôm nay"}
+                                                </Text>
+                                            </View>
+
+                                            {quotaData?.isPro ? (
+                                                <View style={styles.proBadgePill}>
+                                                    <Ionicons name="ribbon" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
+                                                    <Text style={styles.proBadgeText}>
+                                                        {isEngMode ? "PRO (Limit x10)" : "PRO (Hạn mức x10)"}
+                                                    </Text>
+                                                </View>
+                                            ) : (
+                                                <Pressable
+                                                    style={styles.upgradeBtnPill}
+                                                    onPress={() => {
+                                                        onClose();
+                                                        router.push("/(10_proflie)/10_8_subscription" as any);
+                                                    }}
+                                                >
+                                                    <Ionicons name="flash" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
+                                                    <Text style={styles.upgradeBtnText}>
+                                                        {isEngMode ? "Upgrade PRO (x10)" : "Nâng cấp PRO (x10)"}
+                                                    </Text>
+                                                </Pressable>
+                                            )}
+                                        </View>
+
+                                        <View style={styles.quotaProgressTrack}>
+                                            <View
+                                                style={[
+                                                    styles.quotaProgressFill,
+                                                    {
+                                                        width: `${usedPercent}%`,
+                                                        backgroundColor: usedPercent >= 90 ? colors.error : colors.primary,
+                                                    },
+                                                ]}
+                                            />
+                                        </View>
+
+                                        <View style={styles.quotaInfoRow}>
+                                            <Text style={styles.quotaUsageText}>
+                                                {isEngMode ? `Used ${usedPercent}% of daily limit` : `Đã dùng ${usedPercent}% hạn mức ngày`}
+                                            </Text>
+                                        </View>
+                                    </>
+                                );
+                            })()}
+
+                            <View style={styles.divider} />
                             <View style={styles.drawerHeader}>
-                                <Text style={styles.drawerTitle}>Danh sách hội thoại</Text>
+                                <Text style={styles.drawerTitle}>
+                                    {isEngMode ? "Chat List" : "Danh sách hội thoại"}
+                                </Text>
                             </View>
                             {isLoadingSessions ? (
                                 <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
@@ -338,10 +431,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                 </Text>
                                                 <Text style={styles.sessionItemModeText}>
                                                     {item.mode === "COURSE_ONLY"
-                                                        ? "Chỉ Giáo Trình"
+                                                        ? (isEngMode ? "Course Only" : "Chỉ Giáo Trình")
                                                         : item.mode === "COURSE_FIRST"
-                                                        ? "Ưu Tiên Giáo Trình"
-                                                        : "Chung"}
+                                                        ? (isEngMode ? "Course First" : "Ưu Tiên Giáo Trình")
+                                                        : (isEngMode ? "General" : "Chung")}
                                                 </Text>
                                             </View>
                                         </Pressable>
@@ -361,9 +454,13 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             <MascotRotator size={42} />
                                             <TwinklingStars mode="fab" />
                                         </View>
-                                        <Text style={styles.emptyTitle}>Xin chào! Tôi có thể giúp gì cho bạn?</Text>
+                                        <Text style={styles.emptyTitle}>
+                                            {isEngMode ? "Hello! How can I help you?" : "Xin chào! Tôi có thể giúp gì cho bạn?"}
+                                        </Text>
                                         <Text style={styles.emptySub}>
-                                            Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!
+                                            {isEngMode
+                                                ? "Ask anything about Vietnamese history, timelines, historical figures, or lessons!"
+                                                : "Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!"}
                                         </Text>
                                     </View>
                                 ) : (
@@ -403,10 +500,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             style={styles.textInput}
                                             placeholder={
                                                 activeMode === "COURSE_ONLY"
-                                                    ? "Hỏi về giáo trình bài học..."
+                                                    ? (isEngMode ? "Ask about course materials..." : "Hỏi về giáo trình bài học...")
                                                     : activeMode === "COURSE_FIRST"
-                                                    ? "Hỏi ưu tiên giáo trình..."
-                                                    : "Nhập câu hỏi..."
+                                                    ? (isEngMode ? "Ask course first..." : "Hỏi ưu tiên giáo trình...")
+                                                    : (isEngMode ? "Enter your question..." : "Nhập câu hỏi...")
                                             }
                                             placeholderTextColor={colors.textPlaceholder}
                                             value={inputText}
@@ -455,7 +552,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     </Pressable>
                                 </View>
                                 <Text style={styles.disclaimerText}>
-                                    AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng.
+                                    {isEngMode
+                                        ? "AI may make mistakes. Please verify important information."
+                                        : "AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng."}
                                 </Text>
                             </View>
                         </>
@@ -478,12 +577,16 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         </Text>
                         <Pressable style={styles.actionOptionRow} onPress={handleOpenRename}>
                             <Ionicons name="pencil-outline" size={20} color={colors.textPrimary} style={{ marginRight: 12 }} />
-                            <Text style={styles.actionOptionText}>Đổi tên</Text>
+                            <Text style={styles.actionOptionText}>
+                                {isEngMode ? "Rename" : "Đổi tên"}
+                            </Text>
                         </Pressable>
                         <View style={styles.actionOptionDivider} />
                         <Pressable style={styles.actionOptionRow} onPress={handleConfirmDelete}>
                             <Ionicons name="trash-outline" size={20} color={colors.error} style={{ marginRight: 12 }} />
-                            <Text style={[styles.actionOptionText, { color: colors.error }]}>Xóa hội thoại</Text>
+                            <Text style={[styles.actionOptionText, { color: colors.error }]}>
+                                {isEngMode ? "Delete conversation" : "Xóa hội thoại"}
+                            </Text>
                         </Pressable>
                     </View>
                 </View>
@@ -499,12 +602,14 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 <View style={styles.actionModalBackdrop}>
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowRenameModal(false)} />
                     <View style={styles.renameModalContainer}>
-                        <Text style={styles.renameModalTitle}>Đổi tên cuộc trò chuyện</Text>
+                        <Text style={styles.renameModalTitle}>
+                            {isEngMode ? "Rename Conversation" : "Đổi tên cuộc trò chuyện"}
+                        </Text>
                         <TextInput
                             style={styles.renameInput}
                             value={renameTitleInput}
                             onChangeText={setRenameTitleInput}
-                            placeholder="Nhập tên mới..."
+                            placeholder={isEngMode ? "Enter new name..." : "Nhập tên mới..."}
                             placeholderTextColor={colors.textPlaceholder}
                             autoFocus
                             maxLength={100}
@@ -517,7 +622,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     setActionSession(null);
                                 }}
                             >
-                                <Text style={styles.renameCancelText}>Hủy</Text>
+                                <Text style={styles.renameCancelText}>
+                                    {isEngMode ? "Cancel" : "Hủy"}
+                                </Text>
                             </Pressable>
                             <Pressable
                                 style={[
@@ -530,7 +637,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 {isUpdatingTitle ? (
                                     <ActivityIndicator size="small" color="#FFF" />
                                 ) : (
-                                    <Text style={styles.renameSaveText}>Lưu</Text>
+                                    <Text style={styles.renameSaveText}>
+                                        {isEngMode ? "Save" : "Lưu"}
+                                    </Text>
                                 )}
                             </Pressable>
                         </View>
@@ -543,10 +652,43 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 visible={errorModal.visible}
                 title={errorModal.title}
                 message={errorModal.message}
-                confirmText="Đồng ý"
+                confirmText={isEngMode ? "OK" : "Đồng ý"}
                 onConfirm={() => setErrorModal((prev) => ({ ...prev, visible: false }))}
                 showMascot
                 mascotExpression="sad"
+            />
+
+            {/* Quota Exceeded Premium Mascot Modal */}
+            <PremiumModal
+                visible={showPremiumModal}
+                onClose={() => setShowPremiumModal(false)}
+                title={isEngMode ? "AI Chat Quota Limit" : "Hạn mức AI Chat"}
+                description={
+                    isEngMode
+                        ? "You have reached your AI Chat limit for today. Upgrade to PRO to get 10x higher quota:"
+                        : "Bạn đã đạt hạn mức AI Chat hôm nay. Nâng cấp PRO để nhận thêm hạn mức cao gấp 10 lần:"
+                }
+            />
+
+            {/* Screen Context Info Modal */}
+            <CustomModal
+                visible={showScreenContextModal}
+                title={isEngMode ? "Screen Context" : "Ngữ cảnh màn hình"}
+                message={
+                    isEngMode
+                        ? `Viewing: ${screenContext?.screenName || "App screen"}\n\n` +
+                          (screenContext?.isSupported
+                              ? "AI supports reading and directly answering content on this screen (Lessons, knowledge nodes, mindmaps, flashcards)."
+                              : "This screen does not currently support direct AI content reading (Exams, leaderboards, shop, profile,...). AI will still assist you with general historical knowledge.")
+                        : `Đang xem: ${screenContext?.screenName || "Màn hình ứng dụng"}\n\n` +
+                          (screenContext?.isSupported
+                              ? "AI hỗ trợ đọc và giải đáp trực tiếp nội dung trên màn hình này (Bài học, nút kiến thức, sơ đồ tư duy, thẻ ghi nhớ)."
+                              : "Màn hình này hiện chưa hỗ trợ AI đọc nội dung trực tiếp (Bài thi, bảng xếp hạng, cửa hàng, cá nhân,...). AI vẫn sẽ hỗ trợ bạn giải đáp kiến thức lịch sử tổng quan.")
+                }
+                confirmText={isEngMode ? "Got it" : "Đã hiểu"}
+                onConfirm={() => setShowScreenContextModal(false)}
+                showMascot
+                mascotExpression={screenContext?.isSupported ? "happy" : "thinking"}
             />
         </Modal>
     );
@@ -585,17 +727,18 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     headerTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 15,
-        fontWeight: "600",
         color: colors.textPrimary,
     },
     headerSubTitle: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textMuted,
         marginTop: 1,
     },
     headerSubTitleHighlight: {
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
         color: colors.primary,
     },
     newChatHeaderButton: {
@@ -625,12 +768,12 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
     },
     modePillText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 11,
-        fontWeight: "600",
         color: colors.textSecondary,
     },
     modePillTextActive: {
-        color: "#FFF",
+        color: colors.textLight,
     },
     sessionsListFullContainer: {
         flex: 1,
@@ -645,8 +788,8 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     drawerTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 14,
-        fontWeight: "600",
         color: colors.textSecondary,
     },
     sessionItem: {
@@ -654,7 +797,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingVertical: 12,
         paddingHorizontal: 12,
-        borderRadius: 12, // container border radius = 12
+        borderRadius: 12,
         overflow: "hidden",
     },
     sessionItemActive: {
@@ -665,14 +808,16 @@ const styles = StyleSheet.create({
         opacity: 0.75,
     },
     sessionItemText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 14,
         color: colors.textPrimary,
     },
     sessionItemTextActive: {
+        fontFamily: typography.fonts.semiBold,
         color: colors.primary,
-        fontWeight: "600",
     },
     sessionItemModeText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textMuted,
         marginTop: 2,
@@ -692,20 +837,21 @@ const styles = StyleSheet.create({
         height: 56,
         borderRadius: 28,
         borderWidth: 2,
-        borderColor: "#FFF",
+        borderColor: colors.textLight,
         backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
         overflow: "visible",
     },
     emptyTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 16,
-        fontWeight: "600",
         color: colors.textPrimary,
         marginTop: 16,
         textAlign: "center",
     },
     emptySub: {
+        fontFamily: typography.fonts.regular,
         fontSize: 13,
         color: colors.textMuted,
         marginTop: 8,
@@ -722,9 +868,9 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     contextBadgeText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 11,
         color: colors.primary,
-        fontWeight: "600",
     },
     messageBubbleContainer: {
         flexDirection: "row",
@@ -753,11 +899,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     messageText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 14,
         lineHeight: 20,
     },
     userMessageText: {
-        color: "#FFF",
+        color: colors.textLight,
     },
     errorBubble: {
         backgroundColor: colors.errorContainer,
@@ -772,6 +919,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     retryText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.error,
         marginLeft: 4,
@@ -810,6 +958,7 @@ const styles = StyleSheet.create({
         paddingBottom: 4,
     },
     textInput: {
+        fontFamily: typography.fonts.regular,
         flex: 1,
         maxHeight: 100,
         minHeight: 40,
@@ -846,6 +995,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.textPlaceholder,
     },
     disclaimerText: {
+        fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textMuted,
         textAlign: "center",
@@ -866,8 +1016,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     actionModalTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 15,
-        fontWeight: "600",
         color: colors.textPrimary,
         marginBottom: 12,
         paddingHorizontal: 4,
@@ -880,9 +1030,9 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     actionOptionText: {
+        fontFamily: typography.fonts.medium,
         fontSize: 15,
         color: colors.textPrimary,
-        fontWeight: "500",
     },
     actionOptionDivider: {
         height: 1,
@@ -896,12 +1046,13 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     renameModalTitle: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 16,
-        fontWeight: "600",
         color: colors.textPrimary,
         marginBottom: 14,
     },
     renameInput: {
+        fontFamily: typography.fonts.regular,
         backgroundColor: colors.inputBackground,
         borderRadius: 12,
         paddingHorizontal: 14,
@@ -922,8 +1073,8 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     renameCancelText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 14,
-        fontWeight: "600",
         color: colors.textMuted,
     },
     renameSaveBtn: {
@@ -936,8 +1087,95 @@ const styles = StyleSheet.create({
         backgroundColor: colors.textPlaceholder,
     },
     renameSaveText: {
+        fontFamily: typography.fonts.semiBold,
         fontSize: 14,
-        fontWeight: "600",
-        color: "#FFF",
+        color: colors.textLight,
+    },
+    quotaCardHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    quotaCardTitle: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 13,
+        color: colors.textPrimary,
+    },
+    proBadgePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.orange,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 30,
+    },
+    proBadgeText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 11,
+        color: colors.textLight,
+    },
+    upgradeBtnPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.orange,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 30,
+    },
+    upgradeBtnText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 11,
+        color: colors.textLight,
+    },
+    quotaProgressTrack: {
+        height: 8,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.surfaceVariant,
+        borderRadius: 4,
+        overflow: "hidden",
+        marginVertical: 4,
+    },
+    quotaProgressFill: {
+        height: "100%",
+        borderRadius: 4,
+    },
+    quotaInfoRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginTop: 4,
+        marginBottom: 12,
+    },
+    quotaUsageText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 11,
+        color: colors.textSecondary,
+    },
+    quotaNoteContainer: {
+        alignSelf: "center",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 6,
+        marginBottom: 8,
+        paddingHorizontal: 12,
+    },
+    quotaNoteText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 11,
+        color: colors.textMuted,
+        textAlign: "center",
+        lineHeight: 16,
+    },
+    quotaNoteHighlight: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 11,
+        color: colors.primary,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: colors.divider,
+        marginVertical: 12,
     },
 });

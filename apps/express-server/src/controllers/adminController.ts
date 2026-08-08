@@ -377,15 +377,7 @@ export const updateUser = async (req: Request<{ userId: string }, any, UpdateUse
 };
 
 export const deleteUser = async (req: Request<{ userId: string }>, res: Response) => {
-    try {
-        const { userId } = req.params;
-        const deleted = await adminService.deleteUser(userId);
-        if (!deleted) return res.status(404).json({ error: "User not found." });
-        return res.status(200).json({ message: "User deleted successfully." });
-    } catch (err) {
-        console.error("Delete user error:", err);
-        return res.status(500).json({ error: "Failed to delete user." });
-    }
+    return res.status(403).json({ error: "User deletion is disabled for all roles. Hide user account instead." });
 };
 
 // ─────────────────────────────── VIDEO ────────────────────────────────────────

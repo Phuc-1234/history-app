@@ -19,6 +19,7 @@ import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { SlidingTabBar } from "../../../components/SlidingTabBar";
 import { Card } from "../../../components/Card";
+import { AvatarWithFrame } from "../../../components/ui";
 import { Ionicons } from "@expo/vector-icons";
 
 export const RankingView: React.FC = () => {
@@ -27,7 +28,7 @@ export const RankingView: React.FC = () => {
     const myUserId = user?.id;
     
     // State quản lý sticky & filter dropdown
-    const [showSticky, setShowSticky] = useState(false);
+    const [isMyRowVisible, setIsMyRowVisible] = useState(true);
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
     const {
@@ -50,10 +51,39 @@ export const RankingView: React.FC = () => {
 
     const isFiltering = filterOption !== "all";
 
-    // Logic cuộn để hiện thanh sticky
+    // Logic cuộn kiêm kiểm tra vị trí xem row của 'Tôi' có trên màn hình hay không
     const handleScroll = (event: any) => {
         const scrollY = event.nativeEvent.contentOffset.y;
-        setShowSticky(scrollY > 100); 
+        const layoutHeight = event.nativeEvent.layoutMeasurement.height;
+
+        if (!meInList) {
+            setIsMyRowVisible(true);
+            return;
+        }
+
+        // Ước tính vị trí Y thực tế của người dùng:
+        // PodiumSection: paddingTop(10) + marginTop(18) + height(topUsers ~240px) => ~268px.
+        // RankingList: marginTop(34).
+        // Hàng Card: height 68px + marginBottom 14px = 82px / hàng.
+        let meTop = 0;
+        let meBottom = 0;
+
+        if (meInList.rank <= 3) {
+            meTop = 10;
+            meBottom = 260;
+        } else {
+            const indexInList = meInList.rank - 4;
+            meTop = 268 + 34 + indexInList * 82;
+            meBottom = meTop + 68;
+        }
+
+        // Floater che khoảng 80px ở đáy ScrollView (bottom: 20, height: 68 -> bottomOffset ~90px)
+        const visibleTop = scrollY;
+        const visibleBottom = scrollY + layoutHeight - 90;
+
+        // Row considered visible only if its main portion is within visible bounds (above the floater)
+        const isVisible = meBottom > visibleTop && meTop < visibleBottom;
+        setIsMyRowVisible(isVisible);
     };
 
     const handleUserPress = (targetUserId: string) => {
@@ -127,6 +157,7 @@ export const RankingView: React.FC = () => {
                             size={20}
                             color={colors.primary}
                         />
+                        <Ionicons name="people" size={16} color={colors.socialFriends} />
                         <Text style={styles.checkboxLabel}>Bạn bè</Text>
                     </TouchableOpacity>
 
@@ -140,6 +171,7 @@ export const RankingView: React.FC = () => {
                             size={20}
                             color={colors.primary}
                         />
+                        <Ionicons name="eye" size={16} color={colors.socialFollowing} />
                         <Text style={styles.checkboxLabel}>Đang theo dõi</Text>
                     </TouchableOpacity>
 
@@ -153,6 +185,10 @@ export const RankingView: React.FC = () => {
                             size={20}
                             color={colors.primary}
                         />
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                            <Ionicons name="people" size={16} color={colors.socialFriends} />
+                            <Ionicons name="eye" size={16} color={colors.socialFollowing} />
+                        </View>
                         <Text style={styles.checkboxLabel}>Bạn bè & đang theo dõi</Text>
                     </TouchableOpacity>
                 </Card>
@@ -210,28 +246,51 @@ export const RankingView: React.FC = () => {
                 </ScrollView>
             )}
 
-            {/* Thanh Sticky Bar */}
-            {showSticky && meInList && (
-                <TouchableOpacity
+            {/* Thanh Sticky Bar hiển thị khi hàng của người dùng cuộn khỏi màn hình */}
+            {!isMyRowVisible && meInList && (
+                <Card
                     style={styles.myRankStickyBar}
                     onPress={() => handleUserPress(String(myUserId))}
-                    activeOpacity={0.9}
                 >
-                    <Text style={styles.rankText}>Hạng {myRank}</Text>
-                    <Text style={styles.nameText} numberOfLines={1}>
-                        {meInList.name}
+                    {/* Hạng */}
+                    <Text style={styles.stickyRankPosition}>
+                        {myRank}
                     </Text>
-                    <Text style={styles.xpText}>
-                        {activeTab === "xp" ? (
-                            `${meInList.xp ?? 0} XP`
-                        ) : (
+
+                    {/* Avatar */}
+                    <AvatarWithFrame
+                        uri={meInList.avatar}
+                        frameUri={meInList.equippedFrameUrl}
+                        size={40}
+                        name={meInList.name}
+                        borderWidth={1.5}
+                        style={{ marginRight: 14 }}
+                    />
+
+                    {/* Tên & Badges */}
+                    <View style={styles.stickyNameColumn}>
+                        <Text style={styles.stickyRowName} numberOfLines={1}>
+                            {meInList.name}
+                        </Text>
+                        <View style={{ flexDirection: "row", marginTop: 2 }}>
+                            <View style={styles.stickyMeTag}>
+                                <Text style={styles.stickyMeTagText}>Tôi</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* XP hoặc Chuỗi */}
+                    <Text style={styles.stickyRowXp}>
+                        {activeTab === "streak" ? (
                             <>
-                                <Ionicons name="flame" size={16} color="#FFD700" />
-                                <Text> {meInList.streak ?? 0}</Text>
+                                <Ionicons name="flame" size={14} color="#EA580C" />
+                                <Text> {meInList.streak ?? 0} ngày</Text>
                             </>
+                        ) : (
+                            `${(meInList.xp ?? 0).toLocaleString()} XP`
                         )}
                     </Text>
-                </TouchableOpacity>
+                </Card>
             )}
         </View>
     );
@@ -325,36 +384,59 @@ const styles = StyleSheet.create({
         color: "white",
     },
     
-    // Style cho thanh Sticky
+    // Style cho thanh Sticky Bar (Row format với viền màu brand & shadow)
     myRankStickyBar: {
         position: "absolute",
-        bottom: 60,
-        left: 20,
-        right: 20,
-        height: 60,
-        backgroundColor: colors.accent,
-        borderRadius: 30,
+        bottom: 20,
+        left: 22,
+        right: 22,
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 30,
+        backgroundColor: colors.surface,
+        borderWidth: 2,
+        borderColor: colors.primary,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         zIndex: 999,
+        // Elevation & shadow
+        elevation: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
     },
-    rankText: { 
+    stickyRankPosition: {
         fontFamily: typography.fonts.bold,
-        color: "#FFD700", 
-        fontSize: 16 
+        width: 28,
+        marginRight: 8,
+        fontSize: 15,
+        color: colors.textPrimary,
     },
-    xpText: { 
-        fontFamily: typography.fonts.bold,
-        color: "#FFD700", 
-        fontSize: 16 
+    stickyNameColumn: {
+        flex: 1,
+        justifyContent: "center",
+        marginRight: 8,
     },
-    nameText: { 
+    stickyRowName: {
         fontFamily: typography.fonts.bold,
-        color: "white", 
-        fontSize: 16, 
-        flex: 1, 
-        marginHorizontal: 10 
+        fontSize: 15,
+        color: "#EA580C",
+    },
+    stickyMeTag: {
+        backgroundColor: "#EA580C",
+        paddingHorizontal: 6,
+        paddingVertical: 1.5,
+        borderRadius: 12,
+    },
+    stickyMeTagText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 10,
+        color: "#FFFFFF",
+    },
+    stickyRowXp: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 15,
+        color: colors.textSecondary,
     },
 });

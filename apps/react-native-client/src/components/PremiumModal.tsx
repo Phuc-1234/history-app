@@ -17,12 +17,16 @@ interface PremiumModalProps {
     visible: boolean;
     onClose: () => void;
     featureName?: string; // Optional: specific feature they tried to access, e.g. "bài học này"
+    title?: string;
+    description?: string;
 }
 
 export function PremiumModal({
     visible,
     onClose,
     featureName = "nội dung này",
+    title,
+    description,
 }: PremiumModalProps) {
     const router = useRouter();
 
@@ -55,9 +59,9 @@ export function PremiumModal({
                     </View>
 
                     {/* Title & Description */}
-                    <Text style={styles.title}>Mở khóa để tiếp tục học</Text>
+                    <Text style={styles.title}>{title || "Mở khóa để tiếp tục học"}</Text>
                     <Text style={styles.message}>
-                        Rất tiếc, {featureName} chỉ dành cho tài khoản PRO. Hãy nâng cấp để trải nghiệm trọn vẹn:
+                        {description || `Rất tiếc, ${featureName} chỉ dành cho tài khoản PRO. Hãy nâng cấp để trải nghiệm trọn vẹn:`}
                     </Text>
 
                     {/* Benefits List */}
@@ -77,6 +81,10 @@ export function PremiumModal({
                         <View style={styles.benefitItem}>
                             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
                             <Text style={styles.benefitText}>Mở khoá mind map</Text>
+                        </View>
+                        <View style={styles.benefitItem}>
+                            <Ionicons name="sparkles" size={16} color={colors.secondary} />
+                            <Text style={styles.benefitText}>Hạn mức AI Chat cao gấp 10 lần</Text>
                         </View>
                     </View>
 

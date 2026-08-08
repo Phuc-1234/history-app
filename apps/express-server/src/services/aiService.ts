@@ -77,8 +77,10 @@ export class AIService {
             mode?: "COURSE_ONLY" | "COURSE_FIRST" | "GENERAL";
             groundingContext?: string;
             screenContextText?: string;
+            isSupportedScreen?: boolean;
+            summary?: string;
         }
-    ): Promise<string> {
+    ): Promise<{ text: string; usageTokens: number }> {
         const keys = [
             process.env.GEMINI_API_KEY_1,
             process.env.GEMINI_API_KEY_2,
@@ -93,19 +95,37 @@ export class AIService {
         let lastError: Error | null = null;
         const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
 
-        let systemPrompt = "Bạn là trợ lý AI học tập lịch sử Việt Nam và thế giới thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n" +
-            "QUY TẮC HIỂN THỊ LIÊN KẾT NÚT KIẾN THỨC (QUAN TRỌNG):\n" +
-            "- TUYỆT ĐỐI KHÔNG DÙNG \"Nút id ___\", \"Nút ___\", \"Nút ID ___\" hay bất kỳ mã ID nào làm tên hiển thị của liên kết (CẤM CỤT THỂ: [Nút id 12](node:12) hoặc [Nút 12](node:12)).\n" +
-            "- Luôn sử dụng Tiêu đề của nút kiến thức làm tên hiển thị (ví dụ: [Diễn biến cuộc khởi nghĩa](node:12)).\n" +
-            "- KHÔNG đặt ngoặc vuông [] quanh các từ văn bản thuần túy (ví dụ: viết \"Lớp 11\" thay vì \"[Lớp 11]\"), trừ khi tạo liên kết Markdown dạng [Tên nhãn](lesson:ID) hoặc [Tên nhãn](node:ID).\n" +
-            "- Nếu nút kiến thức không có tiêu đề, hãy tự sáng tạo một tiêu đề tóm tắt ngắn gọn (3-6 từ) thể hiện đúng nội dung của nút đó làm tên hiển thị liên kết (ví dụ: [Bối cảnh lịch sử](node:12)).\n\n";
+        const currentDateStr = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "numeric", day: "numeric" });
+        let systemPrompt = `Thời gian thực tế hôm nay: ${currentDateStr} (Múi giờ Việt Nam).\n` +
+            "Bạn là trợ lý AI học tập lịch sử Việt Nam thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n" +
+            "QUY TẮC NGÔN NGỮ TRẢ LỜI (BẮT BUỘC):\n" +
+            "- Nếu tin nhắn mới nhất của người dùng được viết bằng tiếng Anh (hoặc người dùng hỏi bằng tiếng Anh), bạn BẮT BUỘC phải trả lời hoàn toàn bằng tiếng Anh.\n" +
+            "- Nếu tin nhắn của người dùng bằng tiếng Việt, bạn trả lời bằng tiếng Việt.\n\n" +
+            "QUY TẮC HIỂN THỊ LIÊN KẾT BÀI HỌC, NÚT KIẾN THỨC VÀ KHỐI LỚP (QUAN TRỌNG):\n" +
+            "- LIÊN KẾT KHỐI LỚP: Khi gợi ý hoặc nhắc tới chương trình học của các khối lớp (Lớp 10, Lớp 11, Lớp 12), BẮT BUỘC sử dụng cú pháp: [Lịch sử lớp 10](grade:10), [Lịch sử lớp 11](grade:11), [Lịch sử lớp 12](grade:12). TUYỆT ĐỐI KHÔNG DÙNG lesson:ID cho khối lớp!\n" +
+            "- LIÊN KẾT BÀI HỌC: Chỉ sử dụng [Tên bài học](lesson:ID) khi ID đó thực sự tồn tại trong phần 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' bên dưới. KHÔNG tự suy đoán hay bịa mã ID bài học.\n" +
+            "- LIÊN KẾT NÚT KIẾN THỨC: Chỉ sử dụng [Tiêu đề nút](node:ID) khi ID đó thực sự xuất hiện trong dữ liệu giáo trình bên dưới. TUYỆT ĐỐI KHÔNG DÙNG \"Nút id ___\", \"Nút ___\", \"Nút ID ___\" hay bất kỳ mã ID nào làm tên hiển thị của liên kết (CẤM CỤT THỂ: [Nút id 12](node:12) hoặc [Nút 12](node:12)). Luôn dùng Tiêu đề nút hoặc một cụm từ tóm tắt nội dung ngắn gọn (3-6 từ) làm tên hiển thị.\n" +
+            "- KHÔNG đặt ngoặc vuông [] quanh các từ văn bản thuần túy, trừ khi tạo liên kết Markdown đúng định dạng (lesson:ID, node:ID, grade:ID).\n\n";
+
+        if (options?.summary) {
+            systemPrompt += `TÓM TẮT BỐI CẢNH CÁC TIN NHẮN TRƯỚC ĐÓ TRONG CUỘC TRÒ CHUYỆN:\n${options.summary}\n\n`;
+        }
 
         if (options?.screenContextText) {
-            systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ (GỢI Ý BỐI CẢNH):
+            if (options.isSupportedScreen === false) {
+                systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ:
+${options.screenContextText}
+- LƯU Ý QUAN TRỌNG VỀ BỐI CẢNH MÀN HÌNH CHƯA HỖ TRỢ:
+  + Màn hình hiện tại của người dùng KHÔNG HỖ TRỢ tính năng nhận biết bối cảnh nội dung tự động.
+  + Nếu người dùng hỏi về bối cảnh của màn hình này hoặc dùng các từ mập mờ chỉ màn hình này (ví dụ: "bài thi này", "bảng xếp hạng này", "màn hình này", "phần này", "kết quả này"), bạn BẮT BUỘC phải thông báo lịch sự rằng tính năng nhận biết bối cảnh cho màn hình này chưa được hỗ trợ, nhưng gợi ý họ vẫn có thể đặt câu hỏi chung về Lịch sử Việt Nam hoặc hỏi về các bài học (ví dụ: "Tính năng nhận biết bối cảnh cho màn hình này chưa được hỗ trợ, nhưng bạn vẫn có thể đặt câu hỏi chung về Lịch sử Việt Nam hoặc hỏi về các bài học!").
+  + Nếu người dùng hỏi câu hỏi lịch sử chung không phụ thuộc vào bối cảnh màn hình, bạn vẫn trả lời câu hỏi lịch sử đó bình thường.\n\n`;
+            } else {
+                systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ (GỢI Ý BỐI CẢNH):
 ${options.screenContextText}
 - LƯU Ý QUAN TRỌNG VỀ BỐI CẢNH MÀN HÌNH:
   + Màn hình này là GỢI Ý NGUYÊN THỂ khi người dùng dùng từ mập mờ (ví dụ: "bài này", "nút này", "màn hình này", "ở đây", "nội dung này").
   + Màn hình này KHÔNG PHẢI là giới hạn duy nhất cho phạm vi câu hỏi. Người dùng có thể hỏi về bất kỳ bài học hoặc chủ đề nào khác trong bộ giáo trình. Bạn cần sử dụng toàn bộ 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' để trả lời.\n\n`;
+            }
         }
 
         if (options?.mode === "COURSE_ONLY") {
@@ -167,7 +187,11 @@ Hãy hỗ trợ học sinh giải đáp thắc mắc lịch sử tự do, chính
                 if (!textResponse) {
                     throw new Error("Invalid response structure from Gemini.");
                 }
-                return textResponse;
+
+                const usageTokens = data.usageMetadata?.totalTokenCount ||
+                    Math.ceil((systemPrompt.length + JSON.stringify(contents).length + textResponse.length) / 4);
+
+                return { text: textResponse, usageTokens };
             } catch (error: any) {
                 console.error(`Gemini chat call failed with key ending in ...${apiKey.slice(-5)}:`, error.message);
                 lastError = error;
@@ -280,6 +304,24 @@ ${text}`;
         const jsonStr = await this.callGemini(prompt);
         const cleanedStr = this.cleanJson(jsonStr);
         return JSON.parse(cleanedStr);
+    }
+
+    async summarizeContext(
+        messages: { sender: string; content: string }[],
+        previousSummary?: string
+    ): Promise<string> {
+        try {
+            const formatted = messages.map(m => `${m.sender === "user" ? "Học sinh" : "AI"}: ${m.content}`).join("\n");
+            let prompt = `Bạn là một trợ lý AI tóm tắt hội thoại học tập. Hãy tóm tắt ngắn gọn bối cảnh và các ý chính của cuộc trò chuyện dưới đây (tối đa 150-200 từ).\n`;
+            if (previousSummary) {
+                prompt += `Tóm tắt bối cảnh các tin nhắn trước:\n${previousSummary}\n\n`;
+            }
+            prompt += `Nội dung cuộc trò chuyện gần đây cần hợp nhất vào tóm tắt:\n${formatted}\n\nChỉ trả về đoạn văn tóm tắt bối cảnh thuần túy, không định dạng JSON hay thêm lời chào filler.`;
+            return await this.callGemini(prompt);
+        } catch (error) {
+            console.error("Failed to generate context summary:", error);
+            return previousSummary || "";
+        }
     }
 }
 

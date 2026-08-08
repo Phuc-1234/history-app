@@ -59,6 +59,7 @@ export const colors = {
     silver: "#C0C0C0",
     bronze: "#CD7F32",
     streak: "#c37938",
+    orange: "#FF9500",
 
     // -------------------------------------------------------------
     // Borders, Dividers & Lines
@@ -106,8 +107,31 @@ export const colors = {
     ],
 
     // -------------------------------------------------------------
-    // PRO / Premium Styling (Imperial Copper-Gold Gradient)
+    // Color Palette Scale (Neutral, Primary, Error)
     // -------------------------------------------------------------
+    neutral50: "#F9FAFB",
+    neutral100: "#F3F4F6",
+    neutral200: "#E5E7EB",
+    neutral300: "#D1D5DB",
+    neutral400: "#9CA3AF",
+    neutral500: "#6B7280",
+    neutral600: "#4B5563",
+    neutral700: "#374151",
+    neutral800: "#1F2937",
+    neutral900: "#111827",
+
+    primary50: "#FFF7ED",
+    primary100: "#FFEDD5",
+    primary200: "#FED7AA",
+    primary500: "#c37938",
+    primary600: "#a66228",
+    primary700: "#8A4D1D",
+    primary800: "#6E3B15",
+
+    error500: "#EF4444",
+    error600: "#DC2626",
+
+    // PRO / Premium Styling (Imperial Copper-Gold Gradient)
     proGradient: ["#8C2500", "#E5A93B", "#FFD700"] as const,
 };
 

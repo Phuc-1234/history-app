@@ -26,15 +26,34 @@ import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import FeedbackModal from "../../../components/FeedbackModal";
 
-function convertHslToHex(html: string): string {
+function preprocessHtml(html: string): string {
     if (!html) return "";
-    return html.replace(
-        /hsla?\(\s*(\d+(?:\.\d+)?)\s*(?:,|\s+)\s*(\d+(?:\.\d+)?)%\s*(?:,|\s+)\s*(\d+(?:\.\d+)?)%\s*(?:(?:,|\/|\s+)\s*(\d+(?:\.\d+)?)\s*)?\)/gi,
+
+    let processed = html;
+
+    // 1. Convert align="..." HTML attribute to inline style text-align
+    processed = processed.replace(
+        /<([a-z1-6]+)\s+([^>]*?)align=["'](center|right|left|justify)["']([^>]*?)>/gi,
+        '<$1 $2style="text-align:$3;" $4>'
+    );
+
+    // 2. Convert shorthand background: to background-color: in inline style attributes
+    processed = processed.replace(/style=(["'])(.*?)\1/gi, (match, quote, styleContent) => {
+        const updatedStyle = styleContent.replace(/(^|;|\s*)background\s*:\s*([^;]+)/gi, "$1background-color:$2");
+        return `style=${quote}${updatedStyle}${quote}`;
+    });
+
+    // 3. Convert HSL/HSLA to Hex (handles deg, %, comma/space syntax)
+    processed = processed.replace(
+        /hsla?\(\s*(\d+(?:\.\d+)?)(?:deg)?\s*[\s,]+\s*(\d+(?:\.\d+)?)%\s*[\s,]+\s*(\d+(?:\.\d+)?)%(?:\s*[\s,\/]+\s*(\d+(?:\.\d+)?%?))?\s*\)/gi,
         (match, hStr, sStr, lStr, aStr) => {
             const h = parseFloat(hStr);
             const s = parseFloat(sStr) / 100;
             const l = parseFloat(lStr) / 100;
-            const a = aStr ? parseFloat(aStr) : 1;
+            let a = 1;
+            if (aStr) {
+                a = aStr.endsWith("%") ? parseFloat(aStr) / 100 : parseFloat(aStr);
+            }
 
             const k = (n: number) => (n + h / 30) % 12;
             const factor = s * Math.min(l, 1 - l);
@@ -56,6 +75,8 @@ function convertHslToHex(html: string): string {
             return `#${rHex}${gHex}${bHex}`;
         }
     );
+
+    return processed;
 }
 
 interface NodeScreenProps {
@@ -210,7 +231,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 <View style={{ marginBottom: 24 }}>
                     <RenderHtml
                         contentWidth={width - 40}
-                        source={{ html: convertHslToHex(node.body || "") }}
+                        source={{ html: preprocessHtml(node.body || "") }}
                         tagsStyles={tagsStyles}
                         classesStyles={classesStyles}
                         renderers={renderers}
@@ -335,12 +356,10 @@ const tagsStyles = {
         color: colors.textSecondary,
         fontSize: 16,
         lineHeight: 26,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     p: {
         marginTop: 0,
         marginBottom: 12,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     a: {
         color: colors.primary,
@@ -351,7 +370,6 @@ const tagsStyles = {
         color: colors.textSecondary,
         fontSize: 15,
         lineHeight: 22,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     strong: {
         fontFamily: typography.fonts.bold,
@@ -371,6 +389,10 @@ const tagsStyles = {
     },
     u: {
         textDecorationLine: "underline" as const,
+    },
+    mark: {
+        backgroundColor: "#ffe066",
+        color: colors.textPrimary,
     },
     th: {
         fontFamily: typography.fonts.bold,
@@ -399,9 +421,108 @@ const classesStyles = {
         fontSize: 24,
         lineHeight: 34,
     },
+    "text-align-center": { textAlign: "center" as const },
+    "text-align-right": { textAlign: "right" as const },
+    "text-align-left": { textAlign: "left" as const },
+    "text-align-justify": { textAlign: "justify" as const },
+    "ql-align-center": { textAlign: "center" as const },
+    "ql-align-right": { textAlign: "right" as const },
+    "ql-align-left": { textAlign: "left" as const },
+    "ql-align-justify": { textAlign: "justify" as const },
+    "text-center": { textAlign: "center" as const },
+    "text-right": { textAlign: "right" as const },
+    "text-left": { textAlign: "left" as const },
+    "text-justify": { textAlign: "justify" as const },
+    "marker-yellow": { backgroundColor: "#ffe066", color: colors.textPrimary },
+    "marker-green": { backgroundColor: "#a2f4bf", color: colors.textPrimary },
+    "marker-pink": { backgroundColor: "#ffc0cb", color: colors.textPrimary },
+    "marker-blue": { backgroundColor: "#a0c4ff", color: colors.textPrimary },
+    "pen-red": { color: "#e63946" },
+    "pen-green": { color: "#2a9d8f" },
 };
 
+function extractInlineStyles(styleAttr?: string) {
+    if (!styleAttr) return null;
+    const res: any = {};
+    const colorMatch = styleAttr.match(/(?:^|;|\s*)color\s*:\s*([^;]+)/i);
+    if (colorMatch) res.color = colorMatch[1].trim();
+
+    const bgMatch = styleAttr.match(/(?:^|;|\s*)background(?:-color)?\s*:\s*([^;]+)/i);
+    if (bgMatch) res.backgroundColor = bgMatch[1].trim();
+
+    const alignMatch = styleAttr.match(/(?:^|;|\s*)text-align\s*:\s*([^;]+)/i);
+    if (alignMatch) res.textAlign = alignMatch[1].trim();
+
+    return Object.keys(res).length > 0 ? res : null;
+}
+
 const renderers = {
+    p: ({ tnode, style, TDefaultRenderer, ...props }: any) => {
+        const inlineAlign = tnode.attributes?.style?.match(/text-align\s*:\s*(center|right|left|justify)/i)?.[1]
+            || tnode.attributes?.align;
+        const textAlign = inlineAlign || style?.textAlign;
+
+        let extraStyle: any = null;
+        if (textAlign === "center") {
+            extraStyle = { width: "100%", alignItems: "center", textAlign: "center" };
+        } else if (textAlign === "right") {
+            extraStyle = { width: "100%", alignItems: "flex-end", textAlign: "right" };
+        } else if (textAlign === "left") {
+            extraStyle = { width: "100%", alignItems: "flex-start", textAlign: "left" };
+        }
+
+        return (
+            <TDefaultRenderer
+                tnode={tnode}
+                style={extraStyle ? [style, extraStyle] : style}
+                {...props}
+            />
+        );
+    },
+    figure: ({ tnode, style, TDefaultRenderer, ...props }: any) => {
+        const inlineAlign = tnode.attributes?.style?.match(/text-align\s*:\s*(center|right|left|justify)/i)?.[1]
+            || tnode.attributes?.align;
+        const textAlign = inlineAlign || style?.textAlign;
+
+        let extraStyle: any = null;
+        if (textAlign === "center") {
+            extraStyle = { width: "100%", alignItems: "center" };
+        } else if (textAlign === "right") {
+            extraStyle = { width: "100%", alignItems: "flex-end" };
+        }
+
+        return (
+            <TDefaultRenderer
+                tnode={tnode}
+                style={extraStyle ? [style, extraStyle] : style}
+                {...props}
+            />
+        );
+    },
+    span: ({ tnode, style, TDefaultRenderer, ...props }: any) => {
+        const extracted = extractInlineStyles(tnode.attributes?.style);
+        if (extracted) {
+            return (
+                <TDefaultRenderer
+                    tnode={tnode}
+                    style={[style, extracted]}
+                    {...props}
+                />
+            );
+        }
+        return <TDefaultRenderer tnode={tnode} style={style} {...props} />;
+    },
+    mark: ({ tnode, style, TDefaultRenderer, ...props }: any) => {
+        const extracted = extractInlineStyles(tnode.attributes?.style);
+        const markStyle = { backgroundColor: "#ffe066", color: colors.textPrimary, ...extracted };
+        return (
+            <TDefaultRenderer
+                tnode={tnode}
+                style={[style, markStyle]}
+                {...props}
+            />
+        );
+    },
     table: ({ tnode }: any) => (
         <View style={styles.table}>
             <TNodeChildrenRenderer tnode={tnode} />
@@ -426,9 +547,6 @@ const renderers = {
         <View style={[styles.td, styles.th]}>
             <TNodeChildrenRenderer tnode={tnode} />
         </View>
-    ),
-    span: ({ tnode, style, TDefaultRenderer, ...props }: any) => (
-        <TDefaultRenderer tnode={tnode} style={style} {...props} />
     ),
 };
 

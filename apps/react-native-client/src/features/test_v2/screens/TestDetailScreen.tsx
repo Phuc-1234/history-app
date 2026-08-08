@@ -54,30 +54,6 @@ export default function TestDetailScreen() {
 
     const { userTestLog, answerLogs } = data;
 
-    if (!userTestLog.isPassed) {
-        return (
-            <View style={styles.center}>
-                <Mascot expression="sad" width={100} height={100} />
-                <Text style={[styles.errorText, { marginTop: 16, textAlign: "center" }]}>
-                    Không thể xem chi tiết lượt làm bài chưa đạt.
-                </Text>
-                <TouchableOpacity
-                    style={{
-                        marginTop: 20,
-                        paddingHorizontal: 20,
-                        paddingVertical: 12,
-                        backgroundColor: colors.primary,
-                        borderRadius: 12,
-                    }}
-                    onPress={() => router.back()}
-                >
-                    <Text style={{ color: colors.textLight, fontFamily: typography.fonts.bold }}>
-                        Quay lại
-                    </Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
     const scoreDisplay =
         userTestLog.maxScore > 0
             ? formatScore(
