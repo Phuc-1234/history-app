@@ -100,18 +100,20 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                 activeOpacity={0.7}
                                 onPress={() => router.push("/(tabs)/10_1_profile")}
                             >
-                                <AvatarWithFrame
-                                    uri={data.avatarUri}
-                                    frameUri={data.equippedFrameUrl}
-                                    size={36}
-                                    name={data.name}
-                                    borderWidth={1.5}
-                                />
-                                {data.isPro && (
-                                    <View style={styles.proBadgeChip}>
-                                        <Text style={styles.proBadgeText}>PRO</Text>
-                                    </View>
-                                )}
+                                <View style={styles.avatarWrapper}>
+                                    <AvatarWithFrame
+                                        uri={data.avatarUri}
+                                        frameUri={data.equippedFrameUrl}
+                                        size={36}
+                                        name={data.name}
+                                        borderWidth={1.5}
+                                    />
+                                    {data.isPro && (
+                                        <View style={styles.proBadgeChip}>
+                                            <Text style={styles.proBadgeText}>PRO</Text>
+                                        </View>
+                                    )}
+                                </View>
                             </TouchableOpacity>
 
                             <View style={styles.statsContainer}>
@@ -260,8 +262,11 @@ const styles = StyleSheet.create({
     userSection: {
         flexDirection: "row",
         alignItems: "center",
-        flex: 1,
-        marginRight: 8,
+        marginRight: 4,
+    },
+    avatarWrapper: {
+        position: "relative",
+        marginRight: 4,
     },
     nameText: {
         ...typography.bodyMediumBold,
@@ -403,16 +408,22 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     proBadgeChip: {
+        position: "absolute",
+        bottom: -3,
+        right: -6,
         backgroundColor: "#FFD700",
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 30,
-        marginLeft: 6,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#FFFFFF",
+        zIndex: 10,
+        elevation: 4,
     },
     proBadgeText: {
-        fontFamily: typography.fonts.bold,
-        fontSize: 10,
+        fontFamily: typography.fonts.black,
+        fontSize: 8,
         color: "#5C3516",
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
     },
 });
