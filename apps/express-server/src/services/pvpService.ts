@@ -1,7 +1,8 @@
 import { prisma } from "@history-app/shared";
+import { Prisma } from "@prisma/client";
 import { supabaseAdmin } from "../config/supabaseClient";
 import { scoreQuestion } from "./scoreEngine";
-import { autoPickQuestions } from "./testServiceV2";
+import { autoPickQuestions, expandScopeToQuestionWhere } from "./testServiceV2";
 import {
     CreatePvpRoomRequest,
     PvpParticipantDto,
@@ -219,6 +220,48 @@ export class PvpService {
             participants: participantDtos,
             questions: orderedQuestions,
         };
+    }
+
+    // ── Leave Room ─────────────────────────────────────────────────────────
+    async leaveRoom(userId: string, roomCode: string): Promise<void> {
+        const room = await prisma.pvpRoom.findFirst({
+            where: { code: roomCode, status: { in: ["LOBBY", "IN_PROGRESS"] } },
+            include: { participants: true },
+        });
+
+        if (!room) return;
+
+        const participant = room.participants.find((p) => p.userId === userId);
+        if (!participant) return;
+
+        await prisma.pvpParticipant.delete({ where: { id: participant.id } });
+
+        const remainingParticipants = await prisma.pvpParticipant.findMany({
+            where: { roomId: room.id },
+            include: { user: { select: { id: true, name: true, profileImgUrl: true } } },
+        });
+
+        if (remainingParticipants.length === 0) {
+            await prisma.pvpRoom.update({
+                where: { id: room.id },
+                data: { status: "CANCELLED" },
+            });
+        } else if (room.hostUserId === userId) {
+            const newHost = remainingParticipants[0].userId;
+            await prisma.pvpRoom.update({
+                where: { id: room.id },
+                data: { hostUserId: newHost },
+            });
+        }
+
+        const participantDtos: PvpParticipantDto[] = remainingParticipants.map((p) => ({
+            userId: p.userId,
+            name: p.user.name,
+            profileImgUrl: p.user.profileImgUrl,
+            score: p.score,
+        }));
+
+        await this.broadcast(roomCode, "PLAYER_JOINED", { participants: participantDtos });
     }
 
     // ── Get Room Info ──────────────────────────────────────────────────────
@@ -554,6 +597,51 @@ export class PvpService {
         if (roomState?.resolveTransition && roomState.pendingTarget === targetState) {
             roomState.resolveTransition(targetState);
         }
+    }
+
+    async getCuratedTests(): Promise<Array<{ id: string; title: string; summary: string | null; questionCount: number }>> {
+        const tests = await prisma.test.findMany({
+            select: {
+                id: true,
+                title: true,
+                summary: true,
+                _count: { select: { testQuestions: true } },
+            },
+            orderBy: { title: "asc" },
+        });
+
+        return tests.map((t) => ({
+            id: t.id,
+            title: t.title,
+            summary: t.summary,
+            questionCount: t._count.testQuestions,
+        }));
+    }
+
+    async getAvailableQuestionsCount(
+        scopeType?: string,
+        scopeId?: number,
+        testId?: string
+    ): Promise<number> {
+        if (testId) {
+            const count = await prisma.testQuestion.count({
+                where: {
+                    testId,
+                    question: { isActive: true },
+                },
+            });
+            return count;
+        }
+
+        const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId);
+        const count = await prisma.question.count({
+            where: {
+                ...scopeWhere,
+                isActive: true,
+                answerDataJson: { not: Prisma.DbNull },
+            },
+        });
+        return count;
     }
 }
 

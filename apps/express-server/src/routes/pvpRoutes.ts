@@ -7,10 +7,19 @@ import {
     startRoom,
     submitAnswer,
     nextState,
+    getCuratedTests,
+    getAvailableQuestionsCount,
+    leaveRoom,
 } from "../controllers/pvpController";
 import { requireStudent } from "../middlewares/authMiddleware";
 
 const router = Router();
+
+// GET /api/pvp/curated-tests
+router.get("/curated-tests", requireStudent, getCuratedTests);
+
+// GET /api/pvp/available-questions-count
+router.get("/available-questions-count", requireStudent, getAvailableQuestionsCount);
 
 // GET /api/pvp/active-room
 router.get("/active-room", requireStudent, getActiveRoom);
@@ -20,6 +29,9 @@ router.post("/create", requireStudent, createRoom);
 
 // POST /api/pvp/join
 router.post("/join", requireStudent, joinRoom);
+
+// POST /api/pvp/leave
+router.post("/leave", requireStudent, leaveRoom);
 
 // GET /api/pvp/room/:code
 router.get("/room/:code", requireStudent, getRoomInfo);

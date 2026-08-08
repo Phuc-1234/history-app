@@ -8,7 +8,7 @@ import { JoinRoomTab } from "../components/JoinRoomTab";
 import { PvpLobbyView } from "../components/PvpLobbyView";
 import { PvpGameScreen } from "./PvpGameScreen";
 import { usePvpRealtime } from "../hooks/usePvpRealtime";
-import { useGetActivePvpRoomQuery } from "../services/pvpApi";
+import { useGetActivePvpRoomQuery, useLeavePvpRoomMutation } from "../services/pvpApi";
 import { useSelector } from "react-redux";
 import type { PvpRoom } from "../types";
 
@@ -18,11 +18,14 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
 
     const [activeTab, setActiveTab] = useState<"create" | "join">("create");
     const [currentRoom, setCurrentRoom] = useState<PvpRoom | null>(null);
+    const hasAttemptedRestoreRef = React.useRef(false);
 
-    const { data: activeRoomData } = useGetActivePvpRoomQuery();
+    const { data: activeRoomData, refetch: refetchActiveRoom } = useGetActivePvpRoomQuery();
+    const [leavePvpRoomMut] = useLeavePvpRoomMutation();
 
     useEffect(() => {
-        if (activeRoomData && !currentRoom) {
+        if (activeRoomData && !currentRoom && !hasAttemptedRestoreRef.current) {
+            hasAttemptedRestoreRef.current = true;
             setCurrentRoom(activeRoomData);
         }
     }, [activeRoomData, currentRoom]);
@@ -46,9 +49,18 @@ export function PvpMainScreen({ onExit }: { onExit?: () => void }) {
         setCurrentRoom(room);
     };
 
-    const handleLeaveRoom = () => {
+    const handleLeaveRoom = async () => {
+        hasAttemptedRestoreRef.current = true;
+        if (currentRoom?.code) {
+            try {
+                await leavePvpRoomMut({ roomCode: currentRoom.code }).unwrap();
+            } catch (err) {
+                console.error("Failed to leave room on backend:", err);
+            }
+        }
         setCurrentRoom(null);
         resetState();
+        refetchActiveRoom();
     };
 
     // If game has started, switch to full-screen PvpGameScreen

@@ -29,6 +29,19 @@ export const joinRoom = async (req: Request, res: Response) => {
     }
 };
 
+export const leaveRoom = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const { roomCode } = req.body;
+        if (!roomCode) return res.status(400).json({ error: "Missing room code" });
+        await pvpService.leaveRoom(req.user.id, roomCode.trim());
+        return res.status(200).json({ left: true });
+    } catch (err: any) {
+        console.error("leaveRoom error:", err?.message ?? err);
+        return res.status(500).json({ error: "Failed to leave PVP room" });
+    }
+};
+
 export const getRoomInfo = async (req: Request, res: Response) => {
     try {
         if (!req.user) return res.status(401).json({ error: "Unauthorized" });
@@ -96,5 +109,31 @@ export const nextState = async (req: Request, res: Response) => {
         if (err?.code === "ROOM_NOT_FOUND") return res.status(404).json({ error: err.message });
         if (err?.code === "UNAUTHORIZED") return res.status(403).json({ error: err.message });
         return res.status(500).json({ error: "Failed to transition state" });
+    }
+};
+
+export const getCuratedTests = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const tests = await pvpService.getCuratedTests();
+        return res.status(200).json(tests);
+    } catch (err: any) {
+        console.error("getCuratedTests error:", err?.message ?? err);
+        return res.status(500).json({ error: "Failed to fetch curated tests" });
+    }
+};
+
+export const getAvailableQuestionsCount = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const scopeType = req.query.scopeType as string | undefined;
+        const scopeId = req.query.scopeId ? parseInt(req.query.scopeId as string, 10) : undefined;
+        const testId = req.query.testId as string | undefined;
+
+        const count = await pvpService.getAvailableQuestionsCount(scopeType, scopeId, testId);
+        return res.status(200).json({ availableCount: count });
+    } catch (err: any) {
+        console.error("getAvailableQuestionsCount error:", err?.message ?? err);
+        return res.status(500).json({ error: "Failed to get available questions count" });
     }
 };

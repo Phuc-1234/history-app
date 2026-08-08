@@ -1,6 +1,6 @@
 # Real-time PVP Competition Feature Documentation
 
-**Current Version:** 2.1  
+**Current Version:** 2.2  
 **Module Location:**
 - Backend Routes: [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts)
 - Backend Controllers: [pvpController.ts](file:///e:/history-app/apps/express-server/src/controllers/pvpController.ts)
@@ -133,6 +133,15 @@ Submits player answer for current question.
   ```
 - **Response:** `{ "scoreEarned": 560, "totalScore": 560 }`
 - **Behavior:** Calculates score, updates participant record, broadcasts `PLAYER_ANSWERED`. If all participants have answered, cancels active question timer early.
+
+#### 6. `GET /api/pvp/curated-tests`
+Fetches list of available preset tests for room host selection.
+- **Response:** `Array<{ id: string, title: string, summary: string | null, questionCount: number }>`
+
+#### 7. `GET /api/pvp/available-questions-count`
+Calculates available active question count for a selected scope or curated test.
+- **Query Params:** `scopeType`, `scopeId`, `testId`
+- **Response:** `{ "availableCount": 24 }`
 
 ---
 
@@ -299,3 +308,20 @@ sequenceDiagram
 #### 4. Test V2 Scoring Parity & Partial Credit Support
 - Aligned PVP answer evaluation in `submitAnswer` with `scoreEngine.ts`.
 - Used `evalRes.scoreAwarded * 400` as base score to preserve partial credit, multiplied by speed bonus ($1.0\times - 2.0\times$). 
+
+### Version 2.2
+
+#### 1. Curated Tests vs Auto-Pick Question Selection
+- Added support for selecting curated preset tests (`testId`) or auto-picking questions based on scope (`scopeType` & `scopeId`) in [CreateRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/CreateRoomTab.tsx).
+- Added `GET /api/pvp/curated-tests` endpoint.
+
+#### 2. Cascading Scope Selection
+- Added scope level selection (`NATIONAL`, `GRADE`, `TOPIC`, `LESSON`, `SECTION`, `NODE`) with dynamic cascading dropdown pickers using content hierarchy APIs.
+
+#### 3. Available Question Count Preview & Validation
+- Added `GET /api/pvp/available-questions-count` endpoint.
+- Displayed real-time available question count badge on frontend.
+- Constrained selected question count to not exceed total available pool size.
+
+#### 4. Custom Numeric Question Input
+- Added numeric `TextInput` allowing users to type custom question counts alongside shortcut pills.
