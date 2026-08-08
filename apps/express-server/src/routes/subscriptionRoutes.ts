@@ -23,6 +23,6 @@ router.get("/status/:orderId", getSubscriptionStatus);
 router.get("/checkout", renderSubscriptionCheckout);
 
 // POST /api/subscription/mock-submit — handles success/fail mock response
-router.post("/mock-submit", handleMockSubscriptionSubmit);
+router.post("/mock-submit", requireStudent, handleMockSubscriptionSubmit);
 
 export default router;
