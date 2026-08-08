@@ -1,12 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { Linking, AppState } from "react-native";
+import { useState, useRef, useCallback } from "react";
+import { Linking } from "react-native";
 import * as WebBrowser from "expo-web-browser";
-import {
-    useInitiateSubscriptionMutation,
+import { 
+    useInitiateSubscriptionMutation, 
     useCancelSubscriptionMutation,
-    paymentApi,
-    GetSubscriptionStatusResponse,
-    PaymentProvider
+    paymentApi, 
+    GetSubscriptionStatusResponse, 
+    PaymentProvider 
 } from "../api/paymentApi";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
@@ -26,7 +26,6 @@ type SubscriptionPaymentState =
     | {
           phase: "waiting";
           orderId: string;
-          payUrl?: string;
           vietQrUrl?: string;
           bankId?: string;
           accountNo?: string;
@@ -39,15 +38,12 @@ type SubscriptionPaymentState =
     | { phase: "failed"; error: string };
 
 const POLL_INTERVAL_MS = 2000;
-const POLL_MAX_ATTEMPTS_DEFAULT = 150; // 5 minutes max cho VietQR / SePay
-const POLL_MAX_ATTEMPTS_ZALOPAY = 30; // 60 seconds (1 phút) max cho ZaloPay
+const POLL_MAX_ATTEMPTS = 150; // 5 minutes max
 
 export function useSubscriptionPayment() {
     const [state, setState] = useState<SubscriptionPaymentState>({ phase: "idle" });
     const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const attemptsRef = useRef(0);
-    const currentOrderIdRef = useRef<string | null>(null);
-    const currentProviderRef = useRef<PaymentProvider | null>(null);
 
     const dispatch = useDispatch<AppDispatch>();
     const [initiateSubscription] = useInitiateSubscriptionMutation();
@@ -60,60 +56,13 @@ export function useSubscriptionPayment() {
         }
     }, []);
 
-    const checkStatusImmediately = useCallback(
-        async (orderId: string) => {
-            if (currentOrderIdRef.current !== orderId) return false;
-            try {
-                const result = await dispatch(
-                    paymentApi.endpoints.getSubscriptionStatus.initiate(orderId, { forceRefetch: true }),
-                ).unwrap();
-
-                if (currentOrderIdRef.current !== orderId) return false;
-
-                if (result.status === "ACTIVE") {
-                    stopPolling();
-                    try {
-                        WebBrowser.dismissBrowser();
-                    } catch (e) {
-                        console.warn("[WebBrowser] dismiss failed:", e);
-                    }
-                    dispatch(apiSlice.util.invalidateTags(["User"]));
-                    setState({ phase: "success", result });
-                    return true;
-                }
-
-                if (result.status === "FAILED") {
-                    stopPolling();
-                    try {
-                        WebBrowser.dismissBrowser();
-                    } catch (e) {
-                        console.warn("[WebBrowser] dismiss failed:", e);
-                    }
-                    setState({ phase: "failed", error: "Đăng ký gói thất bại hoặc đã bị hủy." });
-                    return true;
-                }
-            } catch (err) {
-                console.warn("[ZaloPay Subscription] Immediate check error:", err);
-            }
-            return false;
-        },
-        [dispatch, stopPolling],
-    );
-
     const pollStatus = useCallback(
-        async (orderId: string, provider: PaymentProvider) => {
-            if (currentOrderIdRef.current !== orderId) return;
+        async (orderId: string) => {
             attemptsRef.current += 1;
-            const maxAttempts = provider === "ZALOPAY" ? POLL_MAX_ATTEMPTS_ZALOPAY : POLL_MAX_ATTEMPTS_DEFAULT;
 
-            if (attemptsRef.current > maxAttempts) {
+            if (attemptsRef.current > POLL_MAX_ATTEMPTS) {
                 stopPolling();
-                if (currentOrderIdRef.current !== orderId) return;
-                const timeoutError =
-                    provider === "ZALOPAY"
-                        ? "Đăng ký qua ZaloPay quá thời gian chờ (60s). Vui lòng kiểm tra lại ứng dụng ZaloPay hoặc thử lại."
-                        : "Hết thời gian chờ xác nhận thanh toán.";
-                setState({ phase: "failed", error: timeoutError });
+                setState({ phase: "failed", error: "Hết thời gian chờ xác nhận thanh toán." });
                 return;
             }
 
@@ -121,8 +70,6 @@ export function useSubscriptionPayment() {
                 const result = await dispatch(
                     paymentApi.endpoints.getSubscriptionStatus.initiate(orderId, { forceRefetch: true }),
                 ).unwrap();
-
-                if (currentOrderIdRef.current !== orderId) return;
 
                 if (result.status === "ACTIVE") {
                     stopPolling();
@@ -148,36 +95,15 @@ export function useSubscriptionPayment() {
                     return;
                 }
 
-                // Still PENDING — poll again if currentOrderId hasn't been cancelled/reset
-                if (currentOrderIdRef.current === orderId) {
-                    pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
-                }
+                // Still PENDING — poll again
+                pollingRef.current = setTimeout(() => pollStatus(orderId), POLL_INTERVAL_MS);
             } catch {
-                // Network error — poll again if currentOrderId hasn't been cancelled/reset
-                if (currentOrderIdRef.current === orderId) {
-                    pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
-                }
+                // Network error — poll again
+                pollingRef.current = setTimeout(() => pollStatus(orderId), POLL_INTERVAL_MS);
             }
         },
         [dispatch, stopPolling],
     );
-
-    // Listen for AppState changes to check status instantly when user returns to app from ZaloPay
-    useEffect(() => {
-        const subscription = AppState.addEventListener("change", (nextAppState) => {
-            if (
-                nextAppState === "active" &&
-                currentOrderIdRef.current &&
-                currentProviderRef.current === "ZALOPAY"
-            ) {
-                console.log("[ZaloPay Subscription] User returned to app, checking status immediately...");
-                checkStatusImmediately(currentOrderIdRef.current);
-            }
-        });
-        return () => {
-            subscription.remove();
-        };
-    }, [checkStatusImmediately]);
 
     const subscribe = useCallback(
         async (provider: PaymentProvider, packageId?: string) => {
@@ -189,14 +115,10 @@ export function useSubscriptionPayment() {
                 const initRes = await initiateSubscription({ provider, packageId }).unwrap();
                 const { orderId, payUrl, zpTransToken, vietQrUrl, bankId, accountNo, accountName, providerOrderId, amountVnd } = initRes;
 
-                currentOrderIdRef.current = orderId;
-                currentProviderRef.current = provider;
-
                 if (provider === "SEPAY" && vietQrUrl) {
                     setState({
                         phase: "waiting",
                         orderId,
-                        payUrl,
                         vietQrUrl,
                         bankId,
                         accountNo,
@@ -205,7 +127,7 @@ export function useSubscriptionPayment() {
                         amountVnd,
                         provider,
                     });
-                    pollStatus(orderId, provider);
+                    pollStatus(orderId);
                     return;
                 }
 
@@ -213,11 +135,10 @@ export function useSubscriptionPayment() {
                     setState({
                         phase: "waiting",
                         orderId,
-                        payUrl,
                         amountVnd,
                         provider,
                     });
-                    pollStatus(orderId, provider);
+                    pollStatus(orderId);
 
                     if (zpTransToken && ReactNativeZalopay) {
                         try {
@@ -232,10 +153,9 @@ export function useSubscriptionPayment() {
                                 return;
                             } else if (result.status === "error") {
                                 stopPolling();
-                                setState({ phase: "failed", error: `Lỗi thanh toán ZaloPay: ${result.errorCode || "Unknown"}` });
+                                setState({ phase: "failed", error: `Lỗi thanh toán: ${result.errorCode || "Unknown"}` });
                                 return;
                             } else if (result.status === "success") {
-                                await checkStatusImmediately(orderId);
                                 return;
                             }
                         } catch (sdkError: any) {
@@ -262,10 +182,7 @@ export function useSubscriptionPayment() {
                         await Linking.openURL(payUrl);
                     } catch (e) {
                         console.warn("[ZaloPay Subscription] Linking error, falling back to WebBrowser:", e);
-                        const browserRes = await WebBrowser.openBrowserAsync(payUrl);
-                        if (browserRes.type === "cancel" || browserRes.type === "dismiss") {
-                            await checkStatusImmediately(orderId);
-                        }
+                        await WebBrowser.openBrowserAsync(payUrl);
                     }
                 } else {
                     setState({
@@ -274,11 +191,17 @@ export function useSubscriptionPayment() {
                         amountVnd,
                         provider,
                     });
-                    pollStatus(orderId, provider);
-                    const browserRes = await WebBrowser.openBrowserAsync(payUrl);
-                    if (browserRes.type === "cancel" || browserRes.type === "dismiss") {
-                        await checkStatusImmediately(orderId);
-                    }
+                    pollStatus(orderId);
+                    await WebBrowser.openBrowserAsync(payUrl);
+                    
+                    // User closed the browser — if still waiting, revert to idle
+                    stopPolling();
+                    setState((prev) => {
+                        if (prev.phase === "waiting") {
+                            return { phase: "idle" };
+                        }
+                        return prev;
+                    });
                 }
             } catch (error: any) {
                 const message =
@@ -288,7 +211,7 @@ export function useSubscriptionPayment() {
                 setState({ phase: "failed", error: message });
             }
         },
-        [initiateSubscription, pollStatus, stopPolling, checkStatusImmediately],
+        [initiateSubscription, pollStatus, stopPolling],
     );
 
     const cancelSubscription = useCallback(async () => {
@@ -305,29 +228,11 @@ export function useSubscriptionPayment() {
         }
     }, [cancelSubMutation, dispatch]);
 
-    const resumePayment = useCallback(async () => {
-        if (state.phase !== "waiting" || !state.payUrl) return;
-        try {
-            console.log("[Subscription Hook] Resuming payment for payUrl:", state.payUrl);
-            await WebBrowser.openBrowserAsync(state.payUrl);
-        } catch (e) {
-            console.warn("[Subscription Hook] WebBrowser resume failed, fallback to Linking:", e);
-            try {
-                await Linking.openURL(state.payUrl);
-            } catch (linkErr) {
-                console.error("[Subscription Hook] Linking resume failed:", linkErr);
-            }
-        }
-    }, [state]);
-
     const reset = useCallback(() => {
         stopPolling();
         attemptsRef.current = 0;
-        currentOrderIdRef.current = null;
-        currentProviderRef.current = null;
         setState({ phase: "idle" });
     }, [stopPolling]);
 
-    return { state, subscribe, resumePayment, cancelSubscription, reset };
+    return { state, subscribe, cancelSubscription, reset };
 }
-

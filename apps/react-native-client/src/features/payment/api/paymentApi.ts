@@ -8,8 +8,7 @@ export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
 
 export interface InitiatePaymentRequestBody {
     provider: PaymentProvider;
-    goldAmount?: number;
-    packageId?: string;
+    goldAmount: number;
 }
 
 export interface InitiatePaymentResponse {
