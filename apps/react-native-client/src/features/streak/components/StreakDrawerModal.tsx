@@ -9,6 +9,7 @@ import {
     Dimensions,
     Image,
     ActivityIndicator,
+    Pressable,
 } from "react-native";
 import { X, Flame, CheckCircle2, Lock, Gift, Sparkles, Trophy, Calendar, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -47,6 +48,7 @@ export default function StreakDrawerModal({
     currentStreak = 0,
 }: StreakDrawerModalProps) {
     const [monthlyModalVisible, setMonthlyModalVisible] = useState(false);
+    const [activeReward, setActiveReward] = useState<{ name: string; quantity: number } | null>(null);
     const { data: streakData, isLoading, isError } = useGetStreakInfoQuery(undefined, {
         skip: !visible,
     });
@@ -100,16 +102,10 @@ export default function StreakDrawerModal({
                         >
                             {/* Current Streak Info */}
                             <View style={styles.heroSection}>
-                                {/* Main Row Wrapper (Brand Orange BG) */}
-                                <LinearGradient
-                                    colors={["#FF9500", "#e08400"]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.heroMainRowWrapper}
-                                >
+                                <View style={styles.heroMainRowWrapper}>
                                     <View style={styles.heroHeader}>
                                         <View style={styles.heroBadgeBox}>
-                                            <Flame size={32} color="#FFFFFF" />
+                                            <Flame size={64} color="#FF9500" />
                                         </View>
                                         <View style={styles.heroTextContent}>
                                             <View style={styles.heroTitleRow}>
@@ -117,14 +113,14 @@ export default function StreakDrawerModal({
                                                 <Text style={styles.heroStreakUnit}>Ngày liên tục</Text>
                                             </View>
                                             <View style={styles.highestTag}>
-                                                <Trophy size={12} color="#FFFFFF" />
+                                                <Trophy size={12} color={colors.warning} />
                                                 <Text style={styles.highestTagText}>
                                                     Kỷ lục: {highestStreak} ngày
                                                 </Text>
                                             </View>
                                         </View>
                                     </View>
-                                </LinearGradient>
+                                </View>
 
                                 {/* Today Status Alert Box */}
                                 <View style={styles.statusBox}>
@@ -216,91 +212,125 @@ export default function StreakDrawerModal({
                             </View>
                         )}
 
-                        {/* Milestone List */}
-                        {!isLoading && milestones.map((item) => {
-                            const isReached = item.isReached || activeStreak >= item.day;
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.milestonesScrollContainer}
+                        >
+                            {!isLoading && milestones.map((item) => {
+                                const isReached = item.isReached || activeStreak >= item.day;
 
-                            return (
-                                <View
-                                    key={item.id || item.day}
-                                    style={[
-                                        styles.milestoneCard,
-                                        isReached && styles.milestoneCardReached,
-                                    ]}
-                                >
-                                    <View style={styles.milestoneMainRow}>
-                                        <View
-                                            style={[
-                                                styles.milestoneIconBg,
-                                                isReached && styles.milestoneIconBgActive,
-                                            ]}
-                                        >
-                                            <Flame
-                                                size={22}
-                                                color={isReached ? "#FF9500" : colors.textMuted}
-                                            />
+                                return (
+                                    <View
+                                        key={item.id || item.day}
+                                        style={[
+                                            styles.milestoneCard,
+                                            isReached ? styles.milestoneCardReached : styles.milestoneCardUnreached,
+                                        ]}
+                                    >
+                                        <View style={styles.milestoneHeaderRow}>
+                                            <View
+                                                style={[
+                                                    styles.milestoneIconBg,
+                                                    isReached && styles.milestoneIconBgActive,
+                                                ]}
+                                            >
+                                                <Flame
+                                                    size={22}
+                                                    color={isReached ? "#FF9500" : colors.textMuted}
+                                                />
+                                            </View>
+
+                                            <View style={styles.milestoneStatusCol}>
+                                                {isReached ? (
+                                                    <View style={styles.reachedChip}>
+                                                        <CheckCircle2 size={13} color="#FFFFFF" />
+                                                        <Text style={styles.reachedChipText}>Đã đạt</Text>
+                                                    </View>
+                                                ) : (
+                                                    <View style={styles.lockedChip}>
+                                                        <Lock size={12} color={colors.textMuted} />
+                                                        <Text style={styles.lockedChipText}>Chưa đạt</Text>
+                                                    </View>
+                                                )}
+                                            </View>
                                         </View>
 
-                                        <View style={styles.milestoneMeta}>
+                                        <View style={styles.milestoneMetaVertical}>
                                             <Text style={styles.milestoneTitle}>
                                                 Chuỗi {item.day} ngày
                                             </Text>
-                                            <Text style={styles.milestoneSub}>
+                                            <Text style={styles.milestoneSub} numberOfLines={2}>
                                                 Duy trì học tập liên tục trong {item.day} ngày
                                             </Text>
                                         </View>
 
-                                        <View style={styles.milestoneStatusCol}>
-                                            {isReached ? (
-                                                <View style={styles.reachedChip}>
-                                                    <CheckCircle2 size={13} color="#FFFFFF" />
-                                                    <Text style={styles.reachedChipText}>Đã đạt</Text>
-                                                </View>
-                                            ) : (
-                                                <View style={styles.lockedChip}>
-                                                    <Lock size={12} color={colors.textMuted} />
-                                                    <Text style={styles.lockedChipText}>Chưa đạt</Text>
-                                                </View>
-                                            )}
+                                        {/* Reward Row inside Milestone Card */}
+                                        <View style={styles.rewardsContainer}>
+                                            <View style={styles.rewardsHeader}>
+                                                <Gift size={13} color={colors.primary} />
+                                                <Text style={styles.rewardsHeaderTitle}>Phần thưởng:</Text>
+                                            </View>
+                                            <View style={styles.rewardsRow}>
+                                                {item.xp > 0 && (
+                                                    <View style={styles.rewardChip}>
+                                                        <Text style={styles.rewardChipText}>+{item.xp} XP</Text>
+                                                    </View>
+                                                )}
+                                                {item.gold > 0 && (
+                                                    <View style={[styles.rewardChip, styles.goldRewardChip]}>
+                                                        <Text style={[styles.rewardChipText, styles.goldRewardText]}>
+                                                            +{item.gold} Vàng
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                                {item.items?.map((it) => (
+                                                    <TouchableOpacity
+                                                        key={it.id}
+                                                        style={styles.squareRewardItem}
+                                                        activeOpacity={0.7}
+                                                        onPress={() => setActiveReward({ name: it.name, quantity: it.quantity })}
+                                                    >
+                                                        <View style={styles.squareRewardBox}>
+                                                            {it.imgUrl ? (
+                                                                <Image source={{ uri: it.imgUrl }} style={styles.squareRewardImg} />
+                                                            ) : null}
+                                                            <View style={styles.squareRewardBadge}>
+                                                                <Text style={styles.squareRewardBadgeText}>x{it.quantity}</Text>
+                                                            </View>
+                                                        </View>
+                                                        <Text style={styles.squareRewardName} numberOfLines={1}>
+                                                            {it.name}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
                                         </View>
                                     </View>
-
-                                    {/* Reward Row inside Milestone Card */}
-                                    <View style={styles.rewardsContainer}>
-                                        <View style={styles.rewardsHeader}>
-                                            <Gift size={13} color={colors.primary} />
-                                            <Text style={styles.rewardsHeaderTitle}>Phần thưởng:</Text>
-                                        </View>
-                                        <View style={styles.rewardsRow}>
-                                            {item.xp > 0 && (
-                                                <View style={styles.rewardChip}>
-                                                    <Text style={styles.rewardChipText}>+{item.xp} XP</Text>
-                                                </View>
-                                            )}
-                                            {item.gold > 0 && (
-                                                <View style={[styles.rewardChip, styles.goldRewardChip]}>
-                                                    <Text style={[styles.rewardChipText, styles.goldRewardText]}>
-                                                        +{item.gold} Vàng
-                                                    </Text>
-                                                </View>
-                                            )}
-                                            {item.items?.map((it) => (
-                                                <View key={it.id} style={[styles.rewardChip, styles.itemRewardChip]}>
-                                                    {it.imgUrl ? (
-                                                        <Image source={{ uri: it.imgUrl }} style={styles.itemImg} />
-                                                    ) : null}
-                                                    <Text style={styles.rewardChipText}>
-                                                        {it.name} x{it.quantity}
-                                                    </Text>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    </View>
-                                </View>
-                            );
-                        })}
+                                );
+                            })}
+                        </ScrollView>
                     </ScrollView>
                 </View>
+
+                {activeReward && (
+                    <Pressable
+                        style={styles.bubbleOverlay}
+                        onPress={() => setActiveReward(null)}
+                    >
+                        <Pressable
+                            style={styles.bubbleContainer}
+                            onPress={(e) => e.stopPropagation()}
+                        >
+                            <View style={styles.bubbleHeader}>
+                                <Gift size={16} color={colors.primary} />
+                                <Text style={styles.bubbleTitle}>Thông tin phần thưởng</Text>
+                            </View>
+                            <Text style={styles.bubbleItemName}>{activeReward.name}</Text>
+                            <Text style={styles.bubbleItemQty}>Số lượng: x{activeReward.quantity}</Text>
+                        </Pressable>
+                    </Pressable>
+                )}
             </View>
         </Modal>
 
@@ -386,57 +416,53 @@ const styles = StyleSheet.create({
         gap: 14,
     },
     heroMainRowWrapper: {
-        borderRadius: 12, // container border radius = 12
-        padding: 16,
-    },
-    heroHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-    },
-    heroBadgeBox: {
-        width: 56,
-        height: 56,
-        borderRadius: 12,
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        paddingVertical: 16,
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.3)",
+    },
+    heroHeader: {
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 12,
+    },
+    heroBadgeBox: {
+        alignItems: "center",
+        justifyContent: "center",
     },
     heroTextContent: {
-        flex: 1,
+        alignItems: "center",
     },
     heroTitleRow: {
         flexDirection: "row",
         alignItems: "baseline",
         gap: 6,
+        justifyContent: "center",
     },
     heroStreakCount: {
         fontFamily: typography.fonts.bold,
         fontSize: 32,
-        color: "#FFFFFF",
+        color: colors.textPrimary,
     },
     heroStreakUnit: {
         fontFamily: typography.fonts.bold,
         fontSize: 16,
-        color: "#FFFFFF",
+        color: colors.textPrimary,
     },
     highestTag: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.15)",
+        backgroundColor: colors.surfaceVariant,
         borderRadius: 30, // pill button border radius = 30
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        alignSelf: "flex-start",
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        alignSelf: "center",
         gap: 4,
-        marginTop: 2,
+        marginTop: 6,
     },
     highestTagText: {
         fontFamily: typography.fonts.semiBold,
         fontSize: 11,
-        color: "#FFFFFF",
+        color: colors.textSecondary,
     },
     statusBox: {
         backgroundColor: colors.surfaceVariant,
@@ -538,22 +564,27 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: colors.error,
     },
+    milestonesScrollContainer: {
+        paddingBottom: 8,
+        alignItems: "flex-start",
+    },
     milestoneCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 12, // container border radius = 12
-        borderWidth: 1.5,
-        borderColor: colors.borderMedium,
-        padding: 14,
-        marginBottom: 12,
-    },
-    milestoneCardReached: {
-        borderColor: "#FF9500",
-        backgroundColor: colors.secondaryContainer,
-    },
-    milestoneMainRow: {
-        flexDirection: "row",
+        width: 220,
+        marginRight: 16,
+        paddingVertical: 8,
         alignItems: "center",
-        gap: 12,
+        justifyContent: "flex-start",
+    },
+    milestoneCardReached: {},
+    milestoneCardUnreached: {
+        opacity: 0.4,
+    },
+    milestoneHeaderRow: {
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        marginBottom: 8,
     },
     milestoneIconBg: {
         width: 42,
@@ -566,19 +597,24 @@ const styles = StyleSheet.create({
     milestoneIconBgActive: {
         backgroundColor: "#FFF2E0",
     },
-    milestoneMeta: {
-        flex: 1,
+    milestoneMetaVertical: {
+        alignItems: "center",
+        marginBottom: 10,
+        minHeight: 65,
     },
     milestoneTitle: {
         fontFamily: typography.fonts.bold,
         fontSize: 15,
         color: colors.textPrimary,
         marginBottom: 2,
+        textAlign: "center",
     },
     milestoneSub: {
         fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textMuted,
+        lineHeight: 15,
+        textAlign: "center",
     },
     milestoneStatusCol: {},
     reachedChip: {
@@ -614,10 +650,12 @@ const styles = StyleSheet.create({
         paddingTop: 8,
         borderTopWidth: 1,
         borderTopColor: colors.borderLight,
+        width: "100%",
     },
     rewardsHeader: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "center",
         gap: 6,
         marginBottom: 6,
     },
@@ -629,6 +667,7 @@ const styles = StyleSheet.create({
     rewardsRow: {
         flexDirection: "row",
         flexWrap: "wrap",
+        justifyContent: "center",
         gap: 6,
     },
     rewardChip: {
@@ -658,5 +697,92 @@ const styles = StyleSheet.create({
         width: 14,
         height: 14,
         resizeMode: "contain",
+    },
+    squareRewardItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginRight: 12,
+        marginBottom: 6,
+        gap: 6,
+    },
+    squareRewardBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 8,
+        backgroundColor: colors.surfaceVariant,
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+    },
+    squareRewardImg: {
+        width: 24,
+        height: 24,
+        resizeMode: "contain",
+    },
+    squareRewardBadge: {
+        position: "absolute",
+        bottom: -2,
+        right: -2,
+        backgroundColor: colors.primary,
+        borderRadius: 10,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    squareRewardBadgeText: {
+        fontSize: 8,
+        fontFamily: typography.fonts.bold,
+        color: "#FFFFFF",
+    },
+    squareRewardName: {
+        fontSize: 12,
+        color: colors.textPrimary,
+        fontFamily: typography.fonts.medium,
+        flex: 1,
+    },
+    bubbleOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.15)",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+    },
+    bubbleContainer: {
+        backgroundColor: colors.background,
+        borderWidth: 1.5,
+        borderColor: colors.primary,
+        borderRadius: 12, // container border radius = 12
+        padding: 16,
+        width: "85%",
+        maxWidth: 320,
+        alignSelf: "center",
+    },
+    bubbleHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 8,
+    },
+    bubbleTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 12,
+        color: colors.primary,
+        textTransform: "uppercase",
+    },
+    bubbleItemName: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 16,
+        color: colors.textPrimary,
+        marginBottom: 4,
+    },
+    bubbleItemQty: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 13,
+        color: colors.textSecondary,
     },
 });
