@@ -47,17 +47,15 @@ function getProviderColor(provider: PaymentProvider) {
 export const SubscriptionScreen: React.FC = () => {
     const router = useRouter();
     const profile = useAppSelector((state) => state.auth.profile);
-    const { state, subscribe, resumePayment, cancelSubscription, reset } = useSubscriptionPayment();
+    const { state, subscribe, cancelSubscription, reset } = useSubscriptionPayment();
     const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("ZALOPAY");
     const [isSimulating, setIsSimulating] = useState(false);
     const [proPackages, setProPackages] = useState<any[]>([]);
     const [selectedProPackage, setSelectedProPackage] = useState<any>(null);
-    const [fetchingPackages, setFetchingPackages] = useState(true);
 
     useFocusEffect(
         React.useCallback(() => {
             const fetchProPackages = async () => {
-                setFetchingPackages(true);
                 try {
                     const res = await fetch(`${API_BASE_URL}/api/packages/pro`);
                     if (res.ok) {
@@ -66,20 +64,10 @@ export const SubscriptionScreen: React.FC = () => {
                             setProPackages(data);
                             const initial = data.find((p: any) => p.isRecommended) || data[0];
                             setSelectedProPackage(initial);
-                        } else {
-                            setProPackages([]);
-                            setSelectedProPackage(null);
                         }
-                    } else {
-                        setProPackages([]);
-                        setSelectedProPackage(null);
                     }
                 } catch (e) {
                     console.error("Failed to fetch dynamic pro packages:", e);
-                    setProPackages([]);
-                    setSelectedProPackage(null);
-                } finally {
-                    setFetchingPackages(false);
                 }
             };
             fetchProPackages();
@@ -94,16 +82,71 @@ export const SubscriptionScreen: React.FC = () => {
         subscribe(selectedProvider, selectedProPackage?.id);
     };
 
+    const handleCancel = () => {
+        Alert.alert(
+            "Hủy gia hạn gói Pro",
+            "Bạn có chắc muốn hủy tự động gia hạn? Bạn vẫn có thể dùng các quyền lợi của gói Pro đến hết chu kỳ hiện tại.",
+            [
+                { text: "Bỏ qua", style: "cancel" },
+                {
+                    text: "Đồng ý hủy",
+                    style: "destructive",
+                    onPress: async () => {
+                        const res = await cancelSubscription();
+                        if (res.success) {
+                            Alert.alert("Thành công", "Đã hủy tự động gia hạn thành công.");
+                        } else {
+                            Alert.alert("Lỗi", res.error || "Không thể hủy gói.");
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const copyToClipboard = (value: string, label: string) => {
+        Clipboard.setString(value);
+        Alert.alert("Đã sao chép", `${label} đã được sao chép.`);
+    };
+
+    const simulateNativePayment = async () => {
+        if (state.phase !== "waiting" || !state.vietQrUrl) return;
+        setIsSimulating(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/payment/sepay/webhook`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Apikey history_app_secure_token_2026",
+                },
+                body: JSON.stringify({
+                    id: Math.floor(Math.random() * 100000),
+                    gateway: state.bankId,
+                    transactionDate: new Date().toISOString().slice(0, 19).replace("T", " "),
+                    accountNumber: state.accountNo,
+                    transferType: "in",
+                    transferAmount: state.amountVnd,
+                    content: state.providerOrderId,
+                    referenceCode: "SIM_SUB_" + Math.random().toString(36).substring(2, 10).toUpperCase(),
+                }),
+            });
+            if (response.ok) {
+                console.log("[Simulation] Webhook success processed");
+            } else {
+                const errData = await response.json();
+                console.error("Simulation failed:", errData);
+            }
+        } catch (e) {
+            console.error("Simulation connection error:", e);
+        } finally {
+            setIsSimulating(false);
+        }
+    };
+
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return "";
         const date = new Date(dateString);
         return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-    };
-
-    const copyToClipboard = (value: string | undefined, label: string) => {
-        if (!value) return;
-        Clipboard.setString(value);
-        Alert.alert("Đã sao chép", `${label} đã được sao chép.`);
     };
 
     const renderActiveSubscription = () => {
@@ -129,6 +172,18 @@ export const SubscriptionScreen: React.FC = () => {
                         <Text style={styles.infoValue}>{expiresStr}</Text>
                     </View>
                 </View>
+
+                <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={handleCancel}
+                    activeOpacity={0.8}
+                >
+                    <Text style={styles.cancelBtnText}>Hủy tự động gia hạn</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.footnote}>
+                    Nếu hủy tự động gia hạn, bạn vẫn có thể dùng các tính năng Pro cho đến ngày {expiresStr}.
+                </Text>
             </View>
         );
     };
@@ -207,11 +262,7 @@ export const SubscriptionScreen: React.FC = () => {
                         </View>
                     </View>
 
-                    {fetchingPackages ? (
-                        <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                            <ActivityIndicator size="large" color={colors.primary} />
-                        </View>
-                    ) : proPackages.length > 0 ? (
+                    {proPackages.length > 0 ? (
                         <View style={{ gap: 10, marginBottom: 24 }}>
                             {proPackages.map((pkg: any) => {
                                 const isSelected = selectedProPackage?.id === pkg.id;
@@ -242,12 +293,8 @@ export const SubscriptionScreen: React.FC = () => {
                             })}
                         </View>
                     ) : (
-                        <View style={styles.emptyPackageCard}>
-                            <Ionicons name="sparkles-outline" size={40} color={colors.secondary} style={{ marginBottom: 8 }} />
-                            <Text style={styles.emptyPackageTitle}>Hiện chưa có gói Premium nào</Text>
-                            <Text style={styles.emptyPackageSub}>
-                                Các gói đăng ký Pro đang được cập nhật hoặc tạm ẩn. Vui lòng quay lại sau!
-                            </Text>
+                        <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                            <ActivityIndicator size="large" color={colors.primary} />
                         </View>
                     )}
 
@@ -297,22 +344,11 @@ export const SubscriptionScreen: React.FC = () => {
 
                     {/* Status while waiting */}
                     {state.phase === "waiting" && (
-                        <View style={styles.waitingContainer}>
-                            <View style={styles.waitingBanner}>
-                                <ActivityIndicator color={colors.primary} />
-                                <Text style={styles.waitingText}>
-                                    Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
-                                </Text>
-                            </View>
-                            {!!state.payUrl && (
-                                <TouchableOpacity style={styles.resumeBtn} onPress={resumePayment} activeOpacity={0.8}>
-                                    <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                                    <Text style={styles.resumeBtnText}>Mở lại trang thanh toán</Text>
-                                </TouchableOpacity>
-                            )}
-                            <TouchableOpacity style={styles.cancelWaitingBtn} onPress={reset}>
-                                <Text style={styles.cancelWaitingText}>Hủy / Thử lại</Text>
-                            </TouchableOpacity>
+                        <View style={styles.waitingBanner}>
+                            <ActivityIndicator color={colors.primary} />
+                            <Text style={styles.waitingText}>
+                                Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
+                            </Text>
                         </View>
                     )}
 
@@ -342,7 +378,7 @@ export const SubscriptionScreen: React.FC = () => {
                     </TouchableOpacity>
 
                     <Text style={styles.footnote}>
-                        Gói Pro có hiệu lực trong toàn bộ thời hạn đăng ký.
+                        Hệ thống tự động gia hạn hàng tháng (Mô phỏng) · Hủy gói bất cứ lúc nào trong Profile.
                     </Text>
                 </ScrollView>
             )}
@@ -356,11 +392,11 @@ export const SubscriptionScreen: React.FC = () => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
-                        <Ionicons
-                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"}
-                            size={56}
-                            color={isSuccess ? colors.success : colors.error}
-                            style={{ marginBottom: 12 }}
+                        <Ionicons 
+                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"} 
+                            size={56} 
+                            color={isSuccess ? colors.success : colors.error} 
+                            style={{ marginBottom: 12 }} 
                         />
                         <Text style={styles.modalTitle}>
                             {isSuccess ? "Đăng ký thành công!" : "Đăng ký thất bại"}
@@ -463,7 +499,22 @@ export const SubscriptionScreen: React.FC = () => {
                                         </View>
                                     </View>
 
-
+                                    <TouchableOpacity
+                                        style={[styles.simulateButton, isSimulating && { opacity: 0.7 }]}
+                                        onPress={simulateNativePayment}
+                                        disabled={isSimulating}
+                                    >
+                                        {isSimulating ? (
+                                            <ActivityIndicator color={colors.textLight} size="small" />
+                                        ) : (
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                                <Ionicons name="flask-outline" size={16} color={colors.textLight} />
+                                                <Text style={styles.simulateButtonText}>
+                                                    Mô phỏng chuyển khoản gói Pro
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
 
                                     <TouchableOpacity style={styles.cancelButton} onPress={reset}>
                                         <Text style={styles.cancelButtonText}>Hủy giao dịch</Text>
@@ -657,9 +708,6 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontFamily: typography.fonts.black,
     },
-    waitingContainer: {
-        marginBottom: 16,
-    },
     waitingBanner: {
         flexDirection: "row",
         alignItems: "center",
@@ -667,23 +715,13 @@ const styles = StyleSheet.create({
         backgroundColor: colors.infoContainer,
         borderRadius: 12,
         padding: 14,
-        marginBottom: 8,
+        marginBottom: 16,
     },
     waitingText: {
         fontSize: 14,
         color: colors.primary,
         fontFamily: typography.fonts.medium,
         flex: 1,
-    },
-    cancelWaitingBtn: {
-        alignSelf: "center",
-        paddingVertical: 6,
-        paddingHorizontal: 16,
-    },
-    cancelWaitingText: {
-        fontSize: 13,
-        fontFamily: typography.fonts.semiBold,
-        color: colors.error,
     },
     payButtonWrapper: {
         borderRadius: 30,
@@ -1010,46 +1048,20 @@ const styles = StyleSheet.create({
         backgroundColor: colors.divider,
         marginVertical: 10,
     },
-    emptyPackageCard: {
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: colors.cardBackground,
-        borderRadius: 12,
-        paddingVertical: 28,
-        paddingHorizontal: 20,
-        marginBottom: 24,
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
-        borderStyle: "dashed",
-    },
-    emptyPackageTitle: {
-        fontSize: 15,
-        fontFamily: typography.fonts.bold,
-        color: colors.textPrimary,
-        marginBottom: 4,
-        textAlign: "center",
-    },
-    emptyPackageSub: {
-        fontSize: 12,
-        fontFamily: typography.fonts.regular,
-        color: colors.textSecondary,
-        textAlign: "center",
-        lineHeight: 18,
-    },
-    resumeBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#0068FF",
-        borderRadius: 14,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        marginBottom: 8,
+    cancelBtn: {
         width: "100%",
+        backgroundColor: colors.errorContainer,
+        borderWidth: 1,
+        borderColor: colors.errorContainer,
+        borderRadius: 30,
+        paddingVertical: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 16,
     },
-    resumeBtnText: {
-        color: "#FFFFFF",
-        fontSize: 14,
+    cancelBtnText: {
+        color: colors.error,
+        fontSize: 15,
         fontFamily: typography.fonts.bold,
     },
 });

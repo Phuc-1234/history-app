@@ -56,7 +56,7 @@ function getProviderColor(provider: PaymentProvider) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const BuyGoldScreen: React.FC = () => {
-    const { state, pay, resumePayment, reset } = usePayment();
+    const { state, pay, reset } = usePayment();
     const [goldPackages, setGoldPackages] = useState<GoldPackage[]>([]);
     const [selectedPackage, setSelectedPackage] = useState<GoldPackage | null>(null);
     const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("ZALOPAY");
@@ -83,18 +83,10 @@ export const BuyGoldScreen: React.FC = () => {
                             });
                             setGoldPackages(formattedList);
                             setSelectedPackage(formattedList[0]);
-                        } else {
-                            setGoldPackages([]);
-                            setSelectedPackage(null);
                         }
-                    } else {
-                        setGoldPackages([]);
-                        setSelectedPackage(null);
                     }
                 } catch (e) {
                     console.error("Failed to fetch dynamic gold packages:", e);
-                    setGoldPackages([]);
-                    setSelectedPackage(null);
                 } finally {
                     setFetchingPackages(false);
                 }
@@ -107,7 +99,7 @@ export const BuyGoldScreen: React.FC = () => {
 
     const handlePay = () => {
         if (!selectedPackage) return;
-        pay(selectedProvider, selectedPackage.goldAmount, selectedPackage.id);
+        pay(selectedProvider, selectedPackage.goldAmount);
     };
 
     const copyToClipboard = (value: string | undefined, label: string) => {
@@ -173,7 +165,7 @@ export const BuyGoldScreen: React.FC = () => {
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
                         <ActivityIndicator size="large" color="#4E3FE0" />
                     </View>
-                ) : goldPackages.length > 0 ? (
+                ) : (
                     <View style={styles.packagesGrid}>
                         {goldPackages.map((pkg) => (
                             <TouchableOpacity
@@ -191,14 +183,6 @@ export const BuyGoldScreen: React.FC = () => {
                                 </Text>
                             </TouchableOpacity>
                         ))}
-                    </View>
-                ) : (
-                    <View style={styles.emptyPackageCard}>
-                        <Ionicons name="cube-outline" size={40} color="#8E8E93" style={{ marginBottom: 8 }} />
-                        <Text style={styles.emptyPackageTitle}>Hiện chưa có gói nạp Gold nào</Text>
-                        <Text style={styles.emptyPackageSub}>
-                            Các gói nạp Gold đang được cập nhật hoặc tạm ẩn. Vui lòng quay lại sau!
-                        </Text>
                     </View>
                 )}
 
@@ -273,22 +257,11 @@ export const BuyGoldScreen: React.FC = () => {
 
                 {/* Status while waiting */}
                 {state.phase === "waiting" && (
-                    <View style={styles.waitingContainer}>
-                        <View style={styles.waitingBanner}>
-                            <ActivityIndicator color="#4E3FE0" />
-                            <Text style={styles.waitingText}>
-                                Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
-                            </Text>
-                        </View>
-                        {!!state.payUrl && (
-                            <TouchableOpacity style={styles.resumeBtn} onPress={resumePayment} activeOpacity={0.8}>
-                                <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                                <Text style={styles.resumeBtnText}>Mở lại trang thanh toán</Text>
-                            </TouchableOpacity>
-                        )}
-                        <TouchableOpacity style={styles.cancelWaitingBtn} onPress={reset}>
-                            <Text style={styles.cancelWaitingText}>Hủy / Thử lại</Text>
-                        </TouchableOpacity>
+                    <View style={styles.waitingBanner}>
+                        <ActivityIndicator color="#4E3FE0" />
+                        <Text style={styles.waitingText}>
+                            Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
+                        </Text>
                     </View>
                 )}
 
@@ -323,19 +296,20 @@ export const BuyGoldScreen: React.FC = () => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
-                        <Ionicons
-                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"}
-                            size={56}
-                            color={isSuccess ? "#22A45D" : "#E4002B"}
-                            style={{ marginBottom: 12 }}
+                        <Ionicons 
+                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"} 
+                            size={56} 
+                            color={isSuccess ? "#22A45D" : "#E4002B"} 
+                            style={{ marginBottom: 12 }} 
                         />
                         <Text style={styles.modalTitle}>
                             {isSuccess ? "Thanh toán thành công!" : "Thanh toán thất bại"}
                         </Text>
                         <Text style={styles.modalSub}>
                             {isSuccess
-                                ? `Bạn đã nhận được ${state.phase === "success" ? state.result.goldAmount : ""
-                                } Gold`
+                                ? `Bạn đã nhận được ${
+                                      state.phase === "success" ? state.result.goldAmount : ""
+                                  } Gold`
                                 : (state.phase === "failed" ? state.error : "")}
                         </Text>
                         <TouchableOpacity style={styles.modalButton} onPress={reset}>
@@ -440,7 +414,23 @@ export const BuyGoldScreen: React.FC = () => {
                                         </View>
                                     </View>
 
-
+                                    {/* Simulate button */}
+                                    <TouchableOpacity
+                                        style={[styles.simulateButton, isSimulating && { opacity: 0.7 }]}
+                                        onPress={simulateNativePayment}
+                                        disabled={isSimulating}
+                                    >
+                                        {isSimulating ? (
+                                            <ActivityIndicator color="#FFFFFF" size="small" />
+                                        ) : (
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                                <Ionicons name="flask-outline" size={16} color="#FFFFFF" />
+                                                <Text style={styles.simulateButtonText}>
+                                                    Mô phỏng chuyển khoản
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
 
                                     {/* Cancel */}
                                     <TouchableOpacity style={styles.cancelButton} onPress={reset}>
@@ -649,9 +639,6 @@ const styles = StyleSheet.create({
     },
 
     // Waiting banner
-    waitingContainer: {
-        marginBottom: 16,
-    },
     waitingBanner: {
         flexDirection: "row",
         alignItems: "center",
@@ -659,23 +646,13 @@ const styles = StyleSheet.create({
         backgroundColor: "#EEF0FF",
         borderRadius: 14,
         padding: 14,
-        marginBottom: 8,
+        marginBottom: 16,
     },
     waitingText: {
         fontSize: 14,
         color: PRIMARY,
         fontWeight: "500",
         flex: 1,
-    },
-    cancelWaitingBtn: {
-        alignSelf: "center",
-        paddingVertical: 6,
-        paddingHorizontal: 16,
-    },
-    cancelWaitingText: {
-        fontSize: 13,
-        fontWeight: "600",
-        color: "#E4002B",
     },
 
     // Pay button
@@ -946,51 +923,5 @@ const styles = StyleSheet.create({
         color: "#FF453A",
         fontSize: 14,
         fontWeight: "600",
-    },
-
-    // Resume button
-    resumeBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#0068FF",
-        borderRadius: 14,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        marginBottom: 8,
-        width: "100%",
-    },
-    resumeBtnText: {
-        color: "#FFFFFF",
-        fontSize: 14,
-        fontWeight: "700",
-    },
-
-    // Empty package styles
-    emptyPackageCard: {
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        borderRadius: 16,
-        paddingVertical: 28,
-        paddingHorizontal: 20,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.08)",
-        borderStyle: "dashed",
-    },
-    emptyPackageTitle: {
-        fontSize: 15,
-        fontWeight: "700",
-        color: "#1C1C1E",
-        marginBottom: 4,
-        textAlign: "center",
-    },
-    emptyPackageSub: {
-        fontSize: 12,
-        fontWeight: "400",
-        color: "#8E8E93",
-        textAlign: "center",
-        lineHeight: 18,
     },
 });
