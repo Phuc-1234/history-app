@@ -226,3 +226,19 @@ export const getFollowing = async (req: Request, res: Response) => {
         return handleSocialError(error, res);
     }
 };
+
+export const getXpComparison = async (req: Request, res: Response) => {
+    try {
+        const currentUser = requireCurrentUser(req);
+        const targetUserId = req.params.userId;
+        const range = String(req.query.range ?? "week");
+        const comparisonData = await socialService.getXpComparisonData(
+            currentUser.id,
+            targetUserId,
+            range,
+        );
+        return res.status(200).json(comparisonData);
+    } catch (error) {
+        return handleSocialError(error, res);
+    }
+};

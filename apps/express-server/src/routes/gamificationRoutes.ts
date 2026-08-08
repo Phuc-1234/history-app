@@ -4,6 +4,7 @@ import {
     getLeaderboard,
     getTiers,
     getStreakDetails,
+    getMonthlyStreakCalendar,
 } from "../controllers/gamificationController";
 import { optionalAuth, requireStudent } from "../middlewares/authMiddleware";
 
@@ -17,6 +18,9 @@ router.get("/tiers", getTiers);
 
 // GET /api/gamification/streak
 router.get("/streak", optionalAuth, getStreakDetails);
+
+// GET /api/gamification/streak/calendar
+router.get("/streak/calendar", requireStudent, getMonthlyStreakCalendar);
 
 
 export default router;

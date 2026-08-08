@@ -235,6 +235,7 @@ model User {
   currentStreak          Int                   @default(0) @map("current_streak")
   highestStreak          Int                   @default(0) @map("highest_streak")
   lastTestPassedAt       DateTime?             @map("last_test_passed_at")
+  lastXpGainedAt         DateTime?             @map("last_xp_gained_at")
   currentTierIndex       Int                   @default(1) @map("current_tier_index")
   isVerified             Boolean               @default(false) @map("is_verified")
   isPrivate              Boolean               @default(false) @map("is_private")
@@ -258,6 +259,7 @@ model User {
   nodeProgresses         UserNodeProgress[]
   questionMasteries      UserQuestionMastery[]
   rewardLogs             UserRewardLog[]
+  xpLogs                 UserXpLog[]
   testLogs               UserTestLog[]
   notifications          Notification[]
   fcmTokens              FcmToken[]
@@ -463,6 +465,19 @@ model UserRewardLog {
 
   @@unique([userId, rewardRuleId, triggerTargetId, triggerTime])
   @@map("user_reward_logs")
+}
+
+model UserXpLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  amount     Int
+  sourceType String   @map("source_type")
+  sourceId   String?  @map("source_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("user_xp_logs")
 }
 
 model Feedback {

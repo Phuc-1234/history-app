@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     Modal,
     View,
@@ -10,11 +10,12 @@ import {
     Image,
     ActivityIndicator,
 } from "react-native";
-import { X, Flame, CheckCircle2, Lock, Gift, Sparkles, Trophy, Calendar } from "lucide-react-native";
+import { X, Flame, CheckCircle2, Lock, Gift, Sparkles, Trophy, Calendar, ChevronRight } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 import { useGetStreakInfoQuery, StreakMilestone } from "../services/streakApi";
+import { MonthlyStreakModal } from "./MonthlyStreakModal";
 
 interface StreakDrawerModalProps {
     visible: boolean;
@@ -24,11 +25,28 @@ interface StreakDrawerModalProps {
 
 const WEEK_DAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
+function getWeeklyFlameColors(xp: number, isToday: boolean, isCompleted: boolean) {
+    if (xp > 60) {
+        return { bg: "#FFD8BE", flameColor: "#D97706" };
+    }
+    if (xp > 25) {
+        return { bg: "#FFE8D6", flameColor: "#FF5722" };
+    }
+    if (xp > 0 || isCompleted) {
+        return { bg: "#FFF4E5", flameColor: "#FF9500" };
+    }
+    if (isToday) {
+        return { bg: "#FFF4E5", flameColor: "#FF9500" };
+    }
+    return { bg: "#F2F4F7", flameColor: "#98A2B3" };
+}
+
 export default function StreakDrawerModal({
     visible,
     onClose,
     currentStreak = 0,
 }: StreakDrawerModalProps) {
+    const [monthlyModalVisible, setMonthlyModalVisible] = useState(false);
     const { data: streakData, isLoading, isError } = useGetStreakInfoQuery(undefined, {
         skip: !visible,
     });
@@ -37,142 +55,147 @@ export default function StreakDrawerModal({
     const highestStreak = streakData?.highestStreak ?? activeStreak;
     const hasCompletedToday = streakData?.hasCompletedToday ?? false;
     const milestones = streakData?.milestones ?? [];
+    const dailyXpList = streakData?.dailyXp ?? [];
 
     // Calculate current day index (0 = Monday, ..., 6 = Sunday)
     const todayIndex = (new Date().getDay() + 6) % 7;
 
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={visible}
-            onRequestClose={onClose}
-        >
-            <View style={styles.overlay}>
-                <View style={styles.modalContainer}>
-                    <View style={styles.topIndicator} />
+        <>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={visible}
+                onRequestClose={onClose}
+            >
+                <View style={styles.overlay}>
+                    <View style={styles.modalContainer}>
+                        <View style={styles.topIndicator} />
 
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <View style={styles.headerTitleRow}>
-                            <View style={styles.headerIconBg}>
-                                <Flame size={20} color="#FFFFFF" />
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <View style={styles.headerTitleRow}>
+                                <View style={styles.headerIconBg}>
+                                    <Flame size={20} color="#FFFFFF" />
+                                </View>
+                                <View>
+                                    <Text style={styles.headerTitle}>Chuỗi học tập</Text>
+                                    <Text style={styles.headerSubtitle}>
+                                        Tích lũy XP mỗi ngày để duy trì chuỗi & nhận thưởng
+                                    </Text>
+                                </View>
                             </View>
-                            <View>
-                                <Text style={styles.headerTitle}>Chuỗi học tập</Text>
-                                <Text style={styles.headerSubtitle}>
-                                    Học tập mỗi ngày để duy trì chuỗi & nhận thưởng
-                                </Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity
-                            onPress={onClose}
-                            style={styles.closeButton}
-                            activeOpacity={0.7}
-                        >
-                            <X size={18} color={colors.textSecondary} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.scrollContent}
-                    >
-                        {/* Current Streak Info */}
-                        <View style={styles.heroSection}>
-                            {/* Main Row Wrapper (Brand Orange BG) */}
-                            <LinearGradient
-                                colors={["#FF9500", "#e08400"]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.heroMainRowWrapper}
+                            <TouchableOpacity
+                                onPress={onClose}
+                                style={styles.closeButton}
+                                activeOpacity={0.7}
                             >
-                                <View style={styles.heroHeader}>
-                                    <View style={styles.heroBadgeBox}>
-                                        <Flame size={32} color="#FFFFFF" />
-                                    </View>
-                                    <View style={styles.heroTextContent}>
-                                        <View style={styles.heroTitleRow}>
-                                            <Text style={styles.heroStreakCount}>{activeStreak}</Text>
-                                            <Text style={styles.heroStreakUnit}>Ngày liên tục</Text>
+                                <X size={18} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.scrollContent}
+                        >
+                            {/* Current Streak Info */}
+                            <View style={styles.heroSection}>
+                                {/* Main Row Wrapper (Brand Orange BG) */}
+                                <LinearGradient
+                                    colors={["#FF9500", "#e08400"]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.heroMainRowWrapper}
+                                >
+                                    <View style={styles.heroHeader}>
+                                        <View style={styles.heroBadgeBox}>
+                                            <Flame size={32} color="#FFFFFF" />
                                         </View>
-                                        <View style={styles.highestTag}>
-                                            <Trophy size={12} color="#FFFFFF" />
-                                            <Text style={styles.highestTagText}>
-                                                Kỷ lục: {highestStreak} ngày
-                                            </Text>
-                                        </View>
-                                    </View>
-                                </View>
-                            </LinearGradient>
-
-                            {/* Today Status Alert Box */}
-                            <View style={styles.statusBox}>
-                                {hasCompletedToday ? (
-                                    <View style={styles.statusRow}>
-                                        <CheckCircle2 size={18} color={colors.success} />
-                                        <Text style={styles.statusText}>
-                                            Tuyệt vời! Bạn đã hoàn thành bài học hôm nay.
-                                        </Text>
-                                    </View>
-                                ) : (
-                                    <View style={styles.statusRow}>
-                                        <Flame size={18} color="#FF9500" />
-                                        <Text style={styles.statusText}>
-                                            Hôm nay chưa học! Hãy hoàn thành 1 bài tập để giữ chuỗi!
-                                        </Text>
-                                    </View>
-                                )}
-                            </View>
-
-                            {/* Weekly Tracker Row */}
-                            <View style={styles.weeklyTrackerContainer}>
-                                <View style={styles.weeklyTitleRow}>
-                                    <Calendar size={13} color={colors.textSecondary} />
-                                    <Text style={styles.weeklyTitle}>Tuần này</Text>
-                                </View>
-                                <View style={styles.daysRow}>
-                                    {WEEK_DAYS.map((dayLabel, idx) => {
-                                        const isToday = idx === todayIndex;
-                                        const isPast = idx < todayIndex;
-                                        const isCompleted = isToday ? hasCompletedToday : (isPast && activeStreak > (todayIndex - idx));
-
-                                        return (
-                                            <View key={dayLabel} style={styles.dayCol}>
-                                                <View
-                                                    style={[
-                                                        styles.dayCircle,
-                                                        isCompleted && styles.dayCircleCompleted,
-                                                        isToday && !hasCompletedToday && styles.dayCircleTodayPending,
-                                                    ]}
-                                                >
-                                                    {isCompleted ? (
-                                                        <Flame size={14} color="#FFFFFF" />
-                                                    ) : (
-                                                        <Text
-                                                            style={[
-                                                                styles.dayCircleText,
-                                                                isToday && styles.dayCircleTextToday,
-                                                            ]}
-                                                        >
-                                                            {idx + 1}
-                                                        </Text>
-                                                    )}
-                                                </View>
-                                                <Text
-                                                    style={[
-                                                        styles.dayLabel,
-                                                        isToday && styles.dayLabelToday,
-                                                    ]}
-                                                >
-                                                    {dayLabel}
+                                        <View style={styles.heroTextContent}>
+                                            <View style={styles.heroTitleRow}>
+                                                <Text style={styles.heroStreakCount}>{activeStreak}</Text>
+                                                <Text style={styles.heroStreakUnit}>Ngày liên tục</Text>
+                                            </View>
+                                            <View style={styles.highestTag}>
+                                                <Trophy size={12} color="#FFFFFF" />
+                                                <Text style={styles.highestTagText}>
+                                                    Kỷ lục: {highestStreak} ngày
                                                 </Text>
                                             </View>
-                                        );
-                                    })}
+                                        </View>
+                                    </View>
+                                </LinearGradient>
+
+                                {/* Today Status Alert Box */}
+                                <View style={styles.statusBox}>
+                                    {hasCompletedToday ? (
+                                        <View style={styles.statusRow}>
+                                            <CheckCircle2 size={18} color={colors.success} />
+                                            <Text style={styles.statusText}>
+                                                Tuyệt vời! Bạn đã tích lũy XP hôm nay.
+                                            </Text>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.statusRow}>
+                                            <Flame size={18} color="#FF9500" />
+                                            <Text style={styles.statusText}>
+                                                Hôm nay chưa có XP! Hoàn thành 1 bài tập để giữ chuỗi!
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
+
+                                {/* Weekly Tracker Row (Clickable to open Monthly Calendar) */}
+                                <TouchableOpacity
+                                    style={styles.weeklyTrackerContainer}
+                                    onPress={() => setMonthlyModalVisible(true)}
+                                    activeOpacity={0.8}
+                                >
+                                    <View style={styles.weeklyTitleRow}>
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                            <Calendar size={13} color={colors.textSecondary} />
+                                            <Text style={styles.weeklyTitle}>Tuần này</Text>
+                                        </View>
+                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                                            <Text style={{ fontSize: 12, color: colors.primary, fontFamily: typography.fonts.medium }}>
+                                                Xem lịch tháng
+                                            </Text>
+                                            <ChevronRight size={14} color={colors.primary} />
+                                        </View>
+                                    </View>
+                                    <View style={styles.daysRow}>
+                                        {WEEK_DAYS.map((dayLabel, idx) => {
+                                            const isToday = idx === todayIndex;
+                                            const dayData = dailyXpList[idx];
+                                            const xp = dayData?.xp ?? 0;
+                                            const isCompleted = xp > 0;
+                                            const colorsConfig = getWeeklyFlameColors(xp, isToday, isCompleted);
+
+                                            return (
+                                                <View key={dayLabel} style={styles.dayCol}>
+                                                    <View
+                                                        style={[
+                                                            styles.dayCircle,
+                                                            { backgroundColor: colorsConfig.bg },
+                                                            isToday && !hasCompletedToday && styles.dayCircleTodayPending,
+                                                        ]}
+                                                    >
+                                                        <Flame size={14} color={colorsConfig.flameColor} />
+                                                    </View>
+                                                    <Text
+                                                        style={[
+                                                            styles.dayLabel,
+                                                            isToday && styles.dayLabelToday,
+                                                        ]}
+                                                    >
+                                                        {dayLabel}
+                                                    </Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                </TouchableOpacity>
                             </View>
-                        </View>
 
                         {/* Milestones Section Header */}
                         <View style={styles.sectionHeader}>
@@ -280,6 +303,12 @@ export default function StreakDrawerModal({
                 </View>
             </View>
         </Modal>
+
+        <MonthlyStreakModal
+            visible={monthlyModalVisible}
+            onClose={() => setMonthlyModalVisible(false)}
+        />
+        </>
     );
 }
 
