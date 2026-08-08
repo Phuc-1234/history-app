@@ -74,6 +74,14 @@ export const handleMockSubscriptionSubmit = async (
     res: Response,
 ): Promise<Response> => {
     try {
+        if (process.env.NODE_ENV === "production") {
+            return res.status(403).json({ error: "Cổng giả lập thanh toán bị vô hiệu hóa trên môi trường Production." });
+        }
+
+        if (!req.user) {
+            return res.status(401).json({ error: "Access denied. Valid session missing." });
+        }
+
         const { orderId, status } = req.body;
         if (!orderId || !status || !["SUCCESS", "FAILED"].includes(status)) {
             return res.status(400).json({ error: "Thiếu dữ liệu hoặc status không hợp lệ." });
@@ -87,6 +95,10 @@ export const handleMockSubscriptionSubmit = async (
             return res.status(404).json({ error: "Không tìm thấy thông tin đăng ký." });
         }
 
+        if (subscription.userId !== req.user.id) {
+            return res.status(403).json({ error: "Bạn không có quyền thao tác trên đơn hàng này." });
+        }
+
         if (subscription.status !== "PENDING") {
             return res.status(400).json({ error: "Yêu cầu đăng ký đã được xử lý trước đó." });
         }
@@ -94,8 +106,8 @@ export const handleMockSubscriptionSubmit = async (
         if (status === "SUCCESS") {
             await paymentService.activateSubscription(orderId, "MOCK_SUB_TRANS_" + Math.random().toString(36).substring(2, 10).toUpperCase());
         } else {
-            await prisma.subscription.update({
-                where: { id: orderId },
+            await prisma.subscription.updateMany({
+                where: { id: orderId, status: "PENDING" },
                 data: { status: "FAILED" },
             });
         }
@@ -406,122 +418,9 @@ export const renderSubscriptionCheckout = async (req: Request, res: Response): P
                     `}
                 </div>
 
-                ${isSepay 
-                    ? `<button class="btn-action" onclick="simulatePayment()">Mô phỏng chuyển khoản thành công</button>`
-                    : `
-                    <button class="btn-action" onclick="submitMockPayment('SUCCESS')">Đồng ý đăng ký (Thành công)</button>
-                    <button class="btn-action btn-cancel" onclick="submitMockPayment('FAILED')">Hủy đăng ký (Thất bại)</button>
-                    `
-                }
-                
                 <div class="footer">
                     Vui lòng thanh toán đúng số tiền và nội dung để hệ thống tự động nâng cấp Premium ngay lập tức.
                 </div>
-            </div>
-
-            <div class="toast" id="toast">Đã sao chép!</div>
-
-            <script>
-                function copyText(text, message) {
-                    navigator.clipboard.writeText(text).then(() => {
-                        showToast(message);
-                    });
-                }
-
-                function showToast(message) {
-                    const toast = document.getElementById('toast');
-                    toast.innerText = message;
-                    toast.classList.add('show');
-                    setTimeout(() => {
-                        toast.classList.remove('show');
-                    }, 2000);
-                }
-
-                const orderId = '${sub.orderId}';
-                
-                // Polling subscription status
-                const interval = setInterval(async () => {
-                    try {
-                        const res = await fetch('/api/subscription/status/' + orderId);
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (data.status === 'ACTIVE') {
-                                clearInterval(interval);
-                                handleSuccess();
-                            } else if (data.status === 'FAILED') {
-                                clearInterval(interval);
-                                handleFailure();
-                            }
-                        }
-                    } catch (e) {
-                        console.error('Polling error:', e);
-                    }
-                }, 2000);
-
-                function handleSuccess() {
-                    const card = document.getElementById('card');
-                    card.innerHTML = \`
-                        <div style="font-size: 72px; margin-bottom: 20px; margin-top: 20px;">👑</div>
-                        <h2 style="background: linear-gradient(45deg, #ff79c6, #bd93f9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; font-size: 26px; margin-bottom: 8px;">Kích hoạt Premium Pro!</h2>
-                        <p style="color: #aba6c3; font-size: 15px; line-height: 1.6; margin-bottom: 32px; padding: 0 16px;">
-                            Chúc mừng bạn đã nâng cấp thành công tài khoản lên **Premium Pro**. Bạn có thể tận hưởng toàn bộ đặc quyền học tập ngay bây giờ!
-                        </p>
-                        <div style="background: rgba(52, 199, 89, 0.1); border: 1px solid rgba(52, 199, 89, 0.2); padding: 12px 24px; border-radius: 16px; color: #34c759; font-weight: 600; font-size: 13px; display: inline-block; margin-bottom: 24px;">
-                            Gói Pro đã được kích hoạt
-                        </div>
-                        <p style="color: #5d5875; font-size: 12px; margin-bottom: 16px;">Vui lòng quay lại ứng dụng để bắt đầu sử dụng.</p>
-                    \`;
-                }
-
-                function handleFailure() {
-                    const card = document.getElementById('card');
-                    card.innerHTML = \`
-                        <div style="font-size: 72px; margin-bottom: 20px; margin-top: 20px;">❌</div>
-                        <h2 style="color: #ff453a; font-weight: 800; font-size: 26px; margin-bottom: 8px;">Đăng ký thất bại</h2>
-                        <p style="color: #aba6c3; font-size: 15px; line-height: 1.6; margin-bottom: 32px;">
-                            Giao dịch đăng ký gói đã bị hủy hoặc gặp lỗi xử lý.
-                        </p>
-                        <button class="btn-action" style="background: #3a3a3c; box-shadow: none;" onclick="window.location.reload()">Thử lại</button>
-                    \`;
-                }
-
-                // Call SePay Webhook directly to simulate payment
-                async function simulatePayment() {
-                    const statusContainer = document.getElementById('status-container');
-                    statusContainer.innerHTML = '<div class="spinner"></div><span>Đang gửi lệnh kích hoạt giả lập...</span>';
-                    
-                    try {
-                        const response = await fetch('/api/payment/sepay/webhook', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': 'Apikey ${process.env.SEPAY_WEBHOOK_API_KEY || "sepay_webhook_secret_key_123"}'
-                            },
-                            body: JSON.stringify({
-                                id: Math.floor(Math.random() * 100000),
-                                gateway: '${bankId}',
-                                transactionDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
-                                accountNumber: '${accountNo}',
-                                transferType: 'in',
-                                transferAmount: ${amountVnd},
-                                content: '${paymentCode}',
-                                referenceCode: 'SIM_SUB_' + Math.random().toString(36).substring(2, 10).toUpperCase()
-                            })
-                        });
-                        
-                        const resData = await response.json();
-                        if (response.ok) {
-                            showToast('Gửi lệnh giả lập thành công!');
-                        } else {
-                            throw new Error(resData.error || 'Gửi lệnh thất bại');
-                        }
-                    } catch (e) {
-                        statusContainer.innerHTML = '<div class="spinner"></div><span style="color: #ff453a;">Lỗi: ' + e.message + '</span>';
-                        setTimeout(() => {
-                            statusContainer.innerHTML = '<div class="spinner"></div><span>Đang chờ thanh toán...</span>';
-                        }, 5000);
-                    }
-                }
 
                 // Call Mock Submit
                 async function submitMockPayment(status) {
