@@ -311,7 +311,7 @@ export const SubscriptionScreen: React.FC = () => {
                                 </TouchableOpacity>
                             )}
                             <TouchableOpacity style={styles.cancelWaitingBtn} onPress={reset}>
-                                <Text style={styles.cancelWaitingText}>Hủy / Thử lại</Text>
+                                <Text style={styles.cancelWaitingText}>Hủy</Text>
                             </TouchableOpacity>
                         </View>
                     )}
