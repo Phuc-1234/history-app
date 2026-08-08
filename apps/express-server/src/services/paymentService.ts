@@ -102,10 +102,10 @@ async function createZaloPayOrder(
         throw new Error(`ZaloPay error: ${response.return_message} (code ${response.return_code})`);
     }
 
-    return { 
-        payUrl: response.order_url, 
+    return {
+        payUrl: response.order_url,
         zpTransToken: response.zp_trans_token,
-        appTransId 
+        appTransId
     };
 }
 
@@ -116,6 +116,7 @@ async function createZaloPayOrder(
 async function queryZaloPayOrder(appTransId: string): Promise<{
     returnCode: number; // 1=success, 2=failed, 3=pending
     zpTransId?: string;
+    returnMessage?: string;
 }> {
     const appId = parseInt(process.env.ZALOPAY_APP_ID!);
     const key1 = process.env.ZALOPAY_KEY1!;
@@ -133,10 +134,13 @@ async function queryZaloPayOrder(appTransId: string): Promise<{
 
     try {
         const response = await postJson(queryEndpoint, body);
-        console.log(`[ZaloPay Query] app_trans_id=${appTransId} → return_code=${response.return_code}`);
+        console.log(
+            `[ZaloPay Query] app_trans_id=${appTransId} → return_code=${response.return_code}, sub_return_code=${response.sub_return_code}, return_message=${response.return_message}`,
+        );
         return {
             returnCode: response.return_code ?? 3,
             zpTransId: response.zp_trans_id ? String(response.zp_trans_id) : undefined,
+            returnMessage: response.return_message,
         };
     } catch (err) {
         console.warn("[ZaloPay Query] failed to reach ZaloPay:", err);
@@ -269,6 +273,49 @@ export class PaymentService {
         };
     }
 
+    /**
+     * Atomically fulfill a pending Gold Purchase to prevent race conditions.
+     * Uses row-level conditional update (status = PENDING) so concurrent webhooks/polling
+     * will only credit gold ONCE.
+     */
+    async fulfillGoldPurchase(purchaseId: string, providerTransId: string): Promise<boolean> {
+        return await prisma.$transaction(async (tx) => {
+            // 1. Atomic compare-and-swap lock
+            const result = await tx.goldPurchase.updateMany({
+                where: {
+                    id: purchaseId,
+                    status: "PENDING",
+                },
+                data: {
+                    status: "SUCCESS",
+                    providerTransId,
+                },
+            });
+
+            // 2. If count === 0, another worker/polling thread already fulfilled this purchase
+            if (result.count === 0) {
+                console.log(`[GoldPurchase] Purchase ${purchaseId} already processed by concurrent request.`);
+                return false;
+            }
+
+            // 3. Fetch purchase info to credit user gold safely
+            const purchase = await tx.goldPurchase.findUnique({
+                where: { id: purchaseId },
+                select: { userId: true, goldAmount: true },
+            });
+
+            if (purchase) {
+                await tx.user.update({
+                    where: { id: purchase.userId },
+                    data: { totalGold: { increment: purchase.goldAmount } },
+                });
+                console.log(`[GoldPurchase] Atomically credited ${purchase.goldAmount} Gold to user: ${purchase.userId}`);
+            }
+
+            return true;
+        });
+    }
+
     /** Called when SePay webhook arrives */
     async handleSePayWebhook(payload: SePayWebhookPayload): Promise<void> {
         if (payload.transferType !== "in") {
@@ -285,7 +332,7 @@ export class PaymentService {
         }
         const paymentCode = match[0].toUpperCase();
 
-        if (paymentCode.startsWith("DH9")) {
+        if (paymentCode.startsWith("DH9") || paymentCode.startsWith("SUB")) {
             const subscription = await prisma.subscription.findUnique({
                 where: { providerOrderId: paymentCode },
             });
@@ -322,40 +369,7 @@ export class PaymentService {
                 throw new Error(`Amount mismatch. Expected ${purchase.amountVnd} but got ${payload.transferAmount}`);
             }
 
-            await prisma.$transaction([
-                prisma.goldPurchase.update({
-                    where: { id: purchase.id },
-                    data: {
-                        status: "SUCCESS",
-                        providerTransId: String(payload.id || payload.referenceCode),
-                    },
-                }),
-                prisma.user.update({
-                    where: { id: purchase.userId },
-                    data: { totalGold: { increment: purchase.goldAmount } },
-                }),
-            ]);
-
-            console.log(`[SePay Webhook] Processed successfully. Order: ${purchase.id}, Gold credited: ${purchase.goldAmount}`);
-        } else if (paymentCode.startsWith("SUB")) {
-            const subscription = await prisma.subscription.findUnique({
-                where: { providerOrderId: paymentCode },
-            });
-
-            if (!subscription) {
-                throw new Error(`No subscription record found for code: ${paymentCode}`);
-            }
-
-            if (subscription.status !== "PENDING") {
-                console.log(`[SePay Webhook] Subscription ${subscription.id} already processed. Status: ${subscription.status}`);
-                return;
-            }
-
-            if (payload.transferAmount < subscription.amountVnd) {
-                throw new Error(`Amount mismatch. Expected ${subscription.amountVnd} but got ${payload.transferAmount}`);
-            }
-
-            await this.activateSubscription(subscription.id, String(payload.id || payload.referenceCode));
+            await this.fulfillGoldPurchase(purchase.id, String(payload.id || payload.referenceCode));
         }
     }
 
@@ -381,21 +395,7 @@ export class PaymentService {
 
         if (purchase) {
             if (purchase.status !== "PENDING") return;
-
-            await prisma.$transaction([
-                prisma.goldPurchase.update({
-                    where: { id: purchase.id },
-                    data: {
-                        status: "SUCCESS",
-                        providerTransId: String(data.zp_trans_id),
-                    },
-                }),
-                prisma.user.update({
-                    where: { id: purchase.userId },
-                    data: { totalGold: { increment: purchase.goldAmount } },
-                }),
-            ]);
-            console.log(`[ZaloPay Callback] Gold credited for Order: ${purchase.id}`);
+            await this.fulfillGoldPurchase(purchase.id, String(data.zp_trans_id));
         } else {
             const subscription = await prisma.subscription.findUnique({
                 where: { id: orderId },
@@ -429,26 +429,21 @@ export class PaymentService {
                 const { returnCode, zpTransId } = await queryZaloPayOrder(purchase.providerOrderId);
 
                 if (returnCode === 1) {
-                    // Payment succeeded → update DB
-                    await prisma.$transaction([
-                        prisma.goldPurchase.update({
-                            where: { id: purchase.id },
-                            data: {
-                                status: "SUCCESS",
-                                providerTransId: zpTransId ?? null,
-                            },
-                        }),
-                        prisma.user.update({
-                            where: { id: purchase.userId },
-                            data: { totalGold: { increment: purchase.goldAmount } },
-                        }),
-                    ]);
-                    resolvedStatus = "SUCCESS";
-                    resolvedTransId = zpTransId ?? null;
+                    // Payment succeeded → atomically fulfill
+                    const fulfilled = await this.fulfillGoldPurchase(purchase.id, zpTransId ?? "ZALOPAY_QUERY_TRANS");
+                    if (fulfilled) {
+                        resolvedStatus = "SUCCESS";
+                        resolvedTransId = zpTransId ?? null;
+                    } else {
+                        // Another worker updated it, re-read status from DB
+                        const updatedPurchase = await prisma.goldPurchase.findUnique({ where: { id: purchase.id } });
+                        resolvedStatus = updatedPurchase?.status || "SUCCESS";
+                        resolvedTransId = updatedPurchase?.providerTransId || zpTransId || null;
+                    }
                 } else if (returnCode === 2) {
                     // Payment failed
-                    await prisma.goldPurchase.update({
-                        where: { id: purchase.id },
+                    await prisma.goldPurchase.updateMany({
+                        where: { id: purchase.id, status: "PENDING" },
                         data: { status: "FAILED" },
                     });
                     resolvedStatus = "FAILED";
@@ -470,9 +465,6 @@ export class PaymentService {
         };
     }
 
-    /**
-     * Creates a new pending Pro Subscription.
-     */
     /**
      * Creates a new pending Pro Subscription.
      */
@@ -567,36 +559,64 @@ export class PaymentService {
 
     /**
      * Activates a pending subscription and marks the user as Pro.
+     * Uses atomic compare-and-swap to avoid race condition activations.
+     * Dynamically resolves durationDays from ProPackage matching priceVnd if not explicitly specified.
      */
-    async activateSubscription(subscriptionId: string, providerTransId: string, durationDays: number = 30): Promise<void> {
-        const subscription = await prisma.subscription.findUnique({
-            where: { id: subscriptionId },
-        });
-        if (!subscription || subscription.status !== "PENDING") return;
-
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() + durationDays);
-
-        await prisma.$transaction([
-            prisma.subscription.update({
+    async activateSubscription(subscriptionId: string, providerTransId: string, durationDays?: number): Promise<boolean> {
+        return await prisma.$transaction(async (tx) => {
+            const subscription = await tx.subscription.findUnique({
                 where: { id: subscriptionId },
+                select: { userId: true, amountVnd: true },
+            });
+
+            if (!subscription) return false;
+
+            let effectiveDuration = durationDays;
+            if (!effectiveDuration && subscription.amountVnd) {
+                const pkg = await tx.proPackage.findFirst({
+                    where: { priceVnd: subscription.amountVnd, isActive: true },
+                });
+                if (pkg?.durationDays) {
+                    effectiveDuration = pkg.durationDays;
+                }
+            }
+            if (!effectiveDuration) {
+                effectiveDuration = 30; // Default fallback
+            }
+
+            const startDate = new Date();
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + effectiveDuration);
+
+            const result = await tx.subscription.updateMany({
+                where: {
+                    id: subscriptionId,
+                    status: "PENDING",
+                },
                 data: {
                     status: "ACTIVE",
                     providerTransId,
                     startDate,
                     endDate,
                 },
-            }),
-            prisma.user.update({
+            });
+
+            if (result.count === 0) {
+                console.log(`[Subscription Service] Subscription ${subscriptionId} already activated or not pending.`);
+                return false;
+            }
+
+            await tx.user.update({
                 where: { id: subscription.userId },
                 data: {
                     isPro: true,
                     proExpiresAt: endDate,
                 },
-            }),
-        ]);
-        console.log(`[Subscription Service] Activated subscription ${subscriptionId} for User: ${subscription.userId} (${durationDays} days)`);
+            });
+            console.log(`[Subscription Service] Atomically activated subscription ${subscriptionId} for User: ${subscription.userId} (${effectiveDuration} days)`);
+
+            return true;
+        });
     }
 
     /**
@@ -647,12 +667,18 @@ export class PaymentService {
                 const { returnCode, zpTransId } = await queryZaloPayOrder(subscription.providerOrderId);
 
                 if (returnCode === 1) {
-                    await this.activateSubscription(subscription.id, zpTransId || "MOCK_ZALO_TRANS");
-                    resolvedStatus = "ACTIVE";
-                    resolvedTransId = zpTransId ?? null;
+                    const activated = await this.activateSubscription(subscription.id, zpTransId || "MOCK_ZALO_TRANS");
+                    if (activated) {
+                        resolvedStatus = "ACTIVE";
+                        resolvedTransId = zpTransId ?? null;
+                    } else {
+                        const updatedSub = await prisma.subscription.findUnique({ where: { id: subscription.id } });
+                        resolvedStatus = updatedSub?.status || "ACTIVE";
+                        resolvedTransId = updatedSub?.providerTransId || zpTransId || null;
+                    }
                 } else if (returnCode === 2) {
-                    await prisma.subscription.update({
-                        where: { id: subscription.id },
+                    await prisma.subscription.updateMany({
+                        where: { id: subscription.id, status: "PENDING" },
                         data: { status: "FAILED" },
                     });
                     resolvedStatus = "FAILED";

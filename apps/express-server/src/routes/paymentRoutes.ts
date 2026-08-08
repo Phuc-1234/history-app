@@ -20,7 +20,7 @@ router.post("/initiate", requireStudent, initiatePayment);
 router.get("/mock-checkout", renderMockCheckout);
 
 // POST /api/payment/mock-submit — processes success/fail mock response
-router.post("/mock-submit", handleMockSubmit);
+router.post("/mock-submit", requireStudent, handleMockSubmit);
 
 // GET /api/payment/sepay-checkout — renders VietQR scanning page with polling
 router.get("/sepay-checkout", renderSePayCheckout);
