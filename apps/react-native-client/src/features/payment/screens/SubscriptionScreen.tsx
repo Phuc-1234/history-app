@@ -47,7 +47,7 @@ function getProviderColor(provider: PaymentProvider) {
 export const SubscriptionScreen: React.FC = () => {
     const router = useRouter();
     const profile = useAppSelector((state) => state.auth.profile);
-    const { state, subscribe, cancelSubscription, reset } = useSubscriptionPayment();
+    const { state, subscribe, resumePayment, cancelSubscription, reset } = useSubscriptionPayment();
     const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("ZALOPAY");
     const [isSimulating, setIsSimulating] = useState(false);
     const [proPackages, setProPackages] = useState<any[]>([]);
@@ -98,6 +98,12 @@ export const SubscriptionScreen: React.FC = () => {
         if (!dateString) return "";
         const date = new Date(dateString);
         return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    };
+
+    const copyToClipboard = (value: string | undefined, label: string) => {
+        if (!value) return;
+        Clipboard.setString(value);
+        Alert.alert("Đã sao chép", `${label} đã được sao chép.`);
     };
 
     const renderActiveSubscription = () => {
@@ -295,9 +301,15 @@ export const SubscriptionScreen: React.FC = () => {
                             <View style={styles.waitingBanner}>
                                 <ActivityIndicator color={colors.primary} />
                                 <Text style={styles.waitingText}>
-                                    Đang chờ xác nhận từ {getProviderLabel(selectedProvider)} (tối đa 60s)...
+                                    Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
                                 </Text>
                             </View>
+                            {!!state.payUrl && (
+                                <TouchableOpacity style={styles.resumeBtn} onPress={resumePayment} activeOpacity={0.8}>
+                                    <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                    <Text style={styles.resumeBtnText}>Mở lại trang thanh toán</Text>
+                                </TouchableOpacity>
+                            )}
                             <TouchableOpacity style={styles.cancelWaitingBtn} onPress={reset}>
                                 <Text style={styles.cancelWaitingText}>Hủy / Thử lại</Text>
                             </TouchableOpacity>
@@ -344,11 +356,11 @@ export const SubscriptionScreen: React.FC = () => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
-                        <Ionicons 
-                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"} 
-                            size={56} 
-                            color={isSuccess ? colors.success : colors.error} 
-                            style={{ marginBottom: 12 }} 
+                        <Ionicons
+                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"}
+                            size={56}
+                            color={isSuccess ? colors.success : colors.error}
+                            style={{ marginBottom: 12 }}
                         />
                         <Text style={styles.modalTitle}>
                             {isSuccess ? "Đăng ký thành công!" : "Đăng ký thất bại"}
@@ -1023,5 +1035,21 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
         textAlign: "center",
         lineHeight: 18,
+    },
+    resumeBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#0068FF",
+        borderRadius: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        marginBottom: 8,
+        width: "100%",
+    },
+    resumeBtnText: {
+        color: "#FFFFFF",
+        fontSize: 14,
+        fontFamily: typography.fonts.bold,
     },
 });

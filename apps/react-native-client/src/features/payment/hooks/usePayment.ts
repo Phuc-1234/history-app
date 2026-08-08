@@ -23,6 +23,7 @@ type PaymentState =
     | {
           phase: "waiting";
           orderId: string;
+          payUrl?: string;
           vietQrUrl?: string;
           bankId?: string;
           accountNo?: string;
@@ -57,10 +58,13 @@ export function usePayment() {
 
     const checkStatusImmediately = useCallback(
         async (orderId: string) => {
+            if (currentOrderIdRef.current !== orderId) return false;
             try {
                 const result = await dispatch(
                     paymentApi.endpoints.getPaymentStatus.initiate(orderId, { forceRefetch: true }),
                 ).unwrap();
+
+                if (currentOrderIdRef.current !== orderId) return false;
 
                 if (result.status === "SUCCESS") {
                     stopPolling();
@@ -94,11 +98,13 @@ export function usePayment() {
 
     const pollStatus = useCallback(
         async (orderId: string, provider: PaymentProvider) => {
+            if (currentOrderIdRef.current !== orderId) return;
             attemptsRef.current += 1;
             const maxAttempts = provider === "ZALOPAY" ? POLL_MAX_ATTEMPTS_ZALOPAY : POLL_MAX_ATTEMPTS_DEFAULT;
 
             if (attemptsRef.current > maxAttempts) {
                 stopPolling();
+                if (currentOrderIdRef.current !== orderId) return;
                 const timeoutError =
                     provider === "ZALOPAY"
                         ? "Thanh toán ZaloPay quá thời gian chờ (60s). Vui lòng kiểm tra lại ứng dụng ZaloPay hoặc thử lại."
@@ -111,6 +117,8 @@ export function usePayment() {
                 const result = await dispatch(
                     paymentApi.endpoints.getPaymentStatus.initiate(orderId, { forceRefetch: true }),
                 ).unwrap();
+
+                if (currentOrderIdRef.current !== orderId) return;
 
                 if (result.status === "SUCCESS") {
                     stopPolling();
@@ -136,11 +144,15 @@ export function usePayment() {
                     return;
                 }
 
-                // Still PENDING — poll again
-                pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
+                // Still PENDING — poll again if currentOrderId hasn't been cancelled/reset
+                if (currentOrderIdRef.current === orderId) {
+                    pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
+                }
             } catch {
-                // Network error during polling — try again
-                pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
+                // Network error during polling — try again if currentOrderId hasn't been cancelled/reset
+                if (currentOrderIdRef.current === orderId) {
+                    pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
+                }
             }
         },
         [dispatch, stopPolling],
@@ -164,13 +176,13 @@ export function usePayment() {
     }, [checkStatusImmediately]);
 
     const pay = useCallback(
-        async (provider: PaymentProvider, goldAmount: number) => {
+        async (provider: PaymentProvider, goldAmount?: number, packageId?: string) => {
             setState({ phase: "loading" });
             stopPolling();
             attemptsRef.current = 0;
 
             try {
-                const initRes = await initiatePayment({ provider, goldAmount }).unwrap();
+                const initRes = await initiatePayment({ provider, goldAmount, packageId }).unwrap();
                 const { orderId, payUrl, zpTransToken, vietQrUrl, bankId, accountNo, accountName, providerOrderId, amountVnd } = initRes;
 
                 currentOrderIdRef.current = orderId;
@@ -180,6 +192,7 @@ export function usePayment() {
                     setState({
                         phase: "waiting",
                         orderId,
+                        payUrl,
                         vietQrUrl,
                         bankId,
                         accountNo,
@@ -196,6 +209,7 @@ export function usePayment() {
                     setState({
                         phase: "waiting",
                         orderId,
+                        payUrl,
                         amountVnd,
                         provider,
                     });
@@ -275,6 +289,21 @@ export function usePayment() {
         [initiatePayment, pollStatus, stopPolling, checkStatusImmediately],
     );
 
+    const resumePayment = useCallback(async () => {
+        if (state.phase !== "waiting" || !state.payUrl) return;
+        try {
+            console.log("[Payment Hook] Resuming payment for payUrl:", state.payUrl);
+            await WebBrowser.openBrowserAsync(state.payUrl);
+        } catch (e) {
+            console.warn("[Payment Hook] WebBrowser resume failed, fallback to Linking:", e);
+            try {
+                await Linking.openURL(state.payUrl);
+            } catch (linkErr) {
+                console.error("[Payment Hook] Linking resume failed:", linkErr);
+            }
+        }
+    }, [state]);
+
     const reset = useCallback(() => {
         stopPolling();
         attemptsRef.current = 0;
@@ -283,6 +312,6 @@ export function usePayment() {
         setState({ phase: "idle" });
     }, [stopPolling]);
 
-    return { state, pay, reset };
+    return { state, pay, resumePayment, reset };
 }
 

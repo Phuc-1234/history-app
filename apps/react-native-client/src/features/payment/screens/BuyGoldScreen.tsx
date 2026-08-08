@@ -56,7 +56,7 @@ function getProviderColor(provider: PaymentProvider) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const BuyGoldScreen: React.FC = () => {
-    const { state, pay, reset } = usePayment();
+    const { state, pay, resumePayment, reset } = usePayment();
     const [goldPackages, setGoldPackages] = useState<GoldPackage[]>([]);
     const [selectedPackage, setSelectedPackage] = useState<GoldPackage | null>(null);
     const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>("ZALOPAY");
@@ -107,7 +107,7 @@ export const BuyGoldScreen: React.FC = () => {
 
     const handlePay = () => {
         if (!selectedPackage) return;
-        pay(selectedProvider, selectedPackage.goldAmount);
+        pay(selectedProvider, selectedPackage.goldAmount, selectedPackage.id);
     };
 
     const copyToClipboard = (value: string | undefined, label: string) => {
@@ -277,9 +277,15 @@ export const BuyGoldScreen: React.FC = () => {
                         <View style={styles.waitingBanner}>
                             <ActivityIndicator color="#4E3FE0" />
                             <Text style={styles.waitingText}>
-                                Đang chờ xác nhận từ {getProviderLabel(selectedProvider)} (tối đa 60s)...
+                                Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
                             </Text>
                         </View>
+                        {!!state.payUrl && (
+                            <TouchableOpacity style={styles.resumeBtn} onPress={resumePayment} activeOpacity={0.8}>
+                                <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                <Text style={styles.resumeBtnText}>Mở lại trang thanh toán</Text>
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity style={styles.cancelWaitingBtn} onPress={reset}>
                             <Text style={styles.cancelWaitingText}>Hủy / Thử lại</Text>
                         </TouchableOpacity>
@@ -317,20 +323,19 @@ export const BuyGoldScreen: React.FC = () => {
             >
                 <View style={styles.modalBackdrop}>
                     <View style={styles.modalCard}>
-                        <Ionicons 
-                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"} 
-                            size={56} 
-                            color={isSuccess ? "#22A45D" : "#E4002B"} 
-                            style={{ marginBottom: 12 }} 
+                        <Ionicons
+                            name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"}
+                            size={56}
+                            color={isSuccess ? "#22A45D" : "#E4002B"}
+                            style={{ marginBottom: 12 }}
                         />
                         <Text style={styles.modalTitle}>
                             {isSuccess ? "Thanh toán thành công!" : "Thanh toán thất bại"}
                         </Text>
                         <Text style={styles.modalSub}>
                             {isSuccess
-                                ? `Bạn đã nhận được ${
-                                      state.phase === "success" ? state.result.goldAmount : ""
-                                  } Gold`
+                                ? `Bạn đã nhận được ${state.phase === "success" ? state.result.goldAmount : ""
+                                } Gold`
                                 : (state.phase === "failed" ? state.error : "")}
                         </Text>
                         <TouchableOpacity style={styles.modalButton} onPress={reset}>
@@ -941,6 +946,24 @@ const styles = StyleSheet.create({
         color: "#FF453A",
         fontSize: 14,
         fontWeight: "600",
+    },
+
+    // Resume button
+    resumeBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#0068FF",
+        borderRadius: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        marginBottom: 8,
+        width: "100%",
+    },
+    resumeBtnText: {
+        color: "#FFFFFF",
+        fontSize: 14,
+        fontWeight: "700",
     },
 
     // Empty package styles

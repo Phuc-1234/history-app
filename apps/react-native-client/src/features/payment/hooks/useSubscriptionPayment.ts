@@ -1,12 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Linking, AppState } from "react-native";
 import * as WebBrowser from "expo-web-browser";
-import { 
-    useInitiateSubscriptionMutation, 
+import {
+    useInitiateSubscriptionMutation,
     useCancelSubscriptionMutation,
-    paymentApi, 
-    GetSubscriptionStatusResponse, 
-    PaymentProvider 
+    paymentApi,
+    GetSubscriptionStatusResponse,
+    PaymentProvider
 } from "../api/paymentApi";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
@@ -26,6 +26,7 @@ type SubscriptionPaymentState =
     | {
           phase: "waiting";
           orderId: string;
+          payUrl?: string;
           vietQrUrl?: string;
           bankId?: string;
           accountNo?: string;
@@ -61,10 +62,13 @@ export function useSubscriptionPayment() {
 
     const checkStatusImmediately = useCallback(
         async (orderId: string) => {
+            if (currentOrderIdRef.current !== orderId) return false;
             try {
                 const result = await dispatch(
                     paymentApi.endpoints.getSubscriptionStatus.initiate(orderId, { forceRefetch: true }),
                 ).unwrap();
+
+                if (currentOrderIdRef.current !== orderId) return false;
 
                 if (result.status === "ACTIVE") {
                     stopPolling();
@@ -98,11 +102,13 @@ export function useSubscriptionPayment() {
 
     const pollStatus = useCallback(
         async (orderId: string, provider: PaymentProvider) => {
+            if (currentOrderIdRef.current !== orderId) return;
             attemptsRef.current += 1;
             const maxAttempts = provider === "ZALOPAY" ? POLL_MAX_ATTEMPTS_ZALOPAY : POLL_MAX_ATTEMPTS_DEFAULT;
 
             if (attemptsRef.current > maxAttempts) {
                 stopPolling();
+                if (currentOrderIdRef.current !== orderId) return;
                 const timeoutError =
                     provider === "ZALOPAY"
                         ? "Đăng ký qua ZaloPay quá thời gian chờ (60s). Vui lòng kiểm tra lại ứng dụng ZaloPay hoặc thử lại."
@@ -115,6 +121,8 @@ export function useSubscriptionPayment() {
                 const result = await dispatch(
                     paymentApi.endpoints.getSubscriptionStatus.initiate(orderId, { forceRefetch: true }),
                 ).unwrap();
+
+                if (currentOrderIdRef.current !== orderId) return;
 
                 if (result.status === "ACTIVE") {
                     stopPolling();
@@ -140,11 +148,15 @@ export function useSubscriptionPayment() {
                     return;
                 }
 
-                // Still PENDING — poll again
-                pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
+                // Still PENDING — poll again if currentOrderId hasn't been cancelled/reset
+                if (currentOrderIdRef.current === orderId) {
+                    pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
+                }
             } catch {
-                // Network error — poll again
-                pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
+                // Network error — poll again if currentOrderId hasn't been cancelled/reset
+                if (currentOrderIdRef.current === orderId) {
+                    pollingRef.current = setTimeout(() => pollStatus(orderId, provider), POLL_INTERVAL_MS);
+                }
             }
         },
         [dispatch, stopPolling],
@@ -184,6 +196,7 @@ export function useSubscriptionPayment() {
                     setState({
                         phase: "waiting",
                         orderId,
+                        payUrl,
                         vietQrUrl,
                         bankId,
                         accountNo,
@@ -200,6 +213,7 @@ export function useSubscriptionPayment() {
                     setState({
                         phase: "waiting",
                         orderId,
+                        payUrl,
                         amountVnd,
                         provider,
                     });
@@ -291,6 +305,21 @@ export function useSubscriptionPayment() {
         }
     }, [cancelSubMutation, dispatch]);
 
+    const resumePayment = useCallback(async () => {
+        if (state.phase !== "waiting" || !state.payUrl) return;
+        try {
+            console.log("[Subscription Hook] Resuming payment for payUrl:", state.payUrl);
+            await WebBrowser.openBrowserAsync(state.payUrl);
+        } catch (e) {
+            console.warn("[Subscription Hook] WebBrowser resume failed, fallback to Linking:", e);
+            try {
+                await Linking.openURL(state.payUrl);
+            } catch (linkErr) {
+                console.error("[Subscription Hook] Linking resume failed:", linkErr);
+            }
+        }
+    }, [state]);
+
     const reset = useCallback(() => {
         stopPolling();
         attemptsRef.current = 0;
@@ -299,6 +328,6 @@ export function useSubscriptionPayment() {
         setState({ phase: "idle" });
     }, [stopPolling]);
 
-    return { state, subscribe, cancelSubscription, reset };
+    return { state, subscribe, resumePayment, cancelSubscription, reset };
 }
 
