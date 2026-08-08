@@ -298,4 +298,4 @@ sequenceDiagram
 
 #### 4. Test V2 Scoring Parity & Partial Credit Support
 - Aligned PVP answer evaluation in `submitAnswer` with `scoreEngine.ts`.
-- Used `evalRes.scoreAwarded * 400` as base score to preserve partial credit, multiplied by speed bonus ($1.0\times - 2.0\times$).
+- Used `evalRes.scoreAwarded * 400` as base score to preserve partial credit, multiplied by speed bonus ($1.0\times - 2.0\times$). 
