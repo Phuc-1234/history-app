@@ -54,23 +54,23 @@ export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSect
             {/* Header / Main Stats Row */}
             <View style={styles.topRow}>
                 <View style={styles.streakInfoLeft}>
-                    <View style={styles.flameIconBox}>
-                        <Flame size={22} color="#FF9500" />
-                    </View>
                     <View style={styles.streakTextCol}>
                         <View style={styles.streakTitleRow}>
-                            <Text style={styles.streakCountText}>{activeStreak}</Text>
-                            <Text style={styles.streakUnitText}>ngày liên tục</Text>
+                            <Flame size={22} color="#FF9500" style={{ marginRight: 6 }} />
+                            {activeStreak === 0 ? (
+                                <Text style={styles.streakCountText}>Bắt đầu chuỗi học!</Text>
+                            ) : (
+                                <>
+                                    <Text style={styles.streakCountText}>{activeStreak}</Text>
+                                    <Text style={styles.streakUnitText}>ngày liên tục</Text>
+                                </>
+                            )}
                         </View>
                         <View style={styles.recordBadge}>
                             <Trophy size={10} color={colors.warning} />
                             <Text style={styles.recordText}>Kỷ lục: {highestStreak} ngày</Text>
                         </View>
                     </View>
-                </View>
-
-                <View style={styles.arrowBox}>
-                    <ChevronRight size={18} color={colors.textMuted} />
                 </View>
             </View>
 
@@ -155,7 +155,9 @@ const styles = StyleSheet.create({
     streakInfoLeft: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "center",
         gap: 12,
+        flex: 1,
     },
     flameIconBox: {
         width: 44,
@@ -169,10 +171,12 @@ const styles = StyleSheet.create({
     },
     streakTextCol: {
         justifyContent: "center",
+        alignItems: "center",
     },
     streakTitleRow: {
         flexDirection: "row",
-        alignItems: "baseline",
+        alignItems: "center",
+        justifyContent: "center",
         gap: 4,
     },
     streakCountText: {
@@ -188,12 +192,11 @@ const styles = StyleSheet.create({
     recordBadge: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: colors.surfaceVariant,
         borderRadius: 30,
         paddingHorizontal: 8,
         paddingVertical: 2,
         gap: 4,
-        alignSelf: "flex-start",
+        alignSelf: "center",
         marginTop: 2,
     },
     recordText: {
@@ -215,10 +218,10 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
     statusSuccess: {
-        backgroundColor: colors.successContainer ?? "#E8F5E9",
+        backgroundColor: "transparent",
     },
     statusWarning: {
-        backgroundColor: "#FFF4E5",
+        backgroundColor: "transparent",
     },
     statusRow: {
         flexDirection: "row",

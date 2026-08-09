@@ -48,6 +48,7 @@ interface PvpGameScreenProps {
     autoNext: boolean;
     transitionInterval: number;
     onExitGame: () => void;
+    activeUserIds?: string[];
 }
 
 export function PvpGameScreen({
@@ -66,6 +67,7 @@ export function PvpGameScreen({
     autoNext,
     transitionInterval,
     onExitGame,
+    activeUserIds,
 }: PvpGameScreenProps) {
     const { width } = useWindowDimensions();
     const [userAnswer, setUserAnswer] = useState<any>(null);
@@ -149,6 +151,7 @@ export function PvpGameScreen({
                 questionIndex: currentQuestionIndex,
                 userAnswer,
                 timeTakenSeconds,
+                activeUserIds,
             }).unwrap();
         } catch (err) {
             console.error("Failed to submit PVP answer:", err);
@@ -378,14 +381,13 @@ export function PvpGameScreen({
                 {/* Submitting / Submitted status bar / Next state progression */}
                 <View style={styles.footer}>
                     {questionResult ? (
-                        !autoNext ? (
-                            isHost ? (
+                        isHost ? (
+                            !showLeaderboard ? (
                                 <TouchableOpacity
                                     style={[styles.submitButton, isAdvancingState && styles.buttonDisabled]}
                                     onPress={async () => {
                                         try {
-                                            const targetState = showLeaderboard ? "NEXT_QUESTION" : "LEADERBOARD";
-                                            await nextPvpState({ roomCode, targetState }).unwrap();
+                                            await nextPvpState({ roomCode, targetState: "LEADERBOARD" }).unwrap();
                                         } catch (err) {
                                             console.error("Failed to advance state:", err);
                                         }
@@ -395,24 +397,20 @@ export function PvpGameScreen({
                                     {isAdvancingState ? (
                                         <ActivityIndicator color="#FFFFFF" />
                                     ) : (
-                                        <Text style={styles.submitButtonText}>
-                                            {showLeaderboard ? "Tiếp tục (Câu tiếp theo)" : "Tiếp tục (Bảng xếp hạng)"}
-                                        </Text>
+                                        <Text style={styles.submitButtonText}>Tiếp tục (Bảng xếp hạng)</Text>
                                     )}
                                 </TouchableOpacity>
                             ) : (
                                 <View style={styles.submittedBanner}>
                                     <ActivityIndicator color={colors.primary700} style={{ marginRight: spacing.sm }} />
-                                    <Text style={styles.submittedText}>
-                                        Đang chờ chủ phòng chuyển tiếp...
-                                    </Text>
+                                    <Text style={styles.submittedText}>Đang hiển thị bảng xếp hạng...</Text>
                                 </View>
                             )
                         ) : (
                             <View style={styles.submittedBanner}>
                                 <ActivityIndicator color={colors.primary700} style={{ marginRight: spacing.sm }} />
                                 <Text style={styles.submittedText}>
-                                    Tự động chuyển câu sau {transitionInterval}s...
+                                    Đang chờ chủ phòng chuyển tiếp...
                                 </Text>
                             </View>
                         )
@@ -489,13 +487,29 @@ export function PvpGameScreen({
                                 })}
                             </ScrollView>
 
-                            <Text style={styles.modalFooterNote}>
-                                {autoNext
-                                    ? "Đang chuẩn bị sang câu tiếp theo..."
-                                    : isHost
-                                    ? "Bấm nút 'Tiếp tục' bên dưới để chuyển sang câu tiếp theo"
-                                    : "Đang chờ chủ phòng chuyển tiếp..."}
-                            </Text>
+                            {isHost ? (
+                                <TouchableOpacity
+                                    style={[styles.submitButton, { marginTop: spacing.md }, isAdvancingState && styles.buttonDisabled]}
+                                    onPress={async () => {
+                                        try {
+                                            await nextPvpState({ roomCode, targetState: "NEXT_QUESTION" }).unwrap();
+                                        } catch (err) {
+                                            console.error("Failed to advance state:", err);
+                                        }
+                                    }}
+                                    disabled={isAdvancingState}
+                                >
+                                    {isAdvancingState ? (
+                                        <ActivityIndicator color="#FFFFFF" />
+                                    ) : (
+                                        <Text style={styles.submitButtonText}>Tiếp tục (Câu tiếp theo)</Text>
+                                    )}
+                                </TouchableOpacity>
+                            ) : (
+                                <Text style={styles.modalFooterNote}>
+                                    Đang chờ chủ phòng chuyển tiếp...
+                                </Text>
+                            )}
                         </View>
                     </View>
                 </Modal>

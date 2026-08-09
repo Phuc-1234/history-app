@@ -221,7 +221,7 @@ export default function HomeScreen() {
                 enableRefresh={true}
                 refreshing={isRefreshing}
                 onRefresh={handleRefresh}
-                showHistoricalBackground={false}
+                showHistoricalBackground="trongdong"
                 contentContainerStyle={styles.scrollContent}
                 backgroundColor={isPro ? "#e08c3d" : colors.primary}
             >
@@ -230,7 +230,7 @@ export default function HomeScreen() {
                     colors={isPro ? ["#e08c3d", "#c37938"] : [colors.primary, colors.primary]}
                     style={styles.headerBlock}
                 >
-                    {isPro && <FaintStarsOverlay />}
+                    {isPro && <FaintStarsOverlay isProHeader={true} />}
                     <View style={styles.headerRow}>
                         <TouchableOpacity
                             activeOpacity={0.7}
@@ -336,7 +336,7 @@ export default function HomeScreen() {
                                         ]}
                                         activeOpacity={0.7}
                                         onPress={() =>
-                                            router.push("/(tabs)/8_2_buy_gold")
+                                            router.push("/(tabs)/7_1_item")
                                         }
                                     >
                                         <Coins size={15} color={colors.gold} />
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
     // ── Body ──
     bodyBlock: {
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: "transparent",
         paddingHorizontal: 20,
         paddingTop: 24,
         paddingBottom: 40,

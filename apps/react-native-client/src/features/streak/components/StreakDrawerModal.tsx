@@ -77,9 +77,7 @@ export default function StreakDrawerModal({
                         {/* Header */}
                         <View style={styles.header}>
                             <View style={styles.headerTitleRow}>
-                                <View style={styles.headerIconBg}>
-                                    <Flame size={20} color="#FFFFFF" />
-                                </View>
+                                <Flame size={20} color="#FF9500" />
                                 <View>
                                     <Text style={styles.headerTitle}>Chuỗi học tập</Text>
                                     <Text style={styles.headerSubtitle}>
@@ -109,8 +107,14 @@ export default function StreakDrawerModal({
                                         </View>
                                         <View style={styles.heroTextContent}>
                                             <View style={styles.heroTitleRow}>
-                                                <Text style={styles.heroStreakCount}>{activeStreak}</Text>
-                                                <Text style={styles.heroStreakUnit}>Ngày liên tục</Text>
+                                                {activeStreak === 0 ? (
+                                                    <Text style={[styles.heroStreakCount, { fontSize: 24 }]}>Bắt đầu chuỗi học!</Text>
+                                                ) : (
+                                                    <>
+                                                        <Text style={styles.heroStreakCount}>{activeStreak}</Text>
+                                                        <Text style={styles.heroStreakUnit}>Ngày liên tục</Text>
+                                                    </>
+                                                )}
                                             </View>
                                             <View style={styles.highestTag}>
                                                 <Trophy size={12} color={colors.warning} />
@@ -449,23 +453,21 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
     },
     highestTag: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.surfaceVariant,
-        borderRadius: 30, // pill button border radius = 30
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        alignSelf: "center",
-        gap: 4,
-        marginTop: 6,
-    },
+         flexDirection: "row",
+         alignItems: "center",
+         borderRadius: 30, // pill button border radius = 30
+         paddingHorizontal: 10,
+         paddingVertical: 4,
+         alignSelf: "center",
+         gap: 4,
+         marginTop: 6,
+     },
     highestTagText: {
         fontFamily: typography.fonts.semiBold,
         fontSize: 11,
         color: colors.textSecondary,
     },
     statusBox: {
-        backgroundColor: colors.surfaceVariant,
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 10,

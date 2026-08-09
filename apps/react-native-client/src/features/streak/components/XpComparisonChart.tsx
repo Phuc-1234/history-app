@@ -419,7 +419,9 @@ const styles = StyleSheet.create({
     },
     tooltipBubble: {
         position: "absolute",
-        backgroundColor: "#1E293B",
+        backgroundColor: "#FFFFFF",
+        borderColor: colors.orange,
+        borderWidth: 1.5,
         borderRadius: 8,
         paddingHorizontal: 8,
         paddingVertical: 6,
@@ -428,7 +430,7 @@ const styles = StyleSheet.create({
     tooltipTime: {
         fontSize: 10,
         fontFamily: typography.fonts.bold,
-        color: "#F8FAFC",
+        color: colors.textSecondary,
         marginBottom: 4,
         textAlign: "center",
     },
@@ -441,12 +443,12 @@ const styles = StyleSheet.create({
     tooltipLabel: {
         fontSize: 10,
         fontFamily: typography.fonts.medium,
-        color: "#94A3B8",
+        color: colors.textMuted,
         flexShrink: 1,
     },
     tooltipValue: {
         fontSize: 10,
         fontFamily: typography.fonts.bold,
-        color: "#FFFFFF",
+        color: colors.textPrimary,
     },
 });

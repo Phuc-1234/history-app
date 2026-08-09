@@ -814,7 +814,7 @@ enum PvpRoomStatus {
 
 model PvpRoom {
   id                   String           @id @default(uuid())
-  code                 String           @unique
+  code                 String
   hostUserId           String           @map("host_user_id")
   status               PvpRoomStatus    @default(LOBBY)
   questionCount        Int              @default(10) @map("question_count")
@@ -830,6 +830,7 @@ model PvpRoom {
   host                 User             @relation("HostPvpRooms", fields: [hostUserId], references: [id], onDelete: Cascade)
   participants         PvpParticipant[]
 
+  @@index([code, status])
   @@map("pvp_rooms")
 }
 

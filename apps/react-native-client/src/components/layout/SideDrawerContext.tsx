@@ -258,7 +258,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                             activeOpacity={0.7}
                                             onPress={() => {
                                                 closeDrawer();
-                                                router.push("/(tabs)/8_2_buy_gold");
+                                                router.push("/(tabs)/7_1_item");
                                             }}
                                         >
                                             <Coins size={14} color={colors.gold} />

@@ -22,6 +22,7 @@ import {
     updateNode,
     deleteNode,
     listUsers,
+    getUserMonthlyStreakCalendar,
     updateUser,
     deleteUser,
     listVideos,
@@ -156,6 +157,9 @@ router.delete("/nodes/:nodeId", deleteNode);
 // ─── User ─────────────────────────────────────────────────────────────────────
 // GET    /api/admin/users
 router.get("/users", listUsers);
+
+// GET    /api/admin/users/:userId/streak/calendar
+router.get("/users/:userId/streak/calendar", getUserMonthlyStreakCalendar);
 
 // PATCH  /api/admin/users/:userId
 router.patch("/users/:userId", updateUser);

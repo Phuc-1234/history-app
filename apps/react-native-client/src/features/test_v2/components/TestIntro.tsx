@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     StyleSheet,
     Text,
@@ -6,7 +6,8 @@ import {
     View,
     ActivityIndicator,
     ScrollView,
-    Image
+    Image,
+    Animated
 } from "react-native";
 import { FileText, Clock, Zap, Coins, Trophy, HelpCircle, Package, Swords } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -94,6 +95,64 @@ export default function TestIntro({
 
     const [showHelpModal, setShowHelpModal] = useState(false);
 
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (purposeType !== "EXAM") {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(scaleAnim, {
+                        toValue: 1.08,
+                        duration: 1200,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleAnim, {
+                        toValue: 1.0,
+                        duration: 1200,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        } else {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(rotateAnim, {
+                        toValue: 1,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: -1,
+                        duration: 1600,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: 0,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        }
+    }, [purposeType, scaleAnim, rotateAnim]);
+
+    const rotateInterpolate = rotateAnim.interpolate({
+        inputRange: [-1, 1],
+        outputRange: ["-5deg", "5deg"],
+    });
+
+    const isExam = purposeType === "EXAM";
+    const animatedTitleStyle = isExam
+        ? {
+              color: colors.error,
+              transform: [{ rotate: rotateInterpolate }],
+          }
+        : {
+              color: colors.orange,
+              transform: [{ scale: scaleAnim }],
+          };
+
     const handleGoToPvp = () => {
         router.push({
             pathname: "/pvp",
@@ -138,6 +197,16 @@ export default function TestIntro({
         <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
                 <View style={styles.mainContent}>
+                    {/* Background faint logo (only for Kiểm tra) */}
+                    {purposeType === "EXAM" && (
+                        <View style={styles.bgLogoContainer} pointerEvents="none">
+                            <Image
+                                source={require("../../../../assets/images/logo-main.png")}
+                                style={styles.bgLogo}
+                                resizeMode="contain"
+                            />
+                        </View>
+                    )}
                     <TouchableOpacity
                         style={styles.pvpTopRightButton}
                         onPress={handleGoToPvp}
@@ -161,9 +230,9 @@ export default function TestIntro({
                     {/* Test's name below the mascot (no container) */}
                     <View style={styles.titleContainer}>
                         <View style={styles.titleRow}>
-                            <Text style={styles.titleLabel}>
+                            <Animated.Text style={[styles.titleLabel, animatedTitleStyle]}>
                                 {purposeType === "EXAM" ? "Kiểm tra" : "Thử thách"}
-                            </Text>
+                            </Animated.Text>
                             <TouchableOpacity
                                 onPress={() => setShowHelpModal(true)}
                                 style={styles.helpButton}
@@ -534,5 +603,20 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: typography.fonts.bold,
         color: "#FFFFFF",
+    },
+    bgLogoContainer: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: -1,
+    },
+    bgLogo: {
+        width: 320,
+        height: 320,
+        opacity: 0.12,
     },
 });
