@@ -158,9 +158,9 @@ export function usePayment() {
         [dispatch, stopPolling],
     );
 
-    // Listen for AppState changes to check status instantly when user returns to app from ZaloPay
+    // Listen for AppState and Deep Link changes to check status instantly when user returns to app from ZaloPay
     useEffect(() => {
-        const subscription = AppState.addEventListener("change", (nextAppState) => {
+        const appStateSub = AppState.addEventListener("change", (nextAppState) => {
             if (
                 nextAppState === "active" &&
                 currentOrderIdRef.current &&
@@ -170,8 +170,27 @@ export function usePayment() {
                 checkStatusImmediately(currentOrderIdRef.current);
             }
         });
+
+        const urlSub = Linking.addEventListener("url", (event) => {
+            if (
+                event.url &&
+                event.url.includes("historyapp://") &&
+                currentOrderIdRef.current &&
+                currentProviderRef.current === "ZALOPAY"
+            ) {
+                console.log("[ZaloPay DeepLink] Returned via URL scheme:", event.url);
+                try {
+                    WebBrowser.dismissBrowser();
+                } catch (e) {
+                    console.warn("[WebBrowser] dismiss failed:", e);
+                }
+                checkStatusImmediately(currentOrderIdRef.current);
+            }
+        });
+
         return () => {
-            subscription.remove();
+            appStateSub.remove();
+            urlSub.remove();
         };
     }, [checkStatusImmediately]);
 

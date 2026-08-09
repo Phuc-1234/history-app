@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 // FIXME: Replace this with your computer's actual local Wi-Fi IP address
 // (Open cmd, type 'ipconfig', and look for 'IPv4 Address')
-const LOCAL_COMPUTER_IP = "192.168.1.6";
+const LOCAL_COMPUTER_IP = "192.168.1.2";
 
 const LOCAL_URL = Platform.select({
     web: "http://localhost:5000",

@@ -155,7 +155,6 @@ export const BuyGoldScreen: React.FC = () => {
 
     return (
         <ScreenWrapper
-            showTopBar={false}
             showHistoricalBackground={false}
             backgroundColor={colors.background}
             style={styles.safe}

@@ -27,6 +27,7 @@ type SubscriptionPaymentState =
           phase: "waiting";
           orderId: string;
           payUrl?: string;
+          zpTransToken?: string;
           vietQrUrl?: string;
           bankId?: string;
           accountNo?: string;
@@ -162,9 +163,9 @@ export function useSubscriptionPayment() {
         [dispatch, stopPolling],
     );
 
-    // Listen for AppState changes to check status instantly when user returns to app from ZaloPay
+    // Listen for AppState and Deep Link changes to check status instantly when user returns to app from ZaloPay
     useEffect(() => {
-        const subscription = AppState.addEventListener("change", (nextAppState) => {
+        const appStateSub = AppState.addEventListener("change", (nextAppState) => {
             if (
                 nextAppState === "active" &&
                 currentOrderIdRef.current &&
@@ -174,8 +175,27 @@ export function useSubscriptionPayment() {
                 checkStatusImmediately(currentOrderIdRef.current);
             }
         });
+
+        const urlSub = Linking.addEventListener("url", (event) => {
+            if (
+                event.url &&
+                event.url.includes("historyapp://") &&
+                currentOrderIdRef.current &&
+                currentProviderRef.current === "ZALOPAY"
+            ) {
+                console.log("[ZaloPay Subscription DeepLink] Returned via URL scheme:", event.url);
+                try {
+                    WebBrowser.dismissBrowser();
+                } catch (e) {
+                    console.warn("[WebBrowser] dismiss failed:", e);
+                }
+                checkStatusImmediately(currentOrderIdRef.current);
+            }
+        });
+
         return () => {
-            subscription.remove();
+            appStateSub.remove();
+            urlSub.remove();
         };
     }, [checkStatusImmediately]);
 
@@ -214,6 +234,7 @@ export function useSubscriptionPayment() {
                         phase: "waiting",
                         orderId,
                         payUrl,
+                        zpTransToken,
                         amountVnd,
                         provider,
                     });
@@ -306,19 +327,72 @@ export function useSubscriptionPayment() {
     }, [cancelSubMutation, dispatch]);
 
     const resumePayment = useCallback(async () => {
-        if (state.phase !== "waiting" || !state.payUrl) return;
+        if (state.phase !== "waiting") return;
+
+        const zpToken = state.zpTransToken;
+        const payUrl = state.payUrl;
+
+        // For ZaloPay: re-use native SDK or direct Android intent (same flow as subscribe)
+        if (state.provider === "ZALOPAY") {
+            // Try native ZaloPay SDK first
+            if (zpToken && ReactNativeZalopay) {
+                try {
+                    console.log("[Subscription Hook] Resuming via ZaloPay SDK:", zpToken);
+                    ReactNativeZalopay.init(2554, true);
+                    const result = await ReactNativeZalopay.payOrder(zpToken);
+                    console.log("[Subscription Hook] ZaloPay SDK resume result:", result);
+                    if (result.status === "cancelled") {
+                        stopPolling();
+                        setState({ phase: "failed", error: "Giao dịch đã bị hủy." });
+                    } else if (result.status === "error") {
+                        stopPolling();
+                        setState({ phase: "failed", error: `Lỗi thanh toán ZaloPay: ${result.errorCode || "Unknown"}` });
+                    } else if (result.status === "success") {
+                        await checkStatusImmediately(state.orderId);
+                    }
+                    return;
+                } catch (sdkError) {
+                    console.warn("[Subscription Hook] ZaloPay SDK resume failed, trying direct intent:", sdkError);
+                }
+            }
+
+            // Fallback: direct Android package intent to open ZaloPay app
+            if (zpToken) {
+                try {
+                    const directIntent = `intent://app.zalopay.vn/pay?zptranstoken=${zpToken}#Intent;scheme=zalopay;package=vn.com.vng.zalopay;end`;
+                    console.log("[Subscription Hook] Resuming via direct intent:", directIntent);
+                    await Linking.openURL(directIntent);
+                    return;
+                } catch (intentErr) {
+                    console.warn("[Subscription Hook] Direct intent resume failed, fallback to payUrl:", intentErr);
+                }
+            }
+
+            // Last resort: open payUrl via Linking (opens ZaloPay if installed, else web)
+            if (payUrl) {
+                try {
+                    await Linking.openURL(payUrl);
+                } catch (e) {
+                    console.error("[Subscription Hook] Linking resume failed:", e);
+                }
+            }
+            return;
+        }
+
+        // For non-ZaloPay providers: open via WebBrowser
+        if (!payUrl) return;
         try {
-            console.log("[Subscription Hook] Resuming payment for payUrl:", state.payUrl);
-            await WebBrowser.openBrowserAsync(state.payUrl);
+            console.log("[Subscription Hook] Resuming payment for payUrl:", payUrl);
+            await WebBrowser.openBrowserAsync(payUrl);
         } catch (e) {
             console.warn("[Subscription Hook] WebBrowser resume failed, fallback to Linking:", e);
             try {
-                await Linking.openURL(state.payUrl);
+                await Linking.openURL(payUrl);
             } catch (linkErr) {
                 console.error("[Subscription Hook] Linking resume failed:", linkErr);
             }
         }
-    }, [state]);
+    }, [state, checkStatusImmediately, stopPolling]);
 
     const reset = useCallback(() => {
         stopPolling();
