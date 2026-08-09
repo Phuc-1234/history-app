@@ -76,7 +76,7 @@ async function createZaloPayOrder(
     const appTime = Date.now();
     // ZaloPay requires app_trans_id format: yymmdd_uniqueid
     const appTransId = buildZaloAppTransId(orderId);
-    const embedData = JSON.stringify({ orderId, redirecturl: "historyapp://" }); // pass orderId and redirecturl so ZaloPay returns back to app
+    const embedData = JSON.stringify({ orderId, redirecturl: "historyapp://payment-return" }); // pass orderId and redirecturl so ZaloPay returns back to app
     const item = JSON.stringify([]);
     const description = `Mua ${amountVnd / GOLD_PRICE_VND} Gold - HistoryApp`;
 

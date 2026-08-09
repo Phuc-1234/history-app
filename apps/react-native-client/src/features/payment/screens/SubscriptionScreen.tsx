@@ -1040,7 +1040,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#0068FF",
+        backgroundColor: colors.primary,
         borderRadius: 14,
         paddingVertical: 12,
         paddingHorizontal: 20,
@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     resumeBtnText: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 14,
         fontFamily: typography.fonts.bold,
     },
