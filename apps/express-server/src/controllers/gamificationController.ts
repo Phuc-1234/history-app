@@ -73,3 +73,24 @@ export const getStreakDetails = async (
     }
 };
 
+export const getMonthlyStreakCalendar = async (
+    req: Request,
+    res: Response,
+) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: "Authentication required." });
+        }
+        const now = new Date();
+        const year = Number(req.query.year) || now.getFullYear();
+        const month = Number(req.query.month) || (now.getMonth() + 1);
+
+        const calendarData = await gamificationService.getMonthlyStreakCalendar(userId, year, month);
+        return res.status(200).json(calendarData);
+    } catch (err) {
+        console.error("Fetch monthly streak calendar error:", err);
+        return res.status(500).json({ error: "Failed to fetch monthly streak calendar." });
+    }
+};
+

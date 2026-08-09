@@ -21,6 +21,7 @@ import {
 } from "../services/socialApi";
 import { styles } from "../styles/social.styles";
 import { searchActions, toViewUser, type ViewUser } from "../utils/socialView";
+import { XpComparisonChart } from "../../streak/components/XpComparisonChart";
 
 function pushRoute(router: ReturnType<typeof useRouter>, route: string) {
     router.push(route as never);
@@ -207,6 +208,8 @@ export function OtherProfileScreen() {
                         </View>
                     </View>
                 </View>
+
+                <XpComparisonChart targetUserId={profile.id} targetUserName={profile.name} />
 
                 <View style={{ gap: 12 }}>
                     <Text style={styles.sectionTitle}>

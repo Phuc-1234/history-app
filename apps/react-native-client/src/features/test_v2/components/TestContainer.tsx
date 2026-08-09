@@ -372,6 +372,8 @@ export default function TestContainerV2({
         return (
             <>
                 <TestIntro
+                    testId={params.testId}
+                    scopeId={params.scopeId}
                     title={testInfo?.title}
                     questionCount={testInfo?.questionCount}
                     timeLimit={testInfo?.timeLimit}

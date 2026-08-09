@@ -136,8 +136,7 @@ export async function expandScopeToQuestionWhere(
     scopeType: string | null | undefined,
     scopeId: number | null | undefined,
 ): Promise<Prisma.QuestionWhereInput> {
-    if (!scopeType) return { isActive: true };
-    if (scopeType === "NATIONAL") return { scopeType: "NATIONAL" as any, isActive: true };
+    if (!scopeType || scopeType === "NATIONAL") return { isActive: true };
 
     const conditions: Prisma.QuestionWhereInput[] = [];
 

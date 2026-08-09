@@ -150,6 +150,25 @@ export class GamificationService {
         let currentStreak = 0;
         let highestStreak = 0;
         let hasCompletedToday = false;
+        const dailyXp: { date: string; xp: number; dayName: string }[] = [];
+
+        // Build past 7 days dates (Monday to Sunday of current week)
+        const now = new Date();
+        const todayIndex = (now.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
+        const mon = new Date(now);
+        mon.setUTCDate(now.getUTCDate() - todayIndex);
+        mon.setUTCHours(0, 0, 0, 0);
+
+        const weekDayNames = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+        const dateMap = new Map<string, number>();
+
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(mon);
+            d.setUTCDate(mon.getUTCDate() + i);
+            const dStr = d.toISOString().slice(0, 10);
+            dateMap.set(dStr, 0);
+            dailyXp.push({ date: dStr, xp: 0, dayName: weekDayNames[i] });
+        }
 
         if (userId) {
             const user = await prisma.user.findUnique({
@@ -157,19 +176,38 @@ export class GamificationService {
                 select: {
                     currentStreak: true,
                     highestStreak: true,
+                    lastXpGainedAt: true,
                     lastTestPassedAt: true,
-                },
+                } as any,
             });
 
             if (user) {
-                currentStreak = user.currentStreak;
-                highestStreak = user.highestStreak;
-                if (user.lastTestPassedAt) {
-                    const todayStr = new Date().toISOString().split("T")[0];
-                    const lastPassStr = user.lastTestPassedAt.toISOString().split("T")[0];
-                    hasCompletedToday = todayStr === lastPassStr;
-                }
+                currentStreak = (user as any).currentStreak;
+                highestStreak = (user as any).highestStreak;
             }
+
+            const logs = await (prisma as any).userXpLog.findMany({
+                where: {
+                    userId,
+                    createdAt: { gte: mon },
+                },
+                select: { amount: true, createdAt: true },
+            });
+
+            logs.forEach((log: any) => {
+                const dStr = log.createdAt.toISOString().slice(0, 10);
+                if (dateMap.has(dStr)) {
+                    dateMap.set(dStr, (dateMap.get(dStr) || 0) + log.amount);
+                }
+            });
+
+            const todayStr = now.toISOString().slice(0, 10);
+            const todayXp = dateMap.get(todayStr) || 0;
+            hasCompletedToday = todayXp > 0;
+
+            dailyXp.forEach((item) => {
+                item.xp = dateMap.get(item.date) || 0;
+            });
         }
 
         const streakRules = await prisma.rewardRule.findMany({
@@ -235,7 +273,45 @@ export class GamificationService {
             currentStreak,
             highestStreak,
             hasCompletedToday,
+            dailyXp,
             milestones: finalMilestones,
+        };
+    }
+
+    async getMonthlyStreakCalendar(userId: string, year: number, month: number) {
+        const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+        const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59));
+
+        const logs = await (prisma as any).userXpLog.findMany({
+            where: {
+                userId,
+                createdAt: { gte: startOfMonth, lte: endOfMonth },
+            },
+            select: { amount: true, createdAt: true },
+        });
+
+        const dateMap = new Map<string, number>();
+        logs.forEach((log: any) => {
+            const dStr = log.createdAt.toISOString().slice(0, 10);
+            dateMap.set(dStr, (dateMap.get(dStr) || 0) + log.amount);
+        });
+
+        const dailyXp: { date: string; xp: number }[] = [];
+        const daysInMonth = endOfMonth.getUTCDate();
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const d = new Date(Date.UTC(year, month - 1, day));
+            const dStr = d.toISOString().slice(0, 10);
+            dailyXp.push({
+                date: dStr,
+                xp: dateMap.get(dStr) || 0,
+            });
+        }
+
+        return {
+            year,
+            month,
+            dailyXp,
         };
     }
 }

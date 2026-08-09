@@ -3,6 +3,19 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, Fla
 import { colors, radii, spacing, typography } from "@/theme";
 import type { PvpParticipant, PvpRoom } from "../types";
 import { useStartPvpRoomMutation } from "../services/pvpApi";
+import { Swords } from "lucide-react-native";
+
+const SWORD_BACKGROUNDS = [
+    { size: 40, top: "10%", left: "5%", rotate: "15deg" },
+    { size: 80, top: "15%", right: "8%", rotate: "-25deg" },
+    { size: 50, top: "35%", left: "15%", rotate: "45deg" },
+    { size: 90, top: "45%", right: "12%", rotate: "30deg" },
+    { size: 60, top: "60%", left: "8%", rotate: "-15deg" },
+    { size: 100, bottom: "10%", right: "5%", rotate: "20deg" },
+    { size: 70, bottom: "15%", left: "12%", rotate: "-35deg" },
+    { size: 45, top: "25%", left: "45%", rotate: "60deg" },
+    { size: 55, bottom: "25%", left: "35%", rotate: "-40deg" },
+];
 
 interface PvpLobbyViewProps {
     room: PvpRoom;
@@ -25,6 +38,24 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
 
     return (
         <View style={styles.container}>
+            {/* Background Swords */}
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                {SWORD_BACKGROUNDS.map((item, idx) => (
+                    <View
+                        key={`bg-sword-${idx}`}
+                        style={{
+                            position: "absolute",
+                            top: item.top as any,
+                            left: item.left as any,
+                            right: item.right as any,
+                            bottom: item.bottom as any,
+                            opacity: 0.12,
+                        }}
+                    >
+                        <Swords size={item.size} color={colors.primary || "#c37938"} />
+                    </View>
+                ))}
+            </View>
             {/* Header / Room Code Badge */}
             <View style={styles.codeCard}>
                 <Text style={styles.codeLabel}>Mã phòng thi đấu</Text>
@@ -75,17 +106,22 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
             {/* Bottom action controls */}
             <View style={styles.footer}>
                 {isHost ? (
-                    <TouchableOpacity
-                        style={[styles.startButton, isStarting && styles.buttonDisabled]}
-                        onPress={handleStart}
-                        disabled={isStarting}
-                    >
-                        {isStarting ? (
-                            <ActivityIndicator color="#FFFFFF" />
-                        ) : (
-                            <Text style={styles.startButtonText}>Bắt đầu thi đấu</Text>
-                        )}
-                    </TouchableOpacity>
+                    <>
+                        {participants.length < 2 ? (
+                            <Text style={styles.minPlayerNotice}>Cần ít nhất 2 người chơi để bắt đầu thi đấu</Text>
+                        ) : null}
+                        <TouchableOpacity
+                            style={[styles.startButton, (isStarting || participants.length < 2) && styles.buttonDisabled]}
+                            onPress={handleStart}
+                            disabled={isStarting || participants.length < 2}
+                        >
+                            {isStarting ? (
+                                <ActivityIndicator color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.startButtonText}>Bắt đầu thi đấu</Text>
+                            )}
+                        </TouchableOpacity>
+                    </>
                 ) : (
                     <View style={styles.waitingBanner}>
                         <ActivityIndicator color={colors.primary600} style={{ marginRight: spacing.sm }} />
@@ -202,6 +238,13 @@ const styles = StyleSheet.create({
         borderRadius: radii.pill,
         paddingVertical: spacing.md,
         alignItems: "center",
+    },
+    minPlayerNotice: {
+        fontSize: 13,
+        fontFamily: typography.fonts.regular,
+        color: colors.neutral500,
+        textAlign: "center",
+        marginBottom: spacing.xs,
     },
     buttonDisabled: {
         opacity: 0.6,

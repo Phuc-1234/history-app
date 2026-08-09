@@ -2,6 +2,7 @@ import { apiSlice } from "@/services/apiSlice";
 import type {
     CreatePvpRoomRequest,
     JoinPvpRoomRequest,
+    PvpPublicRoomDto,
     PvpRoom,
     SubmitPvpAnswerRequest,
 } from "../types";
@@ -14,6 +15,7 @@ export const pvpApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: ["PvpPublicRooms"],
         }),
 
         joinPvpRoom: builder.mutation<PvpRoom, JoinPvpRoomRequest>({
@@ -22,10 +24,29 @@ export const pvpApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
+            invalidatesTags: ["PvpPublicRooms"],
+        }),
+
+        leavePvpRoom: builder.mutation<void, { roomCode: string }>({
+            query: (body) => ({
+                url: "/api/pvp/leave",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["PvpPublicRooms"],
         }),
 
         getPvpRoomInfo: builder.query<PvpRoom, string>({
             query: (code) => `/api/pvp/room/${code}`,
+        }),
+
+        getActivePvpRoom: builder.query<PvpRoom | null, void>({
+            query: () => "/api/pvp/active-room",
+        }),
+
+        getPublicRooms: builder.query<PvpPublicRoomDto[], void>({
+            query: () => "/api/pvp/public-rooms",
+            providesTags: ["PvpPublicRooms"],
         }),
 
         startPvpRoom: builder.mutation<{ started: boolean }, { roomCode: string }>({
@@ -46,6 +67,28 @@ export const pvpApi = apiSlice.injectEndpoints({
                 body,
             }),
         }),
+
+        nextPvpState: builder.mutation<void, { roomCode: string; targetState: "LEADERBOARD" | "NEXT_QUESTION" }>({
+            query: (body) => ({
+                url: "/api/pvp/next-state",
+                method: "POST",
+                body,
+            }),
+        }),
+
+        getCuratedTests: builder.query<Array<{ id: string; title: string; summary: string | null; questionCount: number }>, void>({
+            query: () => "/api/pvp/curated-tests",
+        }),
+
+        getAvailableQuestionsCount: builder.query<
+            { availableCount: number },
+            { scopeType?: string; scopeId?: number; testId?: string }
+        >({
+            query: (params) => ({
+                url: "/api/pvp/available-questions-count",
+                params,
+            }),
+        }),
     }),
     overrideExisting: __DEV__,
 });
@@ -55,6 +98,15 @@ export const {
     useJoinPvpRoomMutation,
     useGetPvpRoomInfoQuery,
     useLazyGetPvpRoomInfoQuery,
+    useGetActivePvpRoomQuery,
+    useLazyGetActivePvpRoomQuery,
+    useGetPublicRoomsQuery,
+    useLazyGetPublicRoomsQuery,
     useStartPvpRoomMutation,
+    useLeavePvpRoomMutation,
     useSubmitPvpAnswerMutation,
+    useNextPvpStateMutation,
+    useGetCuratedTestsQuery,
+    useGetAvailableQuestionsCountQuery,
 } = pvpApi;
+

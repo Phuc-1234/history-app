@@ -26,7 +26,7 @@ import ChooseQuestion from "../../test_v2/components/ChooseQuestion";
 import FillQuestion from "../../test_v2/components/FillQuestion";
 import MatchQuestion from "../../test_v2/components/MatchQuestion";
 import PracticeFeedbackMascot from "../../test_v2/components/PracticeFeedbackMascot";
-import { useSubmitPvpAnswerMutation } from "../services/pvpApi";
+import { useSubmitPvpAnswerMutation, useNextPvpStateMutation } from "../services/pvpApi";
 
 interface PvpGameScreenProps {
     roomCode: string;
@@ -42,7 +42,13 @@ interface PvpGameScreenProps {
     finalLeaderboard: PvpLeaderboardEntry[] | null;
     answeredUserIds: string[];
     currentUserId: string;
+    showLeaderboard: boolean;
+    rankChanges: Record<string, number>;
+    isHost: boolean;
+    autoNext: boolean;
+    transitionInterval: number;
     onExitGame: () => void;
+    activeUserIds?: string[];
 }
 
 export function PvpGameScreen({
@@ -55,7 +61,13 @@ export function PvpGameScreen({
     finalLeaderboard,
     answeredUserIds,
     currentUserId,
+    showLeaderboard,
+    rankChanges,
+    isHost,
+    autoNext,
+    transitionInterval,
     onExitGame,
+    activeUserIds,
 }: PvpGameScreenProps) {
     const { width } = useWindowDimensions();
     const [userAnswer, setUserAnswer] = useState<any>(null);
@@ -68,6 +80,7 @@ export function PvpGameScreen({
     const prevScoresRef = useRef<Map<string, number>>(new Map());
 
     const [submitAnswerMut, { isLoading: isSubmitting }] = useSubmitPvpAnswerMutation();
+    const [nextPvpState, { isLoading: isAdvancingState }] = useNextPvpStateMutation();
 
     // Reanimated shared value for smooth timer unfill animation
     const timerProgress = useSharedValue(1);
@@ -138,6 +151,7 @@ export function PvpGameScreen({
                 questionIndex: currentQuestionIndex,
                 userAnswer,
                 timeTakenSeconds,
+                activeUserIds,
             }).unwrap();
         } catch (err) {
             console.error("Failed to submit PVP answer:", err);
@@ -266,31 +280,141 @@ export function PvpGameScreen({
                                 <ChooseQuestion
                                     question={question}
                                     userAnswer={userAnswer}
-                                    onAnswer={(_, selectedOptions) => !isSubmitted && setUserAnswer({ selectedOptions })}
-                                    disabled={isSubmitted}
+                                    onAnswer={(_, selectedOptions) => !isSubmitted && !questionResult && setUserAnswer({ selectedOptions })}
+                                    disabled={isSubmitted || !!questionResult}
                                 />
                             ) : question.type === "FILL" ? (
                                 <FillQuestion
                                     question={question}
                                     userAnswer={userAnswer}
-                                    onAnswer={(_, typedAnswer) => !isSubmitted && setUserAnswer({ typedAnswer })}
-                                    disabled={isSubmitted}
+                                    onAnswer={(_, typedAnswer) => !isSubmitted && !questionResult && setUserAnswer({ typedAnswer })}
+                                    disabled={isSubmitted || !!questionResult}
                                 />
                             ) : question.type === "MATCH" ? (
                                 <MatchQuestion
                                     question={question}
                                     userAnswer={userAnswer}
-                                    onAnswer={(_, pairs) => !isSubmitted && setUserAnswer({ pairs })}
-                                    disabled={isSubmitted}
+                                    onAnswer={(_, pairs) => !isSubmitted && !questionResult && setUserAnswer({ pairs })}
+                                    disabled={isSubmitted || !!questionResult}
                                 />
+                            ) : null}
+
+                            {/* State 2: Results rendered directly on screen body */}
+                            {questionResult && !showLeaderboard ? (
+                                <View style={styles.inlineResultContainer}>
+                                    {/* Mascot & Score Gain */}
+                                    <View style={styles.inlineMascotBox}>
+                                        <PracticeFeedbackMascot isCorrect={isMyAnswerCorrect} size={50} />
+                                        <Text
+                                            style={[
+                                                styles.gainBadgeTextInline,
+                                                isMyAnswerCorrect ? styles.gainBadgeSuccess : styles.gainBadgeMuted,
+                                            ]}
+                                        >
+                                            {isMyAnswerCorrect
+                                                ? `+${myPointGain} điểm!`
+                                                : "Chưa chính xác (0 điểm)"}
+                                        </Text>
+                                    </View>
+
+                                    {/* Correct Answer Display */}
+                                    {(() => {
+                                        const data = questionResult.correctAnswerData;
+                                        if (!data) return null;
+                                        if (data.options && Array.isArray(data.correctOption)) {
+                                            const correctTexts = data.correctOption
+                                                .map((idx: number) => data.options[idx])
+                                                .filter(Boolean);
+                                            if (correctTexts.length > 0) {
+                                                return (
+                                                    <View style={styles.correctAnswerBox}>
+                                                        <Text style={styles.correctAnswerTitle}>🎯 Đáp án đúng:</Text>
+                                                        {correctTexts.map((text: string, i: number) => (
+                                                            <Text key={i} style={styles.correctAnswerText}>• {text}</Text>
+                                                        ))}
+                                                    </View>
+                                                );
+                                            }
+                                        }
+                                        if (Array.isArray(data.acceptedAnswers)) {
+                                            return (
+                                                <View style={styles.correctAnswerBox}>
+                                                    <Text style={styles.correctAnswerTitle}>🎯 Đáp án đúng:</Text>
+                                                    <Text style={styles.correctAnswerText}>• {data.acceptedAnswers.join(" / ")}</Text>
+                                                </View>
+                                            );
+                                        }
+                                        if (Array.isArray(data.correctPairs) && data.leftItems && data.rightItems) {
+                                            return (
+                                                <View style={styles.correctAnswerBox}>
+                                                    <Text style={styles.correctAnswerTitle}>🎯 Nối đúng:</Text>
+                                                    {data.correctPairs.map((pair: { left: number; right: number }, i: number) => (
+                                                        <Text key={i} style={styles.correctAnswerText}>
+                                                            • {data.leftItems[pair.left]} ➔ {data.rightItems[pair.right]}
+                                                        </Text>
+                                                    ))}
+                                                </View>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+
+                                    {/* Explanation */}
+                                    {questionResult.explanation ? (
+                                        <View style={styles.explanationBoxInline}>
+                                            <RenderHtml
+                                                contentWidth={width - 64}
+                                                source={{ html: `💡 Giải thích: ${questionResult.explanation}` }}
+                                                baseStyle={{
+                                                    fontSize: 14,
+                                                    color: colors.neutral700,
+                                                }}
+                                            />
+                                        </View>
+                                    ) : null}
+                                </View>
                             ) : null}
                         </View>
                     )}
                 </ScrollView>
 
-                {/* Submitting / Submitted status bar */}
+                {/* Submitting / Submitted status bar / Next state progression */}
                 <View style={styles.footer}>
-                    {isSubmitted ? (
+                    {questionResult ? (
+                        isHost ? (
+                            !showLeaderboard ? (
+                                <TouchableOpacity
+                                    style={[styles.submitButton, isAdvancingState && styles.buttonDisabled]}
+                                    onPress={async () => {
+                                        try {
+                                            await nextPvpState({ roomCode, targetState: "LEADERBOARD" }).unwrap();
+                                        } catch (err) {
+                                            console.error("Failed to advance state:", err);
+                                        }
+                                    }}
+                                    disabled={isAdvancingState}
+                                >
+                                    {isAdvancingState ? (
+                                        <ActivityIndicator color="#FFFFFF" />
+                                    ) : (
+                                        <Text style={styles.submitButtonText}>Tiếp tục (Bảng xếp hạng)</Text>
+                                    )}
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={styles.submittedBanner}>
+                                    <ActivityIndicator color={colors.primary700} style={{ marginRight: spacing.sm }} />
+                                    <Text style={styles.submittedText}>Đang hiển thị bảng xếp hạng...</Text>
+                                </View>
+                            )
+                        ) : (
+                            <View style={styles.submittedBanner}>
+                                <ActivityIndicator color={colors.primary700} style={{ marginRight: spacing.sm }} />
+                                <Text style={styles.submittedText}>
+                                    Đang chờ chủ phòng chuyển tiếp...
+                                </Text>
+                            </View>
+                        )
+                    ) : isSubmitted ? (
                         <View style={styles.submittedBanner}>
                             <ActivityIndicator color={colors.primary700} style={{ marginRight: spacing.sm }} />
                             <Text style={styles.submittedText}>
@@ -312,47 +436,18 @@ export function PvpGameScreen({
                     )}
                 </View>
 
-                {/* Inter-question Result Modal with Mascot + Animated Cards */}
-                <Modal visible={!!questionResult} animationType="fade" transparent>
+                {/* Inter-question Leaderboard Modal */}
+                <Modal visible={showLeaderboard} animationType="fade" transparent>
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalCard}>
-                            {/* Mascot Feedback Header */}
-                            <View style={styles.mascotBox}>
-                                <PracticeFeedbackMascot isCorrect={isMyAnswerCorrect} size={64} />
-                                <Text
-                                    style={[
-                                        styles.gainBadgeText,
-                                        isMyAnswerCorrect ? styles.gainBadgeSuccess : styles.gainBadgeMuted,
-                                    ]}
-                                >
-                                    {isMyAnswerCorrect
-                                        ? `+${myPointGain} điểm!`
-                                        : "Chưa chính xác (0 điểm)"}
-                                </Text>
-                            </View>
+                            <Text style={styles.modalTitle}>Bảng xếp hạng câu {currentQuestionIndex + 1}</Text>
 
-                            <Text style={styles.modalTitle}>Kết quả câu {currentQuestionIndex + 1}</Text>
-
-                            {questionResult?.explanation ? (
-                                <View style={styles.explanationBox}>
-                                    <RenderHtml
-                                        contentWidth={width - 80}
-                                        source={{ html: `💡 Giải thích: ${questionResult.explanation}` }}
-                                        baseStyle={{
-                                            fontSize: 14,
-                                            color: colors.neutral700,
-                                        }}
-                                    />
-                                </View>
-                            ) : null}
-
-                            <Text style={styles.modalSectionTitle}>Bảng xếp hạng hiện tại</Text>
-
-                            <ScrollView style={{ maxHeight: 260 }} contentContainerStyle={{ gap: spacing.xs }}>
+                            <ScrollView style={{ maxHeight: 280 }} contentContainerStyle={{ gap: spacing.xs }}>
                                 {questionResult?.leaderboard?.map((p, idx) => {
                                     const isMe = p.userId === currentUserId;
                                     const prevScore = prevScoresRef.current.get(p.userId) ?? 0;
                                     const gain = Math.max(0, p.score - prevScore);
+                                    const diff = rankChanges[p.userId] ?? 0;
 
                                     return (
                                         <Animated.View
@@ -360,7 +455,15 @@ export function PvpGameScreen({
                                             layout={LinearTransition.springify().damping(14).stiffness(120)}
                                             style={[styles.modalCardRow, isMe && styles.modalCardRowMe]}
                                         >
-                                            <Text style={styles.modalRankNumber}>#{idx + 1}</Text>
+                                            <View style={styles.rankBadgeContainer}>
+                                                <Text style={styles.modalRankNumber}>#{idx + 1}</Text>
+                                                {diff > 0 ? (
+                                                    <Text style={styles.rankDiffUp}>+{diff}</Text>
+                                                ) : diff < 0 ? (
+                                                    <Text style={styles.rankDiffDown}>{diff}</Text>
+                                                ) : null}
+                                            </View>
+
                                             {p.profileImgUrl ? (
                                                 <Image source={{ uri: p.profileImgUrl }} style={styles.cardAvatar} />
                                             ) : (
@@ -384,7 +487,29 @@ export function PvpGameScreen({
                                 })}
                             </ScrollView>
 
-                            <Text style={styles.modalFooterNote}>Đang chuyển sang câu tiếp theo...</Text>
+                            {isHost ? (
+                                <TouchableOpacity
+                                    style={[styles.submitButton, { marginTop: spacing.md }, isAdvancingState && styles.buttonDisabled]}
+                                    onPress={async () => {
+                                        try {
+                                            await nextPvpState({ roomCode, targetState: "NEXT_QUESTION" }).unwrap();
+                                        } catch (err) {
+                                            console.error("Failed to advance state:", err);
+                                        }
+                                    }}
+                                    disabled={isAdvancingState}
+                                >
+                                    {isAdvancingState ? (
+                                        <ActivityIndicator color="#FFFFFF" />
+                                    ) : (
+                                        <Text style={styles.submitButtonText}>Tiếp tục (Câu tiếp theo)</Text>
+                                    )}
+                                </TouchableOpacity>
+                            ) : (
+                                <Text style={styles.modalFooterNote}>
+                                    Đang chờ chủ phòng chuyển tiếp...
+                                </Text>
+                            )}
                         </View>
                     </View>
                 </Modal>
@@ -527,6 +652,49 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.medium,
         color: colors.primary800,
     },
+    inlineResultContainer: {
+        marginTop: spacing.md,
+        paddingTop: spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: colors.neutral200,
+    },
+    inlineMascotBox: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: colors.neutral100,
+        padding: spacing.md,
+        borderRadius: radii.container,
+        marginBottom: spacing.md,
+    },
+    gainBadgeTextInline: {
+        fontSize: 16,
+        fontFamily: typography.fonts.bold,
+        marginLeft: spacing.md,
+    },
+    explanationBoxInline: {
+        backgroundColor: colors.neutral100,
+        padding: spacing.sm,
+        borderRadius: radii.container,
+        marginTop: spacing.sm,
+    },
+    rankBadgeContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        width: 55,
+    },
+    rankDiffUp: {
+        fontSize: 11,
+        fontFamily: typography.fonts.bold,
+        color: colors.success,
+        marginLeft: spacing.xxs,
+    },
+    rankDiffDown: {
+        fontSize: 11,
+        fontFamily: typography.fonts.bold,
+        color: colors.error,
+        marginLeft: spacing.xxs,
+    },
     modalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.6)",
@@ -561,6 +729,24 @@ const styles = StyleSheet.create({
         color: colors.primary700,
         textAlign: "center",
         marginBottom: spacing.xs,
+    },
+    correctAnswerBox: {
+        backgroundColor: colors.successContainer,
+        padding: spacing.sm,
+        borderRadius: radii.container,
+        marginBottom: spacing.xs,
+    },
+    correctAnswerTitle: {
+        fontSize: 14,
+        fontFamily: typography.fonts.bold,
+        color: colors.success,
+        marginBottom: spacing.xxs,
+    },
+    correctAnswerText: {
+        fontSize: 14,
+        fontFamily: typography.fonts.medium,
+        color: colors.neutral900,
+        marginLeft: spacing.xs,
     },
     explanationBox: {
         backgroundColor: colors.neutral100,

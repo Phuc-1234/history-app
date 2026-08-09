@@ -7,6 +7,9 @@ export interface CreatePvpRoomRequest {
     testId?: string;
     questionCount?: number;
     timePerQuestion?: number; // 10, 15, 30
+    autoNext?: boolean;
+    transitionInterval?: number;
+    isPublic?: boolean;
 }
 
 export interface JoinPvpRoomRequest {
@@ -18,6 +21,7 @@ export interface SubmitPvpAnswerRequest {
     questionIndex: number;
     userAnswer: any;
     timeTakenSeconds: number;
+    activeUserIds?: string[];
 }
 
 export interface PvpParticipant {
@@ -35,9 +39,19 @@ export interface PvpRoom {
     status: "LOBBY" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
     questionCount: number;
     timePerQuestion: number;
+    autoNext: boolean;
+    transitionInterval: number;
     currentQuestionIndex: number;
+    isPublic: boolean;
     participants: PvpParticipant[];
     questions?: QuestionV2[];
+    currentSubState?: "QUESTION" | "RESULT" | "LEADERBOARD";
+    lastQuestionResult?: {
+        questionIndex: number;
+        correctAnswerData: any;
+        explanation: string | null;
+        leaderboard: PvpParticipant[];
+    } | null;
 }
 
 export interface PvpLeaderboardEntry {
@@ -47,3 +61,17 @@ export interface PvpLeaderboardEntry {
     profileImgUrl: string | null;
     score: number;
 }
+
+export interface PvpPublicRoomDto {
+    id: string;
+    code: string;
+    hostUserId: string;
+    hostName: string;
+    hostAvatar: string | null;
+    questionCount: number;
+    timePerQuestion: number;
+    participantCount: number;
+    maxParticipants: number;
+    createdAt: string;
+}
+

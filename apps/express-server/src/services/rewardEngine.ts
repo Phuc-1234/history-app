@@ -315,15 +315,30 @@ export class RewardEngine {
         xpGain: number,
         goldGain: number,
         tx: TxClient,
+        sourceType: string = "REWARD",
+        sourceId?: string | null,
     ) {
         if (xpGain === 0 && goldGain === 0) {
             return tx.user.findUniqueOrThrow({ where: { id: userId } });
         }
+
+        if (xpGain > 0) {
+            await (tx as any).userXpLog.create({
+                data: {
+                    userId,
+                    amount: xpGain,
+                    sourceType,
+                    sourceId: sourceId ?? null,
+                },
+            });
+        }
+
         return tx.user.update({
             where: { id: userId },
             data: {
                 totalXp: { increment: xpGain },
                 totalGold: { increment: goldGain },
+                ...(xpGain > 0 ? { lastXpGainedAt: new Date() } : {}),
             },
         });
     }
@@ -458,39 +473,38 @@ export class RewardEngine {
 
         const user = await tx.user.findUniqueOrThrow({
             where: { id: userId },
-            select: { lastTestPassedAt: true, currentStreak: true, highestStreak: true },
+            select: { lastTestPassedAt: true, lastXpGainedAt: true, currentStreak: true, highestStreak: true } as any,
         });
 
         const today = todayUtc();
-        let newStreak = user.currentStreak;
+        let newStreak = (user as any).currentStreak;
+        const lastXpDate = (user as any).lastXpGainedAt ? utcDateString((user as any).lastXpGainedAt) : ((user as any).lastTestPassedAt ? utcDateString((user as any).lastTestPassedAt) : null);
 
-        if (user.lastTestPassedAt) {
-            const lastPassDate = utcDateString(user.lastTestPassedAt);
-
-            if (lastPassDate === today) {
+        if (lastXpDate) {
+            if (lastXpDate === today) {
                 // Already counted today — just return
                 return { consequences, totalXp, totalGold };
-            } else if (lastPassDate === yesterdayUtc()) {
+            } else if (lastXpDate === yesterdayUtc()) {
                 // Consecutive day → increment
-                newStreak = user.currentStreak + 1;
+                newStreak = (user as any).currentStreak + 1;
             } else {
                 // Gap → reset to 1
                 newStreak = 1;
             }
         } else {
-            // First ever test pass
+            // First ever XP gain
             newStreak = 1;
         }
 
-        const newHighest = Math.max(newStreak, user.highestStreak);
+        const newHighest = Math.max(newStreak, (user as any).highestStreak);
 
         await tx.user.update({
             where: { id: userId },
             data: {
                 currentStreak: newStreak,
                 highestStreak: newHighest,
-                lastTestPassedAt: new Date(),
-            },
+                lastXpGainedAt: new Date(),
+            } as any,
         });
 
         consequences.push({
@@ -641,14 +655,18 @@ export class RewardEngine {
             });
         }
 
-        // 4. Process streak (with active multipliers)
-        const streakResult = await this.processStreak(userId, userTestLogId, tx, xpMultiplier, goldMultiplier);
-        consequences.push(...streakResult.consequences);
-        totalXpGained += streakResult.totalXp;
-        totalGoldGained += streakResult.totalGold;
+        // 4. Process streak ONLY IF XP was gained
+        if (testXp > 0) {
+            const streakResult = await this.processStreak(userId, userTestLogId, tx, xpMultiplier, goldMultiplier);
+            consequences.push(...streakResult.consequences);
+            totalXpGained += streakResult.totalXp;
+            totalGoldGained += streakResult.totalGold;
+        }
 
         // 5. Apply all XP and gold from test + streak
-        await this.applyXpAndGold(userId, totalXpGained, totalGoldGained, tx);
+        if (totalXpGained > 0 || totalGoldGained > 0) {
+            await this.applyXpAndGold(userId, totalXpGained, totalGoldGained, tx, "TEST_PASS", userTestLogId);
+        }
 
         // 6. Check tier up (reads updated totalXp, with active multipliers)
         const tierResult = await this.checkTierUp(userId, userTestLogId, tx, xpMultiplier, goldMultiplier);
@@ -666,15 +684,17 @@ export class RewardEngine {
     async checkStreakOnLogin(userId: string): Promise<number> {
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { lastTestPassedAt: true, currentStreak: true },
+            select: { lastTestPassedAt: true, lastXpGainedAt: true, currentStreak: true } as any,
         });
 
         if (!user) return 0;
 
-        if (user.currentStreak === 0) return 0;
+        if ((user as any).currentStreak === 0) return 0;
 
-        if (!user.lastTestPassedAt) {
-            // No test ever passed but streak > 0 — reset
+        const lastDate = (user as any).lastXpGainedAt ?? (user as any).lastTestPassedAt;
+
+        if (!lastDate) {
+            // No XP ever gained but streak > 0 — reset
             await prisma.user.update({
                 where: { id: userId },
                 data: { currentStreak: 0 },
@@ -682,13 +702,13 @@ export class RewardEngine {
             return 0;
         }
 
-        const lastPassDate = utcDateString(user.lastTestPassedAt);
+        const lastXpDate = utcDateString(lastDate);
         const today = todayUtc();
         const yesterday = yesterdayUtc();
 
-        if (lastPassDate === today || lastPassDate === yesterday) {
+        if (lastXpDate === today || lastXpDate === yesterday) {
             // Streak is still valid
-            return user.currentStreak;
+            return (user as any).currentStreak;
         }
 
         // Streak broken — reset

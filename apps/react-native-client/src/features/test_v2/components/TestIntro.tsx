@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     StyleSheet,
     Text,
@@ -6,9 +6,11 @@ import {
     View,
     ActivityIndicator,
     ScrollView,
-    Image
+    Image,
+    Animated
 } from "react-native";
-import { FileText, Clock, Zap, Coins, Trophy, HelpCircle, Package } from "lucide-react-native";
+import { FileText, Clock, Zap, Coins, Trophy, HelpCircle, Package, Swords } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { CustomModal } from "../../../components/Modal";
 import Card from "../../../components/Card";
@@ -60,6 +62,8 @@ interface Props {
     passCount?: number;
     scopeType?: string;
     itemsReward?: { name: string; imgUrl: string | null; quantity: number }[];
+    testId?: string;
+    scopeId?: number;
 }
 
 export default function TestIntro({
@@ -81,12 +85,86 @@ export default function TestIntro({
     passCount = 0,
     scopeType,
     itemsReward,
+    testId,
+    scopeId,
 }: Props) {
+    const router = useRouter();
     const { data: activeEffectsData } = useGetUserActiveEffectsQuery();
     const effectiveXpMultiplier = xpMultiplier > 1 ? xpMultiplier : (activeEffectsData?.xpMultiplier ?? 1);
     const effectiveGoldMultiplier = goldMultiplier > 1 ? goldMultiplier : (activeEffectsData?.goldMultiplier ?? 1);
 
     const [showHelpModal, setShowHelpModal] = useState(false);
+
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (purposeType !== "EXAM") {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(scaleAnim, {
+                        toValue: 1.08,
+                        duration: 1200,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleAnim, {
+                        toValue: 1.0,
+                        duration: 1200,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        } else {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(rotateAnim, {
+                        toValue: 1,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: -1,
+                        duration: 1600,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(rotateAnim, {
+                        toValue: 0,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        }
+    }, [purposeType, scaleAnim, rotateAnim]);
+
+    const rotateInterpolate = rotateAnim.interpolate({
+        inputRange: [-1, 1],
+        outputRange: ["-5deg", "5deg"],
+    });
+
+    const isExam = purposeType === "EXAM";
+    const animatedTitleStyle = isExam
+        ? {
+              color: colors.error,
+              transform: [{ rotate: rotateInterpolate }],
+          }
+        : {
+              color: colors.orange,
+              transform: [{ scale: scaleAnim }],
+          };
+
+    const handleGoToPvp = () => {
+        router.push({
+            pathname: "/pvp",
+            params: {
+                initialMode: testId ? "CURATED" : "AUTO_PICK",
+                initialTestId: testId ?? undefined,
+                initialScopeType: scopeType ?? undefined,
+                initialScopeId: scopeId ? scopeId.toString() : undefined,
+                initialQuestionCount: questionCount ? questionCount.toString() : undefined,
+            },
+        } as any);
+    };
 
     const branchConfig = {
         hierarchy: "",
@@ -119,6 +197,25 @@ export default function TestIntro({
         <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
                 <View style={styles.mainContent}>
+                    {/* Background faint logo (only for Kiểm tra) */}
+                    {purposeType === "EXAM" && (
+                        <View style={styles.bgLogoContainer} pointerEvents="none">
+                            <Image
+                                source={require("../../../../assets/images/logo-main.png")}
+                                style={styles.bgLogo}
+                                resizeMode="contain"
+                            />
+                        </View>
+                    )}
+                    <TouchableOpacity
+                        style={styles.pvpTopRightButton}
+                        onPress={handleGoToPvp}
+                        activeOpacity={0.8}
+                    >
+                        <Swords size={16} color="#FFFFFF" />
+                        <Text style={styles.pvpTopRightText}>Tạo phòng PVP</Text>
+                    </TouchableOpacity>
+
                     {/* Mascot Illustration */}
                     <View style={styles.mascotContainer}>
                         <Mascot
@@ -128,14 +225,14 @@ export default function TestIntro({
                         />
                     </View>
 
-                    <View style={{ flex: 1, minHeight: 10 }} />
+                    <View style={{ flex: 1, minHeight: 12, maxHeight: 24 }} />
 
                     {/* Test's name below the mascot (no container) */}
                     <View style={styles.titleContainer}>
                         <View style={styles.titleRow}>
-                            <Text style={styles.titleLabel}>
+                            <Animated.Text style={[styles.titleLabel, animatedTitleStyle]}>
                                 {purposeType === "EXAM" ? "Kiểm tra" : "Thử thách"}
-                            </Text>
+                            </Animated.Text>
                             <TouchableOpacity
                                 onPress={() => setShowHelpModal(true)}
                                 style={styles.helpButton}
@@ -149,7 +246,7 @@ export default function TestIntro({
                         </Text>
                     </View>
 
-                    <View style={{ flex: 1, minHeight: 10 }} />
+                    <View style={{ flex: 1, minHeight: 12, maxHeight: 24 }} />
 
                     {/* Row 1: 3 Squares */}
                     <View style={styles.squaresRow}>
@@ -178,9 +275,11 @@ export default function TestIntro({
                     </View>
 
                     {/* Row 2: Small, faint line */}
+                    <View style={{ flex: 1, minHeight: 12, maxHeight: 24 }} />
                     <Text style={styles.attemptFaintText}>
                         Lần thử thứ {(attemptCount ?? 0) + 1}. {passCount && passCount > 0 ? `Bạn đã đạt đề này ${passCount} lần` : "Bạn chưa đạt đề này lần nào"}
                     </Text>
+                    <View style={{ flex: 1, minHeight: 12, maxHeight: 24 }} />
 
                     {/* Row 3: 2 rectangles of rewards */}
                     <View style={styles.rewardsRow}>
@@ -262,7 +361,7 @@ export default function TestIntro({
                         </View>
                     )}
 
-                    <View style={{ flex: 1, minHeight: 15 }} />
+                    <View style={{ flex: 1, minHeight: 12, maxHeight: 24 }} />
                 </View>
             </ScrollView>
 
@@ -275,14 +374,6 @@ export default function TestIntro({
                 >
                     <Text style={styles.startButtonText}>Bắt đầu làm bài</Text>
                     <Text style={styles.arrowIcon}>➔</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.laterButton}
-                    onPress={onBack}
-                    activeOpacity={0.7}
-                >
-                    <Text style={styles.laterButtonText}>Để sau</Text>
                 </TouchableOpacity>
             </View>
 
@@ -314,7 +405,7 @@ const styles = StyleSheet.create({
     },
     mascotContainer: {
         alignItems: "center",
-        marginTop: 8,
+        marginTop: 48,
         marginBottom: 0,
     },
     titleContainer: {
@@ -352,11 +443,11 @@ const styles = StyleSheet.create({
     },
     infoSquare: {
         flex: 1,
-        aspectRatio: 1,
         alignItems: "center",
         justifyContent: "center",
-        padding: 6,
-        gap: 4,
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+        gap: 2,
     },
     infoSquareValue: {
         fontSize: 13,
@@ -375,7 +466,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.regular,
         color: colors.textMuted,
         textAlign: "center",
-        marginVertical: 16,
+        marginVertical: 8,
     },
     rewardsRow: {
         flexDirection: "row",
@@ -400,8 +491,8 @@ const styles = StyleSheet.create({
     footer: {
         
         paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 24,
+        paddingTop: 8,
+        paddingBottom: 12,
     },
     startButton: {
         flexDirection: "row",
@@ -412,7 +503,8 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 24,
         gap: 8,
-        marginTop: 16,
+        marginTop: 8,
+        marginBottom: 16,
         alignSelf: "center",
         width: "80%",
     },
@@ -493,5 +585,38 @@ const styles = StyleSheet.create({
     multiplierText: {
         fontSize: 10,
         fontFamily: typography.fonts.bold,
+    },
+    pvpTopRightButton: {
+        position: "absolute",
+        top: 8,
+        right: 16,
+        zIndex: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        backgroundColor: colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 30,
+    },
+    pvpTopRightText: {
+        fontSize: 12,
+        fontFamily: typography.fonts.bold,
+        color: "#FFFFFF",
+    },
+    bgLogoContainer: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: -1,
+    },
+    bgLogo: {
+        width: 320,
+        height: 320,
+        opacity: 0.12,
     },
 });

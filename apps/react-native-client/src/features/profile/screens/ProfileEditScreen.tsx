@@ -9,7 +9,7 @@ import {
     ActivityIndicator,
     Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { User, Mail } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppSelector } from "@/store/storeHook";
@@ -30,6 +30,7 @@ import { OtpModal } from "../../../components/OtpModal";
 
 export default function ProfileEditScreen() {
     const router = useRouter();
+    const { triggerImagePicker } = useLocalSearchParams<{ triggerImagePicker?: string }>();
     const insets = useSafeAreaInsets();
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
@@ -81,6 +82,12 @@ export default function ProfileEditScreen() {
             setSelectedImageUri(selectedImage.uri); // Only preview locally
         }
     };
+
+    useEffect(() => {
+        if (triggerImagePicker === "true") {
+            handlePickImage();
+        }
+    }, []);
 
     const handleUploadImage = async (imageUri: string): Promise<string> => {
         const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;

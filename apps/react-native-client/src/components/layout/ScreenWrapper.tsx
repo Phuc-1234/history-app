@@ -18,6 +18,7 @@ import { StreakDrawerModal } from "../../features/streak";
 import { TierDrawerModal } from "../../features/tier";
 import { colors } from "../../theme/colors";
 import AppBackground from "./AppBackground";
+import HistoricalBackground from "./HistoricalBackground";
 
 // ─── Branch Config (matches existing TopBarWrapper/TopBar interface) ────────
 export interface BranchConfig {
@@ -75,7 +76,7 @@ export interface ScreenWrapperProps {
 
     /** Show moving background (default: true). The specific background is
      *  chosen per app session — see AppBackground / useAppBackground. */
-    showHistoricalBackground?: boolean;
+    showHistoricalBackground?: boolean | "trongdong";
 }
 
 // ─── Internal: Content layer with optional KAV + Scroll ─────────────────────
@@ -189,7 +190,11 @@ function ScreenWithTopBar({
             />
 
             <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
-                {showHistoricalBackground && <AppBackground />}
+                {showHistoricalBackground === "trongdong" ? (
+                    <HistoricalBackground />
+                ) : showHistoricalBackground ? (
+                    <AppBackground />
+                ) : null}
                 <ContentLayer {...contentProps}>
                     {children}
                 </ContentLayer>
@@ -250,7 +255,11 @@ function ScreenWithoutTopBar({
                 />
             )}
             <View style={[styles.content, style, hasBottomEdge && { paddingBottom: insets.bottom }]}>
-                {showHistoricalBackground && <AppBackground />}
+                {showHistoricalBackground === "trongdong" ? (
+                    <HistoricalBackground />
+                ) : showHistoricalBackground ? (
+                    <AppBackground />
+                ) : null}
                 <ContentLayer {...contentProps}>
                     {children}
                 </ContentLayer>

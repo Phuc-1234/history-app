@@ -9,7 +9,7 @@ import {
     Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Zap, Coins } from "lucide-react-native";
+import { Zap, Coins, Flame } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -145,7 +145,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                 <TouchableOpacity
                                     style={[styles.chip, data.goldMultiplier > 1 && styles.goldMultipliedChip]}
                                     activeOpacity={0.7}
-                                    onPress={() => router.push("/(tabs)/8_2_buy_gold")}
+                                    onPress={() => router.push("/(tabs)/7_1_item")}
                                 >
                                     <Coins
                                         size={18}
@@ -167,8 +167,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                     activeOpacity={0.7}
                                     onPress={onOpenStreak}
                                 >
-                                    <Ionicons
-                                        name="flame"
+                                    <Flame
                                         size={20}
                                         color={data.hasCompletedToday ? "#FF4500" : "#FFFFFF"}
                                     />

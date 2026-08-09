@@ -4,6 +4,7 @@ import { adminService } from "../services/adminService";
 import { prisma } from "@history-app/shared";
 import { aiService } from "../services/aiService";
 import { contentService } from "../services/contentService";
+import { gamificationService } from "../services/gamificationService";
 import fs from "fs";
 import { videoProcessingService, activeTranscodes } from "../services/videoProcessingService";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -361,6 +362,21 @@ export const listUsers = async (req: Request, res: Response) => {
     } catch (err) {
         console.error("List users error:", err);
         return res.status(500).json({ error: "Failed to list users." });
+    }
+};
+
+export const getUserMonthlyStreakCalendar = async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.params;
+        const now = new Date();
+        const year = Number(req.query.year) || now.getFullYear();
+        const month = Number(req.query.month) || (now.getMonth() + 1);
+
+        const calendarData = await gamificationService.getMonthlyStreakCalendar(userId, year, month);
+        return res.status(200).json(calendarData);
+    } catch (err) {
+        console.error("Fetch user monthly streak calendar error:", err);
+        return res.status(500).json({ error: "Failed to fetch monthly streak calendar." });
     }
 };
 

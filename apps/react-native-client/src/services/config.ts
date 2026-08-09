@@ -42,6 +42,6 @@ if (Platform.OS === "web") {
     console.warn("This data is NOT ENCRYPTED on the web browser framework.");
     console.warn(
         "Ensure secure HTTPOnly cookies or proper auth systems are used in production.",
-    );
+    ); 
     console.log("=".repeat(60) + "\n");
 }
