@@ -1,4 +1,3 @@
-// features/payment/screens/BuyGoldScreen.tsx
 import React, { useState } from "react";
 import {
     View,
@@ -8,19 +7,19 @@ import {
     ActivityIndicator,
     ScrollView,
     Modal,
-    SafeAreaView,
     Image,
-    TextInput,
     Clipboard,
     Alert,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { usePayment } from "../hooks/usePayment";
-
-// ─── Gold packages ────────────────────────────────────────────────────────────
 import { PaymentProvider } from "../api/paymentApi";
 import { API_BASE_URL } from "../../../services/config";
+import { colors } from "../../../theme/colors";
+import { typography } from "../../../theme/typography";
+import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 // ─── Gold packages ────────────────────────────────────────────────────────────
 
@@ -49,13 +48,14 @@ function getProviderIconName(provider: PaymentProvider) {
 }
 
 function getProviderColor(provider: PaymentProvider) {
-    if (provider === "ZALOPAY") return "#0068FF";
-    return "#E4002B";
+    if (provider === "ZALOPAY") return colors.zalopay;
+    return colors.vietqr;
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export const BuyGoldScreen: React.FC = () => {
+    const router = useRouter();
     const { state, pay, resumePayment, reset } = usePayment();
     const [goldPackages, setGoldPackages] = useState<GoldPackage[]>([]);
     const [selectedPackage, setSelectedPackage] = useState<GoldPackage | null>(null);
@@ -154,7 +154,12 @@ export const BuyGoldScreen: React.FC = () => {
     const isSuccess = state.phase === "success";
 
     return (
-        <SafeAreaView style={styles.safe}>
+        <ScreenWrapper
+            showTopBar={false}
+            showHistoricalBackground={false}
+            backgroundColor={colors.background}
+            style={styles.safe}
+        >
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
@@ -171,7 +176,7 @@ export const BuyGoldScreen: React.FC = () => {
                 <Text style={styles.sectionLabel}>Chọn gói</Text>
                 {fetchingPackages ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                        <ActivityIndicator size="large" color="#4E3FE0" />
+                        <ActivityIndicator size="large" color={colors.primary} />
                     </View>
                 ) : goldPackages.length > 0 ? (
                     <View style={styles.packagesGrid}>
@@ -194,7 +199,7 @@ export const BuyGoldScreen: React.FC = () => {
                     </View>
                 ) : (
                     <View style={styles.emptyPackageCard}>
-                        <Ionicons name="cube-outline" size={40} color="#8E8E93" style={{ marginBottom: 8 }} />
+                        <Ionicons name="cube-outline" size={40} color={colors.textMuted} style={{ marginBottom: 8 }} />
                         <Text style={styles.emptyPackageTitle}>Hiện chưa có gói nạp Gold nào</Text>
                         <Text style={styles.emptyPackageSub}>
                             Các gói nạp Gold đang được cập nhật hoặc tạm ẩn. Vui lòng quay lại sau!
@@ -275,37 +280,44 @@ export const BuyGoldScreen: React.FC = () => {
                 {state.phase === "waiting" && (
                     <View style={styles.waitingContainer}>
                         <View style={styles.waitingBanner}>
-                            <ActivityIndicator color="#4E3FE0" />
+                            <ActivityIndicator color={colors.primary} />
                             <Text style={styles.waitingText}>
                                 Đang chờ xác nhận từ {getProviderLabel(selectedProvider)}...
                             </Text>
                         </View>
                         {!!state.payUrl && (
                             <TouchableOpacity style={styles.resumeBtn} onPress={resumePayment} activeOpacity={0.8}>
-                                <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                <Ionicons name="open-outline" size={16} color={colors.textLight} style={{ marginRight: 6 }} />
                                 <Text style={styles.resumeBtnText}>Mở lại trang thanh toán</Text>
                             </TouchableOpacity>
                         )}
                         <TouchableOpacity style={styles.cancelWaitingBtn} onPress={reset}>
-                            <Text style={styles.cancelWaitingText}>Hủy / Thử lại</Text>
+                            <Text style={styles.cancelWaitingText}>Hủy</Text>
                         </TouchableOpacity>
                     </View>
                 )}
 
                 {/* CTA Button */}
                 <TouchableOpacity
-                    style={[styles.payButton, (isLoading || !selectedPackage) && styles.payButtonDisabled]}
+                    style={[styles.payButtonWrapper, (isLoading || !selectedPackage) && styles.payButtonDisabled]}
                     onPress={handlePay}
                     activeOpacity={0.85}
                     disabled={isLoading || !selectedPackage}
                 >
-                    {isLoading ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                        <Text style={styles.payButtonText}>
-                            {selectedPackage ? `Thanh toán ${selectedPackage.priceVnd.toLocaleString("vi-VN")}đ` : "Đang tải gói nạp..."}
-                        </Text>
-                    )}
+                    <LinearGradient
+                        colors={[colors.primary, colors.secondary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.payButton}
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color={colors.textLight} />
+                        ) : (
+                            <Text style={styles.payButtonText}>
+                                {selectedPackage ? `Thanh toán ${selectedPackage.priceVnd.toLocaleString("vi-VN")}đ` : "Đang tải gói nạp..."}
+                            </Text>
+                        )}
+                    </LinearGradient>
                 </TouchableOpacity>
 
                 <Text style={styles.footnote}>
@@ -326,7 +338,7 @@ export const BuyGoldScreen: React.FC = () => {
                         <Ionicons
                             name={isSuccess ? "checkmark-circle-outline" : "close-circle-outline"}
                             size={56}
-                            color={isSuccess ? "#22A45D" : "#E4002B"}
+                            color={isSuccess ? colors.success : colors.vietqr}
                             style={{ marginBottom: 12 }}
                         />
                         <Text style={styles.modalTitle}>
@@ -338,10 +350,17 @@ export const BuyGoldScreen: React.FC = () => {
                                 } Gold`
                                 : (state.phase === "failed" ? state.error : "")}
                         </Text>
-                        <TouchableOpacity style={styles.modalButton} onPress={reset}>
-                            <Text style={styles.modalButtonText}>
-                                {isSuccess ? "Tuyệt vời!" : "Thử lại"}
-                            </Text>
+                        <TouchableOpacity style={styles.modalButtonWrapper} onPress={reset} activeOpacity={0.85}>
+                            <LinearGradient
+                                colors={[colors.primary, colors.secondary]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.modalButton}
+                            >
+                                <Text style={styles.modalButtonText}>
+                                    {isSuccess ? "Tuyệt vời!" : "Thử lại"}
+                                </Text>
+                            </LinearGradient>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -452,42 +471,63 @@ export const BuyGoldScreen: React.FC = () => {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </ScreenWrapper>
     );
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const PRIMARY = "#4E3FE0";
-const SURFACE = "#F7F6FF";
-
 const styles = StyleSheet.create({
     safe: {
         flex: 1,
-        backgroundColor: SURFACE,
+        backgroundColor: colors.background,
+    },
+    backHeader: {
+        paddingHorizontal: 16,
+        paddingTop: 8,
+        paddingBottom: 4,
+    },
+    backButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        alignSelf: "flex-start",
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+    backArrow: {
+        fontSize: 20,
+        color: colors.primary,
+        fontFamily: typography.fonts.bold,
+    },
+    backLabel: {
+        fontSize: 15,
+        color: colors.primary,
+        fontFamily: typography.fonts.semiBold,
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 24,
+        paddingTop: 12,
         paddingBottom: 40,
     },
 
     header: {
         alignItems: "center",
-        marginBottom: 28,
+        marginBottom: 24,
     },
     headerEmoji: {
         fontSize: 36,
     },
     headerTitle: {
         fontSize: 26,
-        fontWeight: "800",
-        color: "#1A1235",
+        fontFamily: typography.fonts.extraBold,
+        color: colors.textPrimary,
         marginBottom: 6,
     },
     headerSub: {
         fontSize: 13,
-        color: "#7B7490",
+        color: colors.textSecondary,
+        fontFamily: typography.fonts.regular,
         textAlign: "center",
         lineHeight: 20,
         paddingHorizontal: 8,
@@ -496,8 +536,8 @@ const styles = StyleSheet.create({
     // Section label
     sectionLabel: {
         fontSize: 13,
-        fontWeight: "700",
-        color: "#49435E",
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
         marginBottom: 10,
         textTransform: "uppercase",
         letterSpacing: 0.8,
@@ -512,33 +552,33 @@ const styles = StyleSheet.create({
     },
     packageCard: {
         width: "47%",
-        backgroundColor: "#FFFFFF",
-        borderRadius: 18,
+        backgroundColor: colors.cardBackground,
+        borderRadius: 16,
         padding: 16,
         alignItems: "center",
         borderWidth: 2,
-        borderColor: "#E8E4F5",
+        borderColor: colors.borderMedium,
         position: "relative",
     },
     packageCardSelected: {
-        borderColor: PRIMARY,
-        backgroundColor: "#EEF0FF",
+        borderColor: colors.primary,
+        backgroundColor: colors.secondaryContainer,
     },
     packageCardPopular: {
-        borderColor: "#F5A623",
+        borderColor: colors.secondary,
     },
     popularBadge: {
         position: "absolute",
         top: -10,
-        backgroundColor: "#F5A623",
+        backgroundColor: colors.secondary,
         paddingHorizontal: 10,
         paddingVertical: 3,
         borderRadius: 20,
     },
     popularBadgeText: {
         fontSize: 11,
-        fontWeight: "700",
-        color: "#FFFFFF",
+        fontFamily: typography.fonts.bold,
+        color: colors.textLight,
     },
     packageGoldIcon: {
         fontSize: 28,
@@ -547,17 +587,17 @@ const styles = StyleSheet.create({
     },
     packageGoldLabel: {
         fontSize: 16,
-        fontWeight: "700",
-        color: "#1A1235",
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     packagePrice: {
         fontSize: 13,
-        color: "#7B7490",
-        fontWeight: "500",
+        color: colors.textSecondary,
+        fontFamily: typography.fonts.medium,
     },
 
-    // Provider row — fixed text overflow
+    // Provider row
     providerRow: {
         flexDirection: "row",
         gap: 12,
@@ -567,12 +607,12 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         paddingVertical: 16,
         paddingHorizontal: 8,
         borderWidth: 2,
-        borderColor: "#E8E4F5",
+        borderColor: colors.borderMedium,
         position: "relative",
         minHeight: 90,
     },
@@ -582,14 +622,14 @@ const styles = StyleSheet.create({
     },
     providerLabel: {
         fontSize: 14,
-        fontWeight: "700",
-        color: "#49435E",
+        fontFamily: typography.fonts.bold,
+        color: colors.textSecondary,
         textAlign: "center",
     },
     providerSubLabel: {
         fontSize: 11,
-        fontWeight: "500",
-        color: "#ABA8B8",
+        fontFamily: typography.fonts.medium,
+        color: colors.textMuted,
         textAlign: "center",
         marginTop: 2,
     },
@@ -604,19 +644,19 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     providerCheckMark: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 10,
-        fontWeight: "900",
+        fontFamily: typography.fonts.black,
     },
 
     // Summary card
     summaryCard: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 18,
+        backgroundColor: colors.cardBackground,
+        borderRadius: 16,
         padding: 16,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: "#ECEAF7",
+        borderColor: colors.borderMedium,
     },
     summaryRow: {
         flexDirection: "row",
@@ -625,26 +665,27 @@ const styles = StyleSheet.create({
     },
     summaryKey: {
         fontSize: 14,
-        color: "#7B7490",
+        color: colors.textSecondary,
+        fontFamily: typography.fonts.regular,
     },
     summaryValue: {
         fontSize: 14,
-        color: "#1A1235",
-        fontWeight: "600",
+        color: colors.textPrimary,
+        fontFamily: typography.fonts.semiBold,
     },
     summaryKeyBold: {
         fontSize: 15,
-        fontWeight: "700",
-        color: "#1A1235",
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
     },
     summaryValueBold: {
         fontSize: 15,
-        fontWeight: "800",
-        color: PRIMARY,
+        fontFamily: typography.fonts.extraBold,
+        color: colors.primary,
     },
     summaryDivider: {
         height: 1,
-        backgroundColor: "#F0EEF8",
+        backgroundColor: colors.divider,
         marginVertical: 2,
     },
 
@@ -656,15 +697,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        backgroundColor: "#EEF0FF",
+        backgroundColor: colors.infoContainer,
         borderRadius: 14,
         padding: 14,
         marginBottom: 8,
     },
     waitingText: {
         fontSize: 14,
-        color: PRIMARY,
-        fontWeight: "500",
+        color: colors.primary,
+        fontFamily: typography.fonts.medium,
         flex: 1,
     },
     cancelWaitingBtn: {
@@ -674,30 +715,34 @@ const styles = StyleSheet.create({
     },
     cancelWaitingText: {
         fontSize: 13,
-        fontWeight: "600",
-        color: "#E4002B",
+        fontFamily: typography.fonts.semiBold,
+        color: colors.error,
     },
 
     // Pay button
+    payButtonWrapper: {
+        borderRadius: 30,
+        overflow: "hidden",
+        marginBottom: 12,
+    },
     payButton: {
-        backgroundColor: PRIMARY,
-        borderRadius: 18,
+        borderRadius: 30,
         paddingVertical: 16,
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 12,
     },
     payButtonDisabled: {
         opacity: 0.6,
     },
     payButtonText: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 16,
-        fontWeight: "800",
+        fontFamily: typography.fonts.extraBold,
     },
     footnote: {
         fontSize: 11,
-        color: "#ABA8B8",
+        color: colors.textMuted,
+        fontFamily: typography.fonts.regular,
         textAlign: "center",
     },
 
@@ -711,8 +756,8 @@ const styles = StyleSheet.create({
     },
     modalCard: {
         width: "100%",
-        backgroundColor: "#FFFFFF",
-        borderRadius: 28,
+        backgroundColor: colors.cardBackground,
+        borderRadius: 24,
         padding: 32,
         alignItems: "center",
     },
@@ -722,38 +767,44 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 22,
-        fontWeight: "800",
-        color: "#1A1235",
+        fontFamily: typography.fonts.extraBold,
+        color: colors.textPrimary,
         marginBottom: 8,
         textAlign: "center",
     },
     modalSub: {
         fontSize: 14,
-        color: "#7B7490",
+        color: colors.textSecondary,
+        fontFamily: typography.fonts.regular,
         textAlign: "center",
         marginBottom: 24,
         lineHeight: 20,
     },
+    modalButtonWrapper: {
+        borderRadius: 30,
+        overflow: "hidden",
+    },
     modalButton: {
-        backgroundColor: PRIMARY,
-        borderRadius: 16,
+        borderRadius: 30,
         paddingVertical: 14,
         paddingHorizontal: 40,
+        alignItems: "center",
+        justifyContent: "center",
     },
     modalButtonText: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 15,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
     },
 
-    // ─── VietQR bottom sheet modal ────────────────────────────────────────────
+    // VietQR bottom sheet modal
     qrModalBackdrop: {
         flex: 1,
         backgroundColor: "rgba(20, 15, 40, 0.5)",
         justifyContent: "flex-end",
     },
     qrModalSheet: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.cardBackground,
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingBottom: 32,
@@ -762,7 +813,7 @@ const styles = StyleSheet.create({
     qrSheetHandle: {
         width: 40,
         height: 4,
-        backgroundColor: "#E0DCF0",
+        backgroundColor: colors.divider,
         borderRadius: 2,
         alignSelf: "center",
         marginTop: 12,
@@ -782,7 +833,7 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     qrBankBadge: {
-        backgroundColor: "#FFF0F0",
+        backgroundColor: colors.errorContainer,
         borderRadius: 20,
         paddingHorizontal: 14,
         paddingVertical: 5,
@@ -790,18 +841,19 @@ const styles = StyleSheet.create({
     },
     qrBankBadgeText: {
         fontSize: 13,
-        fontWeight: "700",
-        color: "#E4002B",
+        fontFamily: typography.fonts.bold,
+        color: colors.vietqr,
     },
     qrTitle: {
         fontSize: 20,
-        fontWeight: "800",
-        color: "#1A1235",
+        fontFamily: typography.fonts.extraBold,
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     qrSubtitle: {
         fontSize: 13,
-        color: "#7B7490",
+        color: colors.textSecondary,
+        fontFamily: typography.fonts.regular,
         textAlign: "center",
         lineHeight: 18,
     },
@@ -810,11 +862,11 @@ const styles = StyleSheet.create({
     qrImageContainer: {
         alignItems: "center",
         marginBottom: 6,
-        backgroundColor: "#F7F6FF",
+        backgroundColor: colors.secondaryContainer,
         borderRadius: 20,
         padding: 16,
         borderWidth: 1,
-        borderColor: "#ECEAF7",
+        borderColor: colors.borderMedium,
         width: "100%",
     },
     qrImage: {
@@ -823,27 +875,27 @@ const styles = StyleSheet.create({
     },
     qrAmountBadge: {
         marginTop: 10,
-        backgroundColor: "#E8FFE8",
+        backgroundColor: colors.successContainer,
         borderRadius: 12,
         paddingHorizontal: 18,
         paddingVertical: 6,
     },
     qrAmountText: {
         fontSize: 22,
-        fontWeight: "800",
-        color: "#22A45D",
+        fontFamily: typography.fonts.extraBold,
+        color: colors.success,
         textAlign: "center",
     },
 
     // Bank info card
     bankInfoCard: {
         width: "100%",
-        backgroundColor: "#F7F6FF",
+        backgroundColor: colors.secondaryContainer,
         borderRadius: 16,
         padding: 14,
         marginTop: 14,
         borderWidth: 1,
-        borderColor: "#ECEAF7",
+        borderColor: colors.borderMedium,
     },
     bankInfoRow: {
         flexDirection: "row",
@@ -853,21 +905,21 @@ const styles = StyleSheet.create({
     },
     bankInfoLabel: {
         fontSize: 13,
-        color: "#7B7490",
-        fontWeight: "500",
+        color: colors.textSecondary,
+        fontFamily: typography.fonts.medium,
         flexShrink: 0,
     },
     bankInfoValue: {
         fontSize: 13,
-        color: "#1A1235",
-        fontWeight: "700",
+        color: colors.textPrimary,
+        fontFamily: typography.fonts.bold,
         textAlign: "right",
         flexShrink: 1,
         marginLeft: 8,
     },
     bankInfoDivider: {
         height: 1,
-        backgroundColor: "#ECEAF7",
+        backgroundColor: colors.divider,
     },
     copyRow: {
         flexDirection: "row",
@@ -877,23 +929,23 @@ const styles = StyleSheet.create({
     },
     copyIcon: {
         fontSize: 16,
-        color: PRIMARY,
+        color: colors.primary,
     },
 
     // Transfer content card
     transferContentCard: {
         width: "100%",
-        backgroundColor: "#FFF8ED",
+        backgroundColor: colors.secondaryContainer,
         borderRadius: 16,
         padding: 14,
         marginTop: 12,
         borderWidth: 1,
-        borderColor: "#F5A623",
+        borderColor: colors.warning,
     },
     transferContentLabel: {
         fontSize: 12,
-        fontWeight: "700",
-        color: "#B07000",
+        fontFamily: typography.fonts.bold,
+        color: colors.textWarning,
         textTransform: "uppercase",
         letterSpacing: 0.5,
         marginBottom: 8,
@@ -906,20 +958,21 @@ const styles = StyleSheet.create({
     },
     transferContentValue: {
         fontSize: 15,
-        fontWeight: "800",
-        color: "#D4820A",
+        fontFamily: typography.fonts.extraBold,
+        color: colors.textWarning,
         flex: 1,
     },
     transferContentHint: {
         fontSize: 11,
-        color: "#B07000",
+        color: colors.textWarning,
+        fontFamily: typography.fonts.regular,
         marginTop: 8,
         lineHeight: 16,
     },
 
     // Simulate button
     simulateButton: {
-        backgroundColor: "#5856D6",
+        backgroundColor: colors.primary,
         borderRadius: 14,
         paddingVertical: 14,
         width: "100%",
@@ -927,9 +980,9 @@ const styles = StyleSheet.create({
         marginTop: 18,
     },
     simulateButtonText: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
     },
 
     // Cancel button
@@ -938,14 +991,14 @@ const styles = StyleSheet.create({
         width: "100%",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: "#E8E4F5",
+        borderColor: colors.borderMedium,
         borderRadius: 14,
         marginTop: 10,
     },
     cancelButtonText: {
-        color: "#FF453A",
+        color: colors.error,
         fontSize: 14,
-        fontWeight: "600",
+        fontFamily: typography.fonts.semiBold,
     },
 
     // Resume button
@@ -953,7 +1006,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#0068FF",
+        backgroundColor: colors.primary,
         borderRadius: 14,
         paddingVertical: 12,
         paddingHorizontal: 20,
@@ -961,35 +1014,35 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     resumeBtnText: {
-        color: "#FFFFFF",
+        color: colors.textLight,
         fontSize: 14,
-        fontWeight: "700",
+        fontFamily: typography.fonts.bold,
     },
 
     // Empty package styles
     emptyPackageCard: {
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        backgroundColor: colors.cardBackground,
         borderRadius: 16,
         paddingVertical: 28,
         paddingHorizontal: 20,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.08)",
+        borderColor: colors.borderMedium,
         borderStyle: "dashed",
     },
     emptyPackageTitle: {
         fontSize: 15,
-        fontWeight: "700",
-        color: "#1C1C1E",
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
         marginBottom: 4,
         textAlign: "center",
     },
     emptyPackageSub: {
         fontSize: 12,
-        fontWeight: "400",
-        color: "#8E8E93",
+        fontFamily: typography.fonts.regular,
+        color: colors.textMuted,
         textAlign: "center",
         lineHeight: 18,
     },
