@@ -28,6 +28,8 @@ try {
     console.warn("[Firebase Messaging] Failed to register background message handler. Firebase might not be initialized natively:", error);
 }
 
+import { PvpActiveRoomPromptModal } from "../features/pvp";
+
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
 SplashScreen.preventAutoHideAsync();
 
@@ -93,6 +95,7 @@ export default function RootLayout() {
                                 />
                             </Stack>
                             <GlobalSessionModal />
+                            <PvpActiveRoomPromptModal />
                             <GlobalToastContainer />
                         </SideDrawerProvider>
                     </LoadingProvider>

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Swords } from "lucide-react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { SlidingTabBar } from "@/components/SlidingTabBar";
 import { colors, radii, spacing, typography } from "@/theme";
@@ -21,6 +22,20 @@ interface PvpMainScreenProps {
     initialQuestionCount?: number;
 }
 
+const SWORD_BACKGROUNDS = [
+    { size: 40, top: "10%", left: "5%", rotate: "15deg" },
+    { size: 80, top: "15%", right: "8%", rotate: "-25deg" },
+    { size: 50, top: "35%", left: "15%", rotate: "45deg" },
+    { size: 90, top: "45%", right: "12%", rotate: "30deg" },
+    { size: 60, top: "60%", left: "8%", rotate: "-15deg" },
+    { size: 100, bottom: "10%", right: "5%", rotate: "20deg" },
+    { size: 70, bottom: "15%", left: "12%", rotate: "-35deg" },
+    { size: 45, top: "25%", left: "45%", rotate: "60deg" },
+    { size: 55, bottom: "25%", left: "35%", rotate: "-40deg" },
+];
+
+import { useFocusEffect } from "expo-router";
+
 export function PvpMainScreen({
     onExit,
     initialMode,
@@ -34,17 +49,15 @@ export function PvpMainScreen({
 
     const [activeTab, setActiveTab] = useState<"create" | "join">("create");
     const [currentRoom, setCurrentRoom] = useState<PvpRoom | null>(null);
-    const hasAttemptedRestoreRef = React.useRef(false);
 
     const { data: activeRoomData, refetch: refetchActiveRoom } = useGetActivePvpRoomQuery();
     const [leavePvpRoomMut] = useLeavePvpRoomMutation();
 
-    useEffect(() => {
-        if (activeRoomData && !currentRoom && !hasAttemptedRestoreRef.current) {
-            hasAttemptedRestoreRef.current = true;
-            setCurrentRoom(activeRoomData);
-        }
-    }, [activeRoomData, currentRoom]);
+    useFocusEffect(
+        React.useCallback(() => {
+            refetchActiveRoom();
+        }, [refetchActiveRoom])
+    );
 
     const {
         participants,
@@ -59,8 +72,9 @@ export function PvpMainScreen({
         showLeaderboard,
         rankChanges,
         hostUserId: realtimeHostUserId,
+        onlineUserIds,
         resetState,
-    } = usePvpRealtime(currentRoom?.code ?? null, currentRoom?.participants ?? []);
+    } = usePvpRealtime(currentRoom?.code ?? null, currentRoom, currentUserId);
 
     const effectiveRoom = currentRoom
         ? {
@@ -74,7 +88,6 @@ export function PvpMainScreen({
     };
 
     const handleLeaveRoom = async () => {
-        hasAttemptedRestoreRef.current = true;
         if (currentRoom?.code) {
             try {
                 await leavePvpRoomMut({ roomCode: currentRoom.code }).unwrap();
@@ -87,8 +100,8 @@ export function PvpMainScreen({
         refetchActiveRoom();
     };
 
-    // If game has started, switch to full-screen PvpGameScreen
-    if (effectiveRoom && isGameStarted) {
+    // If game has started or is IN_PROGRESS, switch to full-screen PvpGameScreen
+    if (effectiveRoom && (isGameStarted || effectiveRoom.status === "IN_PROGRESS")) {
         return (
             <PvpGameScreen
                 roomCode={effectiveRoom.code}
@@ -106,6 +119,7 @@ export function PvpMainScreen({
                 autoNext={effectiveRoom.autoNext}
                 transitionInterval={effectiveRoom.transitionInterval}
                 onExitGame={handleLeaveRoom}
+                activeUserIds={onlineUserIds}
             />
         );
     }
@@ -135,6 +149,68 @@ export function PvpMainScreen({
     return (
         <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
             <View style={styles.container}>
+                {/* Background Swords */}
+                <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                    {SWORD_BACKGROUNDS.map((item, idx) => (
+                        <View
+                            key={`bg-sword-${idx}`}
+                            style={{
+                                position: "absolute",
+                                top: item.top as any,
+                                left: item.left as any,
+                                right: item.right as any,
+                                bottom: item.bottom as any,
+                                opacity: 0.12,
+                            }}
+                        >
+                            <Swords size={item.size} color={colors.primary || "#c37938"} />
+                        </View>
+                    ))}
+                </View>
+
+                {/* Active Room Re-entry Banner Section */}
+                {activeRoomData && !currentRoom && (
+                    <View style={styles.activeRoomCard}>
+                        <View style={styles.activeRoomHeader}>
+                            <View style={styles.activeRoomBadge}>
+                                <Text style={styles.activeRoomBadgeText}>
+                                    {activeRoomData.status === "IN_PROGRESS" ? "ĐANG THI ĐẤU" : "PHÒNG CHỜ"}
+                                </Text>
+                            </View>
+                            <Text style={styles.activeRoomCode}>Phòng #{activeRoomData.code}</Text>
+                        </View>
+
+                        <Text style={styles.activeRoomSubtext}>
+                            Bạn đang có một phòng thi đấu chưa kết thúc ({activeRoomData.questionCount} câu hỏi).
+                        </Text>
+
+                        <View style={styles.activeRoomActions}>
+                            <TouchableOpacity
+                                style={styles.reenterButton}
+                                onPress={() => setCurrentRoom(activeRoomData)}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.reenterButtonText}>Quay lại phòng</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.leaveActiveButton}
+                                onPress={async () => {
+                                    try {
+                                        await leavePvpRoomMut({ roomCode: activeRoomData.code }).unwrap();
+                                    } catch (err) {
+                                        console.error("Failed to leave active room:", err);
+                                    }
+                                    refetchActiveRoom();
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.leaveActiveButtonText}>Rời phòng</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+
                 {/* Sliding Tab Bar */}
                 <SlidingTabBar
                     tabs={[
@@ -173,6 +249,73 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#FFFFFF",
     },
+    activeRoomCard: {
+        marginHorizontal: spacing.lg,
+        marginTop: spacing.md,
+        padding: spacing.md,
+        backgroundColor: colors.primary100 || "#FDF3EA",
+        borderRadius: radii.lg,
+        borderWidth: 1,
+        borderColor: colors.primary200 || "#F5D0A9",
+    },
+    activeRoomHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: spacing.xs,
+    },
+    activeRoomBadge: {
+        backgroundColor: colors.primary600 || "#C37938",
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 2,
+        borderRadius: radii.pill,
+    },
+    activeRoomBadgeText: {
+        ...typography.caption,
+        color: "#FFFFFF",
+        fontWeight: "700",
+        fontSize: 10,
+    },
+    activeRoomCode: {
+        ...typography.titleMedium,
+        color: colors.neutral900,
+        fontWeight: "700",
+    },
+    activeRoomSubtext: {
+        ...typography.caption,
+        color: colors.neutral700,
+        marginBottom: spacing.md,
+    },
+    activeRoomActions: {
+        flexDirection: "row",
+        gap: spacing.sm,
+    },
+    reenterButton: {
+        flex: 2,
+        backgroundColor: colors.primary600 || "#C37938",
+        paddingVertical: spacing.sm,
+        borderRadius: radii.pill,
+        alignItems: "center",
+    },
+    reenterButtonText: {
+        ...typography.labelLarge,
+        color: "#FFFFFF",
+        fontWeight: "700",
+    },
+    leaveActiveButton: {
+        flex: 1,
+        backgroundColor: colors.neutral100,
+        paddingVertical: spacing.sm,
+        borderRadius: radii.pill,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: colors.neutral300,
+    },
+    leaveActiveButtonText: {
+        ...typography.caption,
+        color: colors.error600 || "#D9383A",
+        fontWeight: "600",
+    },
     tabContainer: {
         marginHorizontal: spacing.lg,
         marginTop: spacing.md,
@@ -180,3 +323,4 @@ const styles = StyleSheet.create({
         backgroundColor: colors.neutral100,
     },
 });
+

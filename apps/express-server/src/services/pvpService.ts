@@ -23,10 +23,24 @@ interface RoomTimerState {
     resolveAnswer?: () => void;
     resolveTransition?: (target: "LEADERBOARD" | "NEXT_QUESTION") => void;
     pendingTarget?: "LEADERBOARD" | "NEXT_QUESTION";
+    triggerSoftLeaveFallback?: () => void;
+}
+
+interface ActiveRoomSubState {
+    subState: "QUESTION" | "RESULT" | "LEADERBOARD";
+    questionIndex: number;
+    lastQuestionResult?: {
+        questionIndex: number;
+        correctAnswerData: any;
+        explanation: string | null;
+        leaderboard: PvpParticipantDto[];
+    } | null;
 }
 
 // In-memory timer references for active room loops
 const activeRoomTimers = new Map<string, RoomTimerState>();
+const roomOnlineUsersMap = new Map<string, Set<string>>();
+const activeRoomSubStates = new Map<string, ActiveRoomSubState>();
 
 async function generate4DigitCode(): Promise<string> {
     for (let i = 0; i < 100; i++) {
@@ -151,6 +165,8 @@ export class PvpService {
             .filter(Boolean)
             .map(toQuestionDto);
 
+        const runtimeState = activeRoomSubStates.get(room.id);
+
         return {
             id: room.id,
             code: room.code,
@@ -169,13 +185,16 @@ export class PvpService {
                 score: p.score,
             })),
             questions: orderedQuestions,
+            currentSubState: runtimeState?.subState ?? "QUESTION",
+            lastQuestionResult: runtimeState?.lastQuestionResult ?? null,
         };
     }
 
     // ── Join Room ──────────────────────────────────────────────────────────
     async joinRoom(userId: string, roomCode: string): Promise<PvpRoomDto> {
         const room = await prisma.pvpRoom.findFirst({
-            where: { code: roomCode },
+            where: { code: roomCode, status: { in: ["LOBBY", "IN_PROGRESS"] } },
+            orderBy: { createdAt: "desc" },
             include: {
                 participants: {
                     include: { user: { select: { id: true, name: true, profileImgUrl: true } } },
@@ -184,8 +203,11 @@ export class PvpService {
         });
 
         if (!room) throw serviceError("Phòng không tồn tại", "ROOM_NOT_FOUND");
-        if (room.status !== "LOBBY") throw serviceError("Phòng đã bắt đầu hoặc đã kết thúc", "ROOM_NOT_LOBBY");
-        if (room.participants.length >= 8 && !room.participants.some((p) => p.userId === userId)) {
+        const isExistingParticipant = room.participants.some((p) => p.userId === userId);
+        if (room.status !== "LOBBY" && !isExistingParticipant) {
+            throw serviceError("Phòng đã bắt đầu thi đấu, không thể tham gia mới", "ROOM_NOT_LOBBY");
+        }
+        if (room.participants.length >= 8 && !isExistingParticipant) {
             throw serviceError("Phòng đã đầy (tối đa 8 người)", "ROOM_FULL");
         }
 
@@ -220,6 +242,8 @@ export class PvpService {
         // Broadcast player join event
         await this.broadcast(roomCode, "PLAYER_JOINED", { participants: participantDtos });
 
+        const runtimeState = activeRoomSubStates.get(updatedRoom!.id);
+
         return {
             id: updatedRoom!.id,
             code: updatedRoom!.code,
@@ -233,6 +257,8 @@ export class PvpService {
             isPublic: updatedRoom!.isPublic,
             participants: participantDtos,
             questions: orderedQuestions,
+            currentSubState: runtimeState?.subState ?? "QUESTION",
+            lastQuestionResult: runtimeState?.lastQuestionResult ?? null,
         };
     }
 
@@ -290,7 +316,8 @@ export class PvpService {
     // ── Get Room Info ──────────────────────────────────────────────────────
     async getRoomInfo(roomCode: string): Promise<PvpRoomDto> {
         const room = await prisma.pvpRoom.findFirst({
-            where: { code: roomCode },
+            where: { code: roomCode, status: { in: ["LOBBY", "IN_PROGRESS"] } },
+            orderBy: { createdAt: "desc" },
             include: {
                 participants: {
                     include: { user: { select: { id: true, name: true, profileImgUrl: true } } },
@@ -298,12 +325,14 @@ export class PvpService {
             },
         });
 
-        if (!room) throw serviceError("Phòng không tồn me", "ROOM_NOT_FOUND");
+        if (!room) throw serviceError("Phòng không tồn tại", "ROOM_NOT_FOUND");
 
         const seq = (room.questionSequenceJson as number[]) ?? [];
         const questionRecords = await prisma.question.findMany({ where: { id: { in: seq } } });
         const questionMap = new Map(questionRecords.map((q) => [q.id, q]));
         const orderedQuestions = seq.map((id) => questionMap.get(id)).filter(Boolean).map(toQuestionDto);
+
+        const runtimeState = activeRoomSubStates.get(room.id);
 
         return {
             id: room.id,
@@ -323,6 +352,8 @@ export class PvpService {
                 score: p.score,
             })),
             questions: orderedQuestions,
+            currentSubState: runtimeState?.subState ?? "QUESTION",
+            lastQuestionResult: runtimeState?.lastQuestionResult ?? null,
         };
     }
 
@@ -348,6 +379,8 @@ export class PvpService {
         const questionMap = new Map(questionRecords.map((q) => [q.id, q]));
         const orderedQuestions = seq.map((id) => questionMap.get(id)).filter(Boolean).map(toQuestionDto);
 
+        const runtimeState = activeRoomSubStates.get(room.id);
+
         return {
             id: room.id,
             code: room.code,
@@ -366,6 +399,8 @@ export class PvpService {
                 score: p.score,
             })),
             questions: orderedQuestions,
+            currentSubState: runtimeState?.subState ?? "QUESTION",
+            lastQuestionResult: runtimeState?.lastQuestionResult ?? null,
         };
     }
 
@@ -403,7 +438,8 @@ export class PvpService {
     // ── Start Room ─────────────────────────────────────────────────────────
     async startRoom(userId: string, roomCode: string): Promise<void> {
         const room = await prisma.pvpRoom.findFirst({
-            where: { code: roomCode },
+            where: { code: roomCode, status: "LOBBY" },
+            orderBy: { createdAt: "desc" },
             include: { participants: true },
         });
 
@@ -486,13 +522,29 @@ export class PvpService {
         // Broadcast player submitted status
         await this.broadcast(roomCode, "PLAYER_ANSWERED", { userId, questionIndex });
 
-        // Check if all active participants submitted for this question
+        // Check if all active online participants submitted for this question
         const updatedRoom = await prisma.pvpRoom.findUnique({
             where: { id: room.id },
             include: { participants: true },
         });
 
-        const allSubmitted = updatedRoom!.participants.every((p) => {
+        const activeUserIds = req.activeUserIds;
+        if (activeUserIds && activeUserIds.length > 0) {
+            roomOnlineUsersMap.set(room.id, new Set(activeUserIds));
+            const isHostOnline = activeUserIds.includes(room.hostUserId);
+            if (!isHostOnline) {
+                const timerRef = activeRoomTimers.get(room.id);
+                if (timerRef?.triggerSoftLeaveFallback) {
+                    timerRef.triggerSoftLeaveFallback();
+                }
+            }
+        }
+
+        const targetParticipants = activeUserIds && activeUserIds.length > 0
+            ? updatedRoom!.participants.filter((p) => activeUserIds.includes(p.userId))
+            : updatedRoom!.participants;
+
+        const allSubmitted = targetParticipants.length > 0 && targetParticipants.every((p) => {
             const pAnswers = (p.answersJson as any[]) ?? [];
             return pAnswers.some((a) => a.questionIndex === questionIndex);
         });
@@ -505,6 +557,49 @@ export class PvpService {
         }
 
         return { scoreEarned, totalScore: newScore };
+    }
+
+    // ── Transition Helper ──────────────────────────────────────────────────
+    private waitForTransition(
+        roomId: string,
+        targetState: "LEADERBOARD" | "NEXT_QUESTION",
+        autoNext: boolean,
+        transitionInterval: number,
+        hostUserId: string
+    ): Promise<void> {
+        return new Promise<void>((resolve) => {
+            let timer: ReturnType<typeof setTimeout> | undefined;
+
+            const cleanupAndResolve = () => {
+                if (timer) clearTimeout(timer);
+                activeRoomTimers.delete(roomId);
+                resolve();
+            };
+
+            const latestOnlineUsers = roomOnlineUsersMap.get(roomId);
+            const isHostOnline = !latestOnlineUsers || latestOnlineUsers.size === 0 || latestOnlineUsers.has(hostUserId);
+
+            if (autoNext) {
+                timer = setTimeout(cleanupAndResolve, transitionInterval * 1000);
+            } else if (!isHostOnline) {
+                // Host soft-left (offline): set 5s fallback timer
+                timer = setTimeout(cleanupAndResolve, 5000);
+            }
+
+            activeRoomTimers.set(roomId, {
+                pendingTarget: targetState,
+                resolveTransition: (target) => {
+                    if (target === targetState) {
+                        cleanupAndResolve();
+                    }
+                },
+                triggerSoftLeaveFallback: () => {
+                    if (!autoNext && !timer) {
+                        timer = setTimeout(cleanupAndResolve, 5000);
+                    }
+                },
+            });
+        });
     }
 
     // ── Timer & Question Cycle Loop ────────────────────────────────────────
@@ -531,6 +626,12 @@ export class PvpService {
                 const questionDto = questionRecord ? toQuestionDto(questionRecord) : null;
 
                 // 1. Broadcast QUESTION_START
+                activeRoomSubStates.set(roomId, {
+                    subState: "QUESTION",
+                    questionIndex: idx,
+                    lastQuestionResult: null,
+                });
+
                 await this.broadcast(roomCode, "QUESTION_START", {
                     questionIndex: idx,
                     totalQuestions,
@@ -569,30 +670,31 @@ export class PvpService {
                     score: p.score,
                 }));
 
-                // Broadcast QUESTION_RESULT (State 2: correct answer & points on screen)
-                await this.broadcast(roomCode, "QUESTION_RESULT", {
+                const resultPayload = {
                     questionIndex: idx,
                     correctAnswerData: questionRecord?.answerDataJson,
-                    explanation: questionRecord?.explanation,
+                    explanation: questionRecord?.explanation ?? null,
                     leaderboard,
+                };
+
+                activeRoomSubStates.set(roomId, {
+                    subState: "RESULT",
+                    questionIndex: idx,
+                    lastQuestionResult: resultPayload,
                 });
 
+                // Broadcast QUESTION_RESULT (State 2: correct answer & points on screen)
+                await this.broadcast(roomCode, "QUESTION_RESULT", resultPayload);
+
                 // Transition from State 2 -> State 3 (Leaderboard)
-                if (room.autoNext) {
-                    await new Promise((r) => setTimeout(r, room.transitionInterval * 1000));
-                } else {
-                    await new Promise<void>((resolve) => {
-                        activeRoomTimers.set(roomId, {
-                            pendingTarget: "LEADERBOARD",
-                            resolveTransition: (target) => {
-                                if (target === "LEADERBOARD") {
-                                    activeRoomTimers.delete(roomId);
-                                    resolve();
-                                }
-                            }
-                        });
-                    });
-                }
+                await this.waitForTransition(room.id, "LEADERBOARD", room.autoNext, room.transitionInterval, room.hostUserId);
+
+                const currentSubState = activeRoomSubStates.get(roomId);
+                activeRoomSubStates.set(roomId, {
+                    subState: "LEADERBOARD",
+                    questionIndex: idx,
+                    lastQuestionResult: currentSubState?.lastQuestionResult ?? null,
+                });
 
                 // Broadcast SHOW_LEADERBOARD (State 3: Leaderboard modal)
                 await this.broadcast(roomCode, "SHOW_LEADERBOARD", {
@@ -601,21 +703,7 @@ export class PvpService {
                 });
 
                 // Transition from State 3 -> State 4 (Next question)
-                if (room.autoNext) {
-                    await new Promise((r) => setTimeout(r, room.transitionInterval * 1000));
-                } else {
-                    await new Promise<void>((resolve) => {
-                        activeRoomTimers.set(roomId, {
-                            pendingTarget: "NEXT_QUESTION",
-                            resolveTransition: (target) => {
-                                if (target === "NEXT_QUESTION") {
-                                    activeRoomTimers.delete(roomId);
-                                    resolve();
-                                }
-                            }
-                        });
-                    });
-                }
+                await this.waitForTransition(room.id, "NEXT_QUESTION", room.autoNext, room.transitionInterval, room.hostUserId);
             }
 
             // 4. Game finished
@@ -645,7 +733,10 @@ export class PvpService {
     }
 
     async triggerNextState(userId: string, roomCode: string, targetState: "LEADERBOARD" | "NEXT_QUESTION"): Promise<void> {
-        const room = await prisma.pvpRoom.findFirst({ where: { code: roomCode } });
+        const room = await prisma.pvpRoom.findFirst({
+            where: { code: roomCode, status: "IN_PROGRESS" },
+            orderBy: { createdAt: "desc" },
+        });
         if (!room) throw serviceError("Phòng không tồn tại", "ROOM_NOT_FOUND");
         if (room.hostUserId !== userId) throw serviceError("Chỉ chủ phòng mới có quyền chuyển tiếp", "UNAUTHORIZED");
 

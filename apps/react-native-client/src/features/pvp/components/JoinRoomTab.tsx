@@ -113,7 +113,12 @@ export function JoinRoomTab({ onRoomJoined }: JoinRoomTabProps) {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.container}
             refreshControl={
-                <RefreshControl refreshing={isFetchingPublicRooms} onRefresh={refetchPublicRooms} />
+                <RefreshControl
+                    refreshing={isFetchingPublicRooms}
+                    onRefresh={refetchPublicRooms}
+                    colors={[colors.orange || "#FF9500"]}
+                    tintColor={colors.orange || "#FF9500"}
+                />
             }
             ListHeaderComponent={
                 <View style={styles.headerSection}>

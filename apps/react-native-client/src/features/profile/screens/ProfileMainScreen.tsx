@@ -110,15 +110,10 @@ export default function ProfileMainScreen() {
                     frameUri={profile?.equippedFrameUrl}
                     size={120}
                     name={profile?.name}
-                    showEditButton={false}
+                    showEditButton={true}
+                    onEditPress={() => router.push("/(10_proflie)/10_2_profile_edit?triggerImagePicker=true")}
                 />
                 <Text style={styles.userName}>{profile?.name || "Người dùng"}</Text>
-                
-                {profile?.tierName && (
-                    <View style={styles.tierBadge}>
-                        <Text style={styles.tierText}>{profile.tierName}</Text>
-                    </View>
-                )}
             </View>
 
 
@@ -218,6 +213,10 @@ export default function ProfileMainScreen() {
                 </Card>
             </View>
 
+            <View style={styles.versionContainer}>
+                <Text style={styles.versionText}>Phiên bản 4.0</Text>
+                <Text style={styles.groupText}>Thực hiện bởi nhóm "Sử Việt"</Text>
+            </View>
             <TouchableOpacity
                 style={styles.logoutButton}
                 onPress={handleLogout}
@@ -277,6 +276,22 @@ const styles = StyleSheet.create({
     menuContainer: {
         paddingVertical: 8,
         marginBottom: 8,
+    },
+    versionContainer: {
+        alignItems: "center",
+        marginTop: 24,
+        marginBottom: 4,
+    },
+    versionText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 12,
+        color: colors.textSecondary,
+    },
+    groupText: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginTop: 2,
     },
     logoutButton: {
         flexDirection: "row",

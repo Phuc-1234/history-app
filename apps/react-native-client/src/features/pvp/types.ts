@@ -21,6 +21,7 @@ export interface SubmitPvpAnswerRequest {
     questionIndex: number;
     userAnswer: any;
     timeTakenSeconds: number;
+    activeUserIds?: string[];
 }
 
 export interface PvpParticipant {
@@ -44,6 +45,13 @@ export interface PvpRoom {
     isPublic: boolean;
     participants: PvpParticipant[];
     questions?: QuestionV2[];
+    currentSubState?: "QUESTION" | "RESULT" | "LEADERBOARD";
+    lastQuestionResult?: {
+        questionIndex: number;
+        correctAnswerData: any;
+        explanation: string | null;
+        leaderboard: PvpParticipant[];
+    } | null;
 }
 
 export interface PvpLeaderboardEntry {

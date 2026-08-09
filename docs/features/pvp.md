@@ -1,6 +1,6 @@
 # Real-time PVP Competition Feature Documentation
 
-**Current Version:** 2.2  
+**Current Version:** 2.3  
 **Module Location:**
 - Backend Routes: [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts)
 - Backend Controllers: [pvpController.ts](file:///e:/history-app/apps/express-server/src/controllers/pvpController.ts)
@@ -69,7 +69,7 @@ history-app/
 
 #### `PvpRoom`
 - `id` (`String @id @default(uuid())`): Internal room UUID.
-- `code` (`String @unique`): 4-digit public room code.
+- `code` (`String`): 4-digit public room code (indexed via `@@index([code, status])`). Code uniqueness is enforced only across active rooms (`LOBBY`, `IN_PROGRESS`), enabling past `FINISHED` or `CANCELLED` rooms to have their codes safely reused.
 - `hostUserId` (`String`): User ID of room creator.
 - `status` (`PvpRoomStatus`): Status enum (`LOBBY`, `IN_PROGRESS`, `FINISHED`, `CANCELLED`).
 - `questionCount` (`Int`): Total questions in room (default `10`).
@@ -347,3 +347,56 @@ sequenceDiagram
 #### 8. Question Count Clamping & Toast Validation
 - Clamped numeric question input in [CreateRoomTab.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/CreateRoomTab.tsx) to strictly positive values (`> 0`).
 - Prevented room creation and displayed error toast via `toastService.show` if `questionCount > availableCount`.
+
+### Version 2.3
+
+#### 1. Reusable Room Codes for Finished/Cancelled Rooms
+- Removed `@unique` constraint from `code` column on `PvpRoom` model in [schema.prisma](file:///e:/history-app/packages/shared/prisma/schema.prisma) and added index `@@index([code, status])`.
+- Updated code generation (`generate4DigitCode`) and active room lookups in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts) to check uniqueness only against active rooms (`LOBBY`, `IN_PROGRESS`).
+
+#### 2. Strict Active Room Scoping for Join & Room Queries
+- Scope room lookup in `joinRoom`, `getRoomInfo`, `startRoom`, and `triggerNextState` in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts) to active statuses (`LOBBY` / `IN_PROGRESS`) ordered by `createdAt desc`.
+- Prohibits new players from joining `IN_PROGRESS` rooms by code (throws `ROOM_NOT_LOBBY`), while allowing existing participants to re-enter.
+
+#### 3. In-App Re-entry Section on PVP Main Screen
+- Added active room banner section to [PvpMainScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpMainScreen.tsx) when user leaves an active room midway.
+- Displays room code, active status badge (`Phòng chờ` / `Đang thi đấu`), and quick actions ("Quay lại phòng" / "Rời phòng").
+
+#### 4. On-App-Start Active Room Check & Modal Prompt
+- Created dedicated component [PvpActiveRoomPromptModal.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/PvpActiveRoomPromptModal.tsx) mounted in global layout [_layout.tsx](file:///e:/history-app/apps/react-native-client/src/app/_layout.tsx).
+- Automatically prompts logged-in users once on app launch if an active room session is detected, allowing one-tap navigation back to the match or leaving the room.
+
+#### 5. Direct `IN_PROGRESS` Match Re-entry & Sub-state Restoration
+- Updated [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts) and [PvpMainScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpMainScreen.tsx) to initialize `isGameStarted = true`, `currentQuestionIndex`, and `currentQuestion` directly when `room.status === "IN_PROGRESS"`.
+- Resuming an `IN_PROGRESS` room bypasses `PvpLobbyView` entirely and opens `PvpGameScreen` straight at the active question, eliminating lobby stuck issues and `ALREADY_STARTED` errors.
+
+#### 6. Soft-Leave Answer Skipping & Host Progression Controls
+- **Realtime Presence Sync**: [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts) tracks active connected user IDs (`onlineUserIds`) via Supabase Realtime presence and passes them with answer submissions in [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx).
+- **Backend Early Resolution**: [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts) filters `allSubmitted` check to currently connected online participants, resolving question timers immediately when all online players answer.
+- **Online Host Indefinite Pause**: When `autoNext = false` and host is online, NO fallback timer runs, holding inter-question screens indefinitely for lectures/events until the host taps "Tiếp tục".
+- **Host Soft-Leave Fallback**: If the host soft-leaves (offline), a 5s fallback timer triggers to prevent room freezes.
+- **Host Manual Override**: Host can tap "Tiếp tục" at any time regardless of `autoNext` mode to skip the remaining `transitionInterval` timer countdown immediately.
+
+#### 7. Active Sub-State Synchronization & Re-entry Fix
+- **Backend Sub-State Tracking**: Added `activeRoomSubStates` map in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts) to track `currentSubState` (`QUESTION` | `RESULT` | `LEADERBOARD`) and `lastQuestionResult` for active matches in real time.
+- **API Payload Enhancement**: `getRoomInfo` and `getActiveRoom` endpoints now return `currentSubState` and `lastQuestionResult` in `PvpRoomDto`.
+- **Frontend Sub-State Restoration**: Updated [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts) to initialize `questionResult = room.lastQuestionResult` and `showLeaderboard = (room.currentSubState === "LEADERBOARD")`. Players reconnecting during `RESULT` or `LEADERBOARD` phases immediately land on the correct inter-question UI rather than seeing an expired question prompt.
+
+---
+
+### Detailed Test Cases (v2.3)
+
+| Test Case ID | Scenario | Steps | Expected Result | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **TC-PVP-2301** | Soft-leave during question & reconnect at Result/Leaderboard | 1. Player A & B start match (Q4).<br>2. Player A soft-leaves (closes app) on Q4.<br>3. Q4 ends on server; room moves to Result/Leaderboard.<br>4. Player A re-opens app and taps "Quay lại phòng". | Player A lands directly on Q4 Result overlay / Leaderboard modal. Player A cannot answer expired Q4 options and does not get stuck. When Q5 starts, Player A smoothly transitions to Q5 with Player B. | Untested |
+| **TC-PVP-2302** | Soft-leave during question answering (Early skip) | 1. Player A & B enter Q3.<br>2. Player A soft-leaves.<br>3. Player B selects answer and submits. | Server detects Player A is offline via Realtime presence. Q3 finishes immediately upon Player B's answer without waiting out the full 15s timer. | Untested |
+| **TC-PVP-2303** | Host soft-leave during manual transition mode (`autoNext = false`) | 1. Host A creates room with `autoNext = false`.<br>2. Q2 finishes, moving to Result phase.<br>3. Host A soft-leaves (closes app). | Server detects Host A is offline and triggers a 5s fallback timer to advance to Leaderboard / Next Question, preventing remaining players from freezing. | Untested |
+| **TC-PVP-2304** | Online host pause in manual mode (`autoNext = false`) | 1. Host A & Player B enter Q2 Result phase.<br>2. Host A stays online without tapping "Tiếp tục". | Screen remains paused on Result / Leaderboard indefinitely. No fallback timer fires while host is online. Host A tapping "Tiếp tục" immediately advances to next state. | Untested |
+| **TC-PVP-2305** | Host manual override during `autoNext = true` mode | 1. Room starts with `autoNext = true` (15s interval).<br>2. Q1 finishes, displaying 15s auto-next countdown.<br>3. Host A taps "Tiếp tục". | Server cancels the remaining 15s interval timer and advances immediately to the next question state. | Untested |
+| **TC-PVP-2306** | All players soft-leave midway (Abandonment) | 1. Player A & B are in match (Q2).<br>2. Both players soft-leave (close app). | Room advances through remaining questions using 5s fallbacks for transitions until it reaches `FINISHED` state. Reconnecting later lets players rejoin at the current active question index. | Untested |
+| **TC-PVP-2307** | Host soft-leaves in Lobby | 1. Host A creates lobby.<br>2. Player B joins lobby.<br>3. Host A soft-leaves (closes app) without starting or hard-leaving. | Lobby stays active. Player B remains in lobby. Host A re-opens app, is prompted to return, and resumes host duties with "Start Match" enabled. | Untested |
+| **TC-PVP-2308** | Player soft-leaves in Lobby & Host starts match | 1. Player B joins lobby.<br>2. Player B soft-leaves.<br>3. Host A starts match. | Match transitions to `IN_PROGRESS`. Host A plays Q1 (finishes early since Player B is offline). Player B can reconnect directly into active gameplay. | Untested |
+| **TC-PVP-2309** | Reconnect within the same question timer | 1. Host A & Player B enter Q3.<br>2. Player B soft-leaves 3s into question.<br>3. Player B reconnects 8s into question. | Player B lands on active question screen with remaining time (~7s) ticking down, allowing them to answer before expiration. | Untested |
+| **TC-PVP-2310** | Reconnect skip transition states | 1. Player B soft-leaves at Q2 Result screen.<br>2. Host A taps "Tiếp tục" to advance to Leaderboard modal.<br>3. Player B reconnects. | Player B lands directly on Leaderboard modal UI state. | Untested |
+| **TC-PVP-2311** | Soft-leave on final question result | 1. Room reaches Q10 Result phase.<br>2. Player B soft-leaves.<br>3. Host A advances to game finished screen. | Room status changes to `FINISHED`. Player B re-opening app is not prompted for active room since match is complete. Final standings are preserved in database. | Untested |
+| **TC-PVP-2312** | Host manual transition override vs fallback race | 1. Host A soft-leaves in manual mode (`autoNext = false`).<br>2. Server starts 5s fallback timer.<br>3. Host A reconnects and taps "Tiếp tục" at 4.8s. | `triggerNextState` cancels fallback timer and advances room exactly once to next state. | Untested |

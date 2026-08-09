@@ -373,7 +373,12 @@ export function CreateRoomTab({
             style={styles.scrollContainer}
             contentContainerStyle={styles.container}
             refreshControl={
-                <RefreshControl refreshing={fetchingCount} onRefresh={() => refetchCount()} />
+                <RefreshControl
+                    refreshing={fetchingCount}
+                    onRefresh={() => refetchCount()}
+                    colors={[colors.orange || "#FF9500"]}
+                    tintColor={colors.orange || "#FF9500"}
+                />
             }
         >
             <Text style={styles.title}>Cấu hình phòng thi đấu</Text>
