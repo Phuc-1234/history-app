@@ -365,6 +365,7 @@ export class AdminService {
             profileImgUrl: u.profileImgUrl ?? null,
             currentStreak: u.currentStreak,
             highestStreak: u.highestStreak,
+            lastXpGainedAt: u.lastXpGainedAt,
         }));
     }
 
@@ -392,6 +393,7 @@ export class AdminService {
             profileImgUrl: updated.profileImgUrl ?? null,
             currentStreak: updated.currentStreak,
             highestStreak: updated.highestStreak,
+            lastXpGainedAt: updated.lastXpGainedAt,
         };
     }
 
