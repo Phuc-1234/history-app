@@ -9,6 +9,7 @@ import {
     Modal,
     Image,
     useWindowDimensions,
+    BackHandler,
 } from "react-native";
 import RenderHtml from "react-native-render-html";
 import Animated, {
@@ -158,11 +159,36 @@ export function PvpGameScreen({
         }
     };
 
+    useEffect(() => {
+        const onHardwareBackPress = () => {
+            if (finalLeaderboard) {
+                onExitGame();
+                return true;
+            }
+            if (showExitModal) {
+                setShowExitModal(false);
+                return true;
+            }
+            setShowExitModal(true);
+            return true;
+        };
+
+        const subscription = BackHandler.addEventListener("hardwareBackPress", onHardwareBackPress);
+        return () => subscription.remove();
+    }, [showExitModal, finalLeaderboard, onExitGame]);
+
     const branchConfig = {
         hierarchy: "PVP",
         title: "Thi đấu PVP",
-        hideBack: true,
+        hideBack: false,
         hideHome: true,
+        onBackPress: () => {
+            if (finalLeaderboard) {
+                onExitGame();
+            } else {
+                setShowExitModal(true);
+            }
+        },
         rightElement: (
             <TouchableOpacity onPress={() => setShowExitModal(true)} style={{ padding: spacing.xs }}>
                 <LogOut size={20} color={colors.neutral700} />
@@ -515,7 +541,7 @@ export function PvpGameScreen({
                 </Modal>
 
                 {/* Exit Confirmation Modal */}
-                <Modal visible={showExitModal} animationType="fade" transparent>
+                <Modal visible={showExitModal} animationType="fade" transparent onRequestClose={() => setShowExitModal(false)}>
                     <View style={styles.modalOverlay}>
                         <View style={styles.confirmModalCard}>
                             <Text style={styles.confirmModalTitle}>Rời khỏi phòng thi đấu?</Text>

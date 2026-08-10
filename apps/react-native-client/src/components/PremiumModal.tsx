@@ -67,23 +67,23 @@ export function PremiumModal({
                     {/* Benefits List */}
                     <View style={styles.benefitsContainer}>
                         <View style={styles.benefitItem}>
-                            <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                            <Ionicons name="book-outline" size={16} color={colors.primary} />
                             <Text style={styles.benefitText}>Mở khoá toàn bộ bài học</Text>
                         </View>
                         <View style={styles.benefitItem}>
-                            <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                            <Ionicons name="document-text-outline" size={16} color={colors.secondary} />
                             <Text style={styles.benefitText}>Mở khoá toàn bộ đề thpt</Text>
                         </View>
                         <View style={styles.benefitItem}>
-                            <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                            <Ionicons name="albums-outline" size={16} color={colors.warning} />
                             <Text style={styles.benefitText}>Mở khoá thẻ lật</Text>
                         </View>
                         <View style={styles.benefitItem}>
-                            <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                            <Ionicons name="git-network-outline" size={16} color={colors.success} />
                             <Text style={styles.benefitText}>Mở khoá mind map</Text>
                         </View>
                         <View style={styles.benefitItem}>
-                            <Ionicons name="sparkles" size={16} color={colors.secondary} />
+                            <Ionicons name="sparkles-outline" size={16} color={colors.secondaryHover} />
                             <Text style={styles.benefitText}>Hạn mức AI Chat cao gấp 10 lần</Text>
                         </View>
                     </View>
