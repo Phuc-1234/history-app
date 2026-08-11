@@ -1152,17 +1152,7 @@ export const listTiers = async (req: Request, res: Response) => {
 };
 
 export const createTier = async (req: Request<{}, any, CreateTierBody>, res: Response) => {
-    try {
-        const { index, name, xpThreshold } = req.body;
-        if (index === undefined || !name || xpThreshold === undefined) {
-            return res.status(400).json({ error: "index, name, and xpThreshold are required." });
-        }
-        const tier = await adminService.createTier(req.body);
-        return res.status(201).json(tier);
-    } catch (err: any) {
-        console.error("Create tier error:", err);
-        return res.status(500).json({ error: err?.message || "Failed to create tier." });
-    }
+    return res.status(400).json({ error: "not available now" });
 };
 
 export const updateTier = async (req: Request<{ index: string }, any, UpdateTierBody>, res: Response) => {
@@ -1181,18 +1171,7 @@ export const updateTier = async (req: Request<{ index: string }, any, UpdateTier
 };
 
 export const deleteTier = async (req: Request<{ index: string }>, res: Response) => {
-    try {
-        const index = Number(req.params.index);
-        if (Number.isNaN(index)) {
-            return res.status(400).json({ error: "Invalid tier index." });
-        }
-        const deleted = await adminService.deleteTier(index);
-        if (!deleted) return res.status(404).json({ error: "Tier not found." });
-        return res.status(200).json({ message: "Tier deleted successfully." });
-    } catch (err) {
-        console.error("Delete tier error:", err);
-        return res.status(500).json({ error: "Failed to delete tier." });
-    }
+    return res.status(400).json({ error: "not available now" });
 };
 
 

@@ -57,7 +57,9 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         currentRoute.includes("login") ||
         currentRoute.includes("register") ||
         currentRoute.includes("forgot") ||
-        currentRoute.includes("ques_choose");
+        currentRoute.includes("ques_choose") ||
+        currentRoute.includes("pvp") ||
+        segments.includes("pvp");
     const { data, streakManager, tierManager } = useTopBarData();
 
     const slideAnim = useRef(new Animated.Value(0)).current;

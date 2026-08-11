@@ -377,10 +377,9 @@ sequenceDiagram
 - **Host Soft-Leave Fallback**: If the host soft-leaves (offline), a 5s fallback timer triggers to prevent room freezes.
 - **Host Manual Override**: Host can tap "Tiếp tục" at any time regardless of `autoNext` mode to skip the remaining `transitionInterval` timer countdown immediately.
 
-#### 7. Active Sub-State Synchronization & Re-entry Fix
-- **Backend Sub-State Tracking**: Added `activeRoomSubStates` map in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts) to track `currentSubState` (`QUESTION` | `RESULT` | `LEADERBOARD`) and `lastQuestionResult` for active matches in real time.
-- **API Payload Enhancement**: `getRoomInfo` and `getActiveRoom` endpoints now return `currentSubState` and `lastQuestionResult` in `PvpRoomDto`.
-- **Frontend Sub-State Restoration**: Updated [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts) to initialize `questionResult = room.lastQuestionResult` and `showLeaderboard = (room.currentSubState === "LEADERBOARD")`. Players reconnecting during `RESULT` or `LEADERBOARD` phases immediately land on the correct inter-question UI rather than seeing an expired question prompt.
+#### 8. Back Button Navigation & Exit Confirmation Upgrade
+- **Top Bar Back Button**: Added `onBackPress` handlers to `branchConfig` in both [PvpMainScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpMainScreen.tsx) and [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx) to ensure the top bar back button executes expected navigation across main tabs, lobby, and active game screens.
+- **In-Progress Hardware Back Interception**: Intercepted hardware back button presses (`BackHandler`) during active `IN_PROGRESS` gameplay in [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx). Pressing the phone's back button triggers the exit modal confirmation instead of executing an unconfirmed soft-leave.
 
 ---
 
@@ -400,3 +399,4 @@ sequenceDiagram
 | **TC-PVP-2310** | Reconnect skip transition states | 1. Player B soft-leaves at Q2 Result screen.<br>2. Host A taps "Tiếp tục" to advance to Leaderboard modal.<br>3. Player B reconnects. | Player B lands directly on Leaderboard modal UI state. | Untested |
 | **TC-PVP-2311** | Soft-leave on final question result | 1. Room reaches Q10 Result phase.<br>2. Player B soft-leaves.<br>3. Host A advances to game finished screen. | Room status changes to `FINISHED`. Player B re-opening app is not prompted for active room since match is complete. Final standings are preserved in database. | Untested |
 | **TC-PVP-2312** | Host manual transition override vs fallback race | 1. Host A soft-leaves in manual mode (`autoNext = false`).<br>2. Server starts 5s fallback timer.<br>3. Host A reconnects and taps "Tiếp tục" at 4.8s. | `triggerNextState` cancels fallback timer and advances room exactly once to next state. | Untested |
+| **TC-PVP-2313** | Back button handling during match | 1. Player A is in an `IN_PROGRESS` PVP match.<br>2. Player A taps the top bar back button or phone's hardware back button. | Exit confirmation modal opens ("Rời khỏi phòng thi đấu?") instead of soft-leaving the room directly. Tapping "Ở lại" closes modal and resumes game; tapping "Rời phòng" leaves room. | Untested |

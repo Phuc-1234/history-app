@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, BackHandler } from "react-native";
 import { Swords } from "lucide-react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { SlidingTabBar } from "@/components/SlidingTabBar";
@@ -12,6 +12,7 @@ import { usePvpRealtime } from "../hooks/usePvpRealtime";
 import { useGetActivePvpRoomQuery, useLeavePvpRoomMutation } from "../services/pvpApi";
 import { useSelector } from "react-redux";
 import type { PvpRoom } from "../types";
+import { useFocusEffect, useRouter } from "expo-router";
 
 interface PvpMainScreenProps {
     onExit?: () => void;
@@ -34,8 +35,6 @@ const SWORD_BACKGROUNDS = [
     { size: 55, bottom: "25%", left: "35%", rotate: "-40deg" },
 ];
 
-import { useFocusEffect } from "expo-router";
-
 export function PvpMainScreen({
     onExit,
     initialMode,
@@ -44,6 +43,7 @@ export function PvpMainScreen({
     initialScopeId,
     initialQuestionCount,
 }: PvpMainScreenProps) {
+    const router = useRouter();
     const profile = useSelector((state: any) => state.auth?.profile);
     const currentUserId = profile?.id ?? "";
 
@@ -87,7 +87,7 @@ export function PvpMainScreen({
         setCurrentRoom(room);
     };
 
-    const handleLeaveRoom = async () => {
+    const handleLeaveRoom = useCallback(async () => {
         if (currentRoom?.code) {
             try {
                 await leavePvpRoomMut({ roomCode: currentRoom.code }).unwrap();
@@ -98,7 +98,29 @@ export function PvpMainScreen({
         setCurrentRoom(null);
         resetState();
         refetchActiveRoom();
-    };
+    }, [currentRoom?.code, leavePvpRoomMut, resetState, refetchActiveRoom]);
+
+    const handleBackPress = useCallback(() => {
+        if (effectiveRoom) {
+            handleLeaveRoom();
+        } else if (onExit) {
+            onExit();
+        } else {
+            router.back();
+        }
+    }, [effectiveRoom, handleLeaveRoom, onExit, router]);
+
+    useEffect(() => {
+        if (!effectiveRoom || isGameStarted || effectiveRoom.status === "IN_PROGRESS") return;
+
+        const onHardwareBackPress = () => {
+            handleBackPress();
+            return true;
+        };
+
+        const subscription = BackHandler.addEventListener("hardwareBackPress", onHardwareBackPress);
+        return () => subscription.remove();
+    }, [effectiveRoom, isGameStarted, handleBackPress]);
 
     // If game has started or is IN_PROGRESS, switch to full-screen PvpGameScreen
     if (effectiveRoom && (isGameStarted || effectiveRoom.status === "IN_PROGRESS")) {
@@ -129,6 +151,7 @@ export function PvpMainScreen({
         title: "Thi đấu PVP",
         hideBack: false,
         hideHome: false,
+        onBackPress: handleBackPress,
     };
 
     // If in lobby, show PvpLobbyView wrapped in ScreenWrapper

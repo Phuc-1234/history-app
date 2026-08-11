@@ -21,6 +21,7 @@ import { typography } from "../../../theme/typography";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { TwinklingStars } from "../../ai-chat/components/TwinklingStars";
 
 const PAYMENT_PROVIDERS: PaymentProvider[] = ["ZALOPAY", "SEPAY"];
 
@@ -161,9 +162,14 @@ export const SubscriptionScreen: React.FC = () => {
                 >
                     <View style={styles.header}>
                         <View style={styles.headerIconBg}>
-                            <Ionicons name="ribbon-outline" size={36} color={colors.secondary} />
+                            <Image
+                                source={require("../../../../assets/images/logo-main.png")}
+                                style={{ width: 60, height: 60, borderRadius: 30 }}
+                                resizeMode="contain"
+                            />
+                            <TwinklingStars mode="avatar" />
                         </View>
-                        <Text style={styles.headerTitle}>Gói Premium Pro</Text>
+                        <Text style={styles.headerTitle}>Gói Sắc Sử PRO</Text>
                         <Text style={styles.headerSub}>
                             Nâng tầm trải nghiệm học tập lịch sử với các đặc quyền cao cấp
                         </Text>
@@ -229,7 +235,14 @@ export const SubscriptionScreen: React.FC = () => {
                                         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                                             <View>
                                                 <Text style={styles.pricePeriod}>{pkg.name} ({pkg.durationDays} ngày)</Text>
-                                                <Text style={styles.priceAmount}>{pkg.priceVnd.toLocaleString("vi-VN")}đ</Text>
+                                                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                                    {pkg.originalPriceVnd && pkg.originalPriceVnd > pkg.priceVnd && (
+                                                        <Text style={{ fontSize: 16, textDecorationLine: "line-through", color: colors.textSecondary, fontFamily: typography.fonts.medium }}>
+                                                            {pkg.originalPriceVnd.toLocaleString("vi-VN")}đ
+                                                        </Text>
+                                                    )}
+                                                    <Text style={styles.priceAmount}>{pkg.priceVnd.toLocaleString("vi-VN")}đ</Text>
+                                                </View>
                                             </View>
                                             {pkg.isRecommended && (
                                                 <View style={{ backgroundColor: "#F5A623", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
@@ -367,7 +380,7 @@ export const SubscriptionScreen: React.FC = () => {
                         </Text>
                         <Text style={styles.modalSub}>
                             {isSuccess
-                                ? "Tài khoản của bạn đã được nâng cấp lên gói Premium Pro."
+                                ? "Tài khoản của bạn đã được nâng cấp lên gói Sắc Sử PRO."
                                 : (state.phase === "failed" ? state.error : "")}
                         </Text>
                         <TouchableOpacity style={styles.modalButton} onPress={reset}>

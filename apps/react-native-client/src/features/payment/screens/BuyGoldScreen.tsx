@@ -26,6 +26,8 @@ import { LinearGradient } from "expo-linear-gradient";
 interface GoldPackage {
     id: string;
     goldAmount: number;
+    baseGoldAmount: number;
+    bonusGold: number;
     priceVnd: number;
     label: string;
 }
@@ -77,6 +79,8 @@ export const BuyGoldScreen: React.FC = () => {
                                 return {
                                     id: pkg.id,
                                     goldAmount: totalGold,
+                                    baseGoldAmount: pkg.goldAmount,
+                                    bonusGold: pkg.bonusGold || 0,
                                     priceVnd: pkg.priceVnd,
                                     label: `${totalGold} Gold`,
                                 };
@@ -189,7 +193,18 @@ export const BuyGoldScreen: React.FC = () => {
                                 onPress={() => setSelectedPackage(pkg)}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.packageGoldLabel}>{pkg.label}</Text>
+                                {pkg.bonusGold > 0 ? (
+                                    <View style={{ alignItems: "center", marginBottom: 4 }}>
+                                        <Text style={[styles.packageGoldLabel, { fontSize: 13, textDecorationLine: "line-through", color: colors.textSecondary, marginBottom: 2 }]}>
+                                            {pkg.baseGoldAmount} Gold
+                                        </Text>
+                                        <Text style={styles.packageGoldLabel}>
+                                            {pkg.goldAmount} Gold
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Text style={styles.packageGoldLabel}>{pkg.label}</Text>
+                                )}
                                 <Text style={styles.packagePrice}>
                                     {pkg.priceVnd.toLocaleString("vi-VN")}đ
                                 </Text>
