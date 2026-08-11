@@ -77,7 +77,7 @@ import {
     updateProPackageAdmin,
     deleteProPackageAdmin,
 } from "../controllers/packageController";
-import { listAllFeedbacks } from "../controllers/feedbackController";
+import { listAllFeedbacks, updateFeedbackStatus } from "../controllers/feedbackController";
 
 // Cấu hình lưu trữ file tạm của multer
 const uploadDir = path.resolve(__dirname, "../../temp/uploads");
@@ -103,6 +103,8 @@ router.get("/stats", getOverviewStats);
 // ─── Feedback ─────────────────────────────────────────────────────────────────
 // GET    /api/admin/feedback
 router.get("/feedback", listAllFeedbacks);
+// PATCH  /api/admin/feedback/:id
+router.patch("/feedback/:id", updateFeedbackStatus);
 
 // ─── Grade ────────────────────────────────────────────────────────────────────
 // POST   /api/admin/grades

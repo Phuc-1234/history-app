@@ -481,14 +481,15 @@ model UserXpLog {
 }
 
 model Feedback {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
+  id         String         @id @default(uuid())
+  userId     String         @map("user_id")
   content    String
   type       String
-  createdAt  DateTime @default(now()) @map("created_at")
-  targetId   String?  @map("target_id")
-  targetType String?  @map("target_type")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     FeedbackStatus @default(PENDING)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  targetId   String?        @map("target_id")
+  targetType String?        @map("target_type")
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("feedbacks")
 }
@@ -848,6 +849,12 @@ model PvpParticipant {
 
   @@unique([roomId, userId])
   @@map("pvp_participants")
+}
+
+enum FeedbackStatus {
+  PENDING
+  RESOLVED
+  IGNORED
 }
 
 

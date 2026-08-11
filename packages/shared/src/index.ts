@@ -35,6 +35,6 @@ export * from "./types/content";
 export * from "./types/gamification";
 export * from "./types/tests";
 export * from "./types/admin";
-export { AiChatMode } from "@prisma/client";
+export { AiChatMode, FeedbackStatus } from "@prisma/client";
 
 
