@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 // FIXME: Replace this with your computer's actual local Wi-Fi IP address
 // (Open cmd, type 'ipconfig', and look for 'IPv4 Address')
-const LOCAL_COMPUTER_IP = "192.168.90.101";
+const LOCAL_COMPUTER_IP = "192.168.1.2";
 
 const LOCAL_URL = Platform.select({
     web: "http://localhost:5000",
@@ -11,22 +11,21 @@ const LOCAL_URL = Platform.select({
     default: `http://${LOCAL_COMPUTER_IP}:5000`,
 });
 
+const DEFAULT_PRODUCTION_URL = "https://history-app-dev-branch.onrender.com";
+
 const getApiUrl = () => {
     const appEnv = process.env.EXPO_PUBLIC_APP_ENV;
     if (appEnv === "feature") {
-        return process.env.EXPO_PUBLIC_API_URL_FEATURE || LOCAL_URL;
-    }
-    if (appEnv === "dev" || appEnv === "production") {
-        return process.env.EXPO_PUBLIC_API_URL_PRODUCTION || LOCAL_URL;
+        return process.env.EXPO_PUBLIC_API_URL_FEATURE || "https://history-app-feature-branch.onrender.com";
     }
     if (appEnv === "local") {
         return LOCAL_URL;
     }
-    const ENV_API_URL =
-        process.env.EXPO_PUBLIC_API_URL ||
+    return (
         process.env.EXPO_PUBLIC_API_URL_PRODUCTION ||
-        process.env.EXPO_PUBLIC_API_URL_FEATURE;
-    return ENV_API_URL || LOCAL_URL;
+        process.env.EXPO_PUBLIC_API_URL ||
+        DEFAULT_PRODUCTION_URL
+    );
 };
 
 
