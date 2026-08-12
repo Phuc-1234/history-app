@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { prisma } from "@history-app/shared";
+import { prisma, FeedbackStatus } from "@history-app/shared";
 
 // Helper function to resolve human-readable target name
 const resolveTargetName = async (targetType: string | null, targetId: string | null): Promise<string | null> => {
@@ -142,6 +142,31 @@ export const listAllFeedbacks = async (req: Request, res: Response): Promise<any
     } catch (error: any) {
         console.error("Lỗi khi lấy toàn bộ góp ý:", error.message);
         return res.status(500).json({ error: "Lỗi hệ thống khi lấy danh sách góp ý." });
+    }
+};
+
+// Update feedback status (admin route)
+export const updateFeedbackStatus = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status || !Object.values(FeedbackStatus).includes(status as FeedbackStatus)) {
+            return res.status(400).json({ error: "Trạng thái không hợp lệ." });
+        }
+
+        const feedback = await prisma.feedback.update({
+            where: { id },
+            data: { status: status as FeedbackStatus },
+        });
+
+        return res.status(200).json({
+            message: "Cập nhật trạng thái góp ý thành công.",
+            feedback,
+        });
+    } catch (error: any) {
+        console.error("Lỗi khi cập nhật trạng thái góp ý:", error.message);
+        return res.status(500).json({ error: "Lỗi hệ thống khi cập nhật trạng thái góp ý." });
     }
 };
 

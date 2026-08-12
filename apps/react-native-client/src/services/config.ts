@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 // FIXME: Replace this with your computer's actual local Wi-Fi IP address
 // (Open cmd, type 'ipconfig', and look for 'IPv4 Address')
-const LOCAL_COMPUTER_IP = "192.168.1.2";
+const LOCAL_COMPUTER_IP = process.env.EXPO_PUBLIC_LOCAL_COMPUTER_IP || process.env.LOCAL_COMPUTER_IP || "192.168.1.2";
 
 const LOCAL_URL = Platform.select({
     web: "http://localhost:5000",
@@ -41,6 +41,6 @@ if (Platform.OS === "web") {
     console.warn("This data is NOT ENCRYPTED on the web browser framework.");
     console.warn(
         "Ensure secure HTTPOnly cookies or proper auth systems are used in production.",
-    ); 
+    );
     console.log("=".repeat(60) + "\n");
 }

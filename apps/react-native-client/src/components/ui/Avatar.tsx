@@ -1,59 +1,31 @@
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
-import { colors } from "@/theme/colors";
+import AvatarWithFrame, { getInitials } from "./AvatarWithFrame";
 import type { CardUser } from "./types";
 
-/** Lấy chữ cái đầu (và cuối) của tên để làm avatar dự phòng. */
-export function getInitials(name: string) {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return "?";
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+export { getInitials };
+
+export interface AvatarProps {
+    user: Partial<CardUser> & { name?: string; avatar?: string | null };
+    size?: number;
+    borderWidth?: number;
+    style?: any;
 }
 
-export function Avatar({ user, size = 52 }: { user: Pick<CardUser, "name" | "avatar">; size?: number }) {
-    if (!user.avatar) {
-        return (
-            <View
-                style={[
-                    styles.fallback,
-                    {
-                        width: size,
-                        height: size,
-                        borderRadius: size / 2,
-                        borderWidth: 2,
-                        borderColor: colors.borderMedium,
-                    },
-                ]}
-            >
-                <Text style={[styles.fallbackText, { fontSize: size * 0.4 }]}>
-                    {getInitials(user.name)}
-                </Text>
-            </View>
-        );
-    }
+export function Avatar({ user, size = 52, borderWidth = 2, style }: AvatarProps) {
+    const avatarUri = user.avatar ?? null;
+    const frameUri = user.frameUri ?? user.equippedFrameUrl ?? null;
+    const name = user.name ?? "";
+
     return (
-        <Image
-            source={{ uri: user.avatar }}
-            style={{
-                width: size,
-                height: size,
-                borderRadius: size / 2,
-                borderWidth: 2,
-                borderColor: colors.borderMedium,
-            }}
+        <AvatarWithFrame
+            uri={avatarUri}
+            frameUri={frameUri}
+            size={size}
+            name={name}
+            borderWidth={borderWidth}
+            style={style}
         />
     );
 }
 
-const styles = StyleSheet.create({
-    fallback: {
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: colors.primaryContainer,
-    },
-    fallbackText: {
-        fontWeight: "600",
-        color: colors.primary,
-    },
-});
+export default Avatar;

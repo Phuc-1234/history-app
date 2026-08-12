@@ -18,6 +18,8 @@ export interface CardUser {
     streak: number;
     mutualFriends: number;
     winRate: number;
+    equippedFrameUrl?: string | null;
+    frameUri?: string | null;
 }
 
 /**

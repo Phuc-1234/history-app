@@ -27,7 +27,7 @@ import { TwinklingStars } from "./TwinklingStars";
 import { CustomModal } from "@/components/Modal";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
-import { AiChatModeType } from "../services/aiChatApi";
+import { AiChatModeType, AiModelTierType } from "../services/aiChatApi";
 import { useEasterEgg } from "@/features/easter_egg";
 
 interface AiChatOverlayProps {
@@ -44,6 +44,11 @@ const MODES: { id: AiChatModeType; label: string; labelEn: string; icon: keyof t
     { id: "GENERAL", label: "Chung", labelEn: "General", icon: "chatbubbles" },
 ];
 
+const MODEL_TIERS: { id: AiModelTierType; label: string; labelEn: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { id: "MEDIUM", label: "Thường", labelEn: "Standard", icon: "flash" },
+    { id: "HIGH", label: "Cao", labelEn: "High", icon: "sparkles" },
+];
+
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
     const { isEngMode } = useEasterEgg();
     const router = useRouter();
@@ -51,6 +56,8 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
     const flatListRef = useRef<FlatList>(null);
     const [speakingId, setSpeakingId] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [showModeDropdown, setShowModeDropdown] = useState(false);
+    const [showTierDropdown, setShowTierDropdown] = useState(false);
     const [showScreenContextModal, setShowScreenContextModal] = useState(false);
 
     const {
@@ -70,12 +77,15 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         setRenameTitleInput,
         activeMode,
         handleChangeMode,
+        activeModelTier,
+        handleChangeModelTier,
         errorModal,
         setErrorModal,
         showPremiumModal,
         setShowPremiumModal,
         screenContext,
         quotaData,
+        isLoadingQuota,
 
         isListening,
         isTranscribing,
@@ -100,8 +110,9 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         handleSend,
     } = useAiChatOverlay({ visible });
 
-    const speakingIdRef = useRef<string | null>(null);
+    const isPro = !!quotaData?.isPro;
 
+    const speakingIdRef = useRef<string | null>(null);
     const updateSpeakingId = (id: string | null) => {
         speakingIdRef.current = id;
         setSpeakingId(id);
@@ -247,7 +258,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 )}
             </View>
         );
-};
+    };
 
     return (
         <Modal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
@@ -258,7 +269,8 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     style={[styles.overlayContainer, { height: SCREEN_HEIGHT  }]}
                 >
                     {/* Header */}
-                    <View style={styles.header}>
+                    <View style={[styles.header, isPro && styles.proHeader]}>
+                        {isPro && <TwinklingStars mode="header" />}
                         <Pressable
                             style={styles.drawerToggleButton}
                             onPress={() => setShowSessionsDrawer(!showSessionsDrawer)}
@@ -266,69 +278,154 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                             <Ionicons
                                 name={showSessionsDrawer ? "chevron-back-outline" : "menu-outline"}
                                 size={24}
-                                color={colors.textPrimary}
+                                color={isPro ? colors.textLight : colors.textPrimary}
                             />
                         </Pressable>
 
                         <View style={styles.headerTitleContainer}>
-                            <Text style={styles.headerTitle} numberOfLines={1}>
+                            <Text style={[styles.headerTitle, isPro && styles.proHeaderTitle]} numberOfLines={1}>
                                 {showSessionsDrawer
                                     ? (isEngMode ? "Chat History" : "Lịch sử trò chuyện")
                                     : sessions.find((s) => s.id === selectedSessionId)?.title || (isEngMode ? "Viet History AI Assistant" : "Trợ lý AI Sử Việt")}
                             </Text>
-                            {!showSessionsDrawer && screenContext?.screenName && (
+                            {!showSessionsDrawer && screenContext?.isSupported && screenContext?.screenName && (
                                 <Pressable
                                     style={{ flexDirection: "row", alignItems: "center", marginTop: 1 }}
                                     onPress={() => setShowScreenContextModal(true)}
                                 >
-                                    <Ionicons name="location-sharp" size={11} color={colors.primary} style={{ marginRight: 3 }} />
-                                    <Text style={styles.headerSubTitle} numberOfLines={1}>
-                                        {isEngMode ? "Viewing: " : "Đang xem: "}<Text style={styles.headerSubTitleHighlight}>{screenContext.screenName}</Text>
+                                    <Ionicons name="location-sharp" size={11} color={isPro ? colors.textLight : colors.primary} style={{ marginRight: 3 }} />
+                                    <Text style={[styles.headerSubTitle, isPro && styles.proHeaderSubTitle]} numberOfLines={1}>
+                                        {isEngMode ? "Viewing: " : "Đang xem: "}<Text style={[styles.headerSubTitleHighlight, isPro && styles.proHeaderSubTitleHighlight]}>{screenContext.screenName}</Text>
                                     </Text>
                                 </Pressable>
                             )}
                         </View>
 
                         <Pressable style={styles.newChatHeaderButton} onPress={() => handleCreateNewSession()}>
-                            <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
+                            <Ionicons name="add-circle-outline" size={24} color={isPro ? colors.textLight : colors.primary} />
                         </Pressable>
 
                         <Pressable style={styles.closeButton} onPress={onClose}>
-                            <Ionicons name="close-outline" size={26} color={colors.textSecondary} />
+                            <Ionicons name="close-outline" size={26} color={isPro ? colors.textLight : colors.textSecondary} />
                         </Pressable>
                     </View>
 
-                    {/* Mode Selector Sub-header */}
+                    {/* Mode & Tier Selector Sub-header */}
                     {!showSessionsDrawer && (
-                        <View style={styles.modeSelectorBar}>
-                            {MODES.map((mode) => {
-                                const isActive = activeMode === mode.id;
-                                return (
+                        <View style={styles.subHeaderContainer}>
+                            <View style={styles.dropdownHeaderRow}>
+                                {(() => {
+                                    const currentModeItem = MODES.find((m) => m.id === activeMode) || MODES[2];
+                                    const currentTierItem = MODEL_TIERS.find((t) => t.id === activeModelTier) || MODEL_TIERS[0];
+                                    return (
+                                        <>
+                                            <Pressable
+                                                style={[styles.dropdownButton, showModeDropdown && styles.dropdownButtonActive]}
+                                                onPress={() => {
+                                                    setShowModeDropdown((prev) => !prev);
+                                                    setShowTierDropdown(false);
+                                                }}
+                                            >
+                                                <View style={{ flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 4 }}>
+                                                    <Ionicons name={currentModeItem.icon} size={14} color={colors.primary} style={{ marginRight: 6 }} />
+                                                    <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                                                        {isEngMode ? currentModeItem.labelEn : currentModeItem.label}
+                                                    </Text>
+                                                </View>
+                                                <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
+                                            </Pressable>
+
+                                            <Pressable
+                                                style={[styles.dropdownButton, showTierDropdown && styles.dropdownButtonActive]}
+                                                onPress={() => {
+                                                    setShowTierDropdown((prev) => !prev);
+                                                    setShowModeDropdown(false);
+                                                }}
+                                            >
+                                                <View style={{ flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 4 }}>
+                                                    <Ionicons name={currentTierItem.icon} size={14} color="#8E24AA" style={{ marginRight: 6 }} />
+                                                    <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                                                        {isEngMode ? currentTierItem.labelEn : currentTierItem.label}
+                                                    </Text>
+                                                </View>
+                                                <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
+                                            </Pressable>
+                                        </>
+                                    );
+                                })()}
+                            </View>
+
+                            {/* Floating inline mode dropdown */}
+                            {showModeDropdown && (
+                                <>
                                     <Pressable
-                                        key={mode.id}
-                                        style={[
-                                            styles.modePill,
-                                            isActive && styles.modePillActive,
-                                        ]}
-                                        onPress={() => handleChangeMode(mode.id)}
-                                    >
-                                        <Ionicons
-                                            name={mode.icon}
-                                            size={12}
-                                            color={isActive ? colors.textLight : colors.textSecondary}
-                                            style={{ marginRight: 4 }}
-                                        />
-                                        <Text
-                                            style={[
-                                                styles.modePillText,
-                                                isActive && styles.modePillTextActive,
-                                            ]}
-                                        >
-                                            {isEngMode ? mode.labelEn : mode.label}
-                                        </Text>
-                                    </Pressable>
-                                );
-                            })}
+                                        style={styles.inlineDropdownBackdrop}
+                                        onPress={() => setShowModeDropdown(false)}
+                                    />
+                                    <View style={styles.modeInlineDropdownMenu}>
+                                        {MODES.map((mode) => {
+                                            const isActive = activeMode === mode.id;
+                                            return (
+                                                <Pressable
+                                                    key={mode.id}
+                                                    style={[styles.inlineDropdownItem, isActive && styles.inlineDropdownItemActive]}
+                                                    onPress={() => {
+                                                        handleChangeMode(mode.id);
+                                                        setShowModeDropdown(false);
+                                                    }}
+                                                >
+                                                    <Ionicons
+                                                        name={mode.icon}
+                                                        size={14}
+                                                        color={isActive ? colors.primary : colors.textSecondary}
+                                                        style={{ marginRight: 8 }}
+                                                    />
+                                                    <Text style={[styles.inlineDropdownText, isActive && styles.inlineDropdownTextActive]}>
+                                                        {isEngMode ? mode.labelEn : mode.label}
+                                                    </Text>
+                                                    {isActive && <Ionicons name="checkmark" size={14} color={colors.primary} style={{ marginLeft: "auto" }} />}
+                                                </Pressable>
+                                            );
+                                        })}
+                                    </View>
+                                </>
+                            )}
+
+                            {/* Floating inline tier dropdown */}
+                            {showTierDropdown && (
+                                <>
+                                    <Pressable
+                                        style={styles.inlineDropdownBackdrop}
+                                        onPress={() => setShowTierDropdown(false)}
+                                    />
+                                    <View style={styles.tierInlineDropdownMenu}>
+                                        {MODEL_TIERS.map((tier) => {
+                                            const isActive = activeModelTier === tier.id;
+                                            return (
+                                                <Pressable
+                                                    key={tier.id}
+                                                    style={[styles.inlineDropdownItem, isActive && styles.inlineDropdownItemActive]}
+                                                    onPress={() => {
+                                                        handleChangeModelTier(tier.id);
+                                                        setShowTierDropdown(false);
+                                                    }}
+                                                >
+                                                    <Ionicons
+                                                        name={tier.icon}
+                                                        size={14}
+                                                        color={isActive ? "#8E24AA" : colors.textSecondary}
+                                                        style={{ marginRight: 8 }}
+                                                    />
+                                                    <Text style={[styles.inlineDropdownText, isActive && styles.inlineDropdownTextActive]}>
+                                                        {isEngMode ? tier.labelEn : tier.label}
+                                                    </Text>
+                                                    {isActive && <Ionicons name="checkmark" size={14} color="#8E24AA" style={{ marginLeft: "auto" }} />}
+                                                </Pressable>
+                                            );
+                                        })}
+                                    </View>
+                                </>
+                            )}
                         </View>
                     )}
 
@@ -350,11 +447,14 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             </View>
 
                                             {quotaData?.isPro ? (
-                                                <View style={styles.proBadgePill}>
-                                                    <Ionicons name="ribbon" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
-                                                    <Text style={styles.proBadgeText}>
-                                                        {isEngMode ? "PRO (Limit x10)" : "PRO (Hạn mức x10)"}
-                                                    </Text>
+                                                <View style={{ position: "relative" }}>
+                                                    <View style={styles.proBadgePill}>
+                                                        <Ionicons name="ribbon" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
+                                                        <Text style={styles.proBadgeText}>
+                                                            {isEngMode ? "PRO (Limit x10)" : "PRO (Hạn mức x10)"}
+                                                        </Text>
+                                                    </View>
+                                                    <TwinklingStars mode="badge" />
                                                 </View>
                                             ) : (
                                                 <Pressable
@@ -685,10 +785,8 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                               ? "AI hỗ trợ đọc và giải đáp trực tiếp nội dung trên màn hình này (Bài học, nút kiến thức, sơ đồ tư duy, thẻ ghi nhớ)."
                               : "Màn hình này hiện chưa hỗ trợ AI đọc nội dung trực tiếp (Bài thi, bảng xếp hạng, cửa hàng, cá nhân,...). AI vẫn sẽ hỗ trợ bạn giải đáp kiến thức lịch sử tổng quan.")
                 }
-                confirmText={isEngMode ? "Got it" : "Đã hiểu"}
+                confirmText={isEngMode ? "OK" : "Đã hiểu"}
                 onConfirm={() => setShowScreenContextModal(false)}
-                showMascot
-                mascotExpression={screenContext?.isSupported ? "happy" : "thinking"}
             />
         </Modal>
     );
@@ -717,6 +815,12 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.surfaceVariant,
         backgroundColor: colors.surface,
+        position: "relative",
+    },
+    proHeader: {
+        backgroundColor: colors.primary,
+        borderBottomColor: colors.primary,
+        overflow: "hidden",
     },
     drawerToggleButton: {
         padding: 4,
@@ -731,15 +835,24 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: colors.textPrimary,
     },
+    proHeaderTitle: {
+        color: colors.textLight,
+    },
     headerSubTitle: {
         fontFamily: typography.fonts.regular,
         fontSize: 11,
         color: colors.textMuted,
         marginTop: 1,
     },
+    proHeaderSubTitle: {
+        color: "rgba(255, 255, 255, 0.85)",
+    },
     headerSubTitleHighlight: {
         fontFamily: typography.fonts.semiBold,
         color: colors.primary,
+    },
+    proHeaderSubTitleHighlight: {
+        color: colors.textLight,
     },
     newChatHeaderButton: {
         padding: 4,
@@ -748,32 +861,92 @@ const styles = StyleSheet.create({
     closeButton: {
         padding: 4,
     },
-    modeSelectorBar: {
-        flexDirection: "row",
+    subHeaderContainer: {
         backgroundColor: colors.surfaceVariant,
         paddingHorizontal: 12,
         paddingVertical: 6,
-        gap: 6,
-        justifyContent: "center",
+        zIndex: 100,
+        position: "relative",
     },
-    modePill: {
+    dropdownHeaderRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 5,
-        borderRadius: 30,
+        gap: 8,
+    },
+    dropdownButton: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         backgroundColor: colors.surface,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
     },
-    modePillActive: {
-        backgroundColor: colors.primary,
+    dropdownButtonActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.surfaceVariant,
     },
-    modePillText: {
+    dropdownButtonText: {
         fontFamily: typography.fonts.semiBold,
         fontSize: 11,
-        color: colors.textSecondary,
+        color: colors.textPrimary,
     },
-    modePillTextActive: {
-        color: colors.textLight,
+    inlineDropdownBackdrop: {
+        position: "absolute",
+        top: -100,
+        left: -1000,
+        right: -1000,
+        bottom: -2000,
+        zIndex: 1,
+    },
+    modeInlineDropdownMenu: {
+        position: "absolute",
+        top: 44,
+        left: 12,
+        right: "52%",
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+        zIndex: 2,
+    },
+    tierInlineDropdownMenu: {
+        position: "absolute",
+        top: 44,
+        left: "52%",
+        right: 12,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+        zIndex: 2,
+    },
+    inlineDropdownItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        marginVertical: 1,
+    },
+    inlineDropdownItemActive: {
+        backgroundColor: colors.surfaceVariant,
+    },
+    inlineDropdownText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 12,
+        color: colors.textPrimary,
+    },
+    inlineDropdownTextActive: {
+        fontFamily: typography.fonts.semiBold,
+        color: colors.textPrimary,
     },
     sessionsListFullContainer: {
         flex: 1,
@@ -1129,13 +1302,13 @@ const styles = StyleSheet.create({
         color: colors.textLight,
     },
     quotaProgressTrack: {
-        height: 8,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.surfaceVariant,
-        borderRadius: 4,
+        height: 10,
+        backgroundColor: colors.inputBackground,
+        borderWidth: 1.5,
+        borderColor: colors.borderMedium,
+        borderRadius: 5,
         overflow: "hidden",
-        marginVertical: 4,
+        marginVertical: 6,
     },
     quotaProgressFill: {
         height: "100%",

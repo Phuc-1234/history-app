@@ -1,5 +1,6 @@
 // types/user.ts
 import { UserProfileSummary } from "./auth";
+import { FeedbackStatus } from "@prisma/client";
 
 // --- GET /user/profile ---
 
@@ -57,6 +58,7 @@ export interface FeedbackDto {
     userId: string;
     content: string;
     type: string;
+    status: FeedbackStatus;
     createdAt: string;
     targetType?: string | null;
     targetId?: string | null;

@@ -28,6 +28,7 @@ export interface PvpParticipant {
     userId: string;
     name: string;
     profileImgUrl: string | null;
+    equippedFrameUrl?: string | null;
     score: number;
     hasAnsweredCurrent?: boolean;
 }
@@ -59,6 +60,7 @@ export interface PvpLeaderboardEntry {
     userId: string;
     name: string;
     profileImgUrl: string | null;
+    equippedFrameUrl?: string | null;
     score: number;
 }
 
@@ -68,6 +70,7 @@ export interface PvpPublicRoomDto {
     hostUserId: string;
     hostName: string;
     hostAvatar: string | null;
+    equippedFrameUrl?: string | null;
     questionCount: number;
     timePerQuestion: number;
     participantCount: number;

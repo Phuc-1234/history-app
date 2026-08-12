@@ -132,6 +132,13 @@ export const loginUser = async (
             });
         }
 
+        if (data.user.email_confirmed_at) {
+            await prisma.user.update({
+                where: { id: data.user.id },
+                data: { isVerified: true },
+            });
+        }
+
         // Fetch the target user profile with tier info to match GET /user/profile shape
         const userProfile = await prisma.user.findUnique({
             where: { id: data.user.id },
@@ -220,6 +227,12 @@ export const verifyOtp = async (
                 .status(400)
                 .json({ error: error?.message || "Invalid or expired token." });
         }
+
+        // Update user is_verified field in database upon successful OTP verification
+        await prisma.user.update({
+            where: { id: data.user.id },
+            data: { isVerified: true },
+        });
 
         // 3. Fetch the gamification engine details with tier info
         const userProfile = await prisma.user.findUnique({
@@ -397,6 +410,11 @@ export const verifyGoogleSession = async (
             });
         }
 
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { isVerified: true },
+        });
+
         // 4. Fetch the user profile. Because of your native Supabase PostgreSQL trigger, 
         // this row is guaranteed to exist already, even for brand-new users!
         const userProfile = await prisma.user.findUnique({
@@ -493,6 +511,11 @@ export const verifyFacebookSession = async (
         }
 
         const { user, session } = data;
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { isVerified: true },
+        });
 
         const userProfile = await prisma.user.findUnique({
             where: { id: user.id },

@@ -25,6 +25,7 @@ export interface SocialUser {
     allowFriendRequest?: boolean;
     relationStatus?: SocialRelationStatus;
     isFollowing?: boolean;
+    equippedFrameUrl?: string | null;
     /** Số bạn chung với người dùng hiện tại (do backend tính). */
     mutualFriends?: number;
 }

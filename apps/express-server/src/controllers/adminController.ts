@@ -65,6 +65,65 @@ export const getOverviewStats = async (req: Request, res: Response) => {
     }
 };
 
+/**
+ * GET /api/admin/stats/xp-activity?days=30
+ * Trả về chuỗi số user (distinct) nhận XP theo từng ngày trong N ngày gần nhất.
+ */
+export const getXpActivitySeries = async (req: Request, res: Response) => {
+    try {
+        const days = Number(req.query.days) || 30;
+        const series = await adminService.getXpActivitySeries(days);
+        return res.json(series);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch XP activity series" });
+    }
+};
+
+/**
+ * GET /api/admin/stats/test-activity?days=30
+ * Hoạt động làm bài theo ngày: số lượt nộp bài + distinct user, phân tách
+ * đề thủ công (test_id NOT NULL) vs đề tự động (test_id NULL).
+ */
+export const getTestActivitySeries = async (req: Request, res: Response) => {
+    try {
+        const days = Number(req.query.days) || 30;
+        const series = await adminService.getTestActivitySeries(days);
+        return res.json(series);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch test activity series" });
+    }
+};
+
+/**
+ * GET /api/admin/stats/test-overview?days=30
+ * KPI tổng quan làm bài trong N ngày: tổng lượt, user, đề thủ công/tự động,
+ * pass/fail, điểm trung bình, tỷ lệ pass.
+ */
+export const getTestOverview = async (req: Request, res: Response) => {
+    try {
+        const days = Number(req.query.days) || 30;
+        const overview = await adminService.getTestOverview(days);
+        return res.json(overview);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch test overview" });
+    }
+};
+
+/**
+ * GET /api/admin/stats/question-stats?days=30&limit=10
+ * Thống kê câu hỏi: top câu dễ sai + phân bố đúng/sai theo loại (CHOOSE/FILL/MATCH).
+ */
+export const getQuestionStats = async (req: Request, res: Response) => {
+    try {
+        const days = Number(req.query.days) || 30;
+        const limit = Number(req.query.limit) || 10;
+        const stats = await adminService.getQuestionStats(days, limit);
+        return res.json(stats);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch question stats" });
+    }
+};
+
 // ─────────────────────────────── GRADE ────────────────────────────────────────
 
 export const createGrade = async (
@@ -383,6 +442,14 @@ export const getUserMonthlyStreakCalendar = async (req: Request, res: Response) 
 export const updateUser = async (req: Request<{ userId: string }, any, UpdateUserBody>, res: Response) => {
     try {
         const { userId } = req.params;
+        if (req.body.role !== undefined) {
+            if (req.user?.role !== "SUPER_ADMIN") {
+                return res.status(403).json({ error: "Truy cập bị cấm. Chỉ Quản trị viên tối cao mới có thể thay đổi vai trò người dùng." });
+            }
+            if (req.user?.id === userId && req.body.role !== "SUPER_ADMIN") {
+                return res.status(403).json({ error: "Truy cập bị cấm. Quản trị viên tối cao không thể tự giáng cấp bản thân." });
+            }
+        }
         const user = await adminService.updateUser(userId, req.body);
         if (!user) return res.status(404).json({ error: "User not found." });
         return res.status(200).json(user);

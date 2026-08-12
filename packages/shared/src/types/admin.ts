@@ -2,6 +2,7 @@
 // Admin CRUD API contracts for content management (grade, topic, lesson, section, node)
 
 import { GradeDto, TopicDto, LessonDto, SectionDto, NodeDto } from "./content";
+import { FeedbackStatus } from "@prisma/client";
 
 // ─── Grade ───────────────────────────────────────────────────────────────────
 
@@ -482,6 +483,7 @@ export interface AdminFeedbackDto {
     content: string;
     type: string; // "BUG" | "FEATURE" | "OTHER" | "INCORRECT_INFO"
     createdAt: string;
+    status: FeedbackStatus;
     targetType?: string | null;
     targetId?: string | null;
     targetName?: string | null;

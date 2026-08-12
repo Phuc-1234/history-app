@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, FlatList } from "react-native";
 import { colors, radii, spacing, typography } from "@/theme";
+import { AvatarWithFrame } from "@/components/ui";
 import type { PvpParticipant, PvpRoom } from "../types";
 import { useStartPvpRoomMutation } from "../services/pvpApi";
 import { Swords } from "lucide-react-native";
@@ -79,15 +80,14 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
                     const isRoomHost = item.userId === room.hostUserId;
                     return (
                         <View style={[styles.playerCard, isMe && styles.playerCardMe]}>
-                            {item.profileImgUrl ? (
-                                <Image source={{ uri: item.profileImgUrl }} style={styles.avatar} />
-                            ) : (
-                                <View style={styles.avatarPlaceholder}>
-                                    <Text style={styles.avatarInitials}>
-                                        {item.name ? item.name[0].toUpperCase() : "U"}
-                                    </Text>
-                                </View>
-                            )}
+                            <AvatarWithFrame
+                                uri={item.profileImgUrl}
+                                frameUri={item.equippedFrameUrl}
+                                size={44}
+                                name={item.name}
+                                borderWidth={2}
+                                style={{ marginRight: 12 }}
+                            />
                             <View style={styles.playerInfo}>
                                 <Text style={styles.playerName} numberOfLines={1}>
                                     {item.name} {isMe ? "(Bạn)" : ""}

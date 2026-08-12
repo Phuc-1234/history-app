@@ -33,7 +33,7 @@ export const RankingList: React.FC<RankingListProps> = ({
                 return (
                     <Card
                         key={item.id}
-                        style={styles.rankRow}
+                        style={[styles.rankRow, isMe && styles.meRow]}
                         onPress={() => onUserPress?.(item.id)}
                     >
                         {/* Hạng */}
@@ -101,9 +101,8 @@ const createStyles = (isSmallDevice: boolean) =>
             marginBottom: 14,
         },
         meRow: { 
-            backgroundColor: colors.primaryContainer, 
-            borderWidth: 1.5, 
-            borderColor: colors.accent,
+            borderWidth: 2, 
+            borderColor: colors.primary,
         },
         rowPosition: {
             fontFamily: typography.fonts.bold,

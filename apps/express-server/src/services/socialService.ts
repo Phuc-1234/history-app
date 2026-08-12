@@ -42,6 +42,10 @@ const userSelect = {
             badgeImgUrl: true,
         },
     },
+    userEquippedItems: {
+        where: { equipmentSlot: "AVT_FRAME" },
+        include: { itemDefinition: true },
+    },
 };
 
 function normalizeFriendPair(userId: string, friendId: string) {
@@ -63,6 +67,9 @@ function publicUser(user: any) {
         isPrivate: user.isPrivate ?? false,
         allowFollow: user.allowFollow ?? true,
         allowFriendRequest: user.allowFriendRequest ?? true,
+        equippedFrameUrl: user.userEquippedItems && user.userEquippedItems.length > 0
+            ? user.userEquippedItems[0].itemDefinition?.imgUrl ?? null
+            : null,
     };
 }
 

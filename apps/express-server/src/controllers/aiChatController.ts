@@ -20,8 +20,8 @@ export const createSession = async (req: Request, res: Response) => {
         const userId = req.user?.id;
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-        const { title, mode } = req.body;
-        const session = await aiChatService.createSession(userId, title, mode);
+        const { title, mode, modelTier } = req.body;
+        const session = await aiChatService.createSession(userId, title, mode, modelTier);
         return res.status(201).json({ session });
     } catch (err: any) {
         return res.status(500).json({ error: err.message || "Failed to create chat session." });
@@ -84,9 +84,9 @@ export const updateSession = async (req: Request, res: Response) => {
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
         const { sessionId } = req.params;
-        const { title, mode } = req.body;
+        const { title, mode, modelTier } = req.body;
 
-        const session = await aiChatService.updateSession(userId, sessionId, { title, mode });
+        const session = await aiChatService.updateSession(userId, sessionId, { title, mode, modelTier });
         return res.status(200).json({ session });
     } catch (err: any) {
         return res.status(500).json({ error: err.message || "Failed to update chat session." });
