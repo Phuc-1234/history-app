@@ -124,6 +124,235 @@ export class AdminService {
         });
     }
 
+    /**
+     * Helper: mốc bắt đầu của N ngày gần nhất (00:00 local, theo tuần hoàn cũ→mới).
+     */
+    private _seriesStart(days: number): Date {
+        const safeDays = Math.max(1, Math.min(Math.trunc(days) || 30, 90));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const start = new Date(today);
+        start.setDate(start.getDate() - (safeDays - 1));
+        return start;
+    }
+
+    /**
+     * Section 1 — Hoạt động làm bài theo ngày.
+     * Đếm từ user_test_logs WHERE status='COMPLETED' (đã nộp), group theo ngày nộp.
+     * Phân tách: đề thủ công (test_id NOT NULL) vs đề tự động (test_id NULL).
+     * Trả về mảng cho mọi ngày trong khoảng (cũ → mới).
+     */
+    async getTestActivitySeries(days: number = 30): Promise<{
+        date: string;
+        totalAttempts: number;
+        distinctUsers: number;
+        manualAttempts: number;
+        autoAttempts: number;
+    }[]> {
+        const safeDays = Math.max(1, Math.min(Math.trunc(days) || 30, 90));
+        const start = this._seriesStart(safeDays);
+
+        // Raw SQL: group theo DATE(submitted_at). Parameterize an toàn qua $queryRaw.
+        const rows: any[] = await prisma.$queryRaw`
+            SELECT
+                DATE(submitted_at) AS day,
+                COUNT(*) FILTER (WHERE test_id IS NOT NULL) AS manual,
+                COUNT(*) FILTER (WHERE test_id IS NULL)     AS auto
+            FROM user_test_logs
+            WHERE status = 'COMPLETED'
+              AND submitted_at IS NOT NULL
+              AND submitted_at >= ${start}
+            GROUP BY DATE(submitted_at)
+        `;
+
+        // Đếm distinct user theo ngày (qua raw riêng cho rõ).
+        const distinctRows: any[] = await prisma.$queryRaw`
+            SELECT
+                DATE(submitted_at) AS day,
+                COUNT(DISTINCT user_id) AS distinct_users
+            FROM user_test_logs
+            WHERE status = 'COMPLETED'
+              AND submitted_at IS NOT NULL
+              AND submitted_at >= ${start}
+            GROUP BY DATE(submitted_at)
+        `;
+
+        const byDay = new Map<string, { manual: number; auto: number }>();
+        for (const r of rows) {
+            const key = new Date(r.day).toISOString().slice(0, 10);
+            byDay.set(key, {
+                manual: Number(r.manual) || 0,
+                auto: Number(r.auto) || 0,
+            });
+        }
+        const distinctByDay = new Map<string, number>();
+        for (const r of distinctRows) {
+            const key = new Date(r.day).toISOString().slice(0, 10);
+            distinctByDay.set(key, Number(r.distinct_users) || 0);
+        }
+
+        // Fill đầy ngày.
+        const dateList: Date[] = [];
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        for (let i = safeDays - 1; i >= 0; i--) {
+            const d = new Date(today); d.setDate(d.getDate() - i);
+            dateList.push(d);
+        }
+        return dateList.map((d) => {
+            const key = d.toISOString().slice(0, 10);
+            const entry = byDay.get(key);
+            const manual = entry?.manual ?? 0;
+            const auto = entry?.auto ?? 0;
+            return {
+                date: key,
+                totalAttempts: manual + auto,
+                distinctUsers: distinctByDay.get(key) ?? 0,
+                manualAttempts: manual,
+                autoAttempts: auto,
+            };
+        });
+    }
+
+    /**
+     * Section 2 — Tổng quan làm bài (KPI) trong N ngày.
+     * Chỉ tính UserTestLog status='COMPLETED'.
+     */
+    async getTestOverview(days: number = 30): Promise<{
+        totalAttempts: number;
+        distinctUsers: number;
+        manualAttempts: number;
+        autoAttempts: number;
+        passedCount: number;
+        failedCount: number;
+        avgScore: number;
+        passRate: number;
+    }> {
+        const start = this._seriesStart(days);
+
+        const rows: any[] = await prisma.$queryRaw`
+            SELECT
+                COUNT(*)                                        AS total_attempts,
+                COUNT(DISTINCT user_id)                         AS distinct_users,
+                COUNT(*) FILTER (WHERE test_id IS NOT NULL)     AS manual,
+                COUNT(*) FILTER (WHERE test_id IS NULL)         AS auto,
+                COUNT(*) FILTER (WHERE is_passed = TRUE)        AS passed,
+                COUNT(*) FILTER (WHERE is_passed = FALSE)       AS failed,
+                AVG(score)                                      AS avg_score
+            FROM user_test_logs
+            WHERE status = 'COMPLETED'
+              AND submitted_at IS NOT NULL
+              AND submitted_at >= ${start}
+        `;
+        const r = rows[0] ?? {};
+        const total = Number(r.total_attempts) || 0;
+        const passed = Number(r.passed) || 0;
+        const failed = Number(r.failed) || 0;
+        // passRate = passed / (passed + failed) (bỏ qua is_passed NULL).
+        const decided = passed + failed;
+        return {
+            totalAttempts: total,
+            distinctUsers: Number(r.distinct_users) || 0,
+            manualAttempts: Number(r.manual) || 0,
+            autoAttempts: Number(r.auto) || 0,
+            passedCount: passed,
+            failedCount: failed,
+            avgScore: total > 0 ? Math.round((Number(r.avg_score) || 0) * 10) / 10 : 0,
+            passRate: decided > 0 ? Math.round((passed / decided) * 1000) / 10 : 0,
+        };
+    }
+
+    /**
+     * Section 3 — Thống kê câu hỏi: top câu dễ sai + phân bố đúng/sai theo loại.
+     * Nguồn: user_answer_logs JOIN questions. Chỉ tính rows có max_score > 0.
+     * Sai = score_awarded < max_score.
+     */
+    async getQuestionStats(days: number = 30, limit: number = 10): Promise<{
+        topWrong: {
+            questionId: number;
+            promptText: string;
+            type: string;
+            difficulty: number;
+            totalAnswers: number;
+            wrongCount: number;
+            wrongRate: number;
+        }[];
+        typeBreakdown: {
+            type: string;
+            total: number;
+            wrongCount: number;
+            wrongRate: number;
+        }[];
+    }> {
+        const start = this._seriesStart(days);
+        const safeLimit = Math.max(1, Math.min(Math.trunc(limit) || 10, 50));
+
+        const topRows: any[] = await prisma.$queryRaw`
+            SELECT
+                a.question_id                       AS question_id,
+                q.prompt_text                       AS prompt_text,
+                q.type                              AS question_type,
+                q.difficulty                        AS difficulty,
+                COUNT(*)                            AS total_answers,
+                COUNT(*) FILTER (
+                    WHERE a.score_awarded < a.max_score
+                )                                   AS wrong_count
+            FROM user_answer_logs a
+            JOIN questions q ON q.id = a.question_id
+            WHERE a.max_score > 0
+              AND a.answered_at IS NOT NULL
+              AND a.answered_at >= ${start}
+            GROUP BY a.question_id, q.prompt_text, q.type, q.difficulty
+            ORDER BY
+                (COUNT(*) FILTER (WHERE a.score_awarded < a.max_score)) DESC,
+                COUNT(*) DESC
+            LIMIT ${safeLimit}
+        `;
+
+        const typeRows: any[] = await prisma.$queryRaw`
+            SELECT
+                a.type                              AS question_type,
+                COUNT(*)                            AS total,
+                COUNT(*) FILTER (
+                    WHERE a.score_awarded < a.max_score
+                )                                   AS wrong_count
+            FROM user_answer_logs a
+            WHERE a.max_score > 0
+              AND a.answered_at IS NOT NULL
+              AND a.answered_at >= ${start}
+            GROUP BY a.type
+        `;
+
+        const topWrong = topRows.map((r) => {
+            const total = Number(r.total_answers) || 0;
+            const wrong = Number(r.wrong_count) || 0;
+            const text = String(r.prompt_text ?? "");
+            return {
+                questionId: Number(r.question_id),
+                promptText: text.length > 80 ? text.slice(0, 80) + "…" : text,
+                type: String(r.question_type),
+                difficulty: Number(r.difficulty) || 1,
+                totalAnswers: total,
+                wrongCount: wrong,
+                wrongRate: total > 0 ? Math.round((wrong / total) * 1000) / 10 : 0,
+            };
+        });
+
+        const typeBreakdown = typeRows.map((r) => {
+            const total = Number(r.total) || 0;
+            const wrong = Number(r.wrong_count) || 0;
+            return {
+                type: String(r.question_type),
+                total,
+                wrongCount: wrong,
+                wrongRate: total > 0 ? Math.round((wrong / total) * 1000) / 10 : 0,
+            };
+        });
+
+        // NOTE: $queryRaw tự parameterize ${var}, không cần Prisma namespace.
+
+        return { topWrong, typeBreakdown };
+    }
+
     // ─────────────────────────────── GRADE ────────────────────────────────────
 
     async createGrade(data: CreateGradeBody): Promise<GradeDto> {

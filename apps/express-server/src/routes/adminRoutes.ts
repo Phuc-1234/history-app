@@ -7,6 +7,9 @@ import { requireAdmin } from "../middlewares/authMiddleware";
 import {
     getOverviewStats,
     getXpActivitySeries,
+    getTestActivitySeries,
+    getTestOverview,
+    getQuestionStats,
     createGrade,
     updateGrade,
     deleteGrade,
@@ -104,6 +107,18 @@ router.get("/stats", getOverviewStats);
 // GET    /api/admin/stats/xp-activity?days=30
 // Số user (distinct) nhận XP theo từng ngày.
 router.get("/stats/xp-activity", getXpActivitySeries);
+
+// GET    /api/admin/stats/test-activity?days=30
+// Hoạt động làm bài theo ngày (đề thủ công vs tự động).
+router.get("/stats/test-activity", getTestActivitySeries);
+
+// GET    /api/admin/stats/test-overview?days=30
+// KPI tổng quan làm bài trong N ngày.
+router.get("/stats/test-overview", getTestOverview);
+
+// GET    /api/admin/stats/question-stats?days=30&limit=10
+// Top câu dễ sai + phân bố đúng/sai theo loại câu hỏi.
+router.get("/stats/question-stats", getQuestionStats);
 
 // ─── Feedback ─────────────────────────────────────────────────────────────────
 // GET    /api/admin/feedback
