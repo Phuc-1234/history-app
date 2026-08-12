@@ -24,19 +24,40 @@ function preprocessHtml(html: string): string {
 
     let processed = html;
 
-    // 1. Convert align="..." HTML attribute to inline style text-align
+    // 1. Convert <center> tags to <div style="text-align:center;">
+    processed = processed.replace(/<center\b[^>]*>(.*?)<\/center>/gis, '<div style="text-align:center;">$1</div>');
+
+    // 2. Convert align="..." HTML attribute to inline style text-align
     processed = processed.replace(
-        /<([a-z1-6]+)\s+([^>]*?)align=["'](center|right|left|justify)["']([^>]*?)>/gi,
-        '<$1 $2style="text-align:$3;" $4>'
+        /<([a-z0-9]+)\s+([^>]*?)align=["'](center|right|left|justify)["']([^>]*?)>/gi,
+        (match, tag, before, align, after) => {
+            return `<${tag} ${before} style="text-align:${align};" ${after}>`;
+        }
     );
 
-    // 2. Convert shorthand background: to background-color: in inline style attributes
+    // 3. Normalize class-based alignment (CKEditor text-align-center / Quill ql-align-center / Tailwind text-center)
+    // and explicitly append style="text-align:..." so it takes highest priority
+    processed = processed.replace(
+        /<([a-z0-9]+)\s+([^>]*?)class=(["'])(.*?)(?:text-align-|ql-align-|text-)(center|right|left|justify)\b(.*?)\3([^>]*?)>/gi,
+        (match, tag, before, quote, clsBefore, align, clsAfter, after) => {
+            const classAttr = `class=${quote}${clsBefore} text-align-${align} ${clsAfter}${quote}`;
+            return `<${tag} ${before} ${classAttr} style="text-align:${align};" ${after}>`;
+        }
+    );
+
+    // 4. Merge duplicate style attributes if created (e.g. style="a" style="b" -> style="a;b")
+    processed = processed.replace(
+        /<([a-z0-9]+)([^>]*?)\s+style=(["'])(.*?)\3([^>]*?)\s+style=(["'])(.*?)\6([^>]*?)>/gi,
+        '<$1$2$5$8 style="$4;$7">'
+    );
+
+    // 5. Convert shorthand background: to background-color: in inline style attributes
     processed = processed.replace(/style=(["'])(.*?)\1/gi, (match, quote, styleContent) => {
         const updatedStyle = styleContent.replace(/(^|;|\s*)background\s*:\s*([^;]+)/gi, "$1background-color:$2");
         return `style=${quote}${updatedStyle}${quote}`;
     });
 
-    // 3. Convert HSL/HSLA to Hex (handles deg, %, comma/space syntax)
+    // 6. Convert HSL/HSLA to Hex (handles deg, %, comma/space syntax)
     processed = processed.replace(
         /hsla?\(\s*(\d+(?:\.\d+)?)(?:deg)?\s*[\s,]+\s*(\d+(?:\.\d+)?)%\s*[\s,]+\s*(\d+(?:\.\d+)?)%(?:\s*[\s,\/]+\s*(\d+(?:\.\d+)?%?))?\s*\)/gi,
         (match, hStr, sStr, lStr, aStr) => {
@@ -117,13 +138,77 @@ function extractInlineStyles(styleAttr?: string) {
     return Object.keys(res).length > 0 ? res : null;
 }
 
+function getTextAlign(tnode: any, style?: any): "center" | "right" | "justify" | "left" | null {
+    // 1. Check classes (CKEditor, Quill, Tailwind, Bootstrap, etc.)
+    const classList = tnode.classes || [];
+    const classStr = (tnode.attributes?.class || "") + " " + classList.join(" ");
+    if (/(?:text-align-|ql-align-|text-|align-|\b)(center)\b/i.test(classStr)) return "center";
+    if (/(?:text-align-|ql-align-|text-|align-|\b)(right)\b/i.test(classStr)) return "right";
+    if (/(?:text-align-|ql-align-|text-|align-|\b)(justify)\b/i.test(classStr)) return "justify";
+    if (/(?:text-align-|ql-align-|text-|align-|\b)(left)\b/i.test(classStr)) return "left";
+
+    // 2. Check inline style attribute
+    const styleAttr = tnode.attributes?.style || "";
+    const styleMatch = styleAttr.match(/text-align\s*:\s*(center|right|justify|left)/i);
+    if (styleMatch) return styleMatch[1].toLowerCase() as any;
+
+    // 3. Check align attribute
+    const alignAttr = tnode.attributes?.align;
+    if (alignAttr && /^(center|right|justify|left)$/i.test(alignAttr)) {
+        return alignAttr.toLowerCase() as any;
+    }
+
+    // 4. Check tag name
+    if (tnode.tagName === "center") return "center";
+
+    // 5. Check computed style
+    if (style?.textAlign && /^(center|right|justify|left)$/i.test(style.textAlign)) {
+        return style.textAlign.toLowerCase() as any;
+    }
+
+    return null;
+}
+
+function createBlockRenderer() {
+    return ({ tnode, style, TDefaultRenderer, ...props }: any) => {
+        const align = getTextAlign(tnode, style);
+        const extracted = extractInlineStyles(tnode.attributes?.style);
+
+        let alignmentStyle: any = null;
+        let containerStyle: any = { width: "100%" };
+
+        if (align === "center") {
+            alignmentStyle = { textAlign: "center", width: "100%", alignSelf: "stretch" };
+            containerStyle = { width: "100%", alignItems: "center" };
+        } else if (align === "right") {
+            alignmentStyle = { textAlign: "right", width: "100%", alignSelf: "stretch" };
+            containerStyle = { width: "100%", alignItems: "flex-end" };
+        } else if (align === "justify") {
+            alignmentStyle = { textAlign: "justify", width: "100%", alignSelf: "stretch" };
+            containerStyle = { width: "100%" };
+        } else if (align === "left") {
+            alignmentStyle = { textAlign: "left", width: "100%", alignSelf: "stretch" };
+            containerStyle = { width: "100%", alignItems: "flex-start" };
+        }
+
+        return (
+            <View style={containerStyle}>
+                <TDefaultRenderer
+                    tnode={tnode}
+                    style={[style, alignmentStyle, extracted].filter(Boolean)}
+                    {...props}
+                />
+            </View>
+        );
+    };
+}
+
 const summaryTagsStyles = {
     body: {
         fontFamily: typography.fonts.regular,
         color: colors.textSecondary,
         fontSize: 14,
         lineHeight: 22,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     p: {
         marginTop: 0,
@@ -132,6 +217,12 @@ const summaryTagsStyles = {
         color: colors.textSecondary,
         fontSize: 14,
         lineHeight: 22,
+        width: "100%" as any,
+    },
+    center: {
+        textAlign: "center" as const,
+        width: "100%" as any,
+        alignItems: "center" as const,
     },
     a: {
         color: colors.primary,
@@ -184,18 +275,21 @@ const summaryTagsStyles = {
         fontSize: 20,
         color: colors.textPrimary,
         marginBottom: 6,
+        width: "100%" as any,
     },
     h2: {
         fontFamily: typography.fonts.bold,
         fontSize: 18,
         color: colors.textPrimary,
         marginBottom: 6,
+        width: "100%" as any,
     },
     h3: {
         fontFamily: typography.fonts.bold,
         fontSize: 16,
         color: colors.textPrimary,
         marginBottom: 4,
+        width: "100%" as any,
     },
     blockquote: {
         borderLeftWidth: 3,
@@ -204,6 +298,7 @@ const summaryTagsStyles = {
         marginVertical: 6,
         fontStyle: "italic" as const,
         color: colors.textSecondary,
+        width: "100%" as any,
     },
     code: {
         fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
@@ -237,18 +332,18 @@ const summaryClassesStyles = {
         fontSize: 22,
         lineHeight: 30,
     },
-    "text-align-center": { textAlign: "center" as const },
-    "text-align-right": { textAlign: "right" as const },
-    "text-align-left": { textAlign: "left" as const },
-    "text-align-justify": { textAlign: "justify" as const },
-    "ql-align-center": { textAlign: "center" as const },
-    "ql-align-right": { textAlign: "right" as const },
-    "ql-align-left": { textAlign: "left" as const },
-    "ql-align-justify": { textAlign: "justify" as const },
-    "text-center": { textAlign: "center" as const },
-    "text-right": { textAlign: "right" as const },
-    "text-left": { textAlign: "left" as const },
-    "text-justify": { textAlign: "justify" as const },
+    "text-align-center": { textAlign: "center" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "text-align-right": { textAlign: "right" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "text-align-left": { textAlign: "left" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "text-align-justify": { textAlign: "justify" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "ql-align-center": { textAlign: "center" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "ql-align-right": { textAlign: "right" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "ql-align-left": { textAlign: "left" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "ql-align-justify": { textAlign: "justify" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "text-center": { textAlign: "center" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "text-right": { textAlign: "right" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "text-left": { textAlign: "left" as const, width: "100%" as any, alignSelf: "stretch" as const },
+    "text-justify": { textAlign: "justify" as const, width: "100%" as any, alignSelf: "stretch" as const },
     "marker-yellow": { backgroundColor: "#ffe066", color: colors.textPrimary },
     "marker-green": { backgroundColor: "#a2f4bf", color: colors.textPrimary },
     "marker-pink": { backgroundColor: "#ffc0cb", color: colors.textPrimary },
@@ -257,71 +352,24 @@ const summaryClassesStyles = {
     "pen-green": { color: "#2a9d8f" },
 };
 
+const blockRenderer = createBlockRenderer();
+
 const summaryRenderers = {
-    p: ({ tnode, style, TDefaultRenderer, ...props }: any) => {
-        const inlineAlign =
-            tnode.attributes?.style?.match(/text-align\s*:\s*(center|right|left|justify)/i)?.[1]
-            || tnode.attributes?.align;
-        const textAlign = inlineAlign || style?.textAlign;
-
-        let extraStyle: any = null;
-        if (textAlign === "center") {
-            extraStyle = { width: "100%", alignItems: "center", textAlign: "center" };
-        } else if (textAlign === "right") {
-            extraStyle = { width: "100%", alignItems: "flex-end", textAlign: "right" };
-        } else if (textAlign === "left") {
-            extraStyle = { width: "100%", alignItems: "flex-start", textAlign: "left" };
-        } else if (textAlign === "justify") {
-            extraStyle = { width: "100%", textAlign: "justify" };
-        }
-
-        const extracted = extractInlineStyles(tnode.attributes?.style);
-
-        return (
-            <TDefaultRenderer
-                tnode={tnode}
-                style={[style, extraStyle, extracted].filter(Boolean)}
-                {...props}
-            />
-        );
-    },
-    div: ({ tnode, style, TDefaultRenderer, ...props }: any) => {
-        const inlineAlign =
-            tnode.attributes?.style?.match(/text-align\s*:\s*(center|right|left|justify)/i)?.[1]
-            || tnode.attributes?.align;
-        const textAlign = inlineAlign || style?.textAlign;
-
-        let extraStyle: any = null;
-        if (textAlign === "center") {
-            extraStyle = { width: "100%", alignItems: "center", textAlign: "center" };
-        } else if (textAlign === "right") {
-            extraStyle = { width: "100%", alignItems: "flex-end", textAlign: "right" };
-        } else if (textAlign === "left") {
-            extraStyle = { width: "100%", alignItems: "flex-start", textAlign: "left" };
-        } else if (textAlign === "justify") {
-            extraStyle = { width: "100%", textAlign: "justify" };
-        }
-
-        const extracted = extractInlineStyles(tnode.attributes?.style);
-
-        return (
-            <TDefaultRenderer
-                tnode={tnode}
-                style={[style, extraStyle, extracted].filter(Boolean)}
-                {...props}
-            />
-        );
-    },
+    p: blockRenderer,
+    div: blockRenderer,
+    h1: blockRenderer,
+    h2: blockRenderer,
+    h3: blockRenderer,
+    h4: blockRenderer,
+    h5: blockRenderer,
+    h6: blockRenderer,
+    blockquote: blockRenderer,
     figure: ({ tnode, style, TDefaultRenderer, ...props }: any) => {
-        const inlineAlign =
-            tnode.attributes?.style?.match(/text-align\s*:\s*(center|right|left|justify)/i)?.[1]
-            || tnode.attributes?.align;
-        const textAlign = inlineAlign || style?.textAlign;
-
+        const align = getTextAlign(tnode, style);
         let extraStyle: any = null;
-        if (textAlign === "center") {
+        if (align === "center") {
             extraStyle = { width: "100%", alignItems: "center" };
-        } else if (textAlign === "right") {
+        } else if (align === "right") {
             extraStyle = { width: "100%", alignItems: "flex-end" };
         }
 
@@ -335,11 +383,14 @@ const summaryRenderers = {
     },
     span: ({ tnode, style, TDefaultRenderer, ...props }: any) => {
         const extracted = extractInlineStyles(tnode.attributes?.style);
-        if (extracted) {
+        const align = getTextAlign(tnode, style);
+        const alignStyle = align ? { textAlign: align, width: "100%", alignSelf: "stretch" } : null;
+
+        if (extracted || alignStyle) {
             return (
                 <TDefaultRenderer
                     tnode={tnode}
-                    style={[style, extracted]}
+                    style={[style, alignStyle, extracted].filter(Boolean)}
                     {...props}
                 />
             );
@@ -642,6 +693,7 @@ const styles = StyleSheet.create({
         textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
     },
     lessonDescriptionContainer: {
+        width: "100%",
         marginBottom: 4,
     },
 
