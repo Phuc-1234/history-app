@@ -76,6 +76,54 @@ export class AdminService {
         };
     }
 
+    /**
+     * Đếm số user DISTINCT nhận XP theo từng ngày trong N ngày gần nhất.
+     * Nguồn: bảng UserXpLog (mỗi lần nhận XP = 1 row, đã có index [userId, createdAt]).
+     * Trả về mảng { date: 'YYYY-MM-DD', count: number } cho mọi ngày trong khoảng
+     * (kể cả ngày không có ai nhận XP thì count = 0).
+     */
+    async getXpActivitySeries(days: number = 30): Promise<{ date: string; count: number }[]> {
+        const safeDays = Math.max(1, Math.min(Math.trunc(days) || 30, 90));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const start = new Date(today);
+        start.setDate(start.getDate() - (safeDays - 1));
+
+        // Chỉ select 2 cột cần thiết, filter theo createdAt dùng index.
+        const rows = await prisma.userXpLog.findMany({
+            where: { createdAt: { gte: start } },
+            select: { userId: true, createdAt: true },
+        });
+
+        // Đếm distinct userId theo ngày (local date, YYYY-MM-DD).
+        const distinctByDay = new Map<string, Set<string>>();
+        for (const r of rows) {
+            const d = new Date(r.createdAt);
+            d.setHours(0, 0, 0, 0);
+            const key = d.toISOString().slice(0, 10);
+            let set = distinctByDay.get(key);
+            if (!set) {
+                set = new Set<string>();
+                distinctByDay.set(key, set);
+            }
+            set.add(r.userId);
+        }
+
+        // Fill đầy các ngày trong khoảng (đảm bảo thứ tự cũ -> mới).
+        const dateList: Date[] = [];
+        for (let i = safeDays - 1; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            dateList.push(d);
+        }
+
+        return dateList.map((d) => {
+            const key = d.toISOString().slice(0, 10);
+            return { date: key, count: distinctByDay.get(key)?.size ?? 0 };
+        });
+    }
+
     // ─────────────────────────────── GRADE ────────────────────────────────────
 
     async createGrade(data: CreateGradeBody): Promise<GradeDto> {

@@ -6,6 +6,7 @@ import fs from "fs";
 import { requireAdmin } from "../middlewares/authMiddleware";
 import {
     getOverviewStats,
+    getXpActivitySeries,
     createGrade,
     updateGrade,
     deleteGrade,
@@ -99,6 +100,10 @@ router.use(requireAdmin);
 // ─── Overview Stats ───────────────────────────────────────────────────────────
 // GET    /api/admin/stats
 router.get("/stats", getOverviewStats);
+
+// GET    /api/admin/stats/xp-activity?days=30
+// Số user (distinct) nhận XP theo từng ngày.
+router.get("/stats/xp-activity", getXpActivitySeries);
 
 // ─── Feedback ─────────────────────────────────────────────────────────────────
 // GET    /api/admin/feedback

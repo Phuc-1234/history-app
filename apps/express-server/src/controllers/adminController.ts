@@ -65,6 +65,20 @@ export const getOverviewStats = async (req: Request, res: Response) => {
     }
 };
 
+/**
+ * GET /api/admin/stats/xp-activity?days=30
+ * Trả về chuỗi số user (distinct) nhận XP theo từng ngày trong N ngày gần nhất.
+ */
+export const getXpActivitySeries = async (req: Request, res: Response) => {
+    try {
+        const days = Number(req.query.days) || 30;
+        const series = await adminService.getXpActivitySeries(days);
+        return res.json(series);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch XP activity series" });
+    }
+};
+
 // ─────────────────────────────── GRADE ────────────────────────────────────────
 
 export const createGrade = async (
