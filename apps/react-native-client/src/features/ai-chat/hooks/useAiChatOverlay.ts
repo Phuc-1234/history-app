@@ -58,7 +58,13 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     });
 
     useEffect(() => {
-        if (pendingMessage && pendingMessage.sessionId !== undefined && pendingMessage.sessionId !== selectedSessionId) {
+        if (
+            pendingMessage &&
+            pendingMessage.sessionId !== null &&
+            pendingMessage.sessionId !== undefined &&
+            selectedSessionId !== null &&
+            pendingMessage.sessionId !== selectedSessionId
+        ) {
             setPendingMessage(null);
         }
     }, [selectedSessionId, pendingMessage]);
@@ -123,7 +129,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
 
     const displayMessages: DisplayChatMessage[] = [
         ...messages,
-        ...(pendingMessage
+        ...(pendingMessage && !messages.some((m) => m.id === pendingMessage.id || (m.sender === "user" && m.content === pendingMessage.content))
             ? [
                   {
                       id: pendingMessage.id,
@@ -249,19 +255,19 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         const tempId = `temp-user-${Date.now()}`;
         let activeSessionId = selectedSessionId;
 
-        setPendingMessage({ id: tempId, sessionId: activeSessionId, content: text, status: "sending" });
-
         if (!activeSessionId) {
             try {
                 const res = await createSession({ mode: selectedMode, modelTier: selectedModelTier }).unwrap();
                 activeSessionId = res.session.id;
                 setSelectedSessionId(activeSessionId);
-                setPendingMessage((prev) => (prev ? { ...prev, sessionId: activeSessionId } : null));
+                setPendingMessage({ id: tempId, sessionId: activeSessionId, content: text, status: "sending" });
             } catch (err) {
                 console.error("Failed to create session on first send:", err);
                 setPendingMessage(null);
                 return;
             }
+        } else {
+            setPendingMessage({ id: tempId, sessionId: activeSessionId, content: text, status: "sending" });
         }
 
         try {
