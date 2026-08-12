@@ -76,7 +76,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             `${user2.xp.toLocaleString()} XP`
                         )}
                     </Text>
-                    <View style={[styles.podiumBase, styles.rank2Base]} />
+                    <View style={[styles.podiumBase, styles.rank2Base, isMe2 && styles.mePodiumBase]} />
                 </TouchableOpacity>
             ) : (
                 <View style={styles.podiumColumn} />
@@ -131,7 +131,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             `${user1.xp.toLocaleString()} XP`
                         )}
                     </Text>
-                    <View style={[styles.podiumBase, styles.rank1Base]} />
+                    <View style={[styles.podiumBase, styles.rank1Base, isMe1 && styles.mePodiumBase]} />
                 </TouchableOpacity>
             ) : (
                 <View style={[styles.podiumColumn, styles.centerPodiumColumn]} />
@@ -179,7 +179,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             `${user3.xp.toLocaleString()} XP`
                         )}
                     </Text>
-                    <View style={[styles.podiumBase, styles.rank3Base]} />
+                    <View style={[styles.podiumBase, styles.rank3Base, isMe3 && styles.mePodiumBase]} />
                 </TouchableOpacity>
             ) : (
                 <View style={styles.podiumColumn} />
@@ -304,6 +304,10 @@ const createStyles = (isSmallDevice: boolean) =>
         rank3Base: {
             height: isSmallDevice ? 46 : 50,
             backgroundColor: colors.primary,
+        },
+        mePodiumBase: {
+            borderWidth: 2,
+            borderColor: colors.primary,
         },
         meTag: {
             backgroundColor: "#EA580C",

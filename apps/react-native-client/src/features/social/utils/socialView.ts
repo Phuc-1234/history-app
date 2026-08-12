@@ -52,6 +52,7 @@ export function toViewUser(user: ApiSocialUser): ViewUser {
         streak: user.currentStreak ?? 0,
         mutualFriends: user.mutualFriends ?? 0,
         winRate: 0,
+        equippedFrameUrl: user.equippedFrameUrl ?? null,
         friendStatus,
         isFollowing: Boolean(user.isFollowing),
     };

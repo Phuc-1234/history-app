@@ -8,9 +8,11 @@ import {
     Platform,
     ActivityIndicator,
     Alert,
+    TouchableOpacity,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { User, Mail } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppSelector } from "@/store/storeHook";
 import {
@@ -18,9 +20,14 @@ import {
     useUpdateUserEmailMutation,
     useVerifyUserEmailMutation,
 } from "@/features/auth/services/authApi";
+import {
+    useGetUserInventoryQuery,
+    useActivateItemMutation,
+} from "@/features/inventory/services/itemApi";
 import Input from "../../../components/Input";
 import Button from "../../../components/Button";
 import ProfileAvatar from "../components/ProfileAvatar";
+import { AvatarWithFrame } from "@/components/ui";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import * as ImagePicker from "expo-image-picker";
 import { colors } from "../../../theme/colors";
@@ -38,12 +45,21 @@ export default function ProfileEditScreen() {
     const [name, setName] = useState(profile?.name ?? "");
     const [email, setEmail] = useState(profile?.email ?? "");
     const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+    const [selectedFrameUrl, setSelectedFrameUrl] = useState<string | null>(
+        profile?.equippedFrameUrl ?? null
+    );
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [updateUserData] = useUpdateUserDataMutation();
     const [updateUserEmail] = useUpdateUserEmailMutation();
     const [verifyUserEmail] = useVerifyUserEmailMutation();
+    const { data: inventoryData } = useGetUserInventoryQuery();
+    const [activateItem] = useActivateItemMutation();
+
+    const frameItems = (inventoryData?.inventory ?? []).filter(
+        (ui) => ui.itemDefinition?.equipmentSlot === "AVT_FRAME"
+    );
 
     const [otpModalVisible, setOtpModalVisible] = useState(false);
     const [pendingEmail, setPendingEmail] = useState("");
@@ -53,7 +69,43 @@ export default function ProfileEditScreen() {
     useEffect(() => {
         setName(profile?.name ?? "");
         setEmail(profile?.email ?? "");
-    }, [profile?.email, profile?.name]);
+        setSelectedFrameUrl(profile?.equippedFrameUrl ?? null);
+    }, [profile?.email, profile?.equippedFrameUrl, profile?.name]);
+
+    const handleSelectFrame = (targetFrameUrl: string | null) => {
+        const previousFrameUrl = selectedFrameUrl;
+        if (previousFrameUrl === targetFrameUrl) return;
+
+        // 1. Optimistic update (instant local change)
+        setSelectedFrameUrl(targetFrameUrl);
+
+        // 2. Auto-save in background
+        if (!targetFrameUrl) {
+            const currentItem = frameItems.find(
+                (ui) => ui.itemDefinition?.imgUrl === previousFrameUrl
+            );
+            if (currentItem) {
+                activateItem({
+                    itemDefinitionId: currentItem.itemDefinitionId,
+                    forceReplace: true,
+                })
+                    .unwrap()
+                    .catch(() => setSelectedFrameUrl(previousFrameUrl));
+            }
+        } else {
+            const targetItem = frameItems.find(
+                (ui) => ui.itemDefinition?.imgUrl === targetFrameUrl
+            );
+            if (targetItem) {
+                activateItem({
+                    itemDefinitionId: targetItem.itemDefinitionId,
+                    forceReplace: true,
+                })
+                    .unwrap()
+                    .catch(() => setSelectedFrameUrl(previousFrameUrl));
+            }
+        }
+    };
 
     const handlePickImage = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -275,6 +327,7 @@ export default function ProfileEditScreen() {
                             <View style={{ position: "relative" }}>
                                 <ProfileAvatar
                                     uri={selectedImageUri || profile?.profileImgUrl}
+                                    frameUri={selectedFrameUrl}
                                     size={78}
                                     name={profile?.name}
                                     onEditPress={isUploading ? undefined : handlePickImage}
@@ -287,6 +340,68 @@ export default function ProfileEditScreen() {
                                 )}
                             </View>
                         </View>
+
+                        {/* List of obtained avatar frames for quick local selection */}
+                        {frameItems.length > 0 && (
+                            <View style={styles.framePickerSection}>
+                                <Text style={styles.fieldLabel}>Khung avatar sở hữu</Text>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.frameListContent}
+                                >
+                                    {/* Default / None Option */}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.frameOptionCard,
+                                            !selectedFrameUrl && styles.frameOptionSelected,
+                                        ]}
+                                        onPress={() => handleSelectFrame(null)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <View style={styles.noFrameCircle}>
+                                            <Ionicons name="ban-outline" size={22} color={colors.textMuted} />
+                                        </View>
+                                        <Text style={styles.frameOptionText} numberOfLines={1}>
+                                            Mặc định
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    {/* Obtained Frames */}
+                                    {frameItems.map((item) => {
+                                        const def = item.itemDefinition;
+                                        const isSelected = selectedFrameUrl === def.imgUrl;
+                                        return (
+                                            <TouchableOpacity
+                                                key={def.id}
+                                                style={[
+                                                    styles.frameOptionCard,
+                                                    isSelected && styles.frameOptionSelected,
+                                                ]}
+                                                onPress={() => handleSelectFrame(def.imgUrl)}
+                                                activeOpacity={0.8}
+                                            >
+                                                <AvatarWithFrame
+                                                    uri={selectedImageUri || profile?.profileImgUrl}
+                                                    frameUri={def.imgUrl}
+                                                    size={40}
+                                                    name={profile?.name}
+                                                    borderWidth={1}
+                                                />
+                                                <Text style={styles.frameOptionText} numberOfLines={1}>
+                                                    {def.name}
+                                                </Text>
+                                                {isSelected && (
+                                                    <View style={styles.equippedCheckBadge}>
+                                                        <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                                                    </View>
+                                                )}
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </ScrollView>
+                            </View>
+                        )}
 
                         <View style={styles.formSection}>
                             <Text style={styles.fieldLabel}>Họ và tên</Text>
@@ -423,5 +538,60 @@ const styles = StyleSheet.create({
     },
     inputField: {
         backgroundColor: colors.surface,
+    },
+    framePickerSection: {
+        marginBottom: 16,
+        marginTop: -8,
+    },
+    frameListContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingVertical: 6,
+    },
+    frameOptionCard: {
+        width: 76,
+        paddingVertical: 8,
+        paddingHorizontal: 6,
+        borderRadius: 12,
+        backgroundColor: colors.surface,
+        borderWidth: 1.5,
+        borderColor: colors.borderMedium,
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+    },
+    frameOptionSelected: {
+        borderColor: colors.primary,
+        backgroundColor: "#FFF5EC",
+    },
+    noFrameCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        borderStyle: "dashed",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: colors.surfaceVariant,
+    },
+    frameOptionText: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 10,
+        color: colors.textSecondary,
+        marginTop: 4,
+        textAlign: "center",
+    },
+    equippedCheckBadge: {
+        position: "absolute",
+        top: 4,
+        right: 4,
+        backgroundColor: colors.primary,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
     },
 });
