@@ -1,11 +1,13 @@
 import { apiSlice } from "@/services/apiSlice";
 
 export type AiChatModeType = "COURSE_ONLY" | "COURSE_FIRST" | "GENERAL";
+export type AiModelTierType = "MEDIUM" | "HIGH";
 
 export interface AiChatSessionDto {
     id: string;
     title: string;
     mode: AiChatModeType;
+    modelTier?: AiModelTierType;
     createdAt: string;
     updatedAt: string;
     messages?: { content: string }[];
@@ -47,7 +49,7 @@ export const aiChatApi = apiSlice.injectEndpoints({
         }),
         createSession: builder.mutation<
             { session: AiChatSessionDto },
-            { title?: string; mode?: AiChatModeType } | void
+            { title?: string; mode?: AiChatModeType; modelTier?: AiModelTierType } | void
         >({
             query: (body) => ({
                 url: "/api/ai-chat/sessions",
@@ -79,19 +81,20 @@ export const aiChatApi = apiSlice.injectEndpoints({
         }),
         updateSession: builder.mutation<
             { session: AiChatSessionDto },
-            { sessionId: string; title?: string; mode?: AiChatModeType }
+            { sessionId: string; title?: string; mode?: AiChatModeType; modelTier?: AiModelTierType }
         >({
-            query: ({ sessionId, title, mode }) => ({
+            query: ({ sessionId, title, mode, modelTier }) => ({
                 url: `/api/ai-chat/sessions/${sessionId}`,
                 method: "PATCH",
-                body: { title, mode },
+                body: { title, mode, modelTier },
             }),
-            async onQueryStarted({ sessionId, title, mode }, { dispatch, queryFulfilled }) {
+            async onQueryStarted({ sessionId, title, mode, modelTier }, { dispatch, queryFulfilled }) {
                 const patchResult = dispatch(
                     aiChatApi.util.updateQueryData("listSessions", undefined, (draft) => {
                         const session = draft.sessions.find((s) => s.id === sessionId);
                         if (session) {
                             if (mode !== undefined) session.mode = mode;
+                            if (modelTier !== undefined) session.modelTier = modelTier;
                             if (title !== undefined) session.title = title;
                         }
                     })

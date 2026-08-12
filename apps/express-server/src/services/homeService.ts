@@ -12,7 +12,7 @@ export class HomeService {
         const [top3Users, allLessons] = await Promise.all([
             // Top 3 BXH theo XP
             prisma.user.findMany({
-                where: { isVerified: true },
+                where: { isVerified: true, isHidden: false },
                 orderBy: { totalXp: "desc" },
                 take: 3,
                 select: {

@@ -6,7 +6,12 @@ export class GamificationService {
         const pageNum = Math.max(1, Math.floor(page));
         const pageSize = Math.max(1, Math.floor(limit));
 
-        const total = await prisma.user.count();
+        const total = await prisma.user.count({
+            where: {
+                isVerified: true,
+                isHidden: false,
+            },
+        });
 
         const orderBy =
             sort === "streak"
@@ -21,7 +26,8 @@ export class GamificationService {
 
         const users = await prisma.user.findMany({
             where: {
-                isVerified: true, // Only returns users who have verified their emails in Supabase
+                isVerified: true,
+                isHidden: false,
             },
             orderBy,
             skip: (pageNum - 1) * pageSize,
@@ -63,11 +69,13 @@ export class GamificationService {
         if (sort === "streak") {
             const user = await prisma.user.findUnique({
                 where: { id: userId },
-                select: { currentStreak: true, totalXp: true } as any,
+                select: { currentStreak: true, totalXp: true, isHidden: true } as any,
             });
-            if (!user) return null;
+            if (!user || (user as any).isHidden) return null;
             const higher = await prisma.user.count({
                 where: {
+                    isVerified: true,
+                    isHidden: false,
                     OR: [
                         { currentStreak: { gt: (user as any).currentStreak } },
                         {
@@ -82,11 +90,13 @@ export class GamificationService {
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { totalXp: true, currentStreak: true } as any,
+            select: { totalXp: true, currentStreak: true, isHidden: true } as any,
         });
-        if (!user) return null;
+        if (!user || (user as any).isHidden) return null;
         const higher = await prisma.user.count({
             where: {
+                isVerified: true,
+                isHidden: false,
                 OR: [
                     { totalXp: { gt: (user as any).totalXp } },
                     {

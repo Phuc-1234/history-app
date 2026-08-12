@@ -1,8 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../../../theme/colors";
-import { AvatarWithFrame } from "../../../components/ui";
+import { AvatarWithFrame } from "@/components/ui";
 
 interface ProfileAvatarProps {
     uri?: string | null;
@@ -11,6 +8,7 @@ interface ProfileAvatarProps {
     onEditPress?: () => void;
     showEditButton?: boolean;
     name?: string;
+    isPro?: boolean;
 }
 
 export default function ProfileAvatar({
@@ -20,64 +18,18 @@ export default function ProfileAvatar({
     onEditPress,
     showEditButton = true,
     name = "",
+    isPro = false,
 }: ProfileAvatarProps) {
-    const badgeSize = size * 0.3;
-    const badgeRadius = badgeSize / 2;
-    const iconSize = badgeSize * 0.55;
-
     return (
-        <View style={[styles.container, { width: size, height: size }]}>
-            {/* Avatar circle with placeholder icon or image and frame */}
-            <AvatarWithFrame
-                uri={uri}
-                frameUri={frameUri}
-                size={size}
-                name={name}
-                borderWidth={2}
-            />
-
-            {/* Edit badge */}
-            {showEditButton && (
-                <TouchableOpacity
-                    onPress={onEditPress}
-                    activeOpacity={0.7}
-                    style={[
-                        styles.editBadge,
-                        {
-                            width: badgeSize,
-                            height: badgeSize,
-                            borderRadius: badgeRadius,
-                            bottom: 2,
-                            right: 2,
-                        },
-                    ]}
-                >
-                    <Ionicons name="pencil" size={iconSize} color={colors.textLight} />
-                </TouchableOpacity>
-            )}
-        </View>
+        <AvatarWithFrame
+            uri={uri}
+            frameUri={frameUri}
+            size={size}
+            name={name}
+            borderWidth={2}
+            showEditButton={showEditButton}
+            onEditPress={onEditPress}
+            isPro={isPro}
+        />
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        position: "relative",
-        alignSelf: "center",
-    },
-    avatarCircle: {
-        backgroundColor: colors.primaryContainer,
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 2,
-        borderColor: colors.borderDark,
-        overflow: "hidden",
-    },
-    editBadge: {
-        position: "absolute",
-        backgroundColor: colors.primary,
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 2,
-        borderColor: colors.borderDark,
-    },
-});

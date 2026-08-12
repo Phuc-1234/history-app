@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { RefreshCw, Users } from "lucide-react-native";
 import { colors, radii, spacing, typography } from "@/theme";
+import { AvatarWithFrame } from "@/components/ui";
 import { useJoinPvpRoomMutation, useGetPublicRoomsQuery } from "../services/pvpApi";
 import type { PvpPublicRoomDto, PvpRoom } from "../types";
 
@@ -56,15 +57,14 @@ export function JoinRoomTab({ onRoomJoined }: JoinRoomTabProps) {
         return (
             <View style={styles.roomCard}>
                 <View style={styles.roomHeader}>
-                    {item.hostAvatar ? (
-                        <Image source={{ uri: item.hostAvatar }} style={styles.avatar} />
-                    ) : (
-                        <View style={styles.avatarPlaceholder}>
-                            <Text style={styles.avatarText}>
-                                {item.hostName ? item.hostName[0].toUpperCase() : "U"}
-                            </Text>
-                        </View>
-                    )}
+                    <AvatarWithFrame
+                        uri={item.hostAvatar}
+                        frameUri={item.equippedFrameUrl}
+                        size={40}
+                        name={item.hostName}
+                        borderWidth={1.5}
+                        style={{ marginRight: 10 }}
+                    />
                     <View style={styles.roomMeta}>
                         <Text style={styles.hostName} numberOfLines={1}>
                             {item.hostName}

@@ -222,6 +222,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                         size={64}
                                         name={data.name}
                                         borderWidth={2}
+                                        isPro={data.isPro}
                                     />
                                     <Text style={styles.drawerName} numberOfLines={1}>
                                         {data.name || "Bạn"}
