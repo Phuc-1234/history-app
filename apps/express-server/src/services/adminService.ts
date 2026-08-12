@@ -44,6 +44,93 @@ import { supabase } from "../config/supabaseClient";
 import { contentService } from "./contentService";
 
 
+// ─── Helpers: build AdminQuestionAnswerDto[] từ answers table VÀ answerDataJson ─
+// Một số câu (vd. Đúng/Sai, AI-generated) không có records trong question_answers
+// mà lưu đáp án trong field JSON `answerDataJson`. Hàm này parse JSON đó ra
+// để admin luôn thấy đầy đủ đáp án bất kể nguồn lưu trữ.
+type RawAnswer = {
+    id: number;
+    content: string;
+    isCorrect: boolean | null;
+    leftText: string | null;
+    rightText: string | null;
+    correctAnswer: string | null;
+};
+
+function buildAnswers(
+    type: string,
+    dbAnswers: RawAnswer[],
+    answerDataJson: any,
+): RawAnswer[] {
+    // 1) Nếu đã có records trong table → dùng luôn
+    if (Array.isArray(dbAnswers) && dbAnswers.length > 0) {
+        return dbAnswers.map(a => ({
+            id: a.id,
+            content: a.content,
+            isCorrect: a.isCorrect,
+            leftText: a.leftText ?? null,
+            rightText: a.rightText ?? null,
+            correctAnswer: a.correctAnswer ?? null,
+        }));
+    }
+
+    // 2) Parse answerDataJson theo type
+    const data = answerDataJson && typeof answerDataJson === "object" ? answerDataJson : null;
+    if (!data) return [];
+
+    if (type === "CHOOSE") {
+        // { options: ["A","B","C"], correctOption: [0,2] }
+        const options: string[] = Array.isArray(data.options) ? data.options : [];
+        const correctIdx: number[] = Array.isArray(data.correctOption) ? data.correctOption : [];
+        return options.map((opt, idx) => ({
+            id: -(idx + 1), // id âm để phân biệt với DB record
+            content: String(opt ?? ""),
+            isCorrect: correctIdx.includes(idx),
+            leftText: null,
+            rightText: null,
+            correctAnswer: null,
+        }));
+    }
+
+    if (type === "FILL") {
+        // { acceptedAnswers: ["938","năm 938"] }
+        const accepted: string[] = Array.isArray(data.acceptedAnswers) ? data.acceptedAnswers : [];
+        return accepted.map((ans, idx) => ({
+            id: -(idx + 1),
+            content: String(ans ?? ""),
+            isCorrect: true,
+            leftText: null,
+            rightText: null,
+            correctAnswer: String(ans ?? ""),
+        }));
+    }
+
+    if (type === "MATCH") {
+        // { pairs: [ {left: right}, ... ] }
+        const pairs: any[] = Array.isArray(data.pairs) ? data.pairs : [];
+        const result: RawAnswer[] = [];
+        let idCounter = -1;
+        for (const pair of pairs) {
+            if (pair && typeof pair === "object") {
+                for (const [left, right] of Object.entries(pair)) {
+                    result.push({
+                        id: idCounter--,
+                        content: "",
+                        isCorrect: true,
+                        leftText: String(left ?? ""),
+                        rightText: String(right ?? ""),
+                        correctAnswer: null,
+                    });
+                }
+            }
+        }
+        return result;
+    }
+
+    return [];
+}
+
+
 export class AdminService {
     // ─────────────────────────────── OVERVIEW STATS ───────────────────────────
 
@@ -822,14 +909,7 @@ export class AdminService {
             lessonId: q.lessonId,
             sectionId: q.sectionId,
             nodeId: q.nodeId,
-            answers: q.answers.map(a => ({
-                id: a.id,
-                content: a.content,
-                isCorrect: a.isCorrect,
-                leftText: a.leftText ?? null,
-                rightText: a.rightText ?? null,
-                correctAnswer: a.correctAnswer ?? null,
-            })),
+            answers: buildAnswers(q.type, q.answers as RawAnswer[], q.answerDataJson),
         }));
     }
 
@@ -856,14 +936,7 @@ export class AdminService {
             lessonId: question.lessonId,
             sectionId: question.sectionId,
             nodeId: question.nodeId,
-            answers: question.answers.map(a => ({
-                id: a.id,
-                content: a.content,
-                isCorrect: a.isCorrect,
-                leftText: a.leftText ?? null,
-                rightText: a.rightText ?? null,
-                correctAnswer: a.correctAnswer ?? null,
-            })),
+            answers: buildAnswers(question.type, question.answers as RawAnswer[], question.answerDataJson),
         };
     }
 
