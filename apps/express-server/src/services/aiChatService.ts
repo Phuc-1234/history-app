@@ -1,4 +1,4 @@
-import { prisma, AiChatMode } from "@history-app/shared";
+import { prisma, AiChatMode, AiModelTier } from "@history-app/shared";
 import { AIService } from "./aiService";
 import { contentSearchService } from "./contentSearchService";
 
@@ -22,6 +22,7 @@ export class AiChatService {
                 id: true,
                 title: true,
                 mode: true,
+                modelTier: true,
                 createdAt: true,
                 updatedAt: true,
                 messages: {
@@ -33,12 +34,13 @@ export class AiChatService {
         });
     }
 
-    async createSession(userId: string, initialTitle?: string, mode?: AiChatMode) {
+    async createSession(userId: string, initialTitle?: string, mode?: AiChatMode, modelTier?: AiModelTier) {
         return prisma.aiChatSession.create({
             data: {
                 userId,
                 title: initialTitle || "Cuộc trò chuyện mới",
-                mode: mode || AiChatMode.GENERAL
+                mode: mode || AiChatMode.GENERAL,
+                modelTier: modelTier || AiModelTier.MEDIUM
             }
         });
     }
@@ -149,14 +151,43 @@ export class AiChatService {
             parts: [{ text: msg.content }]
         }));
 
-        // Call Gemini with mode, summary & grounding context
-        const { text: assistantText, usageTokens } = await aiService.callGeminiChat(formattedContents, {
-            mode: session.mode,
-            groundingContext,
-            screenContextText,
-            isSupportedScreen: screenContext?.isSupported,
-            summary: session.summary || undefined
-        });
+        let assistantText = "";
+        let usageTokens = 0;
+
+        if (session.modelTier === AiModelTier.HIGH) {
+            try {
+                console.log(`[AI Chat] Executing High Tier (Tool Calling Engine) for session ${sessionId}...`);
+                const res = await aiService.callGeminiWithTools(formattedContents, {
+                    mode: session.mode,
+                    screenContextText,
+                    isSupportedScreen: screenContext?.isSupported,
+                    summary: session.summary || undefined
+                });
+                assistantText = res.text;
+                usageTokens = res.usageTokens;
+            } catch (highTierErr: any) {
+                console.error("[AI High Tier] High tier tool calling failed, falling back to Medium RAG mode:", highTierErr.message);
+                const res = await aiService.callGeminiChat(formattedContents, {
+                    mode: session.mode,
+                    groundingContext,
+                    screenContextText,
+                    isSupportedScreen: screenContext?.isSupported,
+                    summary: session.summary || undefined
+                });
+                assistantText = res.text;
+                usageTokens = res.usageTokens;
+            }
+        } else {
+            const res = await aiService.callGeminiChat(formattedContents, {
+                mode: session.mode,
+                groundingContext,
+                screenContextText,
+                isSupportedScreen: screenContext?.isSupported,
+                summary: session.summary || undefined
+            });
+            assistantText = res.text;
+            usageTokens = res.usageTokens;
+        }
 
         // Update token quota tracking
         await prisma.userAiQuota.upsert({
@@ -225,7 +256,7 @@ export class AiChatService {
     async updateSession(
         userId: string,
         sessionId: string,
-        updateData: { title?: string; mode?: AiChatMode }
+        updateData: { title?: string; mode?: AiChatMode; modelTier?: AiModelTier }
     ) {
         const session = await prisma.aiChatSession.findFirst({
             where: { id: sessionId, userId }
@@ -237,7 +268,8 @@ export class AiChatService {
             where: { id: sessionId },
             data: {
                 ...(updateData.title ? { title: updateData.title } : {}),
-                ...(updateData.mode ? { mode: updateData.mode } : {})
+                ...(updateData.mode ? { mode: updateData.mode } : {}),
+                ...(updateData.modelTier ? { modelTier: updateData.modelTier } : {})
             }
         });
         return updated;

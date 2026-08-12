@@ -27,7 +27,7 @@ import { TwinklingStars } from "./TwinklingStars";
 import { CustomModal } from "@/components/Modal";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
-import { AiChatModeType } from "../services/aiChatApi";
+import { AiChatModeType, AiModelTierType } from "../services/aiChatApi";
 import { useEasterEgg } from "@/features/easter_egg";
 
 interface AiChatOverlayProps {
@@ -42,6 +42,11 @@ const MODES: { id: AiChatModeType; label: string; labelEn: string; icon: keyof t
     { id: "COURSE_ONLY", label: "Chỉ Giáo Trình", labelEn: "Course Only", icon: "book" },
     { id: "COURSE_FIRST", label: "Ưu Tiên Giáo Trình", labelEn: "Course First", icon: "school" },
     { id: "GENERAL", label: "Chung", labelEn: "General", icon: "chatbubbles" },
+];
+
+const MODEL_TIERS: { id: AiModelTierType; label: string; labelEn: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { id: "MEDIUM", label: "Tiêu Chuẩn (RAG)", labelEn: "Standard (RAG)", icon: "flash" },
+    { id: "HIGH", label: "Cao Cấp (Tools)", labelEn: "High (Tools)", icon: "sparkles" },
 ];
 
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
@@ -70,12 +75,15 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
         setRenameTitleInput,
         activeMode,
         handleChangeMode,
+        activeModelTier,
+        handleChangeModelTier,
         errorModal,
         setErrorModal,
         showPremiumModal,
         setShowPremiumModal,
         screenContext,
         quotaData,
+        isLoadingQuota,
 
         isListening,
         isTranscribing,
@@ -298,37 +306,70 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         </Pressable>
                     </View>
 
-                    {/* Mode Selector Sub-header */}
+                    {/* Mode & Tier Selector Sub-header */}
                     {!showSessionsDrawer && (
-                        <View style={styles.modeSelectorBar}>
-                            {MODES.map((mode) => {
-                                const isActive = activeMode === mode.id;
-                                return (
-                                    <Pressable
-                                        key={mode.id}
-                                        style={[
-                                            styles.modePill,
-                                            isActive && styles.modePillActive,
-                                        ]}
-                                        onPress={() => handleChangeMode(mode.id)}
-                                    >
-                                        <Ionicons
-                                            name={mode.icon}
-                                            size={12}
-                                            color={isActive ? colors.textLight : colors.textSecondary}
-                                            style={{ marginRight: 4 }}
-                                        />
-                                        <Text
+                        <View style={styles.subHeaderContainer}>
+                            <View style={styles.modeSelectorBar}>
+                                {MODES.map((mode) => {
+                                    const isActive = activeMode === mode.id;
+                                    return (
+                                        <Pressable
+                                            key={mode.id}
                                             style={[
-                                                styles.modePillText,
-                                                isActive && styles.modePillTextActive,
+                                                styles.modePill,
+                                                isActive && styles.modePillActive,
                                             ]}
+                                            onPress={() => handleChangeMode(mode.id)}
                                         >
-                                            {isEngMode ? mode.labelEn : mode.label}
-                                        </Text>
-                                    </Pressable>
-                                );
-                            })}
+                                            <Ionicons
+                                                name={mode.icon}
+                                                size={11}
+                                                color={isActive ? colors.textLight : colors.textSecondary}
+                                                style={{ marginRight: 3 }}
+                                            />
+                                            <Text
+                                                style={[
+                                                    styles.modePillText,
+                                                    isActive && styles.modePillTextActive,
+                                                ]}
+                                            >
+                                                {isEngMode ? mode.labelEn : mode.label}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+
+                            <View style={styles.tierSelectorBar}>
+                                {MODEL_TIERS.map((tier) => {
+                                    const isActive = activeModelTier === tier.id;
+                                    return (
+                                        <Pressable
+                                            key={tier.id}
+                                            style={[
+                                                styles.tierPill,
+                                                isActive && styles.tierPillActive,
+                                            ]}
+                                            onPress={() => handleChangeModelTier(tier.id)}
+                                        >
+                                            <Ionicons
+                                                name={tier.icon}
+                                                size={11}
+                                                color={isActive ? colors.textLight : colors.textSecondary}
+                                                style={{ marginRight: 3 }}
+                                            />
+                                            <Text
+                                                style={[
+                                                    styles.tierPillText,
+                                                    isActive && styles.tierPillTextActive,
+                                                ]}
+                                            >
+                                                {isEngMode ? tier.labelEn : tier.label}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
                         </View>
                     )}
 
@@ -745,16 +786,40 @@ const styles = StyleSheet.create({
         padding: 4,
         marginRight: 8,
     },
-    closeButton: {
-        padding: 4,
-    },
-    modeSelectorBar: {
-        flexDirection: "row",
+    subHeaderContainer: {
         backgroundColor: colors.surfaceVariant,
         paddingHorizontal: 12,
         paddingVertical: 6,
         gap: 6,
+    },
+    modeSelectorBar: {
+        flexDirection: "row",
+        gap: 6,
         justifyContent: "center",
+    },
+    tierSelectorBar: {
+        flexDirection: "row",
+        justifyContent: "center",
+        gap: 6,
+    },
+    tierPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 30,
+        backgroundColor: colors.surface,
+    },
+    tierPillActive: {
+        backgroundColor: "#8E24AA",
+    },
+    tierPillText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 10,
+        color: colors.textSecondary,
+    },
+    tierPillTextActive: {
+        color: colors.textLight,
     },
     modePill: {
         flexDirection: "row",

@@ -11,6 +11,7 @@ import {
     AiChatMessageDto,
     AiChatSessionDto,
     AiChatModeType,
+    AiModelTierType,
 } from "../services/aiChatApi";
 import { useVoiceInput } from "./useVoiceInput";
 import { useScreenContext } from "./useScreenContext";
@@ -78,6 +79,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     }, []);
 
     const [selectedMode, setSelectedMode] = useState<AiChatModeType>("GENERAL");
+    const [selectedModelTier, setSelectedModelTier] = useState<AiModelTierType>("MEDIUM");
     const [actionSession, setActionSession] = useState<AiChatSessionDto | null>(null);
     const [showRenameModal, setShowRenameModal] = useState(false);
     const [renameTitleInput, setRenameTitleInput] = useState("");
@@ -99,12 +101,15 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     const activeSession = sessions.find((s) => s.id === selectedSessionId);
     const messages = selectedSessionId ? messagesData?.messages || [] : [];
 
-    // Sync selectedMode with activeSession mode when session changes
+    // Sync selectedMode and selectedModelTier with activeSession when session changes
     useEffect(() => {
         if (activeSession?.mode) {
             setSelectedMode(activeSession.mode);
         }
-    }, [activeSession?.mode, selectedSessionId]);
+        if (activeSession?.modelTier) {
+            setSelectedModelTier(activeSession.modelTier);
+        }
+    }, [activeSession?.mode, activeSession?.modelTier, selectedSessionId]);
 
     // Reset selectedSessionId if active session is deleted or session list becomes empty
     useEffect(() => {
@@ -149,9 +154,10 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         }
     }, [visible, sessions, selectedSessionId]);
 
-    const handleCreateNewSession = useCallback((mode?: AiChatModeType) => {
+    const handleCreateNewSession = useCallback((mode?: AiChatModeType, modelTier?: AiModelTierType) => {
         setSelectedSessionId(null);
         setSelectedMode(mode || "GENERAL");
+        setSelectedModelTier(modelTier || "MEDIUM");
         setShowSessionsDrawer(false);
     }, []);
 
@@ -172,6 +178,21 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
                 visible: true,
                 title: "Lỗi cập nhật",
                 message: "Không thể thay đổi chế độ trò chuyện. Vui lòng kiểm tra lại kết nối.",
+            });
+        }
+    }, [selectedSessionId, updateSession]);
+
+    const handleChangeModelTier = useCallback(async (newTier: AiModelTierType) => {
+        setSelectedModelTier(newTier);
+        if (!selectedSessionId) return;
+        try {
+            await updateSession({ sessionId: selectedSessionId, modelTier: newTier }).unwrap();
+        } catch (err) {
+            console.error("Failed to update model tier:", err);
+            setErrorModal({
+                visible: true,
+                title: "Lỗi cập nhật",
+                message: "Không thể thay đổi cấp độ AI. Vui lòng kiểm tra lại kết nối.",
             });
         }
     }, [selectedSessionId, updateSession]);
@@ -232,7 +253,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
 
         if (!activeSessionId) {
             try {
-                const res = await createSession({ mode: selectedMode }).unwrap();
+                const res = await createSession({ mode: selectedMode, modelTier: selectedModelTier }).unwrap();
                 activeSessionId = res.session.id;
                 setSelectedSessionId(activeSessionId);
                 setPendingMessage((prev) => (prev ? { ...prev, sessionId: activeSessionId } : null));
@@ -259,7 +280,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
                 setPendingMessage({ id: tempId, sessionId: activeSessionId, content: text, status: "error" });
             }
         }
-    }, [inputText, isSending, pendingMessage, selectedSessionId, selectedMode, createSession, sendMessage, screenContext]);
+    }, [inputText, isSending, pendingMessage, selectedSessionId, selectedMode, selectedModelTier, createSession, sendMessage, screenContext]);
 
     return {
         selectedSessionId,
@@ -278,6 +299,8 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
         setRenameTitleInput,
         activeMode: selectedMode,
         handleChangeMode,
+        activeModelTier: selectedModelTier,
+        handleChangeModelTier,
         errorModal,
         setErrorModal,
         showPremiumModal,

@@ -1,9 +1,9 @@
 # AI Chat Feature Documentation
 
-**Current Version:** 2.5  
+**Current Version:** 3.0  
 **Module Location:**
 - Frontend: [ai-chat](../../apps/react-native-client/src/features/ai-chat)
-- Backend: [aiChatRoutes.ts](../../apps/express-server/src/routes/aiChatRoutes.ts), [aiChatController.ts](../../apps/express-server/src/controllers/aiChatController.ts), [aiChatService.ts](../../apps/express-server/src/services/aiChatService.ts), [aiService.ts](../../apps/express-server/src/services/aiService.ts), [contentSearchService.ts](../../apps/express-server/src/services/contentSearchService.ts)
+- Backend: [aiChatRoutes.ts](../../apps/express-server/src/routes/aiChatRoutes.ts), [aiChatController.ts](../../apps/express-server/src/controllers/aiChatController.ts), [aiChatService.ts](../../apps/express-server/src/services/aiChatService.ts), [aiService.ts](../../apps/express-server/src/services/aiService.ts), [ai-tools](../../apps/express-server/src/services/ai-tools), [contentSearchService.ts](../../apps/express-server/src/services/contentSearchService.ts)
 
 ---
 
@@ -151,6 +151,7 @@ model AiChatMessage {
 | 2.4 | 2026-08-02 | Added unsupported screen context boundary handling (`isSupported` flag in `useScreenContext` & `ScreenContextPayload`) so AI politely informs user when screen context is unsupported while continuing to answer general history questions. |
 | 2.5 | 2026-08-02 | Enabled local UI mode selection on new un-persisted empty chats prior to database session creation; deferred DB chat session creation until the user sends their first message. |
 | 2.6 | 2026-08-03 | Added Easter Egg (`eng on` / `eng off`) feature via `CourseMenuScreen` search bar to toggle `ai-chat` UI text translation, and updated Gemini system prompt to automatically respond in English when user message is in English. |
+| 3.0 | 2026-08-12 | Introduced High Model Tier (`AiModelTier`: `MEDIUM` / `HIGH`), Gemini Native Function Calling (`tools: [{ functionDeclarations }]`), modular AI Tool directory (`ai-tools/`), app domain overview (`appInfo.ts`), and automatic fallback to Medium RAG mode. |
 
 ---
 
