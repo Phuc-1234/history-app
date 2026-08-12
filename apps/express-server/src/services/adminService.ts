@@ -298,10 +298,9 @@ export class AdminService {
                 )                                   AS wrong_count,
                 CASE
                     WHEN COUNT(*) > 0
-                    THEN (COUNT(*) FILTER (WHERE a.score_awarded < a.max_score))::decimal
-                         / COUNT(*)
+                    THEN 1 - AVG((a.score_awarded / a.max_score)::decimal)
                     ELSE 0
-                END                                 AS wrong_rate
+                END                                 AS loss_rate
             FROM user_answer_logs a
             JOIN questions q ON q.id = a.question_id
             WHERE a.max_score > 0
@@ -309,7 +308,7 @@ export class AdminService {
               AND a.answered_at >= ${start}
             GROUP BY a.question_id, q.prompt_text, q.type, q.difficulty
             ORDER BY
-                wrong_rate DESC,
+                loss_rate DESC,
                 COUNT(*) FILTER (WHERE a.score_awarded < a.max_score) DESC,
                 COUNT(*) DESC
             LIMIT ${safeLimit}
@@ -321,7 +320,12 @@ export class AdminService {
                 COUNT(*)                            AS total,
                 COUNT(*) FILTER (
                     WHERE a.score_awarded < a.max_score
-                )                                   AS wrong_count
+                )                                   AS wrong_count,
+                CASE
+                    WHEN COUNT(*) > 0
+                    THEN 1 - AVG((a.score_awarded / a.max_score)::decimal)
+                    ELSE 0
+                END                                 AS loss_rate
             FROM user_answer_logs a
             WHERE a.max_score > 0
               AND a.answered_at IS NOT NULL
@@ -332,6 +336,7 @@ export class AdminService {
         const topWrong = topRows.map((r) => {
             const total = Number(r.total_answers) || 0;
             const wrong = Number(r.wrong_count) || 0;
+            const loss = Number(r.loss_rate) || 0;
             return {
                 questionId: Number(r.question_id),
                 promptText: String(r.prompt_text ?? ""),
@@ -339,18 +344,19 @@ export class AdminService {
                 difficulty: Number(r.difficulty) || 1,
                 totalAnswers: total,
                 wrongCount: wrong,
-                wrongRate: total > 0 ? Math.round((wrong / total) * 1000) / 10 : 0,
+                wrongRate: total > 0 ? Math.round(loss * 1000) / 10 : 0,
             };
         });
 
         const typeBreakdown = typeRows.map((r) => {
             const total = Number(r.total) || 0;
             const wrong = Number(r.wrong_count) || 0;
+            const loss = Number(r.loss_rate) || 0;
             return {
                 type: String(r.question_type),
                 total,
                 wrongCount: wrong,
-                wrongRate: total > 0 ? Math.round((wrong / total) * 1000) / 10 : 0,
+                wrongRate: total > 0 ? Math.round(loss * 1000) / 10 : 0,
             };
         });
 
@@ -825,6 +831,40 @@ export class AdminService {
                 correctAnswer: a.correctAnswer ?? null,
             })),
         }));
+    }
+
+    async getQuestionById(id: number): Promise<AdminQuestionDto | null> {
+        const question = await prisma.question.findUnique({
+            where: { id },
+            include: { answers: true },
+        });
+        if (!question) return null;
+
+        return {
+            id: question.id,
+            type: question.type,
+            difficulty: question.difficulty,
+            promptText: question.promptText,
+            document: question.document ?? null,
+            explanation: question.explanation ?? null,
+            isActive: question.isActive,
+            scopeId: question.scopeId,
+            scopeType: question.scopeType,
+            answerDataJson: question.answerDataJson ?? null,
+            gradeId: question.gradeId,
+            topicId: question.topicId,
+            lessonId: question.lessonId,
+            sectionId: question.sectionId,
+            nodeId: question.nodeId,
+            answers: question.answers.map(a => ({
+                id: a.id,
+                content: a.content,
+                isCorrect: a.isCorrect,
+                leftText: a.leftText ?? null,
+                rightText: a.rightText ?? null,
+                correctAnswer: a.correctAnswer ?? null,
+            })),
+        };
     }
 
     async createQuestion(data: CreateQuestionBody): Promise<AdminQuestionDto> {

@@ -36,6 +36,7 @@ import {
     updateVideo,
     deleteVideo,
     listQuestions,
+    getQuestionById,
     createQuestion,
     updateQuestion,
     deleteQuestion,
@@ -211,6 +212,9 @@ router.delete("/videos/:videoId", requireSuperAdmin, deleteVideo);
 // ─── Question ─────────────────────────────────────────────────────────────────
 // GET    /api/admin/questions
 router.get("/questions", listQuestions);
+
+// GET    /api/admin/questions/:questionId
+router.get("/questions/:questionId", getQuestionById);
 
 // POST   /api/admin/questions
 router.post("/questions", createQuestion);
