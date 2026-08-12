@@ -40,85 +40,72 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
     };
 
     // Helper to render formatted inline text (bold, italic, links)
-    const renderInlineText = (text: string, baseStyle: any) => {
+    const renderInlineText = (text: string, baseStyle: any): React.ReactNode => {
         // Link pattern: [Label](url)
-        const linkRegex = /\[([^\]]+)\]\((lesson:\d+|node:\d+|grade:\d+|https?:\/\/[^\)]+)\)/g;
-        type InlinePart =
-            | { type: "text"; value: string }
-            | { type: "link"; label: string; url: string };
+        // Bold: **text**
+        // Italic: *text* or _text_
+        // Tag Badge: [tag]
+        const tokenRegex = /(\[.+?\]\((?:lesson:\d+|node:\d+|grade:\d+|https?:\/\/[^\)]+)\)|\*\*.+?\*\*|\*.+?\*|_.+?_|\[.+?\])/g;
 
-        const parts: InlinePart[] = [];
-        let lastIndex = 0;
-        let match: RegExpExecArray | null;
-
-        while ((match = linkRegex.exec(text)) !== null) {
-            if (match.index > lastIndex) {
-                parts.push({
-                    type: "text",
-                    value: text.substring(lastIndex, match.index),
-                });
-            }
-            parts.push({
-                type: "link",
-                label: match[1],
-                url: match[2],
-            });
-            lastIndex = linkRegex.lastIndex;
-        }
-
-        if (lastIndex < text.length) {
-            parts.push({
-                type: "text",
-                value: text.substring(lastIndex),
-            });
-        }
+        const parts = text.split(tokenRegex);
 
         return parts.map((part, index) => {
-            if (part.type === "link") {
+            if (index % 2 === 0) {
+                return part ? part : null;
+            }
+
+            // Link: [Label](url)
+            if (part.startsWith("[") && part.includes("](") && part.endsWith(")")) {
+                const labelStart = 1;
+                const labelEnd = part.indexOf("](");
+                const label = part.substring(labelStart, labelEnd);
+                const url = part.substring(labelEnd + 2, part.length - 1);
+
                 return (
                     <Text
                         key={`link-${index}`}
                         style={styles.linkText}
-                        onPress={() => handleLinkPress(part.url)}
+                        onPress={() => handleLinkPress(url)}
                     >
-                        {part.label}
+                        {renderInlineText(label, styles.linkText)}
                     </Text>
                 );
             }
 
-            // Parse bold (**text**), italic (*text* or _text_), and standalone tags ([tag]) inside normal text part
-            const tokens = part.value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_|\[[^\]]+\])/g);
-            return (
-                <Text key={`text-${index}`} style={baseStyle}>
-                    {tokens.map((tPart, tIdx) => {
-                        if (tPart.startsWith("**") && tPart.endsWith("**")) {
-                            return (
-                                <Text key={tIdx} style={styles.boldText}>
-                                    {tPart.slice(2, -2)}
-                                </Text>
-                            );
-                        }
-                        if (
-                            (tPart.startsWith("*") && tPart.endsWith("*") && tPart.length > 2) ||
-                            (tPart.startsWith("_") && tPart.endsWith("_") && tPart.length > 2)
-                        ) {
-                            return (
-                                <Text key={tIdx} style={styles.italicText}>
-                                    {tPart.slice(1, -1)}
-                                </Text>
-                            );
-                        }
-                        if (tPart.startsWith("[") && tPart.endsWith("]") && tPart.length > 2) {
-                            return (
-                                <Text key={tIdx} style={styles.tagBadge}>
-                                    {tPart.slice(1, -1)}
-                                </Text>
-                            );
-                        }
-                        return tPart;
-                    })}
-                </Text>
-            );
+            // Bold: **text**
+            if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+                const innerText = part.slice(2, -2);
+                return (
+                    <Text key={`bold-${index}`} style={styles.boldText}>
+                        {renderInlineText(innerText, [baseStyle, styles.boldText])}
+                    </Text>
+                );
+            }
+
+            // Italic: *text* or _text_
+            if (
+                ((part.startsWith("*") && part.endsWith("*")) || (part.startsWith("_") && part.endsWith("_"))) &&
+                part.length > 2
+            ) {
+                const innerText = part.slice(1, -1);
+                return (
+                    <Text key={`italic-${index}`} style={styles.italicText}>
+                        {renderInlineText(innerText, [baseStyle, styles.italicText])}
+                    </Text>
+                );
+            }
+
+            // Tag Badge: [tag]
+            if (part.startsWith("[") && part.endsWith("]") && part.length > 2) {
+                const innerText = part.slice(1, -1);
+                return (
+                    <Text key={`tag-${index}`} style={styles.tagBadge}>
+                        {renderInlineText(innerText, styles.tagBadge)}
+                    </Text>
+                );
+            }
+
+            return part;
         });
     };
 

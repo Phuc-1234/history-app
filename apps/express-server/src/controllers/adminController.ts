@@ -124,6 +124,31 @@ export const getQuestionStats = async (req: Request, res: Response) => {
     }
 };
 
+/**
+ * GET /api/admin/stats/ai-usage?days=30&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&userId=...
+ * Thống kê AI token usage và xếp hạng người dùng.
+ */
+export const getAiUsageStats = async (req: Request, res: Response) => {
+    try {
+        const daysParam = req.query.days;
+        const days = daysParam === 'all' ? 'all' : (Number(daysParam) || 30);
+        const startDate = req.query.startDate ? String(req.query.startDate) : undefined;
+        const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
+        const userId = req.query.userId ? String(req.query.userId) : undefined;
+
+        const data = await adminService.getAiUsageStats({
+            days,
+            startDate,
+            endDate,
+            userId,
+        });
+        return res.json(data);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch AI usage stats" });
+    }
+};
+
+
 // ─────────────────────────────── GRADE ────────────────────────────────────────
 
 export const createGrade = async (
