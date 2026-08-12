@@ -11,6 +11,7 @@ import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { useAppSelector } from "../../../store/storeHook";
 import { useGetStreakInfoQuery } from "../../streak";
+import { router } from "expo-router";
 
 // Mascot image imports
 const MASCOTS = [
@@ -98,6 +99,8 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
     const progressTimingRef = useRef<Animated.CompositeAnimation | null>(null);
 
     useEffect(() => {
+        let safetyTimer: NodeJS.Timeout | null = null;
+
         if (visible) {
             setLocalVisible(true);
 
@@ -129,6 +132,17 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
                 }),
             ]);
             progressTimingRef.current.start();
+
+            // Safety timeout: automatically dismiss and navigate back after 10 seconds if loading doesn't complete
+            safetyTimer = setTimeout(() => {
+                if (localVisibleRef.current) {
+                    if (progressTimingRef.current) progressTimingRef.current.stop();
+                    setLocalVisible(false);
+                    if (router.canGoBack()) {
+                        router.back();
+                    }
+                }
+            }, 10000);
         } else if (localVisibleRef.current) {
             // When visible becomes false and loading modal is active:
             if (progressTimingRef.current) progressTimingRef.current.stop();
@@ -155,6 +169,12 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
                 finishHiding();
             });
         }
+
+        return () => {
+            if (safetyTimer) {
+                clearTimeout(safetyTimer);
+            }
+        };
     }, [visible, progressAnim]);
 
     // Constant running auxiliary loops while localVisible is true
@@ -242,6 +262,13 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
             transparent={false}
             animationType="fade"
             statusBarTranslucent={true}
+            onRequestClose={() => {
+                if (progressTimingRef.current) progressTimingRef.current.stop();
+                setLocalVisible(false);
+                if (router.canGoBack()) {
+                    router.back();
+                }
+            }}
         >
             <View style={styles.container}>
                 <View style={styles.content}>
