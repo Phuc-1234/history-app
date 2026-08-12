@@ -1874,9 +1874,192 @@ export class AdminService {
 
         return true;
     }
+
+    /**
+     * AI Token Usage Statistics & User Rankings
+     */
+    async getAiUsageStats(options: {
+        days?: number | 'all';
+        startDate?: string;
+        endDate?: string;
+        userId?: string;
+    }) {
+        const { days = 30, startDate, endDate, userId } = options;
+
+        const now = new Date();
+        const ictToday = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+        const todayStr = ictToday.toISOString().slice(0, 10);
+
+        let startStr: string | undefined;
+        let endStr: string | undefined = todayStr;
+
+        if (startDate && endDate) {
+            startStr = startDate;
+            endStr = endDate;
+        } else if (days !== 'all' && typeof days === 'number' && days > 0) {
+            const startDateObj = new Date(ictToday);
+            startDateObj.setDate(startDateObj.getDate() - (days - 1));
+            startStr = startDateObj.toISOString().slice(0, 10);
+        }
+
+        // Build date filter for UserAiQuota query
+        const quotaWhere: any = {};
+        if (startStr && endStr) {
+            quotaWhere.date = { gte: startStr, lte: endStr };
+        } else if (startStr) {
+            quotaWhere.date = { gte: startStr };
+        } else if (endStr) {
+            quotaWhere.date = { lte: endStr };
+        }
+
+        if (userId) {
+            quotaWhere.userId = userId;
+        }
+
+        // Fetch quotas for the specified period
+        const periodQuotas = await prisma.userAiQuota.findMany({
+            where: quotaWhere,
+            select: {
+                userId: true,
+                date: true,
+                tokensUsed: true,
+            },
+        });
+
+        // 1. Time Series Chart Data
+        const dailyMap = new Map<string, { totalTokens: number; userSet: Set<string> }>();
+
+        periodQuotas.forEach(q => {
+            if (!dailyMap.has(q.date)) {
+                dailyMap.set(q.date, { totalTokens: 0, userSet: new Set() });
+            }
+            const entry = dailyMap.get(q.date)!;
+            entry.totalTokens += q.tokensUsed;
+            entry.userSet.add(q.userId);
+        });
+
+        // Fill missing dates if range specified
+        const timeSeries: Array<{ date: string; totalTokens: number; activeUsersCount: number }> = [];
+
+        if (startStr && endStr) {
+            const curr = new Date(startStr);
+            const endObj = new Date(endStr);
+            while (curr <= endObj) {
+                const dStr = curr.toISOString().slice(0, 10);
+                const data = dailyMap.get(dStr);
+                timeSeries.push({
+                    date: dStr,
+                    totalTokens: data ? data.totalTokens : 0,
+                    activeUsersCount: data ? data.userSet.size : 0,
+                });
+                curr.setDate(curr.getDate() + 1);
+            }
+        } else {
+            const sortedDates = Array.from(dailyMap.keys()).sort();
+            sortedDates.forEach(dStr => {
+                const data = dailyMap.get(dStr)!;
+                timeSeries.push({
+                    date: dStr,
+                    totalTokens: data.totalTokens,
+                    activeUsersCount: data.userSet.size,
+                });
+            });
+        }
+
+        // 2. User Ranking Data (Period & All-Time)
+        // Aggregate tokens per user in period
+        const userPeriodMap = new Map<string, number>();
+        periodQuotas.forEach(q => {
+            userPeriodMap.set(q.userId, (userPeriodMap.get(q.userId) || 0) + q.tokensUsed);
+        });
+
+        // Fetch all-time token totals grouped by user
+        const allTimeQuotas = await prisma.userAiQuota.groupBy({
+            by: ['userId'],
+            _sum: {
+                tokensUsed: true,
+            },
+        });
+
+        const allTimeMap = new Map<string, number>();
+        allTimeQuotas.forEach(g => {
+            allTimeMap.set(g.userId, g._sum.tokensUsed || 0);
+        });
+
+        // Get all unique user IDs involved
+        const periodUserIds = Array.from(userPeriodMap.keys());
+        const targetUserIds = periodUserIds.length > 0 ? periodUserIds : Array.from(allTimeMap.keys());
+
+        // Fetch user profiles & session counts
+        const users = await prisma.user.findMany({
+            where: { id: { in: targetUserIds } },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                profileImgUrl: true,
+                role: true,
+                isPro: true,
+                proExpiresAt: true,
+                _count: {
+                    select: {
+                        aiChatSessions: true,
+                    },
+                },
+            },
+        });
+
+        const totalTokensInPeriod = periodQuotas.reduce((acc, q) => acc + q.tokensUsed, 0);
+
+        const rankings = users
+            .map(u => {
+                const tokensInPeriod = userPeriodMap.get(u.id) || 0;
+                const tokensAllTime = allTimeMap.get(u.id) || 0;
+                const isUserPro = Boolean(u.isPro && u.proExpiresAt && u.proExpiresAt > now);
+                const sharePercent = totalTokensInPeriod > 0 ? (tokensInPeriod / totalTokensInPeriod) * 100 : 0;
+
+                return {
+                    userId: u.id,
+                    name: u.name,
+                    email: u.email,
+                    profileImgUrl: u.profileImgUrl,
+                    role: u.role,
+                    isPro: isUserPro,
+                    tokensInPeriod,
+                    tokensAllTime,
+                    sessionCount: u._count.aiChatSessions,
+                    sharePercent: Math.round(sharePercent * 10) / 10,
+                };
+            })
+            .sort((a, b) => b.tokensInPeriod - a.tokensInPeriod || b.tokensAllTime - a.tokensAllTime)
+            .map((item, index) => ({
+                rank: index + 1,
+                ...item,
+            }));
+
+        // 3. Summary metrics
+        const activeUsersCount = rankings.filter(r => r.tokensInPeriod > 0).length;
+        const avgTokensPerUser = activeUsersCount > 0 ? Math.round(totalTokensInPeriod / activeUsersCount) : 0;
+        const topUserTokens = rankings.length > 0 ? rankings[0].tokensInPeriod : 0;
+
+        return {
+            summary: {
+                totalTokensInPeriod,
+                activeUsersCount,
+                avgTokensPerUser,
+                topUserTokens,
+                periodDays: startStr && endStr ? Math.ceil((new Date(endStr).getTime() - new Date(startStr).getTime()) / (1000 * 3600 * 24)) + 1 : 'all',
+                startStr,
+                endStr,
+            },
+            timeSeries,
+            rankings,
+        };
+    }
 }
 
 export const adminService = new AdminService();
+
 
 
 

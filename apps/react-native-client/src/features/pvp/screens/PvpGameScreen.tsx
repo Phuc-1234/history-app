@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     View,
     Text,
@@ -18,6 +18,7 @@ import Animated, {
     withTiming,
     Easing,
     LinearTransition,
+    FadeInDown,
 } from "react-native-reanimated";
 import { LogOut } from "lucide-react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
@@ -27,6 +28,7 @@ import ChooseQuestion from "../../test_v2/components/ChooseQuestion";
 import FillQuestion from "../../test_v2/components/FillQuestion";
 import MatchQuestion from "../../test_v2/components/MatchQuestion";
 import PracticeFeedbackMascot from "../../test_v2/components/PracticeFeedbackMascot";
+import { evaluateQuestion } from "../../test_v2/services/scoreEngine";
 import { useSubmitPvpAnswerMutation, useNextPvpStateMutation } from "../services/pvpApi";
 
 interface PvpGameScreenProps {
@@ -36,6 +38,7 @@ interface PvpGameScreenProps {
     totalQuestions: number;
     question: QuestionV2 | null;
     questionResult: {
+        questionIndex?: number;
         correctAnswerData: any;
         explanation: string | null;
         leaderboard: PvpParticipant[];
@@ -86,6 +89,15 @@ export function PvpGameScreen({
     // Reanimated shared value for smooth timer unfill animation
     const timerProgress = useSharedValue(1);
 
+    // Ensure questionResult strictly matches active currentQuestionIndex to prevent stale result leakage
+    const activeQuestionResult = useMemo(() => {
+        if (!questionResult) return null;
+        if (questionResult.questionIndex !== currentQuestionIndex) {
+            return null;
+        }
+        return questionResult;
+    }, [questionResult, currentQuestionIndex]);
+
     // Reset local answer state & smooth timer when question index changes
     useEffect(() => {
         setUserAnswer(null);
@@ -100,7 +112,7 @@ export function PvpGameScreen({
                 easing: Easing.linear,
             });
         }
-    }, [currentQuestionIndex, question?.id, timeLimitSeconds, questionResult, finalLeaderboard]);
+    }, [currentQuestionIndex, question?.id]);
 
     // Countdown timer display tick
     useEffect(() => {
@@ -136,8 +148,14 @@ export function PvpGameScreen({
         width: `${Math.max(0, Math.min(1, timerProgress.value)) * 100}%`,
     }));
 
+    const userAnswerRef = useRef(userAnswer);
+    userAnswerRef.current = userAnswer;
+
+    const isSubmittedRef = useRef(isSubmitted);
+    isSubmittedRef.current = isSubmitted;
+
     const handleSubmitAnswer = async () => {
-        if (!question || isSubmitted) return;
+        if (!question || isSubmittedRef.current) return;
 
         const timeTakenSeconds = Math.min(
             timeLimitSeconds,
@@ -146,18 +164,31 @@ export function PvpGameScreen({
 
         setIsSubmitted(true);
 
-        try {
-            await submitAnswerMut({
-                roomCode,
-                questionIndex: currentQuestionIndex,
-                userAnswer,
-                timeTakenSeconds,
-                activeUserIds,
-            }).unwrap();
-        } catch (err) {
-            console.error("Failed to submit PVP answer:", err);
+        const currentAnswer = userAnswerRef.current;
+        if (currentAnswer) {
+            try {
+                await submitAnswerMut({
+                    roomCode,
+                    questionIndex: currentQuestionIndex,
+                    userAnswer: currentAnswer,
+                    timeTakenSeconds,
+                    activeUserIds,
+                }).unwrap();
+            } catch (err) {
+                console.error("Failed to submit PVP answer:", err);
+            }
         }
     };
+
+    const handleSubmitAnswerRef = useRef(handleSubmitAnswer);
+    handleSubmitAnswerRef.current = handleSubmitAnswer;
+
+    // Auto-submit saved answer when timer is expiring (<= 1s remaining)
+    useEffect(() => {
+        if (timeLeft <= 1 && !isSubmittedRef.current && userAnswerRef.current && !activeQuestionResult && !finalLeaderboard) {
+            handleSubmitAnswerRef.current();
+        }
+    }, [timeLeft, activeQuestionResult, finalLeaderboard]);
 
     useEffect(() => {
         const onHardwareBackPress = () => {
@@ -196,12 +227,51 @@ export function PvpGameScreen({
         ),
     };
 
+    const handleSelectAnswer = (newAnswer: any) => {
+        if (isSubmitted || activeQuestionResult) return;
+        setUserAnswer(newAnswer);
+    };
+
+    // Combine question prompt with activeQuestionResult.correctAnswerData when result phase starts
+    const questionWithAnswers = useMemo(() => {
+        if (!question) return null;
+        if (!activeQuestionResult?.correctAnswerData) return question;
+        const originalOptions = (question.answerData as any)?.options;
+        const rawCorrect = activeQuestionResult.correctAnswerData.correctOption;
+
+        let normalizedCorrect: number[] | undefined;
+        if (Array.isArray(rawCorrect)) {
+            normalizedCorrect = rawCorrect.map((x: any) => Number(x)).filter((x: number) => !isNaN(x));
+        } else if (typeof rawCorrect === "number") {
+            normalizedCorrect = [rawCorrect];
+        } else if (typeof rawCorrect === "string") {
+            const parsed = Number(rawCorrect);
+            normalizedCorrect = isNaN(parsed) ? [] : [parsed];
+        }
+
+        return {
+            ...question,
+            answerData: {
+                ...question.answerData,
+                ...activeQuestionResult.correctAnswerData,
+                options: originalOptions ?? activeQuestionResult.correctAnswerData?.options,
+                correctOption: normalizedCorrect ?? (question.answerData as any)?.correctOption ?? [],
+            },
+        };
+    }, [question, activeQuestionResult]);
+
+    // Local evaluation result for option marking & feedback title
+    const evalResult = useMemo(() => {
+        if (!activeQuestionResult || !questionWithAnswers) return null;
+        return evaluateQuestion(questionWithAnswers, userAnswer);
+    }, [activeQuestionResult, questionWithAnswers, userAnswer]);
+
     // Calculate user's current point gain for mascot feedback
     const myPrevScore = prevScoresRef.current.get(currentUserId) ?? 0;
     const myCurrentScore =
-        questionResult?.leaderboard.find((p) => p.userId === currentUserId)?.score ?? myPrevScore;
+        activeQuestionResult?.leaderboard.find((p) => p.userId === currentUserId)?.score ?? myPrevScore;
     const myPointGain = Math.max(0, myCurrentScore - myPrevScore);
-    const isMyAnswerCorrect = myPointGain > 0;
+    const isMyAnswerCorrect = evalResult ? evalResult.isCorrect : (myPointGain > 0);
 
     // ── Final GameOver View ──
     if (finalLeaderboard) {
@@ -236,7 +306,7 @@ export function PvpGameScreen({
                                     <Text style={styles.rankName} numberOfLines={1}>
                                         {item.name} {isMe ? "(Bạn)" : ""}
                                     </Text>
-                                    <Text style={styles.rankScore}>{item.score} điểm</Text>
+                                    <Text style={styles.rankScore}>{item.score}đ</Text>
                                 </Animated.View>
                             );
                         })}
@@ -278,7 +348,10 @@ export function PvpGameScreen({
                 </View>
 
                 {/* Question body */}
-                <ScrollView style={styles.content}>
+                <ScrollView
+                    style={styles.content}
+                    contentContainerStyle={activeQuestionResult && !showLeaderboard ? { paddingBottom: 200 } : undefined}
+                >
                     {!question ? (
                         <View style={styles.loadingBox}>
                             <ActivityIndicator size="large" color={colors.primary600} />
@@ -302,111 +375,95 @@ export function PvpGameScreen({
                             ) : null}
 
                             {/* Render question interaction */}
-                            {question.type === "CHOOSE" ? (
+                            {questionWithAnswers?.type === "CHOOSE" ? (
                                 <ChooseQuestion
-                                    question={question}
+                                    key={currentQuestionIndex}
+                                    question={questionWithAnswers}
                                     userAnswer={userAnswer}
-                                    onAnswer={(_, selectedOptions) => !isSubmitted && !questionResult && setUserAnswer({ selectedOptions })}
-                                    disabled={isSubmitted || !!questionResult}
+                                    onAnswer={(_, selectedOptions) => handleSelectAnswer({ selectedOptions: selectedOptions.map(Number) })}
+                                    showFeedback={!!activeQuestionResult}
+                                    evalResult={evalResult}
+                                    disabled={isSubmitted || !!activeQuestionResult}
+                                    scoreMultiplier={400}
                                 />
-                            ) : question.type === "FILL" ? (
+                            ) : questionWithAnswers?.type === "FILL" ? (
                                 <FillQuestion
-                                    question={question}
+                                    key={currentQuestionIndex}
+                                    question={questionWithAnswers}
                                     userAnswer={userAnswer}
-                                    onAnswer={(_, typedAnswer) => !isSubmitted && !questionResult && setUserAnswer({ typedAnswer })}
-                                    disabled={isSubmitted || !!questionResult}
+                                    onAnswer={(_, typedAnswer) => handleSelectAnswer({ typedAnswer })}
+                                    showFeedback={!!activeQuestionResult}
+                                    evalResult={evalResult}
+                                    disabled={isSubmitted || !!activeQuestionResult}
+                                    scoreMultiplier={400}
                                 />
-                            ) : question.type === "MATCH" ? (
+                            ) : questionWithAnswers?.type === "MATCH" ? (
                                 <MatchQuestion
-                                    question={question}
+                                    key={currentQuestionIndex}
+                                    question={questionWithAnswers}
                                     userAnswer={userAnswer}
-                                    onAnswer={(_, pairs) => !isSubmitted && !questionResult && setUserAnswer({ pairs })}
-                                    disabled={isSubmitted || !!questionResult}
+                                    onAnswer={(_, pairs) => handleSelectAnswer({ pairs })}
+                                    showFeedback={!!activeQuestionResult}
+                                    evalResult={evalResult}
+                                    disabled={isSubmitted || !!activeQuestionResult}
+                                    scoreMultiplier={400}
                                 />
-                            ) : null}
-
-                            {/* State 2: Results rendered directly on screen body */}
-                            {questionResult && !showLeaderboard ? (
-                                <View style={styles.inlineResultContainer}>
-                                    {/* Mascot & Score Gain */}
-                                    <View style={styles.inlineMascotBox}>
-                                        <PracticeFeedbackMascot isCorrect={isMyAnswerCorrect} size={50} />
-                                        <Text
-                                            style={[
-                                                styles.gainBadgeTextInline,
-                                                isMyAnswerCorrect ? styles.gainBadgeSuccess : styles.gainBadgeMuted,
-                                            ]}
-                                        >
-                                            {isMyAnswerCorrect
-                                                ? `+${myPointGain} điểm!`
-                                                : "Chưa chính xác (0 điểm)"}
-                                        </Text>
-                                    </View>
-
-                                    {/* Correct Answer Display */}
-                                    {(() => {
-                                        const data = questionResult.correctAnswerData;
-                                        if (!data) return null;
-                                        if (data.options && Array.isArray(data.correctOption)) {
-                                            const correctTexts = data.correctOption
-                                                .map((idx: number) => data.options[idx])
-                                                .filter(Boolean);
-                                            if (correctTexts.length > 0) {
-                                                return (
-                                                    <View style={styles.correctAnswerBox}>
-                                                        <Text style={styles.correctAnswerTitle}>🎯 Đáp án đúng:</Text>
-                                                        {correctTexts.map((text: string, i: number) => (
-                                                            <Text key={i} style={styles.correctAnswerText}>• {text}</Text>
-                                                        ))}
-                                                    </View>
-                                                );
-                                            }
-                                        }
-                                        if (Array.isArray(data.acceptedAnswers)) {
-                                            return (
-                                                <View style={styles.correctAnswerBox}>
-                                                    <Text style={styles.correctAnswerTitle}>🎯 Đáp án đúng:</Text>
-                                                    <Text style={styles.correctAnswerText}>• {data.acceptedAnswers.join(" / ")}</Text>
-                                                </View>
-                                            );
-                                        }
-                                        if (Array.isArray(data.correctPairs) && data.leftItems && data.rightItems) {
-                                            return (
-                                                <View style={styles.correctAnswerBox}>
-                                                    <Text style={styles.correctAnswerTitle}>🎯 Nối đúng:</Text>
-                                                    {data.correctPairs.map((pair: { left: number; right: number }, i: number) => (
-                                                        <Text key={i} style={styles.correctAnswerText}>
-                                                            • {data.leftItems[pair.left]} ➔ {data.rightItems[pair.right]}
-                                                        </Text>
-                                                    ))}
-                                                </View>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-
-                                    {/* Explanation */}
-                                    {questionResult.explanation ? (
-                                        <View style={styles.explanationBoxInline}>
-                                            <RenderHtml
-                                                contentWidth={width - 64}
-                                                source={{ html: `💡 Giải thích: ${questionResult.explanation}` }}
-                                                baseStyle={{
-                                                    fontSize: 14,
-                                                    color: colors.neutral700,
-                                                }}
-                                            />
-                                        </View>
-                                    ) : null}
-                                </View>
                             ) : null}
                         </View>
                     )}
                 </ScrollView>
 
+                {/* Floating Feedback Box */}
+                {activeQuestionResult && !showLeaderboard && (
+                    <Animated.View
+                        entering={FadeInDown.duration(250)}
+                        style={[
+                            styles.feedbackDrawer,
+                            isMyAnswerCorrect
+                                ? styles.feedbackDrawerCorrect
+                                : styles.feedbackDrawerWrong,
+                        ]}
+                    >
+                        <View style={styles.feedbackDrawerHeader}>
+                            <PracticeFeedbackMascot isCorrect={isMyAnswerCorrect} size={42} />
+                            <Text
+                                style={[
+                                    styles.feedbackDrawerTitle,
+                                    isMyAnswerCorrect
+                                        ? styles.feedbackDrawerTitleCorrect
+                                        : styles.feedbackDrawerTitleWrong,
+                                ]}
+                            >
+                                {isMyAnswerCorrect
+                                    ? `Chính xác! (+${myPointGain} điểm)`
+                                    : "Chưa chính xác (0 điểm)"}
+                            </Text>
+                        </View>
+
+                        {activeQuestionResult.explanation ? (
+                            <ScrollView
+                                style={styles.feedbackDrawerScroll}
+                                contentContainerStyle={styles.feedbackDrawerScrollContent}
+                                showsVerticalScrollIndicator={true}
+                            >
+                                <RenderHtml
+                                    contentWidth={width - 64}
+                                    source={{ html: `💡 Giải thích: ${activeQuestionResult.explanation}` }}
+                                    baseStyle={{
+                                        fontSize: 13,
+                                        fontFamily: typography.fonts.regular,
+                                        color: isMyAnswerCorrect ? colors.success : colors.error,
+                                        lineHeight: 18,
+                                    }}
+                                />
+                            </ScrollView>
+                        ) : null}
+                    </Animated.View>
+                )}
+
                 {/* Submitting / Submitted status bar / Next state progression */}
                 <View style={styles.footer}>
-                    {questionResult ? (
+                    {activeQuestionResult ? (
                         isHost ? (
                             !showLeaderboard ? (
                                 <TouchableOpacity
@@ -987,5 +1044,48 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontFamily: typography.fonts.medium,
         color: "#FFFFFF",
+    },
+    feedbackDrawer: {
+        position: "absolute",
+        left: spacing.md,
+        right: spacing.md,
+        bottom: 85,
+        borderRadius: radii.container,
+        padding: spacing.md,
+        maxHeight: 180,
+        zIndex: 10,
+    },
+    feedbackDrawerCorrect: {
+        backgroundColor: colors.successContainer,
+        borderWidth: 1,
+        borderColor: colors.success,
+    },
+    feedbackDrawerWrong: {
+        backgroundColor: colors.errorContainer,
+        borderWidth: 1,
+        borderColor: colors.error,
+    },
+    feedbackDrawerHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+        marginBottom: spacing.xs,
+    },
+    feedbackDrawerTitle: {
+        fontSize: 15,
+        fontFamily: typography.fonts.bold,
+    },
+    feedbackDrawerTitleCorrect: {
+        color: colors.success,
+    },
+    feedbackDrawerTitleWrong: {
+        color: colors.error,
+    },
+    feedbackDrawerScroll: {
+        flex: 1,
+        marginTop: spacing.xxs,
+    },
+    feedbackDrawerScrollContent: {
+        paddingBottom: spacing.xxs,
     },
 });

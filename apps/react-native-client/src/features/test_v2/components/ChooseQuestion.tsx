@@ -24,6 +24,7 @@ interface Props {
     showFeedback?: boolean;
     evalResult?: QuestionEvalResult | null;
     disabled?: boolean;
+    scoreMultiplier?: number;
 }
 
 function ChooseOptionItem({
@@ -165,6 +166,7 @@ export default function ChooseQuestion({
     showFeedback,
     evalResult,
     disabled,
+    scoreMultiplier = 1,
 }: Props) {
     const data = question.answerData as ChooseAnswerData;
     const single = isSingleChoice(question);
@@ -199,19 +201,19 @@ export default function ChooseQuestion({
             {displayOrder.map((originalIdx, displayIdx) => {
                 const option = data.options[originalIdx];
                 const isSelected = selectedOptions.includes(originalIdx);
-                const isCorrect = data.correctOption.includes(originalIdx);
-                const showCorrect = !!(showFeedback && evalResult);
+                const isCorrect = !!(data.correctOption?.includes(originalIdx));
+                const showCorrect = !!(showFeedback && evalResult && data.correctOption?.length);
 
                 let optStyle: any[] = [styles.option];
                 let textStyle: any[] = [styles.optionText];
                 let badge = null;
 
-                const correctCount = data.correctOption.length;
+                const correctCount = data.correctOption?.length ?? 0;
                 const totalOptions = data.options.length;
                 const maxScore = single ? 0.25 : (totalOptions === 0 ? 0 : Math.max(0.25, Math.floor(totalOptions / 2) * 0.25));
                 const incorrectCount = totalOptions - correctCount;
-                const correctScorePerItem = correctCount > 0 ? maxScore / correctCount : 0;
-                const incorrectPenaltyPerItem = incorrectCount > 0 ? maxScore / incorrectCount : 0;
+                const correctScorePerItem = (correctCount > 0 ? maxScore / correctCount : 0) * scoreMultiplier;
+                const incorrectPenaltyPerItem = (incorrectCount > 0 ? maxScore / incorrectCount : 0) * scoreMultiplier;
 
                 if (showCorrect) {
                     let pointsText = "";
