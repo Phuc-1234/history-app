@@ -615,6 +615,20 @@ export const listQuestions = async (req: Request, res: Response) => {
     }
 };
 
+export const getQuestionById = async (req: Request<{ questionId: string }>, res: Response) => {
+    try {
+        const questionId = Number(req.params.questionId);
+        if (Number.isNaN(questionId)) return res.status(400).json({ error: "Invalid questionId." });
+
+        const question = await adminService.getQuestionById(questionId);
+        if (!question) return res.status(404).json({ error: "Question not found." });
+        return res.status(200).json(question);
+    } catch (err) {
+        console.error("Get question error:", err);
+        return res.status(500).json({ error: "Failed to get question." });
+    }
+};
+
 export const createQuestion = async (req: Request<{}, any, CreateQuestionBody>, res: Response) => {
     try {
         const { type, difficulty, promptText, answerDataJson } = req.body;
