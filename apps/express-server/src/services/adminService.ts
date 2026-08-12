@@ -295,7 +295,13 @@ export class AdminService {
                 COUNT(*)                            AS total_answers,
                 COUNT(*) FILTER (
                     WHERE a.score_awarded < a.max_score
-                )                                   AS wrong_count
+                )                                   AS wrong_count,
+                CASE
+                    WHEN COUNT(*) > 0
+                    THEN (COUNT(*) FILTER (WHERE a.score_awarded < a.max_score))::decimal
+                         / COUNT(*)
+                    ELSE 0
+                END                                 AS wrong_rate
             FROM user_answer_logs a
             JOIN questions q ON q.id = a.question_id
             WHERE a.max_score > 0
@@ -303,7 +309,8 @@ export class AdminService {
               AND a.answered_at >= ${start}
             GROUP BY a.question_id, q.prompt_text, q.type, q.difficulty
             ORDER BY
-                (COUNT(*) FILTER (WHERE a.score_awarded < a.max_score)) DESC,
+                wrong_rate DESC,
+                COUNT(*) FILTER (WHERE a.score_awarded < a.max_score) DESC,
                 COUNT(*) DESC
             LIMIT ${safeLimit}
         `;
@@ -325,10 +332,9 @@ export class AdminService {
         const topWrong = topRows.map((r) => {
             const total = Number(r.total_answers) || 0;
             const wrong = Number(r.wrong_count) || 0;
-            const text = String(r.prompt_text ?? "");
             return {
                 questionId: Number(r.question_id),
-                promptText: text.length > 80 ? text.slice(0, 80) + "…" : text,
+                promptText: String(r.prompt_text ?? ""),
                 type: String(r.question_type),
                 difficulty: Number(r.difficulty) || 1,
                 totalAnswers: total,
