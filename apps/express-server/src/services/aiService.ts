@@ -1,3 +1,6 @@
+import { APP_OVERALL_INFO } from "./ai-tools/appInfo";
+import { aiToolRegistry } from "./ai-tools/registry";
+
 interface AIFlashcard {
     frontText: string;
     backText: string;
@@ -198,6 +201,170 @@ Hãy hỗ trợ học sinh giải đáp thắc mắc lịch sử tự do, chính
             }
         }
         throw new Error(`All Gemini API keys failed. Last error: ${lastError?.message}`);
+    }
+
+    async callGeminiWithTools(
+        contents: any[],
+        options?: {
+            mode?: "COURSE_ONLY" | "COURSE_FIRST" | "GENERAL";
+            screenContextText?: string;
+            isSupportedScreen?: boolean;
+            summary?: string;
+        }
+    ): Promise<{ text: string; usageTokens: number }> {
+        const keys = [
+            process.env.GEMINI_API_KEY_1,
+            process.env.GEMINI_API_KEY_2,
+            process.env.GEMINI_API_KEY_3
+        ].map(k => k?.trim().replace(/^"|"$/g, "")).filter(Boolean) as string[];
+
+        if (keys.length === 0) {
+            throw new Error("No Gemini API keys found in environment variables.");
+        }
+
+        const model = (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim().replace(/^"|"$/g, "");
+        let lastError: Error | null = null;
+        const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
+
+        const currentDateStr = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "numeric", day: "numeric" });
+        let systemPrompt = `Thời gian thực tế hôm nay: ${currentDateStr} (Múi giờ Việt Nam).\n` +
+            "Bạn là trợ lý AI học tập lịch sử Việt Nam thông minh cấp cao (High Model Tier).\n" +
+            "Bạn có khả năng gọi các Công cụ (Tools) để tra cứu dữ liệu chính xác từ hệ thống cơ sở dữ liệu ứng dụng trước khi trả lời.\n\n" +
+            APP_OVERALL_INFO + "\n\n" +
+            "QUY TẮC NGÔN NGỮ TRẢ LỜI (BẮT BUỘC):\n" +
+            "- Nếu tin nhắn mới nhất của người dùng được viết bằng tiếng Anh (hoặc người dùng hỏi bằng tiếng Anh), bạn BẮT BUỘC phải trả lời hoàn toàn bằng tiếng Anh.\n" +
+            "- Nếu tin nhắn của người dùng bằng tiếng Việt, bạn trả lời bằng tiếng Việt.\n\n";
+
+        if (options?.summary) {
+            systemPrompt += `TÓM TẮT BỐI CẢNH CÁC TIN NHẮN TRƯỚC ĐÓ TRONG CUỘC TRÒ CHUYỆN:\n${options.summary}\n\n`;
+        }
+
+        if (options?.screenContextText) {
+            if (options.isSupportedScreen === false) {
+                systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ:\n${options.screenContextText}\n- Màn hình này không tự động gửi bối cảnh nội dung. Nếu người dùng hỏi câu hỏi tổng quát, hãy chủ động dùng Tool tra cứu dữ liệu.\n\n`;
+            } else {
+                systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ (GỢI Ý BỐI CẢNH):\n${options.screenContextText}\n\n`;
+            }
+        }
+
+        if (options?.mode === "COURSE_ONLY") {
+            systemPrompt += `CHẾ ĐỘ NỘI DUNG: CHỈ SỬ DỤNG DỮ LIỆU GIÁO TRÌNH (COURSE ONLY).
+QUY TẮC BẮT BUỘC:
+1. Bạn CHỈ ĐƯỢC PHÉP trả lời dựa trên thông tin lấy được từ việc gọi các Tools tra cứu cơ sở dữ liệu giáo trình bên dưới. KHÔNG tự suy đoán hay lấy thông tin ngoài giáo trình.
+2. Nếu gọi các Tools mà không tìm thấy dữ liệu giáo trình liên quan, hãy trả lời lịch sự: "Rất tiếc, thông tin này chưa có trong bộ giáo trình của ứng dụng."
+3. Khi nhắc tới Bài học hoặc Nút kiến thức, BẮT BUỘC chèn liên kết Markdown: [Tên bài học](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
+        } else if (options?.mode === "COURSE_FIRST") {
+            systemPrompt += `CHẾ ĐỘ NỘI DUNG: ƯU TIÊN DỮ LIỆU GIÁO TRÌNH (COURSE FIRST).
+QUY TẮC BẮT BUỘC:
+1. Hãy chủ động dùng Tools tra cứu dữ liệu giáo trình để trả lời.
+2. Nếu câu hỏi vượt quá dữ liệu giáo trình và bạn bổ sung thêm kiến thức lịch sử bên ngoài, BẮT BUỘC phải viết dòng ghi chú ĐẦU TIÊN ngay trước phần kiến thức ngoài đó:
+   "\n\n> ⚠️ *Lưu ý: Phần thông tin dưới đây được tổng hợp thêm từ nguồn ngoài giáo trình chuẩn của ứng dụng:*\n\n"
+3. Khi trích dẫn thông tin từ giáo trình, hãy chèn liên kết Markdown: [Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
+        } else {
+            systemPrompt += `CHẾ ĐỘ NỘI DUNG: TRỢ LÝ TỰ DO (GENERAL).
+Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thiết, và hỗ trợ giải đáp thắc mắc lịch sử tự do, chính xác. Khi trích dẫn bài học hay nút kiến thức, tạo liên kết Markdown [Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
+        }
+
+        const toolsPayload = [{
+            functionDeclarations: aiToolRegistry.getFunctionDeclarations()
+        }];
+
+        const currentContents = JSON.parse(JSON.stringify(contents));
+        let totalUsageTokens = 0;
+
+        for (const apiKey of shuffledKeys) {
+            try {
+                let toolCallsExecuted = 0;
+                const MAX_TOOL_CALLS = 3;
+
+                // Loop up to MAX_TOOL_CALLS + 1 (last turn generates final text)
+                for (let turn = 0; turn < MAX_TOOL_CALLS + 1; turn++) {
+                    const shouldIncludeTools = toolCallsExecuted < MAX_TOOL_CALLS;
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(url, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            systemInstruction: {
+                                parts: [{ text: systemPrompt }]
+                            },
+                            contents: currentContents,
+                            ...(shouldIncludeTools ? { tools: toolsPayload } : {}),
+                            generationConfig: {
+                                temperature: options?.mode === "COURSE_ONLY" ? 0.2 : 0.7
+                            }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errText = await response.text().catch(() => "");
+                        if (response.status === 503) {
+                            // Brief backoff on temporary model overload
+                            await new Promise(r => setTimeout(r, 400));
+                        }
+                        throw new Error(`Status ${response.status}: ${errText}`);
+                    }
+
+                    const data: any = await response.json();
+                    const candidate = data.candidates?.[0];
+                    if (!candidate) {
+                        throw new Error("Invalid response structure from Gemini.");
+                    }
+
+                    totalUsageTokens += data.usageMetadata?.totalTokenCount || 500;
+                    const parts = candidate.content?.parts || [];
+
+                    // Check if model returned a function call request
+                    const functionCallPart = parts.find((p: any) => p.functionCall);
+                    if (functionCallPart && shouldIncludeTools) {
+                        toolCallsExecuted++;
+                        const { name: toolName, args: toolArgs } = functionCallPart.functionCall;
+                        console.log(`[AI High Tier] Gemini requested tool call #${toolCallsExecuted}: '${toolName}' with args:`, toolArgs);
+
+                        // Execute the tool locally
+                        const toolResult = await aiToolRegistry.executeToolCall(toolName, toolArgs);
+
+                        // Push model's functionCall turn
+                        currentContents.push({
+                            role: "model",
+                            parts: [{ functionCall: functionCallPart.functionCall }]
+                        });
+
+                        // Push function response turn
+                        currentContents.push({
+                            role: "function",
+                            parts: [{
+                                functionResponse: {
+                                    name: toolName,
+                                    response: { name: toolName, content: toolResult }
+                                }
+                            }]
+                        });
+
+                        // Continue loop to send tool response back to Gemini (Pass #2)
+                        continue;
+                    }
+
+                    // Otherwise return the final text response
+                    const textResponse = parts.map((p: any) => p.text || "").join("").trim();
+                    if (!textResponse) {
+                        throw new Error("Empty text response from Gemini after tool execution.");
+                    }
+
+                    return { text: textResponse, usageTokens: totalUsageTokens };
+                }
+
+                throw new Error("Max tool call iterations reached without final text response.");
+            } catch (error: any) {
+                console.error(`Gemini High Tier chat call failed with key ending in ...${apiKey.slice(-5)}:`, error.message);
+                lastError = error;
+            }
+        }
+
+        throw new Error(`All Gemini API keys failed in High Tier. Last error: ${lastError?.message}`);
     }
 
 

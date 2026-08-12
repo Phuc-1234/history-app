@@ -70,7 +70,14 @@ interface SpecialLoadingProps {
 }
 
 export default function SpecialLoading({ visible }: SpecialLoadingProps) {
-    const [localVisible, setLocalVisible] = useState(false);
+    const [localVisible, setLocalVisibleState] = useState(false);
+    const localVisibleRef = useRef(false);
+
+    const setLocalVisible = (val: boolean) => {
+        localVisibleRef.current = val;
+        setLocalVisibleState(val);
+    };
+
     const [currentMascot, setCurrentMascot] = useState(MASCOTS[0]);
     const [tip, setTip] = useState("");
 
@@ -104,28 +111,48 @@ export default function SpecialLoading({ visible }: SpecialLoadingProps) {
             const randomTip = availableTips[Math.floor(Math.random() * availableTips.length)];
             setTip(randomTip);
 
-            // 3. Start progress animation (fake progress: 0 to 95% over 6 seconds - 2x faster than 12s)
+            // 3. Start two-stage smooth progress animation (0 -> 70% in 2.5s, then 70% -> 96% over 7.5s)
             progressAnim.setValue(0);
             if (progressTimingRef.current) progressTimingRef.current.stop();
-            progressTimingRef.current = Animated.timing(progressAnim, {
-                toValue: 0.95,
-                duration: 6000,
-                useNativeDriver: false,
-            });
+            progressTimingRef.current = Animated.sequence([
+                Animated.timing(progressAnim, {
+                    toValue: 0.7,
+                    duration: 2500,
+                    easing: Easing.out(Easing.quad),
+                    useNativeDriver: false,
+                }),
+                Animated.timing(progressAnim, {
+                    toValue: 0.96,
+                    duration: 7500,
+                    easing: Easing.out(Easing.quad),
+                    useNativeDriver: false,
+                }),
+            ]);
             progressTimingRef.current.start();
-        } else {
-            // When visible is false (hideLoading called)
-            // Animate progress to 100% over 1.5 seconds (1500ms)
+        } else if (localVisibleRef.current) {
+            // When visible becomes false and loading modal is active:
             if (progressTimingRef.current) progressTimingRef.current.stop();
+
+            let hideTimeout: NodeJS.Timeout | null = null;
+            const finishHiding = () => {
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                    hideTimeout = null;
+                }
+                setLocalVisible(false);
+            };
+
+            // Safety timeout to ensure modal closes even if animation callback drops
+            hideTimeout = setTimeout(finishHiding, 350);
+
+            // Quick 250ms animation to 100% then hide modal unconditionally
             progressTimingRef.current = Animated.timing(progressAnim, {
                 toValue: 1.0,
-                duration: 1500,
+                duration: 250,
                 useNativeDriver: false,
             });
-            progressTimingRef.current.start(({ finished }) => {
-                if (finished) {
-                    setLocalVisible(false);
-                }
+            progressTimingRef.current.start(() => {
+                finishHiding();
             });
         }
     }, [visible, progressAnim]);

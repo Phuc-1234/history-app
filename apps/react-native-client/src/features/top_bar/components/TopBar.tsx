@@ -107,12 +107,8 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                         size={36}
                                         name={data.name}
                                         borderWidth={1.5}
+                                        isPro={data.isPro}
                                     />
-                                    {data.isPro && (
-                                        <View style={styles.proBadgeChip}>
-                                            <Text style={styles.proBadgeText}>PRO</Text>
-                                        </View>
-                                    )}
                                 </View>
                             </TouchableOpacity>
 

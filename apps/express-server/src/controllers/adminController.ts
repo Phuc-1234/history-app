@@ -442,6 +442,14 @@ export const getUserMonthlyStreakCalendar = async (req: Request, res: Response) 
 export const updateUser = async (req: Request<{ userId: string }, any, UpdateUserBody>, res: Response) => {
     try {
         const { userId } = req.params;
+        if (req.body.role !== undefined) {
+            if (req.user?.role !== "SUPER_ADMIN") {
+                return res.status(403).json({ error: "Truy cập bị cấm. Chỉ Quản trị viên tối cao mới có thể thay đổi vai trò người dùng." });
+            }
+            if (req.user?.id === userId && req.body.role !== "SUPER_ADMIN") {
+                return res.status(403).json({ error: "Truy cập bị cấm. Quản trị viên tối cao không thể tự giáng cấp bản thân." });
+            }
+        }
         const user = await adminService.updateUser(userId, req.body);
         if (!user) return res.status(404).json({ error: "User not found." });
         return res.status(200).json(user);

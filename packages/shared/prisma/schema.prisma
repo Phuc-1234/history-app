@@ -764,11 +764,17 @@ enum AiChatMode {
   GENERAL
 }
 
+enum AiModelTier {
+  MEDIUM
+  HIGH
+}
+
 model AiChatSession {
   id        String          @id @default(uuid())
   userId    String          @map("user_id")
   title     String
   mode      AiChatMode      @default(GENERAL)
+  modelTier AiModelTier     @default(MEDIUM) @map("model_tier")
   summary   String?         @db.Text
   createdAt DateTime        @default(now()) @map("created_at")
   updatedAt DateTime        @updatedAt @map("updated_at")

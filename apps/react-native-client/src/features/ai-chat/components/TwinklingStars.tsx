@@ -89,10 +89,35 @@ const TwinklingStar: React.FC<TwinklingStarProps> = ({
 };
 
 interface TwinklingStarsProps {
-    mode: "fab" | "avatar";
+    mode: "fab" | "avatar" | "badge" | "header";
 }
 
 export const TwinklingStars: React.FC<TwinklingStarsProps> = ({ mode }) => {
+    if (mode === "header") {
+        return (
+            <View style={[StyleSheet.absoluteFill, { overflow: "hidden" }]} pointerEvents="none">
+                <TwinklingStar size={24} style={{ top: 2, left: 10 }} delay={0} duration={2400} maxOpacity={1.0} />
+                <TwinklingStar size={18} style={{ top: 22, left: 60 }} delay={800} duration={3000} maxOpacity={0.85} />
+                <TwinklingStar size={22} style={{ bottom: 2, left: "22%" }} delay={1400} duration={2600} maxOpacity={0.9} />
+                <TwinklingStar size={20} style={{ top: 4, left: "42%" }} delay={300} duration={2800} maxOpacity={0.85} />
+                <TwinklingStar size={26} style={{ top: 2, right: "32%" }} delay={600} duration={3200} maxOpacity={1.0} />
+                <TwinklingStar size={18} style={{ bottom: 2, right: "20%" }} delay={1600} duration={2500} maxOpacity={0.85} />
+                <TwinklingStar size={22} style={{ top: 20, right: 70 }} delay={1200} duration={2900} maxOpacity={0.9} />
+                <TwinklingStar size={24} style={{ bottom: 2, right: 12 }} delay={900} duration={3400} maxOpacity={0.95} />
+            </View>
+        );
+    }
+
+    if (mode === "badge") {
+        return (
+            <View style={[StyleSheet.absoluteFill, { overflow: "visible" }]} pointerEvents="none">
+                <TwinklingStar size={12} style={{ top: -8, right: -6 }} delay={0} duration={2500} maxOpacity={1.0} />
+                <TwinklingStar size={9} style={{ top: -6, left: -4 }} delay={800} duration={2800} maxOpacity={0.85} />
+                <TwinklingStar size={8} style={{ bottom: -5, right: 4 }} delay={1500} duration={3000} maxOpacity={0.8} />
+            </View>
+        );
+    }
+
     if (mode === "fab") {
         return (
             <View style={[StyleSheet.absoluteFill, { overflow: "visible" }]} pointerEvents="none">
