@@ -128,7 +128,7 @@ export const requireStudent = async (
     // or to update Response to handle authorization errors too.
     if (req.user.role !== "STUDENT" && req.user.role !== "ADMIN" && req.user.role !== "SUPER_ADMIN" as any) {
         return res.status(403).json({
-            error: "Access forbidden. Student status required.",
+            error: "Truy cập bị cấm. Yêu cầu quyền Học sinh.",
             code: "TOKEN_INVALID",
         });
     }
@@ -189,7 +189,7 @@ export const requireAdmin = async (
 
     if (req.user.role !== "ADMIN" && req.user.role !== "SUPER_ADMIN" as any) {
         return res.status(403).json({
-            error: "Access forbidden. Admin privileges required.",
+            error: "Truy cập bị cấm. Yêu cầu quyền Quản trị viên.",
             code: "TOKEN_INVALID",
         });
     }
@@ -229,7 +229,7 @@ export const requireSuperAdmin = async (
 
     if (req.user.role !== "SUPER_ADMIN") {
         return res.status(403).json({
-            error: "Access forbidden. Super Admin privileges required.",
+            error: "Truy cập bị cấm. Yêu cầu quyền Quản trị viên tối cao.",
             code: "TOKEN_INVALID",
         });
     }

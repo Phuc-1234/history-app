@@ -443,7 +443,7 @@ export const updateUser = async (req: Request<{ userId: string }, any, UpdateUse
     try {
         const { userId } = req.params;
         if (req.body.role !== undefined && req.user?.role !== "SUPER_ADMIN") {
-            return res.status(403).json({ error: "Access forbidden. Only SUPER_ADMIN can change user roles." });
+            return res.status(403).json({ error: "Truy cập bị cấm. Chỉ Quản trị viên tối cao mới có thể thay đổi vai trò người dùng." });
         }
         const user = await adminService.updateUser(userId, req.body);
         if (!user) return res.status(404).json({ error: "User not found." });
