@@ -196,3 +196,44 @@ export const requireAdmin = async (
 
     return next();
 };
+
+/**
+ * MIDDLEWARE 4: Super Admin Verification Interceptor
+ * Blocks access unless the user has the 'SUPER_ADMIN' role.
+ */
+export const requireSuperAdmin = async (
+    req: Request,
+    res: Response<ApiAuthErrorResponse>,
+    next: NextFunction,
+) => {
+    const lookupResult = await extractUserProfileFromToken(req);
+
+    if (lookupResult instanceof Error) {
+        const isExpired = lookupResult.name === "TokenExpiredError";
+        return res.status(401).json({
+            error: isExpired
+                ? "Access token session has expired."
+                : "Access token signature is completely invalid.",
+            code: isExpired ? "TOKEN_EXPIRED" : "TOKEN_INVALID",
+        });
+    }
+
+    if (!lookupResult) {
+        return res.status(401).json({
+            error: "Access denied. Valid session missing.",
+            code: "TOKEN_MISSING",
+        });
+    }
+
+    req.user = lookupResult;
+
+    if (req.user.role !== "SUPER_ADMIN") {
+        return res.status(403).json({
+            error: "Access forbidden. Super Admin privileges required.",
+            code: "TOKEN_INVALID",
+        });
+    }
+
+    return next();
+};
+
