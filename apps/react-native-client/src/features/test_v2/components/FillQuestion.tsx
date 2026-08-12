@@ -18,6 +18,7 @@ interface Props {
     showFeedback?: boolean;
     evalResult?: QuestionEvalResult | null;
     disabled?: boolean;
+    scoreMultiplier?: number;
 }
 
 export default function FillQuestion({
@@ -27,6 +28,7 @@ export default function FillQuestion({
     showFeedback,
     evalResult,
     disabled,
+    scoreMultiplier = 1,
 }: Props) {
     const data = question.answerData as FillAnswerData;
     const [localText, setLocalText] = useState(userAnswer?.typedAnswer ?? "");
@@ -49,7 +51,7 @@ export default function FillQuestion({
                         evalResult.isCorrect ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
                     ]}>
                         <Text style={evalResult.isCorrect ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
-                            {evalResult.isCorrect ? `+${formatScore(evalResult.scoreAwarded)}đ` : "+0đ"}
+                            {evalResult.isCorrect ? `+${formatScore(evalResult.scoreAwarded * scoreMultiplier)}đ` : "+0đ"}
                         </Text>
                     </View>
                 )}

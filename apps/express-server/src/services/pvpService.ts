@@ -656,6 +656,9 @@ export class PvpService {
                     });
                 });
 
+                // Brief 400ms grace period to let in-flight answer DB updates finish before querying leaderboard
+                await new Promise((r) => setTimeout(r, 400));
+
                 // 3. Fetch latest participant scores & correct answer
                 const currentParticipants = await prisma.pvpParticipant.findMany({
                     where: { roomId },

@@ -10,6 +10,7 @@ export interface PvpRealtimeState {
     timeLimitSeconds: number;
     currentQuestion: QuestionV2 | null;
     questionResult: {
+        questionIndex?: number;
         correctAnswerData: any;
         explanation: string | null;
         leaderboard: PvpParticipant[];
@@ -36,9 +37,16 @@ export function usePvpRealtime(
     const [currentQuestion, setCurrentQuestion] = useState<QuestionV2 | null>(
         initialRoom?.questions?.[initialRoom?.currentQuestionIndex ?? 0] ?? null
     );
-    const [questionResult, setQuestionResult] = useState<PvpRealtimeState["questionResult"]>(
-        initialRoom?.lastQuestionResult ?? null
-    );
+    const [questionResult, setQuestionResult] = useState<PvpRealtimeState["questionResult"]>(() => {
+        if (
+            initialRoom?.lastQuestionResult &&
+            initialRoom.lastQuestionResult.questionIndex === (initialRoom.currentQuestionIndex ?? 0) &&
+            (initialRoom.currentSubState === "RESULT" || initialRoom.currentSubState === "LEADERBOARD")
+        ) {
+            return initialRoom.lastQuestionResult;
+        }
+        return null;
+    });
     const [finalLeaderboard, setFinalLeaderboard] = useState<PvpLeaderboardEntry[] | null>(null);
     const [answeredUserIds, setAnsweredUserIds] = useState<string[]>([]);
     const [showLeaderboard, setShowLeaderboard] = useState(
@@ -66,31 +74,56 @@ export function usePvpRealtime(
         prevRanksRef.current = {};
     }, []);
 
+    // Capture the initial room snapshot once per roomCode so that parent re-renders
+    // (e.g. RTK Query refetch creating a new object reference) do not re-run the sync
+    // effect and overwrite realtime-driven state (questionResult, currentQuestionIndex, etc.)
+    const initialRoomSnapshotRef = useRef<{ roomCode: string | null; data: typeof initialRoomOrParticipants }>({
+        roomCode: null,
+        data: null,
+    });
+    if (initialRoomSnapshotRef.current.roomCode !== roomCode) {
+        initialRoomSnapshotRef.current = { roomCode, data: initialRoomOrParticipants };
+    }
+
     useEffect(() => {
-        if (initialRoom) {
-            setParticipants(initialRoom.participants ?? []);
-            if (initialRoom.status === "IN_PROGRESS") {
+        const snapshot = initialRoomSnapshotRef.current.data;
+        const snapshotRoom = snapshot && "code" in snapshot ? snapshot : null;
+        const snapshotParticipants = Array.isArray(snapshot)
+            ? snapshot
+            : (snapshotRoom?.participants ?? []);
+
+        if (snapshotRoom) {
+            setParticipants(snapshotRoom.participants ?? []);
+            if (snapshotRoom.status === "IN_PROGRESS") {
                 setIsGameStarted(true);
-                setCurrentQuestionIndex(initialRoom.currentQuestionIndex ?? 0);
-                setTotalQuestions(initialRoom.questionCount ?? 10);
-                setTimeLimitSeconds(initialRoom.timePerQuestion ?? 15);
-                if (initialRoom.questions && initialRoom.questions.length > 0) {
-                    setCurrentQuestion(initialRoom.questions[initialRoom.currentQuestionIndex ?? 0] ?? null);
+                setCurrentQuestionIndex(snapshotRoom.currentQuestionIndex ?? 0);
+                setTotalQuestions(snapshotRoom.questionCount ?? 10);
+                setTimeLimitSeconds(snapshotRoom.timePerQuestion ?? 15);
+                if (snapshotRoom.questions && snapshotRoom.questions.length > 0) {
+                    setCurrentQuestion(snapshotRoom.questions[snapshotRoom.currentQuestionIndex ?? 0] ?? null);
                 }
-                if (initialRoom.lastQuestionResult) {
-                    setQuestionResult(initialRoom.lastQuestionResult);
+                if (
+                    snapshotRoom.lastQuestionResult &&
+                    snapshotRoom.lastQuestionResult.questionIndex === (snapshotRoom.currentQuestionIndex ?? 0) &&
+                    (snapshotRoom.currentSubState === "RESULT" || snapshotRoom.currentSubState === "LEADERBOARD")
+                ) {
+                    setQuestionResult(snapshotRoom.lastQuestionResult);
+                } else {
+                    setQuestionResult(null);
                 }
-                if (initialRoom.currentSubState === "LEADERBOARD") {
+                if (snapshotRoom.currentSubState === "LEADERBOARD") {
                     setShowLeaderboard(true);
+                } else {
+                    setShowLeaderboard(false);
                 }
             }
-        } else if (initialParticipants && initialParticipants.length > 0) {
-            setParticipants(initialParticipants);
+        } else if (snapshotParticipants && snapshotParticipants.length > 0) {
+            setParticipants(snapshotParticipants);
         } else if (!roomCode) {
             setParticipants([]);
             setIsGameStarted(false);
         }
-    }, [roomCode, initialRoomOrParticipants]);
+    }, [roomCode]);
 
     useEffect(() => {
         if (!roomCode) return;
@@ -159,6 +192,7 @@ export function usePvpRealtime(
 
                 setRankChanges(changes);
                 setQuestionResult({
+                    questionIndex: payload.questionIndex,
                     correctAnswerData: payload.correctAnswerData,
                     explanation: payload.explanation ?? null,
                     leaderboard,

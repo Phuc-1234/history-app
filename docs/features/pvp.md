@@ -1,6 +1,6 @@
 # Real-time PVP Competition Feature Documentation
 
-**Current Version:** 2.3  
+**Current Version:** 2.4  
 **Module Location:**
 - Backend Routes: [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts)
 - Backend Controllers: [pvpController.ts](file:///e:/history-app/apps/express-server/src/controllers/pvpController.ts)
@@ -380,6 +380,27 @@ sequenceDiagram
 #### 8. Back Button Navigation & Exit Confirmation Upgrade
 - **Top Bar Back Button**: Added `onBackPress` handlers to `branchConfig` in both [PvpMainScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpMainScreen.tsx) and [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx) to ensure the top bar back button executes expected navigation across main tabs, lobby, and active game screens.
 - **In-Progress Hardware Back Interception**: Intercepted hardware back button presses (`BackHandler`) during active `IN_PROGRESS` gameplay in [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx). Pressing the phone's back button triggers the exit modal confirmation instead of executing an unconfirmed soft-leave.
+
+#### 9. In-Place Answer Option Marking & Floating Explanation Drawer
+- **In-Place Option Marking**: Replaced bottom text correct answer previews with in-place option status marking using `test_v2` question components (`ChooseQuestion`, `FillQuestion`, `MatchQuestion`) in [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx):
+  - **Selected & Correct**: Green background/border with check mark icon and score badge (`+points`).
+  - **Selected & Wrong**: Red background/border with X icon and score badge (`-points` or `+0đ`).
+
+### Version 2.4
+
+#### 1. PVP 400x Score Scale Feedback Alignment
+- Added optional `scoreMultiplier?: number` prop (default `1`) to `test_v2` question components ([ChooseQuestion.tsx](file:///e:/history-app/apps/react-native-client/src/features/test_v2/components/ChooseQuestion.tsx), [FillQuestion.tsx](file:///e:/history-app/apps/react-native-client/src/features/test_v2/components/FillQuestion.tsx), [MatchQuestion.tsx](file:///e:/history-app/apps/react-native-client/src/features/test_v2/components/MatchQuestion.tsx)).
+- Passed `scoreMultiplier={400}` from [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx) to render PVP scaled score badges (`+100đ`, `+67đ`, `+200đ`) instead of test-v2 decimal test scores (`+0.25đ`, `+0.17đ`).
+
+#### 2. Timeout Answer Submission & Server Race Condition Fix
+- Added 400ms server grace period buffer in [pvpService.ts](file:///e:/history-app/apps/express-server/src/services/pvpService.ts) after question timer expiration before querying DB for `QUESTION_RESULT` leaderboard broadcast.
+- Updated FE auto-submit trigger in [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx) to fire at `<=` 1s remaining.
+- Fixed result feedback correctness calculation in [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx) using `evalResult ? evalResult.isCorrect : (myPointGain > 0)` to guarantee mascot drawer title aligns with option green/red marking.
+
+#### 3. Stale Question Result State Leakage Fix
+- Fixed issue where leftover `questionResult` state (from initial room load or previous question result) leaked into active question state during gameplay.
+- Added `activeQuestionResult` memo in [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx) filtering `questionResult` by `questionIndex === currentQuestionIndex`.
+- Added `questionIndex` filtering and state reset guard in [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts) so previous question correct answer data is cleared when moving to the next question, preventing random options from rendering in dashed "missed" style during active question answering.
 
 ---
 
