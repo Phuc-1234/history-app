@@ -240,53 +240,49 @@ export function useSubscriptionPayment() {
                     });
                     pollStatus(orderId, provider);
 
+                    // App-to-App via native ZaloPay SDK (primary path)
                     if (zpTransToken && ReactNativeZalopay) {
                         try {
-                            console.log("[ZaloPay Subscription] Initiating native payment flow with token:", zpTransToken);
+                            console.log("[ZaloPay Subscription] Calling native payOrder with zpTransToken:", zpTransToken);
+                            // init SDK first (safe to call multiple times)
                             ReactNativeZalopay.init(2554, true);
                             const result = await ReactNativeZalopay.payOrder(zpTransToken);
-                            console.log("[ZaloPay Subscription] Native result:", result);
-
-                            if (result.status === "cancelled") {
-                                stopPolling();
-                                setState({ phase: "failed", error: "Giao dịch đã bị hủy." });
-                                return;
-                            } else if (result.status === "error") {
-                                stopPolling();
-                                setState({ phase: "failed", error: `Lỗi thanh toán ZaloPay: ${result.errorCode || "Unknown"}` });
-                                return;
-                            } else if (result.status === "success") {
+                            console.log("[ZaloPay Subscription] payOrder result:", result);
+                            if (result?.status === "success") {
                                 await checkStatusImmediately(orderId);
-                                return;
+                            } else if (result?.status === "cancelled") {
+                                stopPolling();
+                                setState({ phase: "failed", error: "Bạn đã hủy thanh toán ZaloPay." });
+                            } else {
+                                stopPolling();
+                                setState({
+                                    phase: "failed",
+                                    error: result?.message || "Thanh toán ZaloPay thất bại. Vui lòng thử lại.",
+                                });
                             }
-                        } catch (sdkError: any) {
-                            console.warn("[ZaloPay Subscription] SDK error, falling back to direct intent:", sdkError);
+                        } catch (nativeErr: any) {
+                            console.warn("[ZaloPay Subscription] Native payOrder failed, falling back to Linking:", nativeErr);
+                            // Fallback: open payUrl (Universal Link / browser)
+                            if (payUrl) {
+                                try {
+                                    await Linking.openURL(payUrl);
+                                } catch (linkErr) {
+                                    console.warn("[ZaloPay Subscription] Linking.openURL also failed:", linkErr);
+                                    setState({ phase: "failed", error: "Không thể mở ZaloPay. Vui lòng thử lại." });
+                                }
+                            }
                         }
-                    }
-
-                    // Direct Android Package Intent to open ZaloPay app directly without Chrome/Web
-                    if (zpTransToken) {
+                    } else if (payUrl) {
+                        // Native SDK not available (Expo Go) — fallback to URL
+                        console.log("[ZaloPay Subscription] Native SDK unavailable, opening payUrl:", payUrl);
                         try {
-                            const directIntent = `intent://app.zalopay.vn/pay?zptranstoken=${zpTransToken}#Intent;scheme=zalopay;package=vn.com.vng.zalopay;end`;
-                            console.log("[ZaloPay Subscription] Triggering direct package intent:", directIntent);
-                            const canOpen = await Linking.canOpenURL(directIntent).catch(() => true);
-                            if (canOpen) {
-                                await Linking.openURL(directIntent);
-                                return;
-                            }
-                        } catch (intentErr) {
-                            console.warn("[ZaloPay Subscription] Direct intent failed, fallback to payUrl:", intentErr);
+                            await Linking.openURL(payUrl);
+                        } catch (linkErr) {
+                            console.warn("[ZaloPay Subscription] Linking.openURL failed:", linkErr);
+                            setState({ phase: "failed", error: "Không tìm thấy liên kết thanh toán ZaloPay." });
                         }
-                    }
-
-                    try {
-                        await Linking.openURL(payUrl);
-                    } catch (e) {
-                        console.warn("[ZaloPay Subscription] Linking error, falling back to WebBrowser:", e);
-                        const browserRes = await WebBrowser.openBrowserAsync(payUrl);
-                        if (browserRes.type === "cancel" || browserRes.type === "dismiss") {
-                            await checkStatusImmediately(orderId);
-                        }
+                    } else {
+                        setState({ phase: "failed", error: "Không tìm thấy liên kết thanh toán ZaloPay." });
                     }
                 } else {
                     setState({
@@ -329,67 +325,37 @@ export function useSubscriptionPayment() {
     const resumePayment = useCallback(async () => {
         if (state.phase !== "waiting") return;
 
-        const zpToken = state.zpTransToken;
-        const payUrl = state.payUrl;
-
-        // For ZaloPay: re-use native SDK or direct Android intent (same flow as subscribe)
-        if (state.provider === "ZALOPAY") {
-            // Try native ZaloPay SDK first
-            if (zpToken && ReactNativeZalopay) {
-                try {
-                    console.log("[Subscription Hook] Resuming via ZaloPay SDK:", zpToken);
-                    ReactNativeZalopay.init(2554, true);
-                    const result = await ReactNativeZalopay.payOrder(zpToken);
-                    console.log("[Subscription Hook] ZaloPay SDK resume result:", result);
-                    if (result.status === "cancelled") {
-                        stopPolling();
-                        setState({ phase: "failed", error: "Giao dịch đã bị hủy." });
-                    } else if (result.status === "error") {
-                        stopPolling();
-                        setState({ phase: "failed", error: `Lỗi thanh toán ZaloPay: ${result.errorCode || "Unknown"}` });
-                    } else if (result.status === "success") {
-                        await checkStatusImmediately(state.orderId);
-                    }
-                    return;
-                } catch (sdkError) {
-                    console.warn("[Subscription Hook] ZaloPay SDK resume failed, trying direct intent:", sdkError);
+        if (state.provider === "ZALOPAY" && state.zpTransToken && ReactNativeZalopay) {
+            try {
+                console.log("[Subscription Hook] Resuming via native payOrder:", state.zpTransToken);
+                ReactNativeZalopay.init(2554, true);
+                const result = await ReactNativeZalopay.payOrder(state.zpTransToken);
+                if (result?.status === "success") {
+                    await checkStatusImmediately(state.orderId);
+                } else if (result?.status === "cancelled") {
+                    stopPolling();
+                    setState({ phase: "failed", error: "Bạn đã hủy thanh toán ZaloPay." });
+                } else {
+                    stopPolling();
+                    setState({ phase: "failed", error: result?.message || "Thanh toán ZaloPay thất bại." });
                 }
+                return;
+            } catch (e) {
+                console.warn("[Subscription Hook] Native payOrder resume failed:", e);
             }
-
-            // Fallback: direct Android package intent to open ZaloPay app
-            if (zpToken) {
-                try {
-                    const directIntent = `intent://app.zalopay.vn/pay?zptranstoken=${zpToken}#Intent;scheme=zalopay;package=vn.com.vng.zalopay;end`;
-                    console.log("[Subscription Hook] Resuming via direct intent:", directIntent);
-                    await Linking.openURL(directIntent);
-                    return;
-                } catch (intentErr) {
-                    console.warn("[Subscription Hook] Direct intent resume failed, fallback to payUrl:", intentErr);
-                }
-            }
-
-            // Last resort: open payUrl via Linking (opens ZaloPay if installed, else web)
-            if (payUrl) {
-                try {
-                    await Linking.openURL(payUrl);
-                } catch (e) {
-                    console.error("[Subscription Hook] Linking resume failed:", e);
-                }
-            }
-            return;
         }
 
-        // For non-ZaloPay providers: open via WebBrowser
-        if (!payUrl) return;
+        if (!state.payUrl) return;
+
         try {
-            console.log("[Subscription Hook] Resuming payment for payUrl:", payUrl);
-            await WebBrowser.openBrowserAsync(payUrl);
+            console.log("[Subscription Hook] Resuming payment for payUrl:", state.payUrl);
+            await Linking.openURL(state.payUrl);
         } catch (e) {
-            console.warn("[Subscription Hook] WebBrowser resume failed, fallback to Linking:", e);
+            console.warn("[Subscription Hook] Linking resume failed, fallback to WebBrowser:", e);
             try {
-                await Linking.openURL(payUrl);
+                await WebBrowser.openBrowserAsync(state.payUrl);
             } catch (linkErr) {
-                console.error("[Subscription Hook] Linking resume failed:", linkErr);
+                console.error("[Subscription Hook] WebBrowser resume failed:", linkErr);
             }
         }
     }, [state, checkStatusImmediately, stopPolling]);

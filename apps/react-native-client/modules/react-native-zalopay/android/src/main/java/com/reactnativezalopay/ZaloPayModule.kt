@@ -19,11 +19,6 @@ class ZaloPayModule(private val reactContext: ReactApplicationContext) : ReactCo
 
     init {
         reactContext.addActivityEventListener(this)
-        try {
-            init(2554, true)
-        } catch (e: Throwable) {
-            println("[ZaloPayModule] Constructor init error: " + e.message)
-        }
     }
 
     override fun getName(): String {
@@ -32,42 +27,10 @@ class ZaloPayModule(private val reactContext: ReactApplicationContext) : ReactCo
 
     @ReactMethod
     fun init(appId: Int, isSandbox: Boolean) {
-        val env = if (isSandbox) Environment.SANDBOX else Environment.PRODUCTION
-        val context = reactContext.applicationContext
         try {
-            val sdkClass = ZaloPaySDK::class.java
-            var initialized = false
-            for (m in sdkClass.methods) {
-                if (m.name.lowercase().contains("init")) {
-                    try {
-                        val params = m.parameterTypes
-                        if (params.size == 2) {
-                            m.invoke(null, appId, env)
-                            initialized = true
-                            println("[ZaloPayModule] Initialized via static init(2 params)")
-                            break
-                        } else if (params.size == 3) {
-                            m.invoke(null, appId, context, env)
-                            initialized = true
-                            println("[ZaloPayModule] Initialized via static init(3 params)")
-                            break
-                        }
-                    } catch (e: Exception) {
-                    }
-                }
-            }
-            if (!initialized) {
-                val instance = ZaloPaySDK.getInstance()
-                for (m in instance.javaClass.methods) {
-                    if (m.name.lowercase().contains("init")) {
-                        try {
-                            m.invoke(instance, appId, env)
-                            println("[ZaloPayModule] Initialized via instance init")
-                            break
-                        } catch (e: Exception) {}
-                    }
-                }
-            }
+            val env = if (isSandbox) Environment.SANDBOX else Environment.PRODUCTION
+            ZaloPaySDK.init(appId, env)
+            println("[ZaloPayModule] Initialized appId=$appId sandbox=$isSandbox")
         } catch (e: Throwable) {
             println("[ZaloPayModule] Init exception: " + e.message)
         }
@@ -115,6 +78,10 @@ class ZaloPayModule(private val reactContext: ReactApplicationContext) : ReactCo
     }
 
     override fun onNewIntent(intent: Intent) {
-        ZaloPaySDK.getInstance().onResult(intent)
+        try {
+            ZaloPaySDK.getInstance().onResult(intent)
+        } catch (e: Throwable) {
+            println("[ZaloPayModule] onNewIntent error: " + e.message)
+        }
     }
 }
