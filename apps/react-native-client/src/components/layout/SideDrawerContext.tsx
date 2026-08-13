@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useSegments } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Zap, Coins, Swords } from "lucide-react-native";
+import { Zap, Coins, Swords, Flame } from "lucide-react-native";
 import { colors } from "../../theme/colors";
 import { typography } from "../../theme/typography";
 import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
@@ -284,7 +284,10 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                                 streakManager.openStreakDrawer();
                                             }}
                                         >
-                                            <Ionicons name="flame" size={14} color={colors.warning} />
+                                            <Flame
+                                                size={15}
+                                                color={data.hasCompletedToday ? "#FF4500" : colors.textMuted}
+                                            />
                                             <Text style={styles.chipText}>
                                                 {data.currentStreak}
                                             </Text>

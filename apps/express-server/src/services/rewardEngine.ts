@@ -15,19 +15,20 @@ type TxClient = Prisma.TransactionClient;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
-function utcDateString(d: Date): string {
-    return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+function getVnDateString(date: Date = new Date()): string {
+    const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    return vnTime.toISOString().slice(0, 10);
 }
 
-function yesterdayUtc(): string {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() - 1);
-    return utcDateString(d);
+function getVnYesterday(): string {
+    const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return getVnDateString(d);
 }
 
-function todayUtc(): string {
-    return utcDateString(new Date());
+function getVnToday(): string {
+    return getVnDateString(new Date());
 }
+
 
 /**
  * Maps a scopeType from UserTestLog to the corresponding RewardTriggerType for auto-pick tests.
@@ -476,15 +477,15 @@ export class RewardEngine {
             select: { lastTestPassedAt: true, lastXpGainedAt: true, currentStreak: true, highestStreak: true } as any,
         });
 
-        const today = todayUtc();
+        const today = getVnToday();
         let newStreak = (user as any).currentStreak;
-        const lastXpDate = (user as any).lastXpGainedAt ? utcDateString((user as any).lastXpGainedAt) : ((user as any).lastTestPassedAt ? utcDateString((user as any).lastTestPassedAt) : null);
+        const lastXpDate = (user as any).lastXpGainedAt ? getVnDateString((user as any).lastXpGainedAt) : ((user as any).lastTestPassedAt ? getVnDateString((user as any).lastTestPassedAt) : null);
 
         if (lastXpDate) {
             if (lastXpDate === today) {
                 // Already counted today — just return
                 return { consequences, totalXp, totalGold };
-            } else if (lastXpDate === yesterdayUtc()) {
+            } else if (lastXpDate === getVnYesterday()) {
                 // Consecutive day → increment
                 newStreak = (user as any).currentStreak + 1;
             } else {
@@ -702,9 +703,9 @@ export class RewardEngine {
             return 0;
         }
 
-        const lastXpDate = utcDateString(lastDate);
-        const today = todayUtc();
-        const yesterday = yesterdayUtc();
+        const lastXpDate = getVnDateString(lastDate);
+        const today = getVnToday();
+        const yesterday = getVnYesterday();
 
         if (lastXpDate === today || lastXpDate === yesterday) {
             // Streak is still valid

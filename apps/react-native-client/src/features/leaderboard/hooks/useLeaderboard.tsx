@@ -9,6 +9,7 @@ export interface DisplayUser {
     name: string;
     xp: number;
     streak: number;
+    hasCompletedToday?: boolean;
     avatar: string;
     equippedFrameUrl: string | null;
     isFriend: boolean;
@@ -70,6 +71,7 @@ export function useLeaderboard(myUserId?: string) {
                 name: user.name || "Ẩn danh",
                 xp: user.totalXp ?? 0,
                 streak: user.currentStreak ?? 0,
+                hasCompletedToday: user.hasCompletedToday ?? false,
                 avatar:
                     user.avatarUrl ||
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(

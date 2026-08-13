@@ -6,6 +6,7 @@ import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import { AvatarWithFrame } from "../../../components/ui";
 import { Ionicons } from "@expo/vector-icons";
+import { Flame } from "lucide-react-native";
 import { UserSocialBadges } from "./UserSocialBadges";
 
 interface RankingListProps {
@@ -73,7 +74,7 @@ export const RankingList: React.FC<RankingListProps> = ({
                         <Text style={styles.rowXp}>
                             {showStreak ? (
                                 <>
-                                    <Ionicons name="flame" size={14} color="#EA580C" />
+                                    <Flame size={14} color={item.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
                                     <Text> {item.streak} ngày</Text>
                                 </>
                             ) : (

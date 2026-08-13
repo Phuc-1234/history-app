@@ -1,6 +1,11 @@
 // services/gamificationService.ts
 import { prisma } from "@history-app/shared";
 
+function getVnDateString(date: Date = new Date()): string {
+    const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    return vnTime.toISOString().slice(0, 10);
+}
+
 export class GamificationService {
     async getLeaderboard(page = 1, limit = 20, sort: "xp" | "streak" = "xp") {
         const pageNum = Math.max(1, Math.floor(page));
@@ -36,6 +41,7 @@ export class GamificationService {
                 id: true,
                 profileImgUrl: true,
                 currentStreak: true,
+                lastXpGainedAt: true,
                 name: true,
                 totalXp: true,
                 tier: { select: { name: true, badgeImgUrl: true } } as any,
@@ -46,18 +52,24 @@ export class GamificationService {
             },
         });
 
-        const entries = users.map((u) => ({
-            id: u.id,
-            avatarUrl: u.profileImgUrl ?? null,
-            name: u.name,
-            tierName: u.tier?.name ?? null,
-            currentStreak: u.currentStreak ?? 0,
-            badgeImgUrl: u.tier?.badgeImgUrl ?? null,
-            totalXp: u.totalXp,
-            equippedFrameUrl: u.userEquippedItems.length > 0
-                ? u.userEquippedItems[0].itemDefinition.imgUrl
-                : null,
-        }));
+        const todayStr = getVnDateString(new Date());
+        const entries = users.map((u: any) => {
+            const lastXpStr = u.lastXpGainedAt ? getVnDateString(u.lastXpGainedAt) : null;
+            const hasCompletedToday = lastXpStr === todayStr;
+            return {
+                id: u.id,
+                avatarUrl: u.profileImgUrl ?? null,
+                name: u.name,
+                tierName: u.tier?.name ?? null,
+                currentStreak: u.currentStreak ?? 0,
+                hasCompletedToday,
+                badgeImgUrl: u.tier?.badgeImgUrl ?? null,
+                totalXp: u.totalXp,
+                equippedFrameUrl: u.userEquippedItems.length > 0
+                    ? u.userEquippedItems[0].itemDefinition.imgUrl
+                    : null,
+            };
+        });
 
         return { entries, total, page: pageNum, pageSize };
     }
@@ -160,21 +172,23 @@ export class GamificationService {
         let currentStreak = 0;
         let highestStreak = 0;
         let hasCompletedToday = false;
-        const dailyXp: { date: string; xp: number; dayName: string }[] = [];
 
-        // Build past 7 days dates (Monday to Sunday of current week)
         const now = new Date();
-        const todayIndex = (now.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
-        const mon = new Date(now);
-        mon.setUTCDate(now.getUTCDate() - todayIndex);
-        mon.setUTCHours(0, 0, 0, 0);
+        const vnNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+        const todayIndex = (vnNow.getUTCDay() + 6) % 7; // 0 = Mon, 6 = Sun
+        const monVn = new Date(vnNow);
+        monVn.setUTCDate(vnNow.getUTCDate() - todayIndex);
+        monVn.setUTCHours(0, 0, 0, 0);
+
+        const monUtcQuery = new Date(monVn.getTime() - 7 * 60 * 60 * 1000);
 
         const weekDayNames = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
         const dateMap = new Map<string, number>();
+        const dailyXp: { date: string; xp: number; dayName: string }[] = [];
 
         for (let i = 0; i < 7; i++) {
-            const d = new Date(mon);
-            d.setUTCDate(mon.getUTCDate() + i);
+            const d = new Date(monVn);
+            d.setUTCDate(monVn.getUTCDate() + i);
             const dStr = d.toISOString().slice(0, 10);
             dateMap.set(dStr, 0);
             dailyXp.push({ date: dStr, xp: 0, dayName: weekDayNames[i] });
@@ -199,19 +213,19 @@ export class GamificationService {
             const logs = await (prisma as any).userXpLog.findMany({
                 where: {
                     userId,
-                    createdAt: { gte: mon },
+                    createdAt: { gte: monUtcQuery },
                 },
                 select: { amount: true, createdAt: true },
             });
 
             logs.forEach((log: any) => {
-                const dStr = log.createdAt.toISOString().slice(0, 10);
+                const dStr = getVnDateString(log.createdAt);
                 if (dateMap.has(dStr)) {
                     dateMap.set(dStr, (dateMap.get(dStr) || 0) + log.amount);
                 }
             });
 
-            const todayStr = now.toISOString().slice(0, 10);
+            const todayStr = getVnDateString(now);
             const todayXp = dateMap.get(todayStr) || 0;
             hasCompletedToday = todayXp > 0;
 
@@ -289,25 +303,27 @@ export class GamificationService {
     }
 
     async getMonthlyStreakCalendar(userId: string, year: number, month: number) {
-        const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-        const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59));
+        const startOfMonthVn = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+        const startOfMonthUtc = new Date(startOfMonthVn.getTime() - 7 * 60 * 60 * 1000);
+        const endOfMonthVn = new Date(Date.UTC(year, month, 0, 23, 59, 59));
+        const endOfMonthUtc = new Date(endOfMonthVn.getTime() - 7 * 60 * 60 * 1000);
 
         const logs = await (prisma as any).userXpLog.findMany({
             where: {
                 userId,
-                createdAt: { gte: startOfMonth, lte: endOfMonth },
+                createdAt: { gte: startOfMonthUtc, lte: endOfMonthUtc },
             },
             select: { amount: true, createdAt: true },
         });
 
         const dateMap = new Map<string, number>();
         logs.forEach((log: any) => {
-            const dStr = log.createdAt.toISOString().slice(0, 10);
+            const dStr = getVnDateString(log.createdAt);
             dateMap.set(dStr, (dateMap.get(dStr) || 0) + log.amount);
         });
 
         const dailyXp: { date: string; xp: number }[] = [];
-        const daysInMonth = endOfMonth.getUTCDate();
+        const daysInMonth = endOfMonthVn.getUTCDate();
 
         for (let day = 1; day <= daysInMonth; day++) {
             const d = new Date(Date.UTC(year, month - 1, day));

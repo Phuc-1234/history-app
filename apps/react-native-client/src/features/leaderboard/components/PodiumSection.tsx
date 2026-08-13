@@ -5,6 +5,7 @@ import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { AvatarWithFrame } from "../../../components/ui";
 import { Ionicons } from "@expo/vector-icons";
+import { Flame } from "lucide-react-native";
 import { UserSocialBadges } from "./UserSocialBadges";
 
 interface PodiumSectionProps {
@@ -69,7 +70,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     <Text style={styles.rank2Xp}>
                         {showStreak ? (
                             <>
-                                <Ionicons name="flame" size={12} color="#EA580C" />
+                                <Flame size={13} color={user2.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
                                 <Text> {user2.streak} ngày</Text>
                             </>
                         ) : (
@@ -124,7 +125,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     <Text style={styles.rank1Xp}>
                         {showStreak ? (
                             <>
-                                <Ionicons name="flame" size={14} color="#EA580C" />
+                                <Flame size={15} color={user1.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
                                 <Text> {user1.streak} ngày</Text>
                             </>
                         ) : (
@@ -172,7 +173,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                     <Text style={styles.rank3Xp}>
                         {showStreak ? (
                             <>
-                                <Ionicons name="flame" size={12} color="#EA580C" />
+                                <Flame size={13} color={user3.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
                                 <Text> {user3.streak} ngày</Text>
                             </>
                         ) : (
