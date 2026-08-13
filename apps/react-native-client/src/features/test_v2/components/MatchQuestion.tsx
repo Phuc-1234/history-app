@@ -28,6 +28,7 @@ interface Props {
     showFeedback?: boolean;
     evalResult?: QuestionEvalResult | null;
     disabled?: boolean;
+    scoreMultiplier?: number;
 }
 
 const normalizePairs = (rawPairs: any[]): { left: string; right: string }[] => {
@@ -113,6 +114,7 @@ export default function MatchQuestion({
     showFeedback,
     evalResult,
     disabled,
+    scoreMultiplier = 1,
 }: Props) {
     const data = question.answerData as MatchAnswerData;
     const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
@@ -355,7 +357,7 @@ export default function MatchQuestion({
                             evalResult.scoreAwarded > 0 ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
                         ]}>
                             <Text style={evalResult.scoreAwarded > 0 ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
-                                {evalResult.scoreAwarded > 0 ? `+${formatScore(evalResult.scoreAwarded)}đ` : "+0đ (Cần đúng tất cả)"}
+                                {evalResult.scoreAwarded > 0 ? `+${formatScore(evalResult.scoreAwarded * scoreMultiplier)}đ` : "+0đ (Cần đúng tất cả)"}
                             </Text>
                         </View>
                     </View>
@@ -426,7 +428,7 @@ export default function MatchQuestion({
                                         (isPairCorrect && evalResult.scoreAwarded > 0) ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
                                     ]}>
                                         <Text style={(isPairCorrect && evalResult.scoreAwarded > 0) ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
-                                            {(isPairCorrect && evalResult.scoreAwarded > 0) ? `+${formatScore(evalResult.scoreAwarded)}đ` : "+0đ"}
+                                            {(isPairCorrect && evalResult.scoreAwarded > 0) ? `+${formatScore(evalResult.scoreAwarded * scoreMultiplier)}đ` : "+0đ"}
                                         </Text>
                                     </View>
                                 </View>

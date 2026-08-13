@@ -44,6 +44,93 @@ import { supabase } from "../config/supabaseClient";
 import { contentService } from "./contentService";
 
 
+// ─── Helpers: build AdminQuestionAnswerDto[] từ answers table VÀ answerDataJson ─
+// Một số câu (vd. Đúng/Sai, AI-generated) không có records trong question_answers
+// mà lưu đáp án trong field JSON `answerDataJson`. Hàm này parse JSON đó ra
+// để admin luôn thấy đầy đủ đáp án bất kể nguồn lưu trữ.
+type RawAnswer = {
+    id: number;
+    content: string;
+    isCorrect: boolean | null;
+    leftText: string | null;
+    rightText: string | null;
+    correctAnswer: string | null;
+};
+
+function buildAnswers(
+    type: string,
+    dbAnswers: RawAnswer[],
+    answerDataJson: any,
+): RawAnswer[] {
+    // 1) Nếu đã có records trong table → dùng luôn
+    if (Array.isArray(dbAnswers) && dbAnswers.length > 0) {
+        return dbAnswers.map(a => ({
+            id: a.id,
+            content: a.content,
+            isCorrect: a.isCorrect,
+            leftText: a.leftText ?? null,
+            rightText: a.rightText ?? null,
+            correctAnswer: a.correctAnswer ?? null,
+        }));
+    }
+
+    // 2) Parse answerDataJson theo type
+    const data = answerDataJson && typeof answerDataJson === "object" ? answerDataJson : null;
+    if (!data) return [];
+
+    if (type === "CHOOSE") {
+        // { options: ["A","B","C"], correctOption: [0,2] }
+        const options: string[] = Array.isArray(data.options) ? data.options : [];
+        const correctIdx: number[] = Array.isArray(data.correctOption) ? data.correctOption : [];
+        return options.map((opt, idx) => ({
+            id: -(idx + 1), // id âm để phân biệt với DB record
+            content: String(opt ?? ""),
+            isCorrect: correctIdx.includes(idx),
+            leftText: null,
+            rightText: null,
+            correctAnswer: null,
+        }));
+    }
+
+    if (type === "FILL") {
+        // { acceptedAnswers: ["938","năm 938"] }
+        const accepted: string[] = Array.isArray(data.acceptedAnswers) ? data.acceptedAnswers : [];
+        return accepted.map((ans, idx) => ({
+            id: -(idx + 1),
+            content: String(ans ?? ""),
+            isCorrect: true,
+            leftText: null,
+            rightText: null,
+            correctAnswer: String(ans ?? ""),
+        }));
+    }
+
+    if (type === "MATCH") {
+        // { pairs: [ {left: right}, ... ] }
+        const pairs: any[] = Array.isArray(data.pairs) ? data.pairs : [];
+        const result: RawAnswer[] = [];
+        let idCounter = -1;
+        for (const pair of pairs) {
+            if (pair && typeof pair === "object") {
+                for (const [left, right] of Object.entries(pair)) {
+                    result.push({
+                        id: idCounter--,
+                        content: "",
+                        isCorrect: true,
+                        leftText: String(left ?? ""),
+                        rightText: String(right ?? ""),
+                        correctAnswer: null,
+                    });
+                }
+            }
+        }
+        return result;
+    }
+
+    return [];
+}
+
+
 export class AdminService {
     // ─────────────────────────────── OVERVIEW STATS ───────────────────────────
 
@@ -295,7 +382,12 @@ export class AdminService {
                 COUNT(*)                            AS total_answers,
                 COUNT(*) FILTER (
                     WHERE a.score_awarded < a.max_score
-                )                                   AS wrong_count
+                )                                   AS wrong_count,
+                CASE
+                    WHEN COUNT(*) > 0
+                    THEN 1 - AVG((a.score_awarded / a.max_score)::decimal)
+                    ELSE 0
+                END                                 AS loss_rate
             FROM user_answer_logs a
             JOIN questions q ON q.id = a.question_id
             WHERE a.max_score > 0
@@ -303,7 +395,8 @@ export class AdminService {
               AND a.answered_at >= ${start}
             GROUP BY a.question_id, q.prompt_text, q.type, q.difficulty
             ORDER BY
-                (COUNT(*) FILTER (WHERE a.score_awarded < a.max_score)) DESC,
+                loss_rate DESC,
+                COUNT(*) FILTER (WHERE a.score_awarded < a.max_score) DESC,
                 COUNT(*) DESC
             LIMIT ${safeLimit}
         `;
@@ -314,7 +407,12 @@ export class AdminService {
                 COUNT(*)                            AS total,
                 COUNT(*) FILTER (
                     WHERE a.score_awarded < a.max_score
-                )                                   AS wrong_count
+                )                                   AS wrong_count,
+                CASE
+                    WHEN COUNT(*) > 0
+                    THEN 1 - AVG((a.score_awarded / a.max_score)::decimal)
+                    ELSE 0
+                END                                 AS loss_rate
             FROM user_answer_logs a
             WHERE a.max_score > 0
               AND a.answered_at IS NOT NULL
@@ -325,26 +423,27 @@ export class AdminService {
         const topWrong = topRows.map((r) => {
             const total = Number(r.total_answers) || 0;
             const wrong = Number(r.wrong_count) || 0;
-            const text = String(r.prompt_text ?? "");
+            const loss = Number(r.loss_rate) || 0;
             return {
                 questionId: Number(r.question_id),
-                promptText: text.length > 80 ? text.slice(0, 80) + "…" : text,
+                promptText: String(r.prompt_text ?? ""),
                 type: String(r.question_type),
                 difficulty: Number(r.difficulty) || 1,
                 totalAnswers: total,
                 wrongCount: wrong,
-                wrongRate: total > 0 ? Math.round((wrong / total) * 1000) / 10 : 0,
+                wrongRate: total > 0 ? Math.round(loss * 1000) / 10 : 0,
             };
         });
 
         const typeBreakdown = typeRows.map((r) => {
             const total = Number(r.total) || 0;
             const wrong = Number(r.wrong_count) || 0;
+            const loss = Number(r.loss_rate) || 0;
             return {
                 type: String(r.question_type),
                 total,
                 wrongCount: wrong,
-                wrongRate: total > 0 ? Math.round((wrong / total) * 1000) / 10 : 0,
+                wrongRate: total > 0 ? Math.round(loss * 1000) / 10 : 0,
             };
         });
 
@@ -810,15 +909,35 @@ export class AdminService {
             lessonId: q.lessonId,
             sectionId: q.sectionId,
             nodeId: q.nodeId,
-            answers: q.answers.map(a => ({
-                id: a.id,
-                content: a.content,
-                isCorrect: a.isCorrect,
-                leftText: a.leftText ?? null,
-                rightText: a.rightText ?? null,
-                correctAnswer: a.correctAnswer ?? null,
-            })),
+            answers: buildAnswers(q.type, q.answers as RawAnswer[], q.answerDataJson),
         }));
+    }
+
+    async getQuestionById(id: number): Promise<AdminQuestionDto | null> {
+        const question = await prisma.question.findUnique({
+            where: { id },
+            include: { answers: true },
+        });
+        if (!question) return null;
+
+        return {
+            id: question.id,
+            type: question.type,
+            difficulty: question.difficulty,
+            promptText: question.promptText,
+            document: question.document ?? null,
+            explanation: question.explanation ?? null,
+            isActive: question.isActive,
+            scopeId: question.scopeId,
+            scopeType: question.scopeType,
+            answerDataJson: question.answerDataJson ?? null,
+            gradeId: question.gradeId,
+            topicId: question.topicId,
+            lessonId: question.lessonId,
+            sectionId: question.sectionId,
+            nodeId: question.nodeId,
+            answers: buildAnswers(question.type, question.answers as RawAnswer[], question.answerDataJson),
+        };
     }
 
     async createQuestion(data: CreateQuestionBody): Promise<AdminQuestionDto> {
@@ -1828,9 +1947,192 @@ export class AdminService {
 
         return true;
     }
+
+    /**
+     * AI Token Usage Statistics & User Rankings
+     */
+    async getAiUsageStats(options: {
+        days?: number | 'all';
+        startDate?: string;
+        endDate?: string;
+        userId?: string;
+    }) {
+        const { days = 30, startDate, endDate, userId } = options;
+
+        const now = new Date();
+        const ictToday = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+        const todayStr = ictToday.toISOString().slice(0, 10);
+
+        let startStr: string | undefined;
+        let endStr: string | undefined = todayStr;
+
+        if (startDate && endDate) {
+            startStr = startDate;
+            endStr = endDate;
+        } else if (days !== 'all' && typeof days === 'number' && days > 0) {
+            const startDateObj = new Date(ictToday);
+            startDateObj.setDate(startDateObj.getDate() - (days - 1));
+            startStr = startDateObj.toISOString().slice(0, 10);
+        }
+
+        // Build date filter for UserAiQuota query
+        const quotaWhere: any = {};
+        if (startStr && endStr) {
+            quotaWhere.date = { gte: startStr, lte: endStr };
+        } else if (startStr) {
+            quotaWhere.date = { gte: startStr };
+        } else if (endStr) {
+            quotaWhere.date = { lte: endStr };
+        }
+
+        if (userId) {
+            quotaWhere.userId = userId;
+        }
+
+        // Fetch quotas for the specified period
+        const periodQuotas = await prisma.userAiQuota.findMany({
+            where: quotaWhere,
+            select: {
+                userId: true,
+                date: true,
+                tokensUsed: true,
+            },
+        });
+
+        // 1. Time Series Chart Data
+        const dailyMap = new Map<string, { totalTokens: number; userSet: Set<string> }>();
+
+        periodQuotas.forEach(q => {
+            if (!dailyMap.has(q.date)) {
+                dailyMap.set(q.date, { totalTokens: 0, userSet: new Set() });
+            }
+            const entry = dailyMap.get(q.date)!;
+            entry.totalTokens += q.tokensUsed;
+            entry.userSet.add(q.userId);
+        });
+
+        // Fill missing dates if range specified
+        const timeSeries: Array<{ date: string; totalTokens: number; activeUsersCount: number }> = [];
+
+        if (startStr && endStr) {
+            const curr = new Date(startStr);
+            const endObj = new Date(endStr);
+            while (curr <= endObj) {
+                const dStr = curr.toISOString().slice(0, 10);
+                const data = dailyMap.get(dStr);
+                timeSeries.push({
+                    date: dStr,
+                    totalTokens: data ? data.totalTokens : 0,
+                    activeUsersCount: data ? data.userSet.size : 0,
+                });
+                curr.setDate(curr.getDate() + 1);
+            }
+        } else {
+            const sortedDates = Array.from(dailyMap.keys()).sort();
+            sortedDates.forEach(dStr => {
+                const data = dailyMap.get(dStr)!;
+                timeSeries.push({
+                    date: dStr,
+                    totalTokens: data.totalTokens,
+                    activeUsersCount: data.userSet.size,
+                });
+            });
+        }
+
+        // 2. User Ranking Data (Period & All-Time)
+        // Aggregate tokens per user in period
+        const userPeriodMap = new Map<string, number>();
+        periodQuotas.forEach(q => {
+            userPeriodMap.set(q.userId, (userPeriodMap.get(q.userId) || 0) + q.tokensUsed);
+        });
+
+        // Fetch all-time token totals grouped by user
+        const allTimeQuotas = await prisma.userAiQuota.groupBy({
+            by: ['userId'],
+            _sum: {
+                tokensUsed: true,
+            },
+        });
+
+        const allTimeMap = new Map<string, number>();
+        allTimeQuotas.forEach(g => {
+            allTimeMap.set(g.userId, g._sum.tokensUsed || 0);
+        });
+
+        // Get all unique user IDs involved
+        const periodUserIds = Array.from(userPeriodMap.keys());
+        const targetUserIds = periodUserIds.length > 0 ? periodUserIds : Array.from(allTimeMap.keys());
+
+        // Fetch user profiles & session counts
+        const users = await prisma.user.findMany({
+            where: { id: { in: targetUserIds } },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                profileImgUrl: true,
+                role: true,
+                isPro: true,
+                proExpiresAt: true,
+                _count: {
+                    select: {
+                        aiChatSessions: true,
+                    },
+                },
+            },
+        });
+
+        const totalTokensInPeriod = periodQuotas.reduce((acc, q) => acc + q.tokensUsed, 0);
+
+        const rankings = users
+            .map(u => {
+                const tokensInPeriod = userPeriodMap.get(u.id) || 0;
+                const tokensAllTime = allTimeMap.get(u.id) || 0;
+                const isUserPro = Boolean(u.isPro && u.proExpiresAt && u.proExpiresAt > now);
+                const sharePercent = totalTokensInPeriod > 0 ? (tokensInPeriod / totalTokensInPeriod) * 100 : 0;
+
+                return {
+                    userId: u.id,
+                    name: u.name,
+                    email: u.email,
+                    profileImgUrl: u.profileImgUrl,
+                    role: u.role,
+                    isPro: isUserPro,
+                    tokensInPeriod,
+                    tokensAllTime,
+                    sessionCount: u._count.aiChatSessions,
+                    sharePercent: Math.round(sharePercent * 10) / 10,
+                };
+            })
+            .sort((a, b) => b.tokensInPeriod - a.tokensInPeriod || b.tokensAllTime - a.tokensAllTime)
+            .map((item, index) => ({
+                rank: index + 1,
+                ...item,
+            }));
+
+        // 3. Summary metrics
+        const activeUsersCount = rankings.filter(r => r.tokensInPeriod > 0).length;
+        const avgTokensPerUser = activeUsersCount > 0 ? Math.round(totalTokensInPeriod / activeUsersCount) : 0;
+        const topUserTokens = rankings.length > 0 ? rankings[0].tokensInPeriod : 0;
+
+        return {
+            summary: {
+                totalTokensInPeriod,
+                activeUsersCount,
+                avgTokensPerUser,
+                topUserTokens,
+                periodDays: startStr && endStr ? Math.ceil((new Date(endStr).getTime() - new Date(startStr).getTime()) / (1000 * 3600 * 24)) + 1 : 'all',
+                startStr,
+                endStr,
+            },
+            timeSeries,
+            rankings,
+        };
+    }
 }
 
 export const adminService = new AdminService();
+
 
 
 

@@ -43,3 +43,6 @@ Android Gradle Plugin (AGP) prevents custom library modules from using direct `i
        implementation files("../../modules/react-native-zalopay/android/libs/zpdk-release-v3.1.aar")
    }
    ```
+
+> [!IMPORTANT]
+   > Since the `android` folder is generated/modified by `npx expo prebuild` and is git-ignored, these changes to `apps/react-native-client/android/app/build.gradle` must be checked and re-applied manually before building if `prebuild` or `prebuild --clean` has been executed.

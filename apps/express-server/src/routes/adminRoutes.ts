@@ -10,6 +10,7 @@ import {
     getTestActivitySeries,
     getTestOverview,
     getQuestionStats,
+    getAiUsageStats,
     createGrade,
     updateGrade,
     deleteGrade,
@@ -36,6 +37,7 @@ import {
     updateVideo,
     deleteVideo,
     listQuestions,
+    getQuestionById,
     createQuestion,
     updateQuestion,
     deleteQuestion,
@@ -119,6 +121,11 @@ router.get("/stats/test-overview", getTestOverview);
 // GET    /api/admin/stats/question-stats?days=30&limit=10
 // Top câu dễ sai + phân bố đúng/sai theo loại câu hỏi.
 router.get("/stats/question-stats", getQuestionStats);
+
+// GET    /api/admin/stats/ai-usage?days=30&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&userId=...
+// Thống kê AI token usage và xếp hạng người dùng.
+router.get("/stats/ai-usage", getAiUsageStats);
+
 
 // ─── Feedback ─────────────────────────────────────────────────────────────────
 // GET    /api/admin/feedback
@@ -211,6 +218,9 @@ router.delete("/videos/:videoId", requireSuperAdmin, deleteVideo);
 // ─── Question ─────────────────────────────────────────────────────────────────
 // GET    /api/admin/questions
 router.get("/questions", listQuestions);
+
+// GET    /api/admin/questions/:questionId
+router.get("/questions/:questionId", getQuestionById);
 
 // POST   /api/admin/questions
 router.post("/questions", createQuestion);

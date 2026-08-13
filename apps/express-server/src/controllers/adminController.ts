@@ -124,6 +124,31 @@ export const getQuestionStats = async (req: Request, res: Response) => {
     }
 };
 
+/**
+ * GET /api/admin/stats/ai-usage?days=30&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&userId=...
+ * Thống kê AI token usage và xếp hạng người dùng.
+ */
+export const getAiUsageStats = async (req: Request, res: Response) => {
+    try {
+        const daysParam = req.query.days;
+        const days = daysParam === 'all' ? 'all' : (Number(daysParam) || 30);
+        const startDate = req.query.startDate ? String(req.query.startDate) : undefined;
+        const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
+        const userId = req.query.userId ? String(req.query.userId) : undefined;
+
+        const data = await adminService.getAiUsageStats({
+            days,
+            startDate,
+            endDate,
+            userId,
+        });
+        return res.json(data);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch AI usage stats" });
+    }
+};
+
+
 // ─────────────────────────────── GRADE ────────────────────────────────────────
 
 export const createGrade = async (
@@ -612,6 +637,20 @@ export const listQuestions = async (req: Request, res: Response) => {
     } catch (err) {
         console.error("List questions error:", err);
         return res.status(500).json({ error: "Failed to list questions." });
+    }
+};
+
+export const getQuestionById = async (req: Request<{ questionId: string }>, res: Response) => {
+    try {
+        const questionId = Number(req.params.questionId);
+        if (Number.isNaN(questionId)) return res.status(400).json({ error: "Invalid questionId." });
+
+        const question = await adminService.getQuestionById(questionId);
+        if (!question) return res.status(404).json({ error: "Question not found." });
+        return res.status(200).json(question);
+    } catch (err) {
+        console.error("Get question error:", err);
+        return res.status(500).json({ error: "Failed to get question." });
     }
 };
 

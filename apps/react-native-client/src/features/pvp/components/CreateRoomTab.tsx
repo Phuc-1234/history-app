@@ -77,7 +77,7 @@ export function CreateRoomTab({
     // Collapsible states
     const [isScopeCollapsed, setIsScopeCollapsed] = useState<boolean>(true);
     const [isQuestionConfigCollapsed, setIsQuestionConfigCollapsed] = useState<boolean>(false);
-    const [isTransitionConfigCollapsed, setIsTransitionConfigCollapsed] = useState<boolean>(false);
+
 
     // Modal picker state
     const [activePicker, setActivePicker] = useState<PickerType>(null);
@@ -85,7 +85,7 @@ export function CreateRoomTab({
     const [questionCount, setQuestionCount] = useState<number>(initialQuestionCount ?? 10);
     const [questionCountInput, setQuestionCountInput] = useState<string>((initialQuestionCount ?? 10).toString());
     const [timePerQuestion, setTimePerQuestion] = useState<number>(15);
-    const [autoNext, setAutoNext] = useState<boolean>(true);
+
     const [transitionInterval, setTransitionInterval] = useState<number>(5);
     const [isPublic, setIsPublic] = useState<boolean>(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -222,6 +222,7 @@ export function CreateRoomTab({
                 return;
             }
 
+            const autoNext = transitionInterval > 0;
             const room = await createRoomMut({
                 questionCount: finalCount,
                 timePerQuestion,
@@ -614,7 +615,7 @@ export function CreateRoomTab({
                         <Text style={styles.cardTitle}>Cấu hình câu hỏi</Text>
                         {isQuestionConfigCollapsed && (
                             <Text style={styles.cardSubSummary}>
-                                {questionCount} câu • {timePerQuestion}s/câu
+                                {questionCount} câu • {timePerQuestion}s/câu • chuyển: {transitionInterval === 0 ? "không có" : `${transitionInterval}s`}
                             </Text>
                         )}
                     </View>
@@ -693,60 +694,11 @@ export function CreateRoomTab({
                                 </TouchableOpacity>
                             ))}
                         </View>
-                    </View>
-                )}
-            </View>
-
-            {/* CONTAINER 3: Transition mode & interval (Collapsible, uncollapsed by default) */}
-            <View style={styles.cardContainer}>
-                <TouchableOpacity
-                    style={styles.cardHeader}
-                    onPress={() => setIsTransitionConfigCollapsed(!isTransitionConfigCollapsed)}
-                    activeOpacity={0.8}
-                >
-                    <View style={styles.headerLeft}>
-                        <Text style={styles.cardTitle}>Cấu hình chuyển câu</Text>
-                        {isTransitionConfigCollapsed && (
-                            <Text style={styles.cardSubSummary}>
-                                {autoNext ? "Tự động" : "Thủ công"} ({transitionInterval}s)
-                            </Text>
-                        )}
-                    </View>
-                    {isTransitionConfigCollapsed ? (
-                        <ChevronDown size={18} color={colors.neutral500} />
-                    ) : (
-                        <ChevronUp size={18} color={colors.neutral500} />
-                    )}
-                </TouchableOpacity>
-
-                {!isTransitionConfigCollapsed && (
-                    <View style={styles.cardBody}>
-                        {/* Auto Next Selection */}
-                        <Text style={styles.label}>Chuyển câu</Text>
-                        <View style={styles.optionsRow}>
-                            {[
-                                { key: true, label: "Tự động" },
-                                { key: false, label: "Thủ công" },
-                            ].map((opt) => (
-                                <TouchableOpacity
-                                    key={opt.key ? "auto" : "manual"}
-                                    style={[styles.compactPill, autoNext === opt.key && styles.pillActive]}
-                                    onPress={() => setAutoNext(opt.key)}
-                                >
-                                    <Text
-                                        style={[styles.pillText, autoNext === opt.key && styles.pillTextActive]}
-                                        numberOfLines={1}
-                                    >
-                                        {opt.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
 
                         {/* Transition Interval Selection */}
-                        <Text style={styles.label}>Thời gian chờ chuyển câu</Text>
+                        <Text style={styles.label}>Thời gian chuyển câu</Text>
                         <View style={styles.optionsRow}>
-                            {[3, 5, 8, 12].map((sec) => (
+                            {([0, 3, 5, 8, 12] as number[]).map((sec) => (
                                 <TouchableOpacity
                                     key={sec}
                                     style={[styles.compactPill, transitionInterval === sec && styles.pillActive]}
@@ -756,7 +708,7 @@ export function CreateRoomTab({
                                         style={[styles.pillText, transitionInterval === sec && styles.pillTextActive]}
                                         numberOfLines={1}
                                     >
-                                        {sec} giây
+                                        {sec === 0 ? "Không có" : `${sec} giây`}
                                     </Text>
                                 </TouchableOpacity>
                             ))}
@@ -764,6 +716,7 @@ export function CreateRoomTab({
                     </View>
                 )}
             </View>
+
 
             {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
 

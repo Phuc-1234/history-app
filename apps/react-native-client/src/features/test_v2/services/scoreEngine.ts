@@ -16,7 +16,8 @@ function scoreChoose(
     answerData: ChooseAnswerData,
     userAnswer: UserChooseAnswer | null,
 ): { scoreAwarded: number; maxScore: number } {
-    const correctCount = answerData.correctOption.length;
+    const correctOption: number[] = answerData.correctOption ?? [];
+    const correctCount = correctOption.length;
 
     if (correctCount <= 1) {
         const maxScore = 0.25;
@@ -25,7 +26,7 @@ function scoreChoose(
         }
         const isCorrect =
             userAnswer.selectedOptions.length === 1 &&
-            answerData.correctOption.includes(userAnswer.selectedOptions[0]);
+            correctOption.includes(userAnswer.selectedOptions[0]);
         return { scoreAwarded: isCorrect ? maxScore : 0, maxScore };
     }
 
@@ -42,7 +43,7 @@ function scoreChoose(
     const incorrectPenaltyPerItem = incorrectCount > 0 ? maxScore / incorrectCount : 0;
 
     for (const optionIdx of userAnswer.selectedOptions) {
-        if (answerData.correctOption.includes(optionIdx)) {
+        if (correctOption.includes(optionIdx)) {
             score += correctScorePerItem;
         } else {
             score -= incorrectPenaltyPerItem;
