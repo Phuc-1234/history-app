@@ -37,7 +37,7 @@ function getWeeklyFlameColors(xp: number, isToday: boolean, isCompleted: boolean
         return { bg: "#FFF4E5", flameColor: "#FF9500" };
     }
     if (isToday) {
-        return { bg: "#FFF4E5", flameColor: "#FF9500" };
+        return { bg: "#FFF4E5", flameColor: "#98A2B3" };
     }
     return { bg: "#F2F4F7", flameColor: "#98A2B3" };
 }
@@ -49,9 +49,7 @@ export default function StreakDrawerModal({
 }: StreakDrawerModalProps) {
     const [monthlyModalVisible, setMonthlyModalVisible] = useState(false);
     const [activeReward, setActiveReward] = useState<{ name: string; quantity: number } | null>(null);
-    const { data: streakData, isLoading, isError } = useGetStreakInfoQuery(undefined, {
-        skip: !visible,
-    });
+    const { data: streakData, isLoading, isError } = useGetStreakInfoQuery();
 
     const activeStreak = streakData?.currentStreak ?? currentStreak;
     const highestStreak = streakData?.highestStreak ?? activeStreak;

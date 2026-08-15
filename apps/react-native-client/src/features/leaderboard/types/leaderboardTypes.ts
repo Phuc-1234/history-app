@@ -7,6 +7,7 @@ export interface LeaderboardUser {
     equippedFrameUrl?: string | null;
     tierName: string;
     currentStreak: number;
+    hasCompletedToday?: boolean;
     badgeImgUrl: string | null;
     totalXp: number;
 }
