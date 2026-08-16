@@ -67,13 +67,19 @@ const QuestionCountSelector: React.FC<QuestionCountSelectorProps> = ({
                 setInputText(String(maxCount));
             } else if (num > 0) {
                 onChange(num);
+            } else {
+                const defaultVal = Math.min(10, maxCount) || 1;
+                onChange(defaultVal);
             }
+        } else {
+            const defaultVal = Math.min(10, maxCount) || 1;
+            onChange(defaultVal);
         }
     };
 
     const handleBlur = () => {
         if (!inputText || parseInt(inputText, 10) <= 0) {
-            const defaultVal = Math.min(10, maxCount);
+            const defaultVal = Math.min(10, maxCount) || 1;
             onChange(defaultVal);
             setInputText(String(defaultVal));
         }
@@ -268,14 +274,15 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                 {wrongQuestionCount > 0 && (
                     <TouchableOpacity
                         style={styles.practiceStartBtn}
-                        onPress={() =>
+                        onPress={() => {
+                            const count = wrongPracticeCount > 0 ? wrongPracticeCount : Math.min(10, wrongQuestionCount) || 1;
                             onPracticePress({
                                 scopeType,
                                 scopeId,
-                                questionCount: wrongPracticeCount,
+                                questionCount: count,
                                 autoPickStrategy: "WRONG",
-                            })
-                        }
+                            });
+                        }}
                         activeOpacity={0.8}
                     >
                         <Text style={styles.practiceStartBtnText}>Làm lại ngay</Text>
@@ -357,14 +364,15 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                 {answeredQuestionCount > 0 && (
                     <TouchableOpacity
                         style={styles.practiceStartBtn}
-                        onPress={() =>
+                        onPress={() => {
+                            const count = practiceCount > 0 ? practiceCount : Math.min(10, answeredQuestionCount) || 1;
                             onPracticePress({
                                 scopeType,
                                 scopeId,
-                                questionCount: practiceCount,
+                                questionCount: count,
                                 autoPickStrategy: "LOW_MASTERY",
-                            })
-                        }
+                            });
+                        }}
                         activeOpacity={0.8}
                     >
                         <Text style={styles.practiceStartBtnText}>Bắt đầu luyện tập</Text>

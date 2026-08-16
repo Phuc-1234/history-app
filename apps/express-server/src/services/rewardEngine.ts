@@ -637,7 +637,7 @@ export class RewardEngine {
             if (triggerTime === 1) {
                 testXp = Math.floor(5 * xpMultiplier);
                 testGold = Math.floor(5 * goldMultiplier);
-            } else {
+            } else { 
                 testXp = 0;
                 testGold = 0;
             }
