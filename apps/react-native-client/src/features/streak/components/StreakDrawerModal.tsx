@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 import { useGetStreakInfoQuery, StreakMilestone } from "../services/streakApi";
+import { useAppSelector } from "../../../store/storeHook";
 import { MonthlyStreakModal } from "./MonthlyStreakModal";
 
 interface StreakDrawerModalProps {
@@ -47,9 +48,10 @@ export default function StreakDrawerModal({
     onClose,
     currentStreak = 0,
 }: StreakDrawerModalProps) {
+    const profile = useAppSelector((state) => state.auth.profile);
     const [monthlyModalVisible, setMonthlyModalVisible] = useState(false);
     const [activeReward, setActiveReward] = useState<{ name: string; quantity: number } | null>(null);
-    const { data: streakData, isLoading, isError } = useGetStreakInfoQuery();
+    const { data: streakData, isLoading, isError } = useGetStreakInfoQuery(undefined, { skip: !profile });
 
     const activeStreak = streakData?.currentStreak ?? currentStreak;
     const highestStreak = streakData?.highestStreak ?? activeStreak;
@@ -105,7 +107,9 @@ export default function StreakDrawerModal({
                                         </View>
                                         <View style={styles.heroTextContent}>
                                             <View style={styles.heroTitleRow}>
-                                                {activeStreak === 0 ? (
+                                                {isLoading || !streakData ? (
+                                                    <ActivityIndicator size="small" color="#FF9500" />
+                                                ) : activeStreak === 0 ? (
                                                     <Text style={[styles.heroStreakCount, { fontSize: 24 }]}>Bắt đầu chuỗi học!</Text>
                                                 ) : (
                                                     <>

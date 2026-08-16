@@ -9,6 +9,7 @@ import {
     UpdateUserEmailRequestBody,
 } from "@history-app/shared";
 import { supabase, getSupabaseUserClient } from "../config/supabaseClient";
+import { rewardEngine } from "../services/rewardEngine";
 
 export const getBearerToken = (req: Request) => {
     const authHeader = req.headers.authorization;
@@ -61,6 +62,8 @@ export const getUserProfile = async (
                 profileImgUrl: null,
             });
         }
+
+        await rewardEngine.checkStreakOnLogin(req.user.id);
 
         const fullProfile = await prisma.user.findUnique({
             where: { id: req.user.id },

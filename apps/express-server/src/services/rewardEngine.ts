@@ -479,7 +479,7 @@ export class RewardEngine {
 
         const today = getVnToday();
         let newStreak = (user as any).currentStreak;
-        const lastXpDate = (user as any).lastXpGainedAt ? getVnDateString((user as any).lastXpGainedAt) : ((user as any).lastTestPassedAt ? getVnDateString((user as any).lastTestPassedAt) : null);
+        const lastXpDate = (user as any).lastXpGainedAt ? getVnDateString((user as any).lastXpGainedAt) : null;
 
         if (lastXpDate) {
             if (lastXpDate === today) {
@@ -632,11 +632,15 @@ export class RewardEngine {
             testGold = granted.goldAwarded;
             testItems = granted.itemsAwarded;
         } else {
-            // Hardcoded fallback for test triggers (no rule found, no ruleId to log)
-            const baseXp = isPracticeTrigger ? DEFAULT_PER_QUESTION_REWARD.xp * questionCount : DEFAULT_TEST_REWARD.xp;
-            const baseGold = isPracticeTrigger ? DEFAULT_PER_QUESTION_REWARD.gold * questionCount : DEFAULT_TEST_REWARD.gold;
-            testXp = Math.floor(baseXp * xpMultiplier);
-            testGold = Math.floor(baseGold * goldMultiplier);
+            // No rule configured — grant a minimal fallback only on the very first pass.
+            // Subsequent passes with no matching rule grant 0 XP (streak not triggered).
+            if (triggerTime === 1) {
+                testXp = Math.floor(5 * xpMultiplier);
+                testGold = Math.floor(5 * goldMultiplier);
+            } else {
+                testXp = 0;
+                testGold = 0;
+            }
             testItems = [];
         }
 
@@ -692,7 +696,7 @@ export class RewardEngine {
 
         if ((user as any).currentStreak === 0) return 0;
 
-        const lastDate = (user as any).lastXpGainedAt ?? (user as any).lastTestPassedAt;
+        const lastDate = (user as any).lastXpGainedAt;
 
         if (!lastDate) {
             // No XP ever gained but streak > 0 — reset

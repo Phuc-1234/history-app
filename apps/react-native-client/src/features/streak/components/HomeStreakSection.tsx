@@ -10,6 +10,7 @@ import { Flame, CheckCircle2, Trophy, Calendar, ChevronRight } from "lucide-reac
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { useGetStreakInfoQuery } from "../services/streakApi";
+import { useAppSelector } from "../../../store/storeHook";
 
 interface HomeStreakSectionProps {
     currentStreak?: number;
@@ -35,7 +36,8 @@ function getWeeklyFlameColors(xp: number, isToday: boolean, isCompleted: boolean
 }
 
 export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSectionProps) {
-    const { data: streakData, isLoading } = useGetStreakInfoQuery();
+    const profile = useAppSelector((state) => state.auth.profile);
+    const { data: streakData, isLoading } = useGetStreakInfoQuery(undefined, { skip: !profile });
 
     const activeStreak = streakData?.currentStreak ?? currentStreak;
     const highestStreak = streakData?.highestStreak ?? activeStreak;
@@ -57,7 +59,9 @@ export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSect
                     <View style={styles.streakTextCol}>
                         <View style={styles.streakTitleRow}>
                             <Flame size={22} color="#FF9500" style={{ marginRight: 6 }} />
-                            {activeStreak === 0 ? (
+                            {isLoading || !streakData ? (
+                                <ActivityIndicator size="small" color="#FF9500" />
+                            ) : activeStreak === 0 ? (
                                 <Text style={styles.streakCountText}>Bắt đầu chuỗi học!</Text>
                             ) : (
                                 <>
