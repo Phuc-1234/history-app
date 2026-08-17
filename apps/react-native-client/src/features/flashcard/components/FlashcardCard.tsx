@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Flashcard } from "../types";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
+import { AppHtmlRenderer } from "../../../components/AppHtmlRenderer";
 
 interface FlashcardCardProps {
     card: Flashcard;
@@ -81,7 +82,16 @@ export function FlashcardCard({ card, isFlipped, onFlip }: FlashcardCardProps) {
                     pointerEvents={isFlipped ? "none" : "auto"}
                 >
                     <View style={styles.innerContent}>
-                        <Text style={styles.cardText}>{card.front}</Text>
+                        <AppHtmlRenderer
+                            html={card.front}
+                            contentWidth={CARD_WIDTH - 48}
+                            baseStyle={{
+                                ...typography.h3,
+                                textAlign: "center",
+                                color: colors.textPrimary,
+                                lineHeight: 26,
+                            }}
+                        />
                     </View>
                     <View style={styles.iconCorner}>
                         <Ionicons
@@ -102,9 +112,16 @@ export function FlashcardCard({ card, isFlipped, onFlip }: FlashcardCardProps) {
                     pointerEvents={isFlipped ? "auto" : "none"}
                 >
                     <View style={styles.innerContent}>
-                        <Text style={[styles.cardText, styles.cardTextBack]}>
-                            {card.back}
-                        </Text>
+                        <AppHtmlRenderer
+                            html={card.back}
+                            contentWidth={CARD_WIDTH - 48}
+                            baseStyle={{
+                                ...typography.bodyLarge,
+                                textAlign: "center",
+                                color: colors.textSecondary,
+                                lineHeight: 24,
+                            }}
+                        />
                     </View>
                     <View style={styles.iconCorner}>
                         <Ionicons

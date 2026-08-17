@@ -663,7 +663,8 @@ export class TestServiceV2 {
         purposeType = preset.purposeType ?? purposeType;
 
         // Resolve final parameters (Request overrides -> Preset settings -> Default fallbacks)
-        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (preset?.questionCount ?? 10);
+        const validReqCount = (typeof req.questionCount === "number" && !isNaN(req.questionCount) && req.questionCount > 0) ? req.questionCount : undefined;
+        const finalQuestionCount = validReqCount !== undefined ? validReqCount : (preset?.questionCount ?? 10);
         const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
         const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
         const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
@@ -1116,7 +1117,8 @@ export class TestServiceV2 {
         purposeType = preset.purposeType ?? purposeType;
 
         // Resolve final parameters (Request overrides -> Preset settings -> Default fallbacks)
-        const finalQuestionCount = req.questionCount !== undefined ? req.questionCount : (preset?.questionCount ?? 10);
+        const validReqCount = (typeof req.questionCount === "number" && !isNaN(req.questionCount) && req.questionCount > 0) ? req.questionCount : undefined;
+        const finalQuestionCount = validReqCount !== undefined ? validReqCount : (preset?.questionCount ?? 10);
         const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
         const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
         const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });

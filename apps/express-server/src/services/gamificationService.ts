@@ -1,5 +1,6 @@
 // services/gamificationService.ts
 import { prisma } from "@history-app/shared";
+import { rewardEngine } from "./rewardEngine";
 
 function getVnDateString(date: Date = new Date()): string {
     const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
@@ -195,6 +196,8 @@ export class GamificationService {
         }
 
         if (userId) {
+            await rewardEngine.checkStreakOnLogin(userId);
+
             const user = await prisma.user.findUnique({
                 where: { id: userId },
                 select: {
