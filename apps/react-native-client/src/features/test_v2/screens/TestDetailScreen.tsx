@@ -9,7 +9,7 @@ import {
     TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
+import { AppHtmlRenderer } from "../../../components/AppHtmlRenderer";
 import { useGetAttemptDetailQuery } from "../services/testApi";
 import { formatScore } from "../services/scoreEngine";
 import type {
@@ -126,12 +126,15 @@ export default function TestDetailScreen() {
                                 </View>
 
                                 <View style={{ marginBottom: 12 }}>
-                                    <RenderHtml
+                                    <AppHtmlRenderer
                                         contentWidth={width - 32}
-                                        source={{ html: convertHslToHex(question.promptText || "") }}
-                                        tagsStyles={promptTagsStyles}
-                                        classesStyles={classesStyles}
-                                        renderers={renderers}
+                                        html={question.promptText || ""}
+                                        baseStyle={{
+                                            color: colors.textSecondary,
+                                            fontSize: 15,
+                                            fontFamily: typography.fonts.bold,
+                                            lineHeight: 22,
+                                        }}
                                     />
                                 </View>
 
@@ -185,12 +188,15 @@ export default function TestDetailScreen() {
                                         <Text style={styles.explLabel}>
                                             Giải thích:
                                         </Text>
-                                        <RenderHtml
+                                        <AppHtmlRenderer
                                             contentWidth={width - 56}
-                                            source={{ html: convertHslToHex(question.explanation || "") }}
-                                            tagsStyles={explTagsStyles}
-                                            classesStyles={classesStyles}
-                                            renderers={renderers}
+                                            html={question.explanation || ""}
+                                            baseStyle={{
+                                                color: colors.textSuccess,
+                                                fontSize: 13,
+                                                fontFamily: typography.fonts.regular,
+                                                lineHeight: 20,
+                                            }}
                                         />
                                     </View>
                                 )}
@@ -542,177 +548,6 @@ function MatchReview({
     );
 }
 
-function convertHslToHex(html: string): string {
-    if (!html) return "";
-    return html.replace(
-        /hsla?\(\s*(\d+(?:\.\d+)?)\s*(?:,|\s+)\s*(\d+(?:\.\d+)?)%\s*(?:,|\s+)\s*(\d+(?:\.\d+)?)%\s*(?:(?:,|\/|\s+)\s*(\d+(?:\.\d+)?)\s*)?\)/gi,
-        (match, hStr, sStr, lStr, aStr) => {
-            const h = parseFloat(hStr);
-            const s = parseFloat(sStr) / 100;
-            const l = parseFloat(lStr) / 100;
-            const a = aStr ? parseFloat(aStr) : 1;
-
-            const k = (n: number) => (n + h / 30) % 12;
-            const factor = s * Math.min(l, 1 - l);
-            const f = (n: number) =>
-                l - factor * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-
-            const r = Math.round(255 * f(0));
-            const g = Math.round(255 * f(8));
-            const b = Math.round(255 * f(4));
-
-            const rHex = r.toString(16).padStart(2, "0");
-            const gHex = g.toString(16).padStart(2, "0");
-            const bHex = b.toString(16).padStart(2, "0");
-
-            if (aStr !== undefined) {
-                const aHex = Math.round(a * 255).toString(16).padStart(2, "0");
-                return `#${rHex}${gHex}${bHex}${aHex}`;
-            }
-            return `#${rHex}${gHex}${bHex}`;
-        }
-    );
-}
-
-const commonTagsStyles = {
-    a: {
-        color: colors.primary,
-        textDecorationLine: "underline" as const,
-    },
-    strong: {
-        fontFamily: typography.fonts.bold,
-    },
-    b: {
-        fontFamily: typography.fonts.bold,
-    },
-    i: {
-        fontFamily: typography.fonts.italic,
-    },
-    em: {
-        fontFamily: typography.fonts.italic,
-    },
-    u: {
-        textDecorationLine: "underline" as const,
-    },
-    th: {
-        fontFamily: typography.fonts.bold,
-    },
-};
-
-const promptTagsStyles = {
-    body: {
-        color: colors.textSecondary,
-        fontSize: 15,
-        fontFamily: typography.fonts.bold,
-        lineHeight: 22,
-    },
-    p: {
-        marginTop: 0,
-        marginBottom: 8,
-    },
-    li: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        fontFamily: typography.fonts.regular,
-        lineHeight: 20,
-    },
-    ...commonTagsStyles,
-};
-
-const explTagsStyles = {
-    body: {
-        color: colors.textSuccess,
-        fontSize: 13,
-        fontFamily: typography.fonts.regular,
-        lineHeight: 20,
-    },
-    p: {
-        marginTop: 0,
-        marginBottom: 8,
-    },
-    li: {
-        color: colors.textSuccess,
-        fontSize: 12,
-        fontFamily: typography.fonts.regular,
-        lineHeight: 18,
-    },
-    ...commonTagsStyles,
-};
-
-const docTagsStyles = {
-    body: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        fontFamily: typography.fonts.regular,
-        lineHeight: 22,
-    },
-    p: {
-        marginTop: 0,
-        marginBottom: 8,
-    },
-    li: {
-        color: colors.textSecondary,
-        fontSize: 13,
-        fontFamily: typography.fonts.regular,
-        lineHeight: 20,
-    },
-    ...commonTagsStyles,
-};
-
-const classesStyles = {
-    "text-tiny": {
-        fontSize: 10,
-        lineHeight: 14,
-        fontFamily: typography.fonts.regular,
-    },
-    "text-small": {
-        fontSize: 13,
-        lineHeight: 18,
-        fontFamily: typography.fonts.regular,
-    },
-    "text-big": {
-        fontSize: 20,
-        lineHeight: 28,
-        fontFamily: typography.fonts.regular,
-    },
-    "text-huge": {
-        fontSize: 24,
-        lineHeight: 34,
-        fontFamily: typography.fonts.regular,
-    },
-};
-
-const renderers = {
-    table: ({ tnode }: any) => (
-        <View style={styles.table}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    tbody: ({ tnode }: any) => (
-        <View style={styles.tbody}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    tr: ({ tnode }: any) => (
-        <View style={styles.tr}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    td: ({ tnode }: any) => (
-        <View style={styles.td}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    th: ({ tnode }: any) => (
-        <View style={[styles.td, styles.th]}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    span: ({ tnode, style, TDefaultRenderer, ...props }: any) => (
-        <TDefaultRenderer tnode={tnode} style={style} {...props} />
-    ),
-};
-
 function CollapsibleDocument({ text }: { text: string }) {
     const [expanded, setExpanded] = useState(false);
     const { width } = useWindowDimensions();
@@ -728,12 +563,15 @@ function CollapsibleDocument({ text }: { text: string }) {
             </TouchableOpacity>
             {expanded && (
                 <View style={styles.docContent}>
-                    <RenderHtml
+                    <AppHtmlRenderer
                         contentWidth={width - 56}
-                        source={{ html: convertHslToHex(text || "") }}
-                        tagsStyles={docTagsStyles}
-                        classesStyles={classesStyles}
-                        renderers={renderers}
+                        html={text || ""}
+                        baseStyle={{
+                            color: colors.textSecondary,
+                            fontSize: 14,
+                            fontFamily: typography.fonts.regular,
+                            lineHeight: 22,
+                        }}
                     />
                 </View>
             )}

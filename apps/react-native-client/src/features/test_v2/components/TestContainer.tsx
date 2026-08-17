@@ -16,8 +16,7 @@ import {
 } from "react-native";
 import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package } from "lucide-react-native";
 import { useRouter } from "expo-router";
-
-import RenderHtml, { TNodeChildrenRenderer } from "react-native-render-html";
+import { AppHtmlRenderer } from "../../../components/AppHtmlRenderer";
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -829,12 +828,15 @@ export default function TestContainerV2({
                         >
                             <View style={styles.promptHeader}>
                                 <View style={{ flex: 1 }}>
-                                    <RenderHtml
+                                    <AppHtmlRenderer
                                         contentWidth={width - 100}
-                                        source={{ html: convertHslToHex(currentQuestion.promptText || "") }}
-                                        tagsStyles={promptTagsStyles}
-                                        classesStyles={classesStyles}
-                                        renderers={renderers}
+                                        html={currentQuestion.promptText || ""}
+                                        baseStyle={{
+                                            color: colors.textPrimary,
+                                            fontSize: 16,
+                                            fontFamily: typography.fonts.bold,
+                                            lineHeight: 24,
+                                        }}
                                     />
                                 </View>
                                 <View style={{ flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
@@ -986,26 +988,14 @@ export default function TestContainerV2({
                                 contentContainerStyle={styles.feedbackDrawerScrollContent}
                                 showsVerticalScrollIndicator={true}
                             >
-                                <RenderHtml
+                                <AppHtmlRenderer
                                     contentWidth={width - 64}
-                                    source={{ html: convertHslToHex(currentQuestion.explanation || "") }}
-                                    tagsStyles={{
-                                        body: {
-                                            color: evalResult.isCorrect ? colors.textSuccess : colors.textError,
-                                            fontSize: 14,
-                                            fontWeight: "300",
-                                            lineHeight: 20,
-                                        },
-                                        p: { marginTop: 0, marginBottom: 8 },
-                                        li: {
-                                            color: evalResult.isCorrect ? colors.textSuccess : colors.textError,
-                                            fontSize: 13,
-                                            lineHeight: 18,
-                                        },
-                                        ...commonTagsStyles,
+                                    html={currentQuestion.explanation || ""}
+                                    baseStyle={{
+                                        color: evalResult.isCorrect ? colors.textSuccess : colors.textError,
+                                        fontSize: 14,
+                                        lineHeight: 20,
                                     }}
-                                    classesStyles={classesStyles}
-                                    renderers={renderers}
                                 />
                             </ScrollView>
                         ) : null}
@@ -1285,12 +1275,15 @@ function CollapsibleDocument({ text }: { text: string }) {
             </TouchableOpacity>
             {expanded && (
                 <View style={styles.docContent}>
-                    <RenderHtml
+                    <AppHtmlRenderer
                         contentWidth={width - 56}
-                        source={{ html: convertHslToHex(text || "") }}
-                        tagsStyles={docTagsStyles}
-                        classesStyles={classesStyles}
-                        renderers={renderers}
+                        html={text || ""}
+                        baseStyle={{
+                            color: colors.textSecondary,
+                            fontSize: 14,
+                            fontFamily: typography.fonts.regular,
+                            lineHeight: 22,
+                        }}
                     />
                 </View>
             )}
@@ -1298,195 +1291,12 @@ function CollapsibleDocument({ text }: { text: string }) {
     );
 }
 
-function convertHslToHex(html: string): string {
-    if (!html) return "";
-    return html.replace(
-        /hsla?\(\s*(\d+(?:\.\d+)?)\s*(?:,|\s+)\s*(\d+(?:\.\d+)?)%\s*(?:,|\s+)\s*(\d+(?:\.\d+)?)%\s*(?:(?:,|\/|\s+)\s*(\d+(?:\.\d+)?)\s*)?\)/gi,
-        (match, hStr, sStr, lStr, aStr) => {
-            const h = parseFloat(hStr);
-            const s = parseFloat(sStr) / 100;
-            const l = parseFloat(lStr) / 100;
-            const a = aStr ? parseFloat(aStr) : 1;
-
-            const k = (n: number) => (n + h / 30) % 12;
-            const factor = s * Math.min(l, 1 - l);
-            const f = (n: number) =>
-                l - factor * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-
-            const r = Math.round(255 * f(0));
-            const g = Math.round(255 * f(8));
-            const b = Math.round(255 * f(4));
-
-            const rHex = r.toString(16).padStart(2, "0");
-            const gHex = g.toString(16).padStart(2, "0");
-            const bHex = b.toString(16).padStart(2, "0");
-
-            if (aStr !== undefined) {
-                const aHex = Math.round(a * 255).toString(16).padStart(2, "0");
-                return `#${rHex}${gHex}${bHex}${aHex}`;
-            }
-            return `#${rHex}${gHex}${bHex}`;
-        }
-    );
-}
-
-const commonTagsStyles = {
-    a: {
-        color: colors.primary,
-        textDecorationLine: "underline" as const,
-    },
-    strong: {
-        fontFamily: typography.fonts.bold,
-    },
-    b: {
-        fontFamily: typography.fonts.bold,
-    },
-    i: {
-        fontFamily: typography.fonts.italic,
-    },
-    em: {
-        fontFamily: typography.fonts.italic,
-    },
-    u: {
-        textDecorationLine: "underline" as const,
-    },
-    th: {
-        fontFamily: typography.fonts.bold,
-    },
-};
-
-const promptTagsStyles = {
-    body: {
-        color: colors.textPrimary,
-        fontSize: 16,
-        fontFamily: typography.fonts.bold,
-        lineHeight: 24,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
-    },
-    p: {
-        marginTop: 0,
-        marginBottom: 8,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
-    },
-    li: {
-        color: colors.textPrimary,
-        fontSize: 15,
-        fontFamily: typography.fonts.regular,
-        lineHeight: 22,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
-    },
-    ...commonTagsStyles,
-};
-
-const docTagsStyles = {
-    body: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        fontFamily: typography.fonts.regular,
-        lineHeight: 22,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
-    },
-    p: {
-        marginTop: 0,
-        marginBottom: 8,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
-    },
-    li: {
-        color: colors.textSecondary,
-        fontSize: 13,
-        fontFamily: typography.fonts.regular,
-        lineHeight: 20,
-        textAlign: (Platform.OS === "ios" ? "justify" : "left") as "justify" | "left",
-    },
-    ...commonTagsStyles,
-};
-
-const classesStyles = {
-    "text-tiny": {
-        fontSize: 10,
-        lineHeight: 14,
-        fontFamily: typography.fonts.regular,
-    },
-    "text-small": {
-        fontSize: 13,
-        lineHeight: 18,
-        fontFamily: typography.fonts.regular,
-    },
-    "text-big": {
-        fontSize: 20,
-        lineHeight: 28,
-        fontFamily: typography.fonts.regular,
-    },
-    "text-huge": {
-        fontSize: 24,
-        lineHeight: 34,
-        fontFamily: typography.fonts.regular,
-    },
-};
-
-const renderers = {
-    table: ({ tnode }: any) => (
-        <View style={styles.table}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    tbody: ({ tnode }: any) => (
-        <View style={styles.tbody}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    tr: ({ tnode }: any) => (
-        <View style={styles.tr}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    td: ({ tnode }: any) => (
-        <View style={styles.td}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    th: ({ tnode }: any) => (
-        <View style={[styles.td, styles.th]}>
-            <TNodeChildrenRenderer tnode={tnode} />
-        </View>
-    ),
-    span: ({ tnode, style, TDefaultRenderer, ...props }: any) => (
-        <TDefaultRenderer tnode={tnode} style={style} {...props} />
-    ),
-};
-
 const { height: screenHeight } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
     docContent: {
         padding: 12,
         paddingTop: 0,
-    },
-    table: {
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
-        borderRadius: 4,
-        overflow: "hidden",
-        marginVertical: 12,
-        backgroundColor: colors.surface,
-    },
-    tbody: {
-        flexDirection: "column",
-    },
-    tr: {
-        flexDirection: "row",
-        borderBottomWidth: 1,
-        borderBottomColor: colors.borderMedium,
-    },
-    td: {
-        flex: 1,
-        padding: 10,
-        justifyContent: "center",
-        borderRightWidth: 1,
-        borderRightColor: colors.borderMedium,
-    },
-    th: {
-        backgroundColor: colors.surfaceVariant,
     },
     container: { flex: 1 },
     centerContainer: {

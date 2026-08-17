@@ -214,7 +214,7 @@ export default function ProfileMainScreen() {
             </View>
 
             <View style={styles.versionContainer}>
-                <Text style={styles.versionText}>Phiên bản 4.4.1</Text>
+                <Text style={styles.versionText}>Phiên bản 4.5.0</Text>
                 <Text style={styles.groupText}>Thực hiện bởi nhóm "Sử Việt"</Text>
             </View>
             <TouchableOpacity

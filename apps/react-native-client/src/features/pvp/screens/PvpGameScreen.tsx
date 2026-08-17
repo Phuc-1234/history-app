@@ -11,7 +11,7 @@ import {
     useWindowDimensions,
     BackHandler,
 } from "react-native";
-import RenderHtml from "react-native-render-html";
+import { AppHtmlRenderer } from "@/components/AppHtmlRenderer";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -362,9 +362,9 @@ export function PvpGameScreen({
                             {/* Render prompt HTML */}
                             {question.promptText ? (
                                 <View style={styles.promptHtmlBox}>
-                                    <RenderHtml
+                                    <AppHtmlRenderer
                                         contentWidth={width - 64}
-                                        source={{ html: question.promptText }}
+                                        html={question.promptText}
                                         baseStyle={{
                                             fontSize: 16,
                                             color: colors.neutral900,
@@ -446,9 +446,9 @@ export function PvpGameScreen({
                                 contentContainerStyle={styles.feedbackDrawerScrollContent}
                                 showsVerticalScrollIndicator={true}
                             >
-                                <RenderHtml
+                                <AppHtmlRenderer
                                     contentWidth={width - 64}
-                                    source={{ html: `💡 Giải thích: ${activeQuestionResult.explanation}` }}
+                                    html={`💡 Giải thích: ${activeQuestionResult.explanation}`}
                                     baseStyle={{
                                         fontSize: 13,
                                         fontFamily: typography.fonts.regular,
