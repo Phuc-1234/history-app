@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
@@ -37,6 +37,25 @@ export const RankingList: React.FC<RankingListProps> = ({
                         style={[styles.rankRow, isMe && styles.meRow]}
                         onPress={() => onUserPress?.(item.id)}
                     >
+                        {item.equippedLeaderboardBgUrl && (
+                            <>
+                                <Image
+                                    source={{ uri: item.equippedLeaderboardBgUrl }}
+                                    style={StyleSheet.absoluteFill}
+                                    resizeMode="cover"
+                                />
+                                <View
+                                    style={[
+                                        StyleSheet.absoluteFill,
+                                        {
+                                            backgroundColor: isMe
+                                                ? "rgba(255, 255, 255, 0.72)"
+                                                : "rgba(255, 255, 255, 0.78)",
+                                        },
+                                    ]}
+                                />
+                            </>
+                        )}
                         {/* Hạng */}
                         <Text style={styles.rowPosition}>
                             {item.rank || index + 4}

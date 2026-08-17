@@ -8,6 +8,7 @@ export interface LeaderboardEntry {
     totalXp: number;
     avatarUrl: string | null;
     equippedFrameUrl?: string | null;
+    equippedLeaderboardBgUrl?: string | null;
     tierName: string | null;
     badgeImgUrl: string | null;
 }

@@ -102,6 +102,7 @@ export interface UserProfileSummary {
     tierName: string | null;
     badgeImgUrl: string | null;
     equippedFrameUrl?: string | null;
+    equippedLeaderboardBgUrl?: string | null;
     role?: UserRole;
     isPro?: boolean;
     proExpiresAt?: string | null;

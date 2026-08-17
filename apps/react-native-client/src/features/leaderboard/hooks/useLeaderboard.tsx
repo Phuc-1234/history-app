@@ -12,6 +12,7 @@ export interface DisplayUser {
     hasCompletedToday?: boolean;
     avatar: string;
     equippedFrameUrl: string | null;
+    equippedLeaderboardBgUrl: string | null;
     isFriend: boolean;
     isFollowing: boolean;
     rank: number;
@@ -78,6 +79,7 @@ export function useLeaderboard(myUserId?: string) {
                         user.name || "User"
                     )}&background=E8E4F4&color=5856D6&bold=true`,
                 equippedFrameUrl: user.equippedFrameUrl ?? null,
+                equippedLeaderboardBgUrl: user.equippedLeaderboardBgUrl ?? null,
                 isFriend: friendIdsSet.has(userIdStr),
                 isFollowing: followingIdsSet.has(userIdStr),
                 rank: 0,

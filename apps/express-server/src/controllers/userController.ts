@@ -85,7 +85,6 @@ export const getUserProfile = async (
                     },
                 },
                 userEquippedItems: {
-                    where: { equipmentSlot: "AVT_FRAME" },
                     include: { itemDefinition: true },
                 },
             },
@@ -103,9 +102,11 @@ export const getUserProfile = async (
             });
         }
 
-        const equippedFrameUrl = fullProfile.userEquippedItems.length > 0
-            ? fullProfile.userEquippedItems[0].itemDefinition.imgUrl
-            : null;
+        const frameItem = fullProfile.userEquippedItems.find((e) => e.equipmentSlot === "AVT_FRAME");
+        const leaderboardBgItem = fullProfile.userEquippedItems.find((e) => e.equipmentSlot === "LEADERBOARD_BG" || e.equipmentSlot === "BACKGROUND");
+
+        const equippedFrameUrl = frameItem?.itemDefinition?.imgUrl ?? null;
+        const equippedLeaderboardBgUrl = leaderboardBgItem?.itemDefinition?.imgUrl ?? null;
 
         return res.status(200).json({
             isGuest: false,
@@ -119,6 +120,7 @@ export const getUserProfile = async (
             tierName: fullProfile.tier.name,
             badgeImgUrl: fullProfile.tier.badgeImgUrl,
             equippedFrameUrl,
+            equippedLeaderboardBgUrl,
             isPro: fullProfile.isPro ?? false,
             proExpiresAt: fullProfile.proExpiresAt ? fullProfile.proExpiresAt.toISOString() : null,
             currentTierIndex: fullProfile.currentTierIndex,

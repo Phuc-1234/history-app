@@ -22,8 +22,8 @@ export class HomeService {
                     profileImgUrl: true,
                     tier: { select: { name: true, badgeImgUrl: true } } as any,
                     userEquippedItems: {
-                        where: { equipmentSlot: "AVT_FRAME" },
                         select: {
+                            equipmentSlot: true,
                             itemDefinition: {
                                 select: { imgUrl: true }
                             }
@@ -132,16 +132,22 @@ export class HomeService {
         const selectedLessons = eligibleLessons.slice(0, 3);
 
         return {
-            leaderboard: top3Users.map((u, idx) => ({
-                rank: idx + 1,
-                id: u.id,
-                name: u.name,
-                totalXp: u.totalXp,
-                avatarUrl: u.profileImgUrl ?? null,
-                equippedFrameUrl: u.userEquippedItems?.[0]?.itemDefinition?.imgUrl ?? null,
-                tierName: (u as any).tier?.name ?? null,
-                badgeImgUrl: (u as any).tier?.badgeImgUrl ?? null,
-            })),
+            leaderboard: top3Users.map((u, idx) => {
+                const frameItem = u.userEquippedItems?.find((e: any) => e.equipmentSlot === "AVT_FRAME");
+                const leaderboardBgItem = u.userEquippedItems?.find((e: any) => e.equipmentSlot === "LEADERBOARD_BG" || e.equipmentSlot === "BACKGROUND");
+
+                return {
+                    rank: idx + 1,
+                    id: u.id,
+                    name: u.name,
+                    totalXp: u.totalXp,
+                    avatarUrl: u.profileImgUrl ?? null,
+                    equippedFrameUrl: frameItem?.itemDefinition?.imgUrl ?? null,
+                    equippedLeaderboardBgUrl: leaderboardBgItem?.itemDefinition?.imgUrl ?? null,
+                    tierName: (u as any).tier?.name ?? null,
+                    badgeImgUrl: (u as any).tier?.badgeImgUrl ?? null,
+                };
+            }),
             lessons: selectedLessons.map((item) => ({
                 id: item.lesson.id,
                 name: item.lesson.name,

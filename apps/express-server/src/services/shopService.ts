@@ -14,12 +14,7 @@ export class ShopService {
         }
 
         return await prisma.$transaction(async (tx) => {
-            // 1. Fetch user and item
-            const user = await tx.user.findUnique({
-                where: { id: userId },
-            });
-            if (!user) throw new Error("User not found");
-
+            // 1. Fetch item definition
             const itemDef = await tx.itemDefinition.findUnique({
                 where: { id: itemDefinitionId },
             });
@@ -27,11 +22,27 @@ export class ShopService {
             if (!itemDef.shownInStore) throw new Error("Item is not available in the store");
 
             const totalPrice = itemDef.price * quantity;
-            if (user.totalGold < totalPrice) {
+
+            // 2. Atomic gold deduction check to prevent negative balance under concurrent requests
+            const deductResult = await tx.user.updateMany({
+                where: {
+                    id: userId,
+                    totalGold: { gte: totalPrice },
+                },
+                data: {
+                    totalGold: {
+                        decrement: totalPrice,
+                    },
+                },
+            });
+
+            if (deductResult.count === 0) {
+                const user = await tx.user.findUnique({ where: { id: userId } });
+                if (!user) throw new Error("User not found");
                 throw new Error("Insufficient gold");
             }
 
-            // 2. Check stack limits if maxStackSize is specified
+            // 3. Check stack limits if maxStackSize is specified
             const existingUserItem = await tx.userItem.findUnique({
                 where: {
                     userId_itemDefinitionId: {
@@ -48,16 +59,6 @@ export class ShopService {
             if (isSingleStack && newQty > 1) {
                 throw new Error(`Cannot purchase. Maximum stack size for ${itemDef.itemType} is 1. Current owned: ${currentQty}`);
             }
-
-            // 3. Deduct gold
-            const updatedUser = await tx.user.update({
-                where: { id: userId },
-                data: {
-                    totalGold: {
-                        decrement: totalPrice,
-                    },
-                },
-            });
 
             // 4. Update or create user item
             let updatedUserItem;
@@ -84,6 +85,10 @@ export class ShopService {
                     include: { itemDefinition: true },
                 });
             }
+
+            const updatedUser = await tx.user.findUniqueOrThrow({
+                where: { id: userId },
+            });
 
             return {
                 goldRemaining: updatedUser.totalGold,
@@ -271,12 +276,12 @@ export class ShopService {
                 };
             }
 
-            // 4. Verify it is a SKIN with equipmentSlot = AVT_FRAME
-            if (itemDef.itemType !== "SKIN" || itemDef.equipmentSlot !== "AVT_FRAME") {
+            // 4. Verify it is a SKIN with a defined equipmentSlot
+            if (itemDef.itemType !== "SKIN" || !itemDef.equipmentSlot) {
                 throw new Error("Item activation not supported yet");
             }
 
-            const slot = itemDef.equipmentSlot; // "AVT_FRAME"
+            const slot = itemDef.equipmentSlot;
 
             // 5. Toggle equip status
             const existingEquipped = await tx.userEquippedItem.findUnique({

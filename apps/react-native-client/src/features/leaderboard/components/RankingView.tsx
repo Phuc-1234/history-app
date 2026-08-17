@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     RefreshControl,
     TouchableWithoutFeedback,
+    Image,
 } from "react-native";
 import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
@@ -252,6 +253,21 @@ export const RankingView: React.FC = () => {
                     style={styles.myRankStickyBar}
                     onPress={() => handleUserPress(String(myUserId))}
                 >
+                    {meInList.equippedLeaderboardBgUrl && (
+                        <>
+                            <Image
+                                source={{ uri: meInList.equippedLeaderboardBgUrl }}
+                                style={StyleSheet.absoluteFill}
+                                resizeMode="cover"
+                            />
+                            <View
+                                style={[
+                                    StyleSheet.absoluteFill,
+                                    { backgroundColor: "rgba(255, 255, 255, 0.72)" },
+                                ]}
+                            />
+                        </>
+                    )}
                     {/* Hạng */}
                     <Text style={styles.stickyRankPosition}>
                         {myRank}

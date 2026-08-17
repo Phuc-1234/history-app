@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
@@ -77,7 +77,15 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             `${user2.xp.toLocaleString()} XP`
                         )}
                     </Text>
-                    <View style={[styles.podiumBase, styles.rank2Base, isMe2 && styles.mePodiumBase]} />
+                    <View style={[styles.podiumBase, styles.rank2Base, isMe2 && styles.mePodiumBase]}>
+                        {user2.equippedLeaderboardBgUrl && (
+                            <Image
+                                source={{ uri: user2.equippedLeaderboardBgUrl }}
+                                style={StyleSheet.absoluteFill}
+                                resizeMode="cover"
+                            />
+                        )}
+                    </View>
                 </TouchableOpacity>
             ) : (
                 <View style={styles.podiumColumn} />
@@ -132,7 +140,15 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             `${user1.xp.toLocaleString()} XP`
                         )}
                     </Text>
-                    <View style={[styles.podiumBase, styles.rank1Base, isMe1 && styles.mePodiumBase]} />
+                    <View style={[styles.podiumBase, styles.rank1Base, isMe1 && styles.mePodiumBase]}>
+                        {user1.equippedLeaderboardBgUrl && (
+                            <Image
+                                source={{ uri: user1.equippedLeaderboardBgUrl }}
+                                style={StyleSheet.absoluteFill}
+                                resizeMode="cover"
+                            />
+                        )}
+                    </View>
                 </TouchableOpacity>
             ) : (
                 <View style={[styles.podiumColumn, styles.centerPodiumColumn]} />
@@ -180,7 +196,15 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             `${user3.xp.toLocaleString()} XP`
                         )}
                     </Text>
-                    <View style={[styles.podiumBase, styles.rank3Base, isMe3 && styles.mePodiumBase]} />
+                    <View style={[styles.podiumBase, styles.rank3Base, isMe3 && styles.mePodiumBase]}>
+                        {user3.equippedLeaderboardBgUrl && (
+                            <Image
+                                source={{ uri: user3.equippedLeaderboardBgUrl }}
+                                style={StyleSheet.absoluteFill}
+                                resizeMode="cover"
+                            />
+                        )}
+                    </View>
                 </TouchableOpacity>
             ) : (
                 <View style={styles.podiumColumn} />
@@ -293,6 +317,8 @@ const createStyles = (isSmallDevice: boolean) =>
             width: "92%",
             borderTopLeftRadius: 5,
             borderTopRightRadius: 5,
+            overflow: "hidden",
+            position: "relative",
         },
         rank1Base: {
             height: isSmallDevice ? 96 : 102,
