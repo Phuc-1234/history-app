@@ -223,14 +223,12 @@ export class RewardEngine {
         tx: TxClient,
     ): Promise<{ xpAwarded: number; goldAwarded: number; itemsAwarded: { itemDefinitionId: number; name: string; quantity: number; imgUrl: string | null }[] }> {
         // Idempotency check
-        const existing = await tx.userRewardLog.findUnique({
+        const existing = await tx.userRewardLog.findFirst({
             where: {
-                userId_rewardRuleId_triggerTargetId_triggerTime: {
-                    userId,
-                    rewardRuleId: ruleId,
-                    triggerTargetId: triggerTargetId as any,
-                    triggerTime,
-                },
+                userId,
+                rewardRuleId: ruleId,
+                triggerTargetId,
+                triggerTime,
             },
         });
 
