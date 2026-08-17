@@ -14,10 +14,13 @@ export const FIXED_LETTER_SPACING = 1;
 
 // Effective width of one character, INCLUDING the fixed letter-spacing. SVG
 // adds letterSpacing after every glyph, so a char "costs" its glyph width
-// plus the spacing.
+// plus the spacing. The 0.58 factor (not the geometric ~0.5) leaves headroom
+// for wide glyphs and semi-bold weights: when the estimate ran short, the
+// wrapped last line reached into the +/- icon zone and the label covered
+// the button on text-heavy rows.
 export function charWidthFor(depth: number): number {
     const config = NODE_CONFIGS[depth as keyof typeof NODE_CONFIGS] || NODE_CONFIGS[2];
-    return config.fontSize * 0.55 + FIXED_LETTER_SPACING;
+    return config.fontSize * 0.58 + FIXED_LETTER_SPACING;
 }
 
 // Total horizontal room consumed by the non-text decorations + padding on a
@@ -48,7 +51,18 @@ export function wrapText(text: string, maxCharsPerLine: number): string[] {
     const words = text.split(" ");
     const lines: string[] = [];
     let current = "";
-    for (const word of words) {
+    for (let word of words) {
+        // A single token longer than a whole line must be hard-split: kept
+        // intact it renders wider than the card and the text runs over the
+        // +/- collapse icon at the right edge.
+        while (word.length > maxCharsPerLine) {
+            if (current) {
+                lines.push(current);
+                current = "";
+            }
+            lines.push(word.slice(0, maxCharsPerLine));
+            word = word.slice(maxCharsPerLine);
+        }
         if ((current.length + (current ? 1 : 0) + word.length) > maxCharsPerLine && current) {
             lines.push(current);
             current = word;
