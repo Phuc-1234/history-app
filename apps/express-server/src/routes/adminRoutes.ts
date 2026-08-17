@@ -210,7 +210,7 @@ router.post("/videos/upload", upload.single("video"), uploadVideo);
 router.post("/images/upload", upload.single("image"), uploadImage);
 
 // PATCH  /api/admin/videos/:videoId
-router.patch("/videos/:videoId", updateVideo);
+router.patch("/videos/:videoId", upload.single("video"), updateVideo);
 
 // DELETE /api/admin/videos/:videoId
 router.delete("/videos/:videoId", requireSuperAdmin, deleteVideo);
