@@ -89,6 +89,7 @@ export default function RegisterForm() {
                             placeholder="Nhập họ và tên của bạn"
                             value={name}
                             autoCapitalize="words"
+                            maxLength={30}
                             onChangeText={setName}
                             editable={!isAnyLoading}
                             style={styles.customInput}

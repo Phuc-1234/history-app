@@ -149,6 +149,9 @@ export const updateUserProfile = async (
         if (trimmedName === "") {
             return res.status(400).json({ error: "Tên không được để trống." });
         }
+        if (trimmedName && trimmedName.length > 30) {
+            return res.status(400).json({ error: "Tên không được vượt quá 30 ký tự." });
+        }
         if (trimmedEmail === "") {
             return res.status(400).json({ error: "Email không được để trống." });
         }
@@ -330,6 +333,9 @@ export const updateUserData = async (
 
         if (trimmedName === "") {
             return res.status(400).json({ error: "Tên không được để trống." });
+        }
+        if (trimmedName && trimmedName.length > 30) {
+            return res.status(400).json({ error: "Tên không được vượt quá 30 ký tự." });
         }
 
         // 1. Update in Supabase Auth metadata

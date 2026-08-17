@@ -208,6 +208,10 @@ export default function ProfileEditScreen() {
             setErrorMsg("Tên không được để trống");
             return;
         }
+        if (trimmedName.length > 30) {
+            setErrorMsg("Tên không được vượt quá 30 ký tự");
+            return;
+        }
         if (trimmedEmail === "") {
             setErrorMsg("Email không được để trống");
             return;
@@ -409,6 +413,7 @@ export default function ProfileEditScreen() {
                                 icon={User}
                                 placeholder="Nhập họ và tên"
                                 value={name}
+                                maxLength={30}
                                 onChangeText={(text) => {
                                     setName(text);
                                     if (errorMsg) setErrorMsg(null);
