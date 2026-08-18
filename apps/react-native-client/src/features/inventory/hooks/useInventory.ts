@@ -30,6 +30,7 @@ export function useInventory() {
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [activateItem, { isLoading: isActivatingMutationLoading }] = useActivateItemMutation();
     const isActivatingRef = useRef(false);
+    const [isLocalActivating, setIsLocalActivating] = useState(false);
     const [conflictModalData, setConflictModalData] = useState<{
         dbId: number;
         itemName: string;
@@ -38,7 +39,7 @@ export function useInventory() {
 
     const profile = useAppSelector((state) => state.auth.profile);
 
-    const isActivating = isActivatingMutationLoading || isActivatingRef.current;
+    const isActivating = isActivatingMutationLoading || isLocalActivating;
 
     const inventory = useMemo<InventoryItem[]>(() => {
         if (!inventoryData?.inventory) return [];
@@ -125,12 +126,17 @@ export function useInventory() {
     }, [filteredInventory, selectedItemId]);
 
     const handleUseItem = async (id: string, forceReplace: boolean = false) => {
-        if (isActivatingRef.current || isActivatingMutationLoading) return;
+        if (isActivatingRef.current || isActivatingMutationLoading || isLocalActivating) return;
         const item = inventory.find((it) => it.id === id);
         if (!item) return;
 
+        // Prevent re-activating consumable if already active
+        if (item.isActivated && item.itemType !== "SKIN") return;
+
+        isActivatingRef.current = true;
+        setIsLocalActivating(true);
+
         try {
-            isActivatingRef.current = true;
             const res = await activateItem({ itemDefinitionId: item.dbId, forceReplace }).unwrap();
             if (res.conflict) {
                 setConflictModalData({
@@ -149,15 +155,16 @@ export function useInventory() {
                     activeItemName: err?.data?.activeItemName || "hiệu ứng đang dùng",
                 });
             } else {
-                Alert.alert("Lỗi", err?.data?.error ?? err?.message ?? "Không thể thực hiện hành động này.");
+                Alert.alert("Lỗi", err?.data?.message ?? err?.data?.error ?? err?.message ?? "Không thể thực hiện hành động này.");
             }
         } finally {
             isActivatingRef.current = false;
+            setIsLocalActivating(false);
         }
     };
 
     const handleConfirmReplace = async () => {
-        if (!conflictModalData || isActivatingRef.current) return;
+        if (!conflictModalData || isActivatingRef.current || isLocalActivating) return;
         const targetDbId = conflictModalData.dbId;
         setConflictModalData(null);
         await handleUseItem(String(targetDbId), true);

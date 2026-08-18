@@ -113,7 +113,7 @@ export class ShopService {
             },
         });
 
-        // Query active effects
+        // Query active effects (newest first)
         const activeEffects = await client.userActiveEffect.findMany({
             where: {
                 userId,
@@ -121,16 +121,17 @@ export class ShopService {
                 expiresAt: { gt: now },
             },
             include: { itemDefinition: true },
+            orderBy: { startedAt: "desc" },
         });
 
         let xpMultiplier = 1.0;
         let goldMultiplier = 1.0;
 
         for (const eff of activeEffects) {
-            if (eff.itemType === "XP_MUL") {
-                xpMultiplier *= eff.effectValue;
-            } else if (eff.itemType === "GOLD_MUL") {
-                goldMultiplier *= eff.effectValue;
+            if (eff.itemType === "XP_MUL" && xpMultiplier === 1.0) {
+                xpMultiplier = eff.effectValue;
+            } else if (eff.itemType === "GOLD_MUL" && goldMultiplier === 1.0) {
+                goldMultiplier = eff.effectValue;
             }
         }
 
@@ -178,6 +179,9 @@ export class ShopService {
 
     async activateItem(userId: string, itemDefinitionId: number, forceReplace: boolean = false) {
         return await prisma.$transaction(async (tx) => {
+            // Row-level lock on user to serialize concurrent activations
+            await tx.$executeRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
+
             // 1. Fetch active effects (and lazily expire)
             const activeRes = await this.getUserActiveEffects(userId, tx);
 
@@ -208,8 +212,8 @@ export class ShopService {
                     if (existingSameType.itemDefinitionId === itemDefinitionId) {
                         return {
                             success: false,
-                            conflict: true,
-                            code: "ACTIVE_EFFECT_EXISTS",
+                            conflict: false,
+                            code: "ALREADY_ACTIVE",
                             message: `Hiệu ứng ${existingSameType.itemDefinition.name} đang hoạt động.`,
                             activeItemName: existingSameType.itemDefinition.name,
                         };
@@ -225,9 +229,13 @@ export class ShopService {
                         };
                     }
 
-                    // forceReplace is true -> expire previous active effect
-                    await tx.userActiveEffect.update({
-                        where: { id: existingSameType.id },
+                    // forceReplace is true -> expire all previous active effects of this type
+                    await tx.userActiveEffect.updateMany({
+                        where: {
+                            userId,
+                            itemType: itemDef.itemType,
+                            status: "ACTIVE",
+                        },
                         data: { status: "EXPIRED" },
                     });
                 }

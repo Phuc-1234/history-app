@@ -42,6 +42,7 @@ export function useShop() {
         activeItemName: string;
     } | null>(null);
     const isPurchasingRef = useRef(false);
+    const [isLocalPurchasing, setIsLocalPurchasing] = useState(false);
 
     const profile = useAppSelector((state) => state.auth.profile);
     const userCoins = profile?.totalGold ?? 0;
@@ -52,7 +53,7 @@ export function useShop() {
     const [purchaseItem, { isLoading: isPurchasingOnly }] = usePurchaseItemMutation();
     const [activateItem, { isLoading: isActivating }] = useActivateItemMutation();
 
-    const isPurchasing = isPurchasingOnly || isActivating;
+    const isPurchasing = isPurchasingOnly || isActivating || isLocalPurchasing;
 
     const shopItems = useMemo<ShopItem[]>(() => {
         if (!shopData?.items) return [];
@@ -87,7 +88,7 @@ export function useShop() {
     }, [shopItems, searchQuery, selectedCategory]);
 
     const handlePurchase = async (item: ShopItem) => {
-        if (isPurchasingRef.current || isPurchasing) return;
+        if (isPurchasingRef.current || isPurchasing || isLocalPurchasing) return;
 
         if (item.isOwned) {
             setPurchaseModal({
@@ -111,6 +112,7 @@ export function useShop() {
 
         try {
             isPurchasingRef.current = true;
+            setIsLocalPurchasing(true);
             await purchaseItem({ itemDefinitionId: item.dbId, quantity: 1 }).unwrap();
             setSelectedItem(null);
             toastService.show(`Bạn đã mua thành công vật phẩm "${item.name}".`, "success");
@@ -123,11 +125,12 @@ export function useShop() {
             });
         } finally {
             isPurchasingRef.current = false;
+            setIsLocalPurchasing(false);
         }
     };
 
     const handlePurchaseAndUse = async (item: ShopItem, forceReplace: boolean = false) => {
-        if (isPurchasingRef.current || isPurchasing) return;
+        if (isPurchasingRef.current || isPurchasing || isLocalPurchasing) return;
 
         if (item.isOwned && item.itemType !== "SKIN") {
             setPurchaseModal({
@@ -151,6 +154,7 @@ export function useShop() {
 
         try {
             isPurchasingRef.current = true;
+            setIsLocalPurchasing(true);
             await purchaseItem({ itemDefinitionId: item.dbId, quantity: 1 }).unwrap();
 
             // Then immediately activate/equip
@@ -187,16 +191,19 @@ export function useShop() {
             }
         } finally {
             isPurchasingRef.current = false;
+            setIsLocalPurchasing(false);
         }
     };
 
     const handleConfirmReplace = async () => {
-        if (!conflictModalData) return;
+        if (!conflictModalData || isPurchasingRef.current || isLocalPurchasing) return;
         const targetDbId = conflictModalData.dbId;
         const targetItem = shopItems.find((it) => it.dbId === targetDbId);
         setConflictModalData(null);
         if (targetItem) {
             try {
+                isPurchasingRef.current = true;
+                setIsLocalPurchasing(true);
                 await activateItem({ itemDefinitionId: targetDbId, forceReplace: true }).unwrap();
                 setSelectedItem(null);
                 toastService.show(`Đã kích hoạt "${targetItem.name}".`, "success");
@@ -207,6 +214,9 @@ export function useShop() {
                     message: err?.data?.error ?? err?.message ?? "Không thể kích hoạt vật phẩm.",
                     isSuccess: false,
                 });
+            } finally {
+                isPurchasingRef.current = false;
+                setIsLocalPurchasing(false);
             }
         }
     };
