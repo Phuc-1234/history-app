@@ -9,6 +9,9 @@ export interface LeaderboardEntry {
     badgeImgUrl?: string | null;
     totalXp: number;
     currentStreak: number;
+    hasCompletedToday?: boolean;
+    equippedFrameUrl?: string | null;
+    equippedLeaderboardBgUrl?: string | null;
 }
 
 export type GetLeaderboardResponse =

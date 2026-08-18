@@ -31,6 +31,11 @@ export default function useRegisterForm() {
             return;
         }
 
+        if (name.trim().length > 30) {
+            setFormError("Tên không được vượt quá 30 ký tự.");
+            return;
+        }
+
         if (password !== confirmPassword) {
             setFormError("Mật khẩu xác nhận không khớp.");
             return;
@@ -76,6 +81,9 @@ export default function useRegisterForm() {
         // 1. Kiểm tra ô Tên
         if (!cleanName) {
             setNameError("Bạn chưa nhập tên!");
+            hasError = true;
+        } else if (cleanName.length > 30) {
+            setNameError("Tên không được vượt quá 30 ký tự!");
             hasError = true;
         } else {
             setNameError("");

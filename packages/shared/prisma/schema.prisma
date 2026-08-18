@@ -663,6 +663,7 @@ enum ItemDefinitionType {
 enum EquipmentSlot {
   AVT_FRAME
   BACKGROUND
+  LEADERBOARD_BG
 }
 
 enum EffectStatus {

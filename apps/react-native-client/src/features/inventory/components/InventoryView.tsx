@@ -3,6 +3,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     Image,
     View,
@@ -12,32 +13,45 @@ import {
     Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useInventory } from "../hooks/useInventory";
+import { useInventory, InventoryCategory } from "../hooks/useInventory";
 import { Ionicons } from "@expo/vector-icons";
-import { Package } from "lucide-react-native";
+import { Search, Package } from "lucide-react-native";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
+
+const CATEGORIES: { key: InventoryCategory; label: string }[] = [
+    { key: "ALL", label: "Tất cả" },
+    { key: "POWERUP", label: "Hiệu ứng" },
+    { key: "AVT_FRAME", label: "Khung ảnh" },
+    { key: "LEADERBOARD_BG", label: "Nền BXH" },
+];
 
 export const InventoryView: React.FC = () => {
     const {
         inventory,
+        searchQuery,
+        setSearchQuery,
+        selectedCategory,
+        setSelectedCategory,
         selectedItem,
         setSelectedItemId,
         handleUseItem,
         isLoading,
+        isActivating,
         handleRefresh,
         isRefreshing,
         conflictModalData,
         handleConfirmReplace,
         handleCloseConflictModal,
     } = useInventory();
+
     const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
 
-    const paddingHorizontal = 20;
-    const gap = 12;
+    const paddingHorizontal = 16;
+    const gap = 10;
     const gridWidth = width - paddingHorizontal * 2 - insets.left - insets.right;
-    const cellWidth = Math.floor((gridWidth - gap * 2) / 3) - 1;
+    const cellWidth = Math.floor((gridWidth - gap * 2) / 3);
 
     if (isLoading) {
         return (
@@ -48,88 +62,140 @@ export const InventoryView: React.FC = () => {
     }
 
     return (
-        <ScrollView
-            showsVerticalScrollIndicator={false}
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            refreshControl={
-                <RefreshControl
-                    refreshing={isRefreshing}
-                    onRefresh={handleRefresh}
-                    colors={[colors.primary]}
-                    tintColor={colors.primary}
-                />
-            }
-        >
-            {inventory.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="briefcase-outline" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
-                    <Text style={styles.emptyTitle}>Túi đồ trống</Text>
-                    <Text style={styles.emptySubtitle}>
-                        Hãy hoàn thành các bài học hoặc ghé cửa hàng để nhận vật phẩm!
-                    </Text>
+        <View style={styles.screenWrapper}>
+            {/* Pinned Top Controls Area */}
+            <View style={styles.pinnedHeaderArea}>
+                {/* Search Bar */}
+                <View style={styles.searchBarRow}>
+                    <Search size={18} color={colors.textPlaceholder} style={styles.searchIcon} />
+                    <TextInput
+                        placeholder="Tìm kiếm trong túi đồ..."
+                        placeholderTextColor={colors.textPlaceholder}
+                        style={styles.searchInput}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
                 </View>
-            ) : (
-                <>
-                    {/* 1. Featured Item Preview Card */}
-                    {selectedItem && (
-                        <View style={styles.featuredCard}>
-                            {selectedItem.imageUrl ? (
-                                <View style={styles.featuredImageWrapper}>
-                                    <Image
-                                        source={{ uri: selectedItem.imageUrl }}
-                                        style={styles.featuredImageInside}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                            ) : (
-                                <View style={[styles.featuredImage, styles.iconFallbackCircle]}>
-                                    <Package size={40} color={colors.textMuted} />
-                                </View>
-                            )}
-                            <View style={styles.featuredInfo}>
-                                <Text style={styles.featuredName}>
+
+                {/* Category Filter Chips */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.categoryChipsContainer}
+                >
+                    {CATEGORIES.map((cat) => {
+                        const isSelected = selectedCategory === cat.key;
+                        return (
+                            <TouchableOpacity
+                                key={cat.key}
+                                style={[
+                                    styles.categoryChip,
+                                    isSelected && styles.categoryChipActive,
+                                ]}
+                                activeOpacity={0.8}
+                                onPress={() => setSelectedCategory(cat.key)}
+                            >
+                                <Text
+                                    style={[
+                                        styles.categoryChipText,
+                                        isSelected && styles.categoryChipTextActive,
+                                    ]}
+                                >
+                                    {cat.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+
+                {/* Pinned Compact Selected Item Preview */}
+                {selectedItem && (
+                    <View style={styles.compactFeaturedCard}>
+                        {selectedItem.imageUrl ? (
+                            <View style={styles.compactThumbnailWrapper}>
+                                <Image
+                                    source={{ uri: selectedItem.imageUrl }}
+                                    style={styles.compactThumbnailImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                        ) : (
+                            <View style={[styles.compactThumbnailWrapper, styles.iconFallbackCircle]}>
+                                <Package size={22} color={colors.textMuted} />
+                            </View>
+                        )}
+
+                        <View style={styles.compactFeaturedInfo}>
+                            <View style={styles.compactTitleRow}>
+                                <Text style={styles.compactFeaturedName} numberOfLines={1}>
                                     {selectedItem.name}
                                 </Text>
-                                <Text
-                                    style={styles.featuredDescription}
-                                    numberOfLines={3}
-                                >
-                                    {selectedItem.description}
-                                </Text>
-
                                 {selectedItem.quantity > 0 && (
-                                    <Text style={styles.featuredQuantity}>
-                                        Số lượng:{" "}
-                                        <Text style={styles.boldQty}>
-                                            x {String(selectedItem.quantity).padStart(2, "0")}
-                                        </Text>
-                                    </Text>
+                                    <View style={styles.qtyBadge}>
+                                        <Text style={styles.qtyBadgeText}>x{selectedItem.quantity}</Text>
+                                    </View>
                                 )}
+                            </View>
+                            <Text style={styles.compactFeaturedDescription} numberOfLines={1}>
+                                {selectedItem.description || "Vật phẩm hữu ích cho hành trình"}
+                            </Text>
+                        </View>
 
-                                <TouchableOpacity
-                                    style={[
-                                        styles.useButton,
-                                        selectedItem.isActivated && styles.activatedButton,
-                                    ]}
-                                    activeOpacity={0.8}
-                                    onPress={() => handleUseItem(selectedItem.id)}
-                                    disabled={selectedItem.isActivated && selectedItem.itemType !== "SKIN"}
-                                >
-                                    <Text style={styles.useButtonText}>
+                        {selectedItem.itemType === "BADGE" ? (
+                            <View style={styles.badgeLabelContainer}>
+                                <Text style={styles.badgeLabelText}>Đã sở hữu</Text>
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={[
+                                    styles.compactUseButton,
+                                    selectedItem.isActivated && styles.activatedButton,
+                                    isActivating && styles.disabledButton,
+                                ]}
+                                activeOpacity={0.8}
+                                onPress={() => handleUseItem(selectedItem.id)}
+                                disabled={isActivating || (selectedItem.isActivated && selectedItem.itemType !== "SKIN")}
+                            >
+                                {isActivating ? (
+                                    <ActivityIndicator size="small" color={colors.textLight} />
+                                ) : (
+                                    <Text style={styles.compactUseButtonText}>
                                         {selectedItem.itemType === "SKIN"
                                             ? (selectedItem.isEquipped ? "Tháo" : "Trang bị")
-                                            : (selectedItem.isActivated ? "Đã kích hoạt" : "Kích hoạt")}
+                                            : (selectedItem.isActivated ? "Đang dùng" : "Kích hoạt")}
                                     </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    )}
+                                )}
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+            </View>
 
-                    {/* 2. Grid Header Text */}
-                    <Text style={styles.sectionTitle}>Tất cả vật phẩm</Text>
-
-                    {/* 3. Items 3-Column Grid Matrix */}
+            {/* Scrollable Grid Section */}
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={handleRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
+                {inventory.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="briefcase-outline" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
+                        <Text style={styles.emptyTitle}>Túi đồ trống</Text>
+                        <Text style={styles.emptySubtitle}>
+                            {searchQuery || selectedCategory !== "ALL"
+                                ? "Không tìm thấy vật phẩm phù hợp với bộ lọc."
+                                : "Hãy hoàn thành các bài học hoặc ghé cửa hàng để nhận vật phẩm!"}
+                        </Text>
+                    </View>
+                ) : (
                     <View style={styles.gridContainer}>
                         {inventory.map((item) => {
                             const isSelected = item.id === selectedItem?.id;
@@ -147,7 +213,7 @@ export const InventoryView: React.FC = () => {
                                     {item.isActivated && (
                                         <View style={styles.equippedGridBadge}>
                                             <Text style={styles.equippedGridBadgeText}>
-                                                {item.itemType === "SKIN" ? "Đang dùng" : "Đã kích hoạt"}
+                                                {item.itemType === "SKIN" ? "Đang dùng" : "Đã bật"}
                                             </Text>
                                         </View>
                                     )}
@@ -168,19 +234,19 @@ export const InventoryView: React.FC = () => {
                                         </View>
                                     ) : (
                                         <View style={styles.cellIconWrapper}>
-                                            <Package size={28} color={colors.textMuted} />
+                                            <Package size={24} color={colors.textMuted} />
                                         </View>
                                     )}
 
-                                    <Text style={styles.cellName} numberOfLines={2}>
+                                    <Text style={styles.cellName} numberOfLines={1}>
                                         {item.name}
                                     </Text>
                                 </TouchableOpacity>
                             );
                         })}
                     </View>
-                </>
-            )}
+                )}
+            </ScrollView>
 
             {/* Conflict Resolution Modal */}
             <Modal
@@ -223,26 +289,176 @@ export const InventoryView: React.FC = () => {
                     </View>
                 </View>
             </Modal>
-        </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    screenWrapper: {
+        flex: 1,
+        backgroundColor: colors.background,
+    },
     loadingWrapper: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: colors.background,
     },
+    pinnedHeaderArea: {
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 8,
+        backgroundColor: colors.background,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.borderMedium,
+    },
+    searchBarRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        height: 44,
+        marginBottom: 10,
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontFamily: typography.fonts.medium,
+        fontSize: 14,
+        color: colors.textPrimary,
+    },
+    categoryChipsContainer: {
+        flexDirection: "row",
+        gap: 8,
+        paddingBottom: 10,
+    },
+    categoryChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 30,
+        backgroundColor: colors.surfaceVariant,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    categoryChipActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    categoryChipText: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 13,
+        color: colors.textSecondary,
+    },
+    categoryChipTextActive: {
+        fontFamily: typography.fonts.bold,
+        color: colors.textLight,
+    },
+    compactFeaturedCard: {
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: colors.primary,
+        marginTop: 2,
+    },
+    compactThumbnailWrapper: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        backgroundColor: colors.surfaceVariant,
+        padding: 4,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    compactThumbnailImage: {
+        width: "100%",
+        height: "100%",
+    },
+    iconFallbackCircle: {
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    compactFeaturedInfo: {
+        flex: 1,
+        marginLeft: 10,
+        marginRight: 8,
+        justifyContent: "center",
+    },
+    compactTitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 2,
+    },
+    compactFeaturedName: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: colors.textPrimary,
+        flexShrink: 1,
+    },
+    qtyBadge: {
+        backgroundColor: colors.surfaceVariant,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    qtyBadgeText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 10,
+        color: colors.textSecondary,
+    },
+    compactFeaturedDescription: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 11,
+        color: colors.textMuted,
+    },
+    compactUseButton: {
+        backgroundColor: colors.primary,
+        borderRadius: 30,
+        paddingVertical: 7,
+        paddingHorizontal: 14,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    activatedButton: {
+        backgroundColor: colors.textMuted,
+    },
+    disabledButton: {
+        opacity: 0.6,
+    },
+    compactUseButtonText: {
+        fontFamily: typography.fonts.bold,
+        color: colors.textLight,
+        fontSize: 12,
+    },
+    badgeLabelContainer: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        backgroundColor: colors.surfaceVariant,
+        borderRadius: 30,
+    },
+    badgeLabelText: {
+        fontFamily: typography.fonts.medium,
+        color: colors.textMuted,
+        fontSize: 11,
+    },
     scrollView: {
         flex: 1,
         backgroundColor: colors.background,
     },
     scrollContent: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
+        paddingHorizontal: 16,
+        paddingTop: 14,
         paddingBottom: 32,
-        backgroundColor: colors.background,
     },
     emptyContainer: {
         flex: 1,
@@ -263,102 +479,20 @@ const styles = StyleSheet.create({
         marginTop: 4,
         paddingHorizontal: 24,
     },
-    featuredCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 12,
-        padding: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: colors.borderMedium,
-        marginBottom: 28,
-    },
-    featuredImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 12,
-        backgroundColor: colors.surfaceVariant,
-    },
-    featuredImageWrapper: {
-        width: 100,
-        height: 100,
-        borderRadius: 12,
-        backgroundColor: colors.surfaceVariant,
-        padding: 10,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    featuredImageInside: {
-        width: "100%",
-        height: "100%",
-    },
-    iconFallbackCircle: {
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    featuredInfo: {
-        flex: 1,
-        marginLeft: 16,
-        justifyContent: "center",
-    },
-    featuredName: {
-        fontFamily: typography.fonts.bold,
-        fontSize: 18,
-        color: colors.textPrimary,
-        marginBottom: 4,
-    },
-    featuredDescription: {
-        fontFamily: typography.fonts.regular,
-        fontSize: 13,
-        color: colors.textSecondary,
-        lineHeight: 18,
-        marginBottom: 6,
-    },
-    featuredQuantity: {
-        fontFamily: typography.fonts.regular,
-        fontSize: 13,
-        color: colors.textSecondary,
-        marginBottom: 8,
-    },
-    boldQty: {
-        fontFamily: typography.fonts.bold,
-        color: colors.textPrimary,
-    },
-    useButton: {
-        backgroundColor: colors.primary,
-        borderRadius: 30,
-        paddingVertical: 8,
-        paddingHorizontal: 20,
-        alignSelf: "flex-start",
-    },
-    activatedButton: {
-        backgroundColor: colors.textMuted,
-    },
-    useButtonText: {
-        fontFamily: typography.fonts.bold,
-        color: colors.textLight,
-        fontSize: 13,
-    },
-    sectionTitle: {
-        fontFamily: typography.fonts.bold,
-        fontSize: 16,
-        color: colors.textPrimary,
-        marginBottom: 16,
-    },
     gridContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 12,
+        gap: 10,
     },
     gridCell: {
         backgroundColor: colors.surface,
         borderRadius: 12,
-        padding: 12,
+        padding: 8,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
         borderColor: colors.borderMedium,
-        height: 124,
+        height: 104,
         position: "relative",
     },
     selectedGridCell: {
@@ -367,28 +501,20 @@ const styles = StyleSheet.create({
     },
     badgeCount: {
         position: "absolute",
-        top: 8,
-        right: 10,
+        top: 6,
+        right: 8,
         fontFamily: typography.fonts.semiBold,
-        fontSize: 12,
+        fontSize: 11,
         color: colors.textMuted,
     },
-    cellImage: {
-        width: 44,
-        height: 44,
-        borderRadius: 10,
-        marginBottom: 10,
-        marginTop: 6,
-        backgroundColor: colors.surfaceVariant,
-    },
     cellImageWrapper: {
-        width: 44,
-        height: 44,
-        borderRadius: 10,
-        marginBottom: 10,
-        marginTop: 6,
+        width: 38,
+        height: 38,
+        borderRadius: 8,
+        marginBottom: 6,
+        marginTop: 4,
         backgroundColor: colors.surfaceVariant,
-        padding: 6,
+        padding: 4,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -397,36 +523,36 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     cellIconWrapper: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 38,
+        height: 38,
+        borderRadius: 19,
         backgroundColor: colors.surfaceVariant,
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: 10,
-        marginTop: 6,
+        marginBottom: 6,
+        marginTop: 4,
     },
     cellName: {
         fontFamily: typography.fonts.semiBold,
-        fontSize: 13,
+        fontSize: 11,
         color: colors.textPrimary,
         textAlign: "center",
-        lineHeight: 16,
+        lineHeight: 14,
     },
     equippedGridBadge: {
         position: "absolute",
-        top: 6,
-        left: 6,
+        top: 5,
+        left: 5,
         backgroundColor: colors.primary,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
+        paddingHorizontal: 5,
+        paddingVertical: 1,
         borderRadius: 30,
         zIndex: 2,
     },
     equippedGridBadgeText: {
         fontFamily: typography.fonts.bold,
         color: colors.textLight,
-        fontSize: 8,
+        fontSize: 7.5,
     },
     modalOverlay: {
         flex: 1,

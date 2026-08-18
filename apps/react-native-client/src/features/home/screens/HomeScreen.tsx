@@ -194,6 +194,7 @@ export default function HomeScreen() {
                     u.name || "User",
                 )}&background=E8E4F4&color=5856D6&bold=true`,
             equippedFrameUrl: u.equippedFrameUrl ?? null,
+            equippedLeaderboardBgUrl: u.equippedLeaderboardBgUrl ?? null,
             rank: idx + 1,
             isFriend: false,
             isFollowing: false,
