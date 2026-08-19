@@ -94,6 +94,7 @@ export default function VideoPlayer({
             style={styles.video}
             controls={isFullscreen}
             resizeMode="contain"
+            useTextureView={true}
             paused={!isFocused || !isUserPlaying}
             fullscreen={isFullscreen}
             fullscreenOrientation="landscape"
@@ -108,6 +109,7 @@ export default function VideoPlayer({
                 setDuration(data.duration);
               }
             }}
+
             onBuffer={({ isBuffering }) => {
               setLoading(isBuffering);
             }}
@@ -123,7 +125,7 @@ export default function VideoPlayer({
               setHasError(true);
             }}
           />
-          {!isUserPlaying && (
+          {!isUserPlaying && !loading && (
             <TouchableOpacity
               style={styles.playOverlay}
               activeOpacity={0.8}
@@ -134,7 +136,7 @@ export default function VideoPlayer({
               </View>
             </TouchableOpacity>
           )}
-          {loading && isUserPlaying && <VideoLoading />}
+          {loading && <VideoLoading />}
         </>
       )}
     </View>
