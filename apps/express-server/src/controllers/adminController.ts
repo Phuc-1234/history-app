@@ -149,6 +149,49 @@ export const getAiUsageStats = async (req: Request, res: Response) => {
 };
 
 
+/**
+ * GET /api/admin/stats/user-growth?days=30
+ * Người dùng mới kích hoạt (nhận XP lần đầu) theo ngày + lũy kế.
+ */
+export const getUserGrowthSeries = async (req: Request, res: Response) => {
+    try {
+        const days = Number(req.query.days) || 30;
+        const data = await adminService.getUserGrowthSeries(days);
+        return res.json(data);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch user growth series" });
+    }
+};
+
+/**
+ * GET /api/admin/stats/revenue?days=30
+ * Doanh thu gold_purchases + subscriptions theo ngày và KPI.
+ */
+export const getRevenueStats = async (req: Request, res: Response) => {
+    try {
+        const days = Number(req.query.days) || 30;
+        const data = await adminService.getRevenueStats(days);
+        return res.json(data);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch revenue stats" });
+    }
+};
+
+/**
+ * GET /api/admin/stats/content-progress?days=30
+ * Tiến độ học nội dung: KPI, hoạt động học theo ngày, theo khối, top bài học.
+ */
+export const getContentProgressStats = async (req: Request, res: Response) => {
+    try {
+        const days = Number(req.query.days) || 30;
+        const data = await adminService.getContentProgressStats(days);
+        return res.json(data);
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message || "Failed to fetch content progress stats" });
+    }
+};
+
+
 // ─────────────────────────────── GRADE ────────────────────────────────────────
 
 export const createGrade = async (
