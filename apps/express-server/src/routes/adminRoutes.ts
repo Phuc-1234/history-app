@@ -11,6 +11,9 @@ import {
     getTestOverview,
     getQuestionStats,
     getAiUsageStats,
+    getUserGrowthSeries,
+    getRevenueStats,
+    getContentProgressStats,
     createGrade,
     updateGrade,
     deleteGrade,
@@ -125,6 +128,18 @@ router.get("/stats/question-stats", getQuestionStats);
 // GET    /api/admin/stats/ai-usage?days=30&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&userId=...
 // Thống kê AI token usage và xếp hạng người dùng.
 router.get("/stats/ai-usage", getAiUsageStats);
+
+// GET    /api/admin/stats/user-growth?days=30
+// Người dùng mới kích hoạt (nhận XP lần đầu) theo ngày + lũy kế.
+router.get("/stats/user-growth", getUserGrowthSeries);
+
+// GET    /api/admin/stats/revenue?days=30
+// Doanh thu gold_purchases + subscriptions.
+router.get("/stats/revenue", getRevenueStats);
+
+// GET    /api/admin/stats/content-progress?days=30
+// Tiến độ học nội dung (user_node_progress) theo ngày/khối/bài học.
+router.get("/stats/content-progress", getContentProgressStats);
 
 
 // ─── Feedback ─────────────────────────────────────────────────────────────────

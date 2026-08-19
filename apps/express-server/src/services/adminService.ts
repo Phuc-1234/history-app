@@ -452,6 +452,314 @@ export class AdminService {
         return { topWrong, typeBreakdown };
     }
 
+    /**
+     * Section — Tăng trưởng người dùng: số user "kích hoạt" (nhận XP lần đầu)
+     * theo ngày. users không có createdAt nên mốc kích hoạt của mỗi user là
+     * MIN(created_at) trong user_xp_logs.
+     */
+    async getUserGrowthSeries(days: number = 30): Promise<{
+        series: { date: string; newUsers: number; cumulative: number }[];
+        kpis: {
+            newInPeriod: number;
+            avgPerDay: number;
+            bestDay: { date: string; count: number } | null;
+            totalActivated: number;
+        };
+    }> {
+        const safeDays = Math.max(1, Math.min(Math.trunc(days) || 30, 90));
+        const start = this._seriesStart(safeDays);
+
+        const rows: any[] = await prisma.$queryRaw`
+            SELECT DATE(first_at) AS day, COUNT(*) AS new_users
+            FROM (
+                SELECT user_id, MIN(created_at) AS first_at
+                FROM user_xp_logs
+                GROUP BY user_id
+            ) t
+            WHERE first_at >= ${start}
+            GROUP BY DATE(first_at)
+            ORDER BY day
+        `;
+
+        const offsetRows: any[] = await prisma.$queryRaw`
+            SELECT COUNT(*) AS cnt
+            FROM (
+                SELECT user_id, MIN(created_at) AS first_at
+                FROM user_xp_logs
+                GROUP BY user_id
+            ) t
+            WHERE first_at < ${start}
+        `;
+        const offset = Number(offsetRows[0]?.cnt) || 0;
+
+        const byDay = new Map<string, number>();
+        for (const r of rows) {
+            const key = new Date(r.day).toISOString().slice(0, 10);
+            byDay.set(key, Number(r.new_users) || 0);
+        }
+
+        const dateList: Date[] = [];
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        for (let i = safeDays - 1; i >= 0; i--) {
+            const d = new Date(today); d.setDate(d.getDate() - i);
+            dateList.push(d);
+        }
+
+        let running = offset;
+        let newInPeriod = 0;
+        let bestDay: { date: string; count: number } | null = null;
+        const series = dateList.map((d) => {
+            const key = d.toISOString().slice(0, 10);
+            const n = byDay.get(key) ?? 0;
+            running += n;
+            newInPeriod += n;
+            if (!bestDay || n > bestDay.count) bestDay = { date: key, count: n };
+            return { date: key, newUsers: n, cumulative: running };
+        });
+
+        return {
+            series,
+            kpis: {
+                newInPeriod,
+                avgPerDay: Math.round((newInPeriod / safeDays) * 10) / 10,
+                bestDay,
+                totalActivated: running,
+            },
+        };
+    }
+
+    /**
+     * Section — Doanh thu: gold_purchases + subscriptions.
+     * Gold "đã thu" = status SUCCESS.
+     * Sub "đã thu" = đã thanh toán (ACTIVE / CANCELLED / EXPIRED; PENDING và FAILED chưa thu).
+     */
+    async getRevenueStats(days: number = 30): Promise<{
+        series: { date: string; goldRevenue: number; goldCount: number; subRevenue: number; subCount: number }[];
+        kpis: {
+            goldRevenueInPeriod: number;
+            goldCountInPeriod: number;
+            subRevenueInPeriod: number;
+            subCountInPeriod: number;
+            goldRevenueAllTime: number;
+            subRevenueAllTime: number;
+            activeSubscriptions: number;
+            autoRenewCount: number;
+            pendingPayments: number;
+        };
+    }> {
+        const safeDays = Math.max(1, Math.min(Math.trunc(days) || 30, 90));
+        const start = this._seriesStart(safeDays);
+
+        const goldDaily: any[] = await prisma.$queryRaw`
+            SELECT
+                DATE(created_at) AS day,
+                COALESCE(SUM(amount_vnd) FILTER (WHERE status = 'SUCCESS'), 0) AS revenue,
+                COUNT(*) FILTER (WHERE status = 'SUCCESS') AS success_count
+            FROM gold_purchases
+            WHERE created_at >= ${start}
+            GROUP BY DATE(created_at)
+        `;
+        const subDaily: any[] = await prisma.$queryRaw`
+            SELECT
+                DATE(created_at) AS day,
+                COALESCE(SUM(amount_vnd) FILTER (WHERE status IN ('ACTIVE', 'CANCELLED', 'EXPIRED')), 0) AS revenue,
+                COUNT(*) FILTER (WHERE status IN ('ACTIVE', 'CANCELLED', 'EXPIRED')) AS success_count
+            FROM subscriptions
+            WHERE created_at >= ${start}
+            GROUP BY DATE(created_at)
+        `;
+        const goldKpi: any[] = await prisma.$queryRaw`
+            SELECT
+                COALESCE(SUM(amount_vnd) FILTER (WHERE status = 'SUCCESS'), 0) AS total_revenue,
+                COUNT(*) FILTER (WHERE status = 'SUCCESS') AS success_count,
+                COUNT(*) FILTER (WHERE status = 'PENDING') AS pending_count
+            FROM gold_purchases
+        `;
+        const subKpi: any[] = await prisma.$queryRaw`
+            SELECT
+                COALESCE(SUM(amount_vnd) FILTER (WHERE status IN ('ACTIVE', 'CANCELLED', 'EXPIRED')), 0) AS total_revenue,
+                COUNT(*) FILTER (WHERE status = 'ACTIVE') AS active_count,
+                COUNT(*) FILTER (WHERE status = 'ACTIVE' AND auto_renew = TRUE) AS auto_renew_count,
+                COUNT(*) FILTER (WHERE status = 'PENDING') AS pending_count
+            FROM subscriptions
+        `;
+
+        const goldByDay = new Map<string, { revenue: number; count: number }>();
+        for (const r of goldDaily) {
+            goldByDay.set(new Date(r.day).toISOString().slice(0, 10), {
+                revenue: Number(r.revenue) || 0,
+                count: Number(r.success_count) || 0,
+            });
+        }
+        const subByDay = new Map<string, { revenue: number; count: number }>();
+        for (const r of subDaily) {
+            subByDay.set(new Date(r.day).toISOString().slice(0, 10), {
+                revenue: Number(r.revenue) || 0,
+                count: Number(r.success_count) || 0,
+            });
+        }
+
+        const dateList: Date[] = [];
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        for (let i = safeDays - 1; i >= 0; i--) {
+            const d = new Date(today); d.setDate(d.getDate() - i);
+            dateList.push(d);
+        }
+        const series = dateList.map((d) => {
+            const key = d.toISOString().slice(0, 10);
+            return {
+                date: key,
+                goldRevenue: goldByDay.get(key)?.revenue ?? 0,
+                goldCount: goldByDay.get(key)?.count ?? 0,
+                subRevenue: subByDay.get(key)?.revenue ?? 0,
+                subCount: subByDay.get(key)?.count ?? 0,
+            };
+        });
+
+        const g = goldKpi[0] ?? {};
+        const s = subKpi[0] ?? {};
+        return {
+            series,
+            kpis: {
+                goldRevenueInPeriod: series.reduce((sum, r) => sum + r.goldRevenue, 0),
+                goldCountInPeriod: series.reduce((sum, r) => sum + r.goldCount, 0),
+                subRevenueInPeriod: series.reduce((sum, r) => sum + r.subRevenue, 0),
+                subCountInPeriod: series.reduce((sum, r) => sum + r.subCount, 0),
+                goldRevenueAllTime: Number(g.total_revenue) || 0,
+                subRevenueAllTime: Number(s.total_revenue) || 0,
+                activeSubscriptions: Number(s.active_count) || 0,
+                autoRenewCount: Number(s.auto_renew_count) || 0,
+                pendingPayments: (Number(g.pending_count) || 0) + (Number(s.pending_count) || 0),
+            },
+        };
+    }
+
+    /**
+     * Section — Tiến độ học nội dung theo user_node_progress.
+     * Một row = một user đã tương tác với một node; hoàn thành khi node_completed_at
+     * IS NOT NULL. Tỉ lệ hoàn thành = completed / total trên các row đang có.
+     */
+    async getContentProgressStats(days: number = 30): Promise<{
+        kpis: {
+            totalRows: number;
+            completedRows: number;
+            completionRate: number;
+            learners: number;
+            studiesInPeriod: number;
+        };
+        studyActivity: { date: string; studies: number; learners: number }[];
+        byGrade: { gradeId: number; learners: number; totalRows: number; completedRows: number; completionRate: number }[];
+        topLessons: { lessonId: number; lessonName: string; gradeId: number; learners: number; totalRows: number; completedRows: number; completionRate: number }[];
+    }> {
+        const safeDays = Math.max(1, Math.min(Math.trunc(days) || 30, 90));
+        const start = this._seriesStart(safeDays);
+
+        const kpiRows: any[] = await prisma.$queryRaw`
+            SELECT
+                COUNT(*) AS total_rows,
+                COUNT(*) FILTER (WHERE node_completed_at IS NOT NULL) AS completed_rows,
+                COUNT(DISTINCT user_id) AS learners
+            FROM user_node_progress
+        `;
+        const activityRows: any[] = await prisma.$queryRaw`
+            SELECT
+                DATE(studied_at) AS day,
+                COUNT(*) AS studies,
+                COUNT(DISTINCT user_id) AS learners
+            FROM user_node_progress
+            WHERE studied_at IS NOT NULL AND studied_at >= ${start}
+            GROUP BY DATE(studied_at)
+        `;
+        const gradeRows: any[] = await prisma.$queryRaw`
+            SELECT
+                t.grade_id AS grade_id,
+                COUNT(DISTINCT p.user_id) AS learners,
+                COUNT(*) AS total_rows,
+                COUNT(*) FILTER (WHERE p.node_completed_at IS NOT NULL) AS completed_rows
+            FROM user_node_progress p
+            JOIN nodes n ON n.id = p.node_id
+            JOIN sections se ON se.id = n.section_id
+            JOIN lessons l ON l.id = se.lesson_id
+            JOIN topics t ON t.id = l.topic_id
+            GROUP BY t.grade_id
+            ORDER BY t.grade_id
+        `;
+        const lessonRows: any[] = await prisma.$queryRaw`
+            SELECT
+                l.id AS lesson_id,
+                l.name AS lesson_name,
+                MIN(t.grade_id) AS grade_id,
+                COUNT(DISTINCT p.user_id) AS learners,
+                COUNT(*) AS total_rows,
+                COUNT(*) FILTER (WHERE p.node_completed_at IS NOT NULL) AS completed_rows
+            FROM user_node_progress p
+            JOIN nodes n ON n.id = p.node_id
+            JOIN sections se ON se.id = n.section_id
+            JOIN lessons l ON l.id = se.lesson_id
+            JOIN topics t ON t.id = l.topic_id
+            GROUP BY l.id, l.name
+            ORDER BY learners DESC, total_rows DESC
+            LIMIT 10
+        `;
+
+        const k = kpiRows[0] ?? {};
+        const totalRows = Number(k.total_rows) || 0;
+        const completedRows = Number(k.completed_rows) || 0;
+
+        const byDay = new Map<string, { studies: number; learners: number }>();
+        for (const r of activityRows) {
+            byDay.set(new Date(r.day).toISOString().slice(0, 10), {
+                studies: Number(r.studies) || 0,
+                learners: Number(r.learners) || 0,
+            });
+        }
+        const dateList: Date[] = [];
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        for (let i = safeDays - 1; i >= 0; i--) {
+            const d = new Date(today); d.setDate(d.getDate() - i);
+            dateList.push(d);
+        }
+        const studyActivity = dateList.map((d) => {
+            const key = d.toISOString().slice(0, 10);
+            return { date: key, studies: byDay.get(key)?.studies ?? 0, learners: byDay.get(key)?.learners ?? 0 };
+        });
+
+        return {
+            kpis: {
+                totalRows,
+                completedRows,
+                completionRate: totalRows > 0 ? Math.round((completedRows / totalRows) * 1000) / 10 : 0,
+                learners: Number(k.learners) || 0,
+                studiesInPeriod: studyActivity.reduce((sum, r) => sum + r.studies, 0),
+            },
+            studyActivity,
+            byGrade: gradeRows.map((r) => {
+                const total = Number(r.total_rows) || 0;
+                const completed = Number(r.completed_rows) || 0;
+                return {
+                    gradeId: Number(r.grade_id),
+                    learners: Number(r.learners) || 0,
+                    totalRows: total,
+                    completedRows: completed,
+                    completionRate: total > 0 ? Math.round((completed / total) * 1000) / 10 : 0,
+                };
+            }),
+            topLessons: lessonRows.map((r) => {
+                const total = Number(r.total_rows) || 0;
+                const completed = Number(r.completed_rows) || 0;
+                return {
+                    lessonId: Number(r.lesson_id),
+                    lessonName: String(r.lesson_name ?? ''),
+                    gradeId: Number(r.grade_id),
+                    learners: Number(r.learners) || 0,
+                    totalRows: total,
+                    completedRows: completed,
+                    completionRate: total > 0 ? Math.round((completed / total) * 1000) / 10 : 0,
+                };
+            }),
+        };
+    }
+
     // ─────────────────────────────── GRADE ────────────────────────────────────
 
     async createGrade(data: CreateGradeBody): Promise<GradeDto> {
