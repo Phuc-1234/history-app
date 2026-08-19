@@ -296,19 +296,10 @@ export default function HomeScreen() {
                                         activeOpacity={0.7}
                                         onPress={tierManager.openTierDrawer}
                                     >
-                                        {topBarData?.badgeImgUrl ? (
-                                            <Image
-                                                source={{
-                                                    uri: topBarData.badgeImgUrl,
-                                                }}
-                                                style={styles.badgeIcon}
-                                            />
-                                        ) : (
-                                            <Zap
-                                                size={15}
-                                                color={colors.secondary}
-                                            />
-                                        )}
+                                        <Zap
+                                            size={15}
+                                            color={colors.secondary}
+                                        />
                                         <Text style={styles.badgeText}>
                                             {topBarData
                                                 ? `${topBarData.totalXp} XP`

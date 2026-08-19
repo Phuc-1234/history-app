@@ -56,16 +56,8 @@ export function SearchUserCard({
         <TouchableOpacity style={styles.searchCard} onPress={onOpen} activeOpacity={0.85}>
             <Avatar user={user} />
             <View style={styles.userInfo}>
-                <View style={styles.rowCenter}>
-                    <Text style={styles.userName} numberOfLines={1}>
-                        {user.name}
-                    </Text>
-                    <View style={styles.levelPill}>
-                        <Text style={styles.levelText}>Lv. {user.level}</Text>
-                    </View>
-                </View>
-                <Text style={styles.userTitle} numberOfLines={1}>
-                    {user.title}
+                <Text style={styles.userName} numberOfLines={1}>
+                    {user.name}
                 </Text>
                 <Text style={styles.userMeta}>
                     {user.xp.toLocaleString()} XP - {user.mutualFriends} bạn chung

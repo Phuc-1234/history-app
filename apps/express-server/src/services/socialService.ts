@@ -33,6 +33,7 @@ const userSelect = {
     profileImgUrl: true,
     totalXp: true,
     currentStreak: true,
+    lastXpGainedAt: true,
     isPrivate: true,
     allowFollow: true,
     allowFriendRequest: true,
@@ -48,6 +49,12 @@ const userSelect = {
     },
 };
 
+function getVnDateString(date: Date = new Date()): string {
+    const d = new Date(date);
+    const vnTime = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+    return vnTime.toISOString().split("T")[0];
+}
+
 function normalizeFriendPair(userId: string, friendId: string) {
     return userId < friendId
         ? { userId, friendId }
@@ -55,6 +62,10 @@ function normalizeFriendPair(userId: string, friendId: string) {
 }
 
 function publicUser(user: any) {
+    const todayStr = getVnDateString(new Date());
+    const lastXpStr = user.lastXpGainedAt ? getVnDateString(user.lastXpGainedAt) : null;
+    const hasCompletedToday = lastXpStr === todayStr;
+
     return {
         id: user.id,
         name: user.name,
@@ -62,6 +73,7 @@ function publicUser(user: any) {
         profileImgUrl: user.profileImgUrl ?? null,
         totalXp: user.totalXp ?? 0,
         currentStreak: user.currentStreak ?? 0,
+        hasCompletedToday,
         tierName: user.tier?.name ?? null,
         badgeImgUrl: user.tier?.badgeImgUrl ?? null,
         isPrivate: user.isPrivate ?? false,

@@ -11,7 +11,7 @@ import {
     ActivityIndicator,
     Pressable,
 } from "react-native";
-import { X, Flame, CheckCircle2, Lock, Gift, Sparkles, Trophy, Calendar, ChevronRight } from "lucide-react-native";
+import { X, Flame, CheckCircle2, Lock, Gift, Sparkles, Trophy, Calendar, ChevronRight, Zap, Coins } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
@@ -280,11 +280,13 @@ export default function StreakDrawerModal({
                                             <View style={styles.rewardsRow}>
                                                 {item.xp > 0 && (
                                                     <View style={styles.rewardChip}>
+                                                        <Zap size={12} color={colors.primary} />
                                                         <Text style={styles.rewardChipText}>+{item.xp} XP</Text>
                                                     </View>
                                                 )}
                                                 {item.gold > 0 && (
                                                     <View style={[styles.rewardChip, styles.goldRewardChip]}>
+                                                        <Coins size={12} color={colors.warning} />
                                                         <Text style={[styles.rewardChipText, styles.goldRewardText]}>
                                                             +{item.gold} Vàng
                                                         </Text>

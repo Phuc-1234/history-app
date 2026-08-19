@@ -16,7 +16,7 @@
       "googleServicesFile": "./google-services.json",
       "newArchEnabled": false,
       "adaptiveIcon": {
-        "backgroundColor": "#7C0E18",
+        "backgroundColor": "#FAF9F6",
         "foregroundImage": "./assets/images/true_app_icon_foreground.png",
         "monochromeImage": "./assets/images/true_app_icon_foreground.png"
       },

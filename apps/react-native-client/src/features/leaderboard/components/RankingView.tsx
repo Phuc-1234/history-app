@@ -22,6 +22,7 @@ import { SlidingTabBar } from "../../../components/SlidingTabBar";
 import { Card } from "../../../components/Card";
 import { AvatarWithFrame } from "../../../components/ui";
 import { Ionicons } from "@expo/vector-icons";
+import { Flame } from "lucide-react-native";
 
 export const RankingView: React.FC = () => {
     const router = useRouter();
@@ -299,7 +300,7 @@ export const RankingView: React.FC = () => {
                     <Text style={styles.stickyRowXp}>
                         {activeTab === "streak" ? (
                             <>
-                                <Ionicons name="flame" size={14} color="#EA580C" />
+                                <Flame size={14} color={meInList.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
                                 <Text> {meInList.streak ?? 0} ngày</Text>
                             </>
                         ) : (
