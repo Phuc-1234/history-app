@@ -9,7 +9,7 @@ const message = {
     newSame: "Mật khẩu mới không được trùng mật khẩu cũ.",
     confirmRequired: "Vui lòng xác nhận mật khẩu mới.",
     confirmMismatch: "Mật khẩu xác nhận không khớp.",
-    success: "Đổi mật khẩu thành công",
+    success: "Đổi mật khẩu thành công!",
 };
 
 export function useChangePassword() {
@@ -84,7 +84,19 @@ export function useChangePassword() {
             return true;
         } catch (err: any) {
             setIsSuccess(false);
-            setFeedbackMessage(err?.data?.error || "Cập nhật mật khẩu thất bại.");
+            const rawError = err?.data?.error || err?.message || "";
+            const lower = rawError.toLowerCase();
+            let msg = "Cập nhật mật khẩu thất bại.";
+            if (lower.includes("mật khẩu cũ không đúng") || lower.includes("invalid login credentials") || lower.includes("old password") || lower.includes("current_password") || lower.includes("incorrect")) {
+                msg = "Mật khẩu cũ không đúng.";
+            } else if (lower.includes("same") || lower.includes("different") || lower.includes("trùng")) {
+                msg = "Mật khẩu mới không được trùng mật khẩu cũ.";
+            } else if (lower.includes("short") || lower.includes("least") || lower.includes("ngắn")) {
+                msg = "Mật khẩu mới phải có ít nhất 8 ký tự.";
+            } else if (rawError && !lower.includes("error") && !lower.includes("failed")) {
+                msg = rawError;
+            }
+            setFeedbackMessage(msg);
             return false;
         } finally {
             setIsLoading(false);

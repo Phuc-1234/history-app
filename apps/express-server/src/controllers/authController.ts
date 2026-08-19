@@ -41,7 +41,7 @@ export const registerUser = async (
 
         // Validation Checkpoints
         if (!name || !email || !password || !confirmPassword) {
-            return res.status(400).json({ error: "All fields are required." });
+            return res.status(400).json({ error: "Vui lòng nhập đầy đủ tất cả các trường." });
         }
         if (name.trim().length > 30) {
             return res.status(400).json({
@@ -49,11 +49,11 @@ export const registerUser = async (
             });
         }
         if (password !== confirmPassword) {
-            return res.status(400).json({ error: "Passwords do not match." });
+            return res.status(400).json({ error: "Mật khẩu xác nhận không khớp." });
         }
         if (password.length < 6) {
             return res.status(400).json({
-                error: "Password must be at least 6 characters long.",
+                error: "Mật khẩu phải có ít nhất 6 ký tự.",
             });
         }
 
@@ -65,14 +65,19 @@ export const registerUser = async (
         });
 
         if (error || !data.user) {
+            const rawMsg = (error?.message || "").toLowerCase();
+            let errorMessage = "Đăng ký thất bại. Vui lòng thử lại.";
+            if (rawMsg.includes("already registered") || rawMsg.includes("already exists")) {
+                errorMessage = "Email này đã được đăng ký tài khoản.";
+            }
             return res
                 .status(400)
-                .json({ error: error?.message || "Registration failed." });
+                .json({ error: errorMessage });
         }
 
         return res.status(201).json({
             message:
-                "Registration complete! Check your email for verification if enabled.",
+                "Đăng ký hoàn tất! Vui lòng kiểm tra email để xác thực tài khoản.",
             user: {
                 id: data.user.id,
                 email: data.user.email!,
@@ -83,7 +88,7 @@ export const registerUser = async (
         console.error("Express Controller Register Error:", error);
         return res
             .status(500)
-            .json({ error: "Internal server error during registration." });
+            .json({ error: "Lỗi hệ thống khi đăng ký tài khoản." });
     }
 };
 
@@ -97,7 +102,7 @@ export const loginUser = async (
         if (!email || !password) {
             return res.status(400).json({
                 status: "error",
-                error: "Email and password are required.",
+                error: "Vui lòng nhập đầy đủ email và mật khẩu.",
             });
         }
 
@@ -117,15 +122,22 @@ export const loginUser = async (
             if (isUnconfirmed) {
                 return res.status(400).json({
                     status: "requires_verification",
-                    error: "Email not confirmed.",
+                    error: "Email chưa được xác thực.",
                     requiresVerification: true,
+                });
+            }
+
+            if (error.status === 429 || error.message.toLowerCase().includes("rate")) {
+                return res.status(429).json({
+                    status: "error",
+                    error: "Quá nhiều yêu cầu đăng nhập. Vui lòng thử lại sau ít phút.",
                 });
             }
 
             // Default fallback for incorrect password / invalid credentials
             return res.status(401).json({
                 status: "error",
-                error: error.message || "Invalid email or password.",
+                error: "Tài khoản hoặc mật khẩu không chính xác.",
             });
         }
 
@@ -133,7 +145,7 @@ export const loginUser = async (
         if (!data.user || !data.session) {
             return res.status(401).json({
                 status: "error",
-                error: "Invalid login session state.",
+                error: "Phiên đăng nhập không hợp lệ.",
             });
         }
 
@@ -171,7 +183,7 @@ export const loginUser = async (
         if (!userProfile) {
             return res.status(404).json({
                 status: "error",
-                error: "User gamification state profile not synchronized yet.",
+                error: "Không tìm thấy thông tin tài khoản.",
             });
         }
 
@@ -194,7 +206,7 @@ export const loginUser = async (
         // Meets LoginSuccessResponse contract perfectly
         return res.status(200).json({
             status: "success",
-            message: "Login verified successfully.",
+            message: "Đăng nhập thành công.",
             session: mapSession(data.session),
             profile,
         });
@@ -202,7 +214,7 @@ export const loginUser = async (
         console.error("Express Controller Login Error:", error);
         return res.status(500).json({
             status: "error",
-            error: "Internal server error during login.",
+            error: "Lỗi hệ thống khi đăng nhập.",
         });
     }
 };
@@ -218,7 +230,7 @@ export const verifyOtp = async (
         if (!email || !token) {
             return res
                 .status(400)
-                .json({ error: "Email and verification token are required." });
+                .json({ error: "Vui lòng nhập đầy đủ email và mã xác thực." });
         }
 
         // 2. Process token validation through our Service Layer
@@ -230,7 +242,7 @@ export const verifyOtp = async (
         if (error || !data.user || !data.session) {
             return res
                 .status(400)
-                .json({ error: error?.message || "Invalid or expired token." });
+                .json({ error: "Mã OTP không đúng hoặc đã hết hạn." });
         }
 
         // Update user is_verified field in database upon successful OTP verification
@@ -265,7 +277,7 @@ export const verifyOtp = async (
 
         if (!userProfile) {
             return res.status(404).json({
-                error: "Game account profile synchronization failed.",
+                error: "Không tìm thấy thông tin tài khoản.",
             });
         }
 
@@ -287,7 +299,7 @@ export const verifyOtp = async (
 
         // 4. Return tokens and data right back to the React Native UI layout
         return res.status(200).json({
-            message: "Email successfully verified!",
+            message: "Xác thực email thành công!",
             session: mapSession(data.session),
             profile,
         });
@@ -295,7 +307,7 @@ export const verifyOtp = async (
         console.error("Express Controller OTP Verification Error:", error);
         return res
             .status(500)
-            .json({ error: "Internal server error during verification loop." });
+            .json({ error: "Lỗi hệ thống khi xác thực mã OTP." });
     }
 };
 
@@ -311,7 +323,7 @@ export const refreshSessionToken = async (
             // ✅ Completely valid under { error: string } union block
             return res
                 .status(400)
-                .json({ error: "Refresh token is a required parameter." });
+                .json({ error: "Thiếu refresh token." });
         }
 
         const { data, error } =
@@ -320,9 +332,7 @@ export const refreshSessionToken = async (
         if (error || !data.session) {
             // ✅ Completely valid under { error: string } union block
             return res.status(401).json({
-                error:
-                    error?.message ||
-                    "Session rotation failed. Token may be completely expired or reuse-detected.",
+                error: "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.",
             });
         }
 
@@ -335,7 +345,7 @@ export const refreshSessionToken = async (
     } catch (error) {
         console.error("Express Controller Token Refresh Loop Crash:", error);
         return res.status(500).json({
-            error: "Internal server error during session rotation processing.",
+            error: "Lỗi hệ thống khi làm mới phiên làm việc.",
         });
     }
 };
@@ -350,7 +360,7 @@ export const resendOtp = async (
         if (!email) {
             return res.status(400).json({
                 status: "error",
-                error: "Email is required.",
+                error: "Vui lòng nhập email.",
             });
         }
 
@@ -358,23 +368,28 @@ export const resendOtp = async (
         const { error } = await authService.resendSignUpOtp(email);
 
         if (error) {
+            const rawMsg = (error.message || "").toLowerCase();
+            let errorMessage = "Gửi lại mã OTP thất bại. Vui lòng thử lại sau.";
+            if (rawMsg.includes("rate") || rawMsg.includes("after") || rawMsg.includes("security")) {
+                errorMessage = "Vui lòng đợi 60 giây trước khi yêu cầu gửi lại mã.";
+            }
             // Catches rate-limits (HTTP 429) or invalid format errors gracefully
             return res.status(error.status || 400).json({
                 status: "error",
-                error: error.message || "Failed to resend verification code.",
+                error: errorMessage,
             });
         }
 
         // Matches ResendOtpSuccessResponse perfectly
         return res.status(200).json({
             status: "success",
-            message: "A fresh verification code has been sent successfully.",
+            message: "Mã xác thực mới đã được gửi thành công.",
         });
     } catch (error) {
         console.error("Express Controller Resend OTP Error:", error);
         return res.status(500).json({
             status: "error",
-            error: "Internal server error during OTP resend.",
+            error: "Lỗi hệ thống khi gửi lại mã xác thực.",
         });
     }
 };
@@ -390,7 +405,7 @@ export const verifyGoogleSession = async (
         if (!idToken) {
             return res.status(400).json({
                 status: 'error',
-                error: "Google ID Token (idToken) is required to complete authentication exchange.",
+                error: "Thiếu Google ID Token để xác thực.",
             });
         }
 
@@ -400,7 +415,7 @@ export const verifyGoogleSession = async (
         if (error || !data || !data.user) {
             return res.status(401).json({
                 status: 'error',
-                error: error?.message || "Invalid or expired Google authentication session.",
+                error: "Phiên đăng nhập Google không hợp lệ hoặc đã hết hạn.",
             });
         }
 
@@ -410,7 +425,7 @@ export const verifyGoogleSession = async (
         if (!user.email_confirmed_at) {
             return res.status(400).json({
                 status: 'requires_verification',
-                error: "This Google account email address is unverified.",
+                error: "Địa chỉ email Google này chưa được xác thực.",
                 requiresVerification: true,
             });
         }
@@ -449,7 +464,7 @@ export const verifyGoogleSession = async (
         if (!userProfile) {
             return res.status(404).json({
                 status: 'error',
-                error: "User gamification state profile not synchronized yet.",
+                error: "Không tìm thấy thông tin tài khoản.",
             });
         }
 
@@ -473,7 +488,7 @@ export const verifyGoogleSession = async (
         // 6. Return unified payload containing native, auto-refreshing Supabase session JWTs
         return res.status(200).json({
             status: 'success',
-            message: "Google login verified successfully.",
+            message: "Đăng nhập Google thành công.",
             session: {
                 // ✅ Grabs genuine, signed Supabase access/refresh tokens from the exchange!
                 accessToken: session?.access_token || "",
@@ -487,7 +502,7 @@ export const verifyGoogleSession = async (
         console.error("Express Controller Google Verify Error:", error);
         return res.status(500).json({
             status: 'error',
-            error: "Internal server error processing Google login."
+            error: "Lỗi hệ thống khi đăng nhập bằng Google."
         });
     }
 };
@@ -502,7 +517,7 @@ export const verifyFacebookSession = async (
         if (!accessToken) {
             return res.status(400).json({
                 status: 'error',
-                error: "Facebook Access Token (accessToken) is required to complete authentication exchange.",
+                error: "Thiếu Facebook Access Token để xác thực.",
             });
         }
 
@@ -511,7 +526,7 @@ export const verifyFacebookSession = async (
         if (error || !data || !data.user) {
             return res.status(401).json({
                 status: 'error',
-                error: error?.message || "Invalid or expired Facebook authentication session.",
+                error: "Phiên đăng nhập Facebook không hợp lệ hoặc đã hết hạn.",
             });
         }
 
@@ -548,7 +563,7 @@ export const verifyFacebookSession = async (
         if (!userProfile) {
             return res.status(404).json({
                 status: 'error',
-                error: "User gamification state profile not synchronized yet.",
+                error: "Không tìm thấy thông tin tài khoản.",
             });
         }
 
@@ -570,7 +585,7 @@ export const verifyFacebookSession = async (
 
         return res.status(200).json({
             status: 'success',
-            message: "Facebook login verified successfully.",
+            message: "Đăng nhập Facebook thành công.",
             session: {
                 accessToken: session?.access_token || "",
                 refreshToken: session?.refresh_token || "", 
@@ -583,7 +598,7 @@ export const verifyFacebookSession = async (
         console.error("Express Controller Facebook Verify Error:", error);
         return res.status(500).json({
             status: 'error',
-            error: "Internal server error processing Facebook login."
+            error: "Lỗi hệ thống khi đăng nhập bằng Facebook."
         });
     }
 };
@@ -601,7 +616,12 @@ export const forgotPassword = async (req, res) => {
         const { error } = await supabase.auth.resetPasswordForEmail(email);
 
         if (error) {
-            return res.status(400).json({ error: error.message });
+            const rawMsg = (error.message || "").toLowerCase();
+            let errorMessage = "Không thể gửi mã OTP. Vui lòng thử lại sau.";
+            if (rawMsg.includes("rate") || rawMsg.includes("after") || rawMsg.includes("security")) {
+                errorMessage = "Vui lòng đợi 60 giây trước khi yêu cầu gửi lại mã.";
+            }
+            return res.status(400).json({ error: errorMessage });
         }
 
         return res.status(200).json({ message: "Mã OTP đã được gửi đến email của bạn." });
@@ -652,7 +672,7 @@ export const completeReset = async (req, res) => {
         }
 
         if (!newPassword || newPassword.length < 6) {
-            return res.status(400).json({ error: "Mật khẩu phải có ít nhất 6 ký tự." });
+            return res.status(400).json({ error: "Mật khẩu mới phải có ít nhất 6 ký tự." });
         }
 
         // Safely extract user ID (sub) from JWT payload
@@ -676,7 +696,14 @@ export const completeReset = async (req, res) => {
         const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
         if (error) {
             console.error("completeReset admin updateUserById error:", error);
-            return res.status(400).json({ error: error.message });
+            const rawMsg = (error.message || "").toLowerCase();
+            let errorMessage = "Không thể đặt lại mật khẩu. Vui lòng thử lại.";
+            if (rawMsg.includes("same") || rawMsg.includes("different")) {
+                errorMessage = "Mật khẩu mới không được trùng mật khẩu cũ.";
+            } else if (rawMsg.includes("short") || rawMsg.includes("least") || rawMsg.includes("characters")) {
+                errorMessage = "Mật khẩu mới phải có ít nhất 6 ký tự.";
+            }
+            return res.status(400).json({ error: errorMessage });
         }
 
         return res.status(200).json({ message: "Đặt lại mật khẩu thành công!" });

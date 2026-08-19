@@ -243,7 +243,7 @@ export const changeUserPassword = async (
 ): Promise<Response<{ message: string } | { error: string }>> => {
     try {
         if (!req.user) {
-            return res.status(401).json({ error: "Access denied. Valid session missing." });
+            return res.status(401).json({ error: "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại." });
         }
 
         const body = req.body as ChangePasswordRequestBody & {
@@ -272,7 +272,7 @@ export const changeUserPassword = async (
 
         const token = getBearerToken(req);
         if (!token) {
-            return res.status(401).json({ error: "Access token missing." });
+            return res.status(401).json({ error: "Phiên làm việc đã hết hạn." });
         }
 
         const { data: authUserData, error: authUserError } = await supabase.auth.getUser(token);
@@ -297,7 +297,7 @@ export const changeUserPassword = async (
         });
 
         if (sessionError) {
-            return res.status(400).json({ error: sessionError.message });
+            return res.status(400).json({ error: "Không thể xác thực phiên làm việc. Vui lòng thử lại." });
         }
 
         // 2. Change password using the verified fresh session.
@@ -307,10 +307,17 @@ export const changeUserPassword = async (
         });
 
         if (updateError) {
-            return res.status(400).json({ error: updateError.message });
+            const rawMsg = (updateError.message || "").toLowerCase();
+            let errorMessage = "Đổi mật khẩu thất bại. Vui lòng thử lại.";
+            if (rawMsg.includes("same") || rawMsg.includes("different")) {
+                errorMessage = "Mật khẩu mới không được trùng mật khẩu cũ.";
+            } else if (rawMsg.includes("short") || rawMsg.includes("least") || rawMsg.includes("characters")) {
+                errorMessage = "Mật khẩu mới phải có ít nhất 6 ký tự.";
+            }
+            return res.status(400).json({ error: errorMessage });
         }
 
-        return res.status(200).json({ message: "Password updated successfully." });
+        return res.status(200).json({ message: "Đổi mật khẩu thành công!" });
     } catch (error) {
         console.error("Express Change Password Controller Crash:", error);
         return res.status(500).json({
@@ -427,7 +434,7 @@ export const verifyUserEmailChange = async (
 ): Promise<Response<{ message: string } | { error: string }>> => {
     try {
         if (!req.user) {
-            return res.status(401).json({ error: "Access denied. Valid session missing." });
+            return res.status(401).json({ error: "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại." });
         }
 
         const { newEmail, token } = req.body;
@@ -442,7 +449,7 @@ export const verifyUserEmailChange = async (
         const refreshToken = getRefreshToken(req);
 
         if (!accessToken) {
-            return res.status(401).json({ error: "Access token missing." });
+            return res.status(401).json({ error: "Phiên làm việc đã hết hạn." });
         }
 
         const userSupabase = getSupabaseUserClient(accessToken);
@@ -460,7 +467,7 @@ export const verifyUserEmailChange = async (
         });
 
         if (error) {
-            return res.status(400).json({ error: error.message || "Mã OTP không chính xác hoặc đã hết hạn." });
+            return res.status(400).json({ error: "Mã OTP không đúng hoặc đã hết hạn." });
         }
 
         // Update email in Prisma DB after successful OTP verification
