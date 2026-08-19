@@ -11,7 +11,7 @@ import {
     ActivityIndicator,
     Pressable,
 } from "react-native";
-import { X, Award, CheckCircle2, Lock, Gift, Sparkles, ChevronRight } from "lucide-react-native";
+import { X, Award, CheckCircle2, Lock, Gift, Sparkles, ChevronRight, Zap, Coins } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
@@ -109,7 +109,7 @@ export default function TierDrawerModal({
                                                 style={styles.badgeImg}
                                             />
                                         ) : (
-                                            <Sparkles size={56} color={colors.primary} />
+                                            <Sparkles size={112} color={colors.primary} />
                                         )}
                                     </View>
                                     <View style={styles.heroTextContent}>
@@ -202,7 +202,7 @@ export default function TierDrawerModal({
                                                     />
                                                 ) : (
                                                     <Award
-                                                        size={24}
+                                                        size={72}
                                                         color={isCurrent ? colors.primary : colors.textMuted}
                                                     />
                                                 )}
@@ -247,6 +247,7 @@ export default function TierDrawerModal({
                                                 <View style={styles.rewardsRow}>
                                                     {item.rewards.xp > 0 && (
                                                         <View style={styles.rewardChip}>
+                                                            <Zap size={12} color={colors.primary} />
                                                             <Text style={styles.rewardChipText}>
                                                                 +{item.rewards.xp} XP
                                                             </Text>
@@ -254,6 +255,7 @@ export default function TierDrawerModal({
                                                     )}
                                                     {item.rewards.gold > 0 && (
                                                         <View style={[styles.rewardChip, styles.goldRewardChip]}>
+                                                            <Coins size={12} color={colors.warning} />
                                                             <Text style={[styles.rewardChipText, styles.goldRewardText]}>
                                                                 +{item.rewards.gold} Vàng
                                                             </Text>
@@ -400,8 +402,8 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     badgeImg: {
-        width: 72,
-        height: 72,
+        width: 144,
+        height: 144,
         resizeMode: "contain",
     },
     heroTextContent: {
@@ -516,16 +518,13 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     tierIconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: colors.surfaceVariant,
         alignItems: "center",
         justifyContent: "center",
+        minHeight: 90,
     },
     tierBadgeImg: {
-        width: 30,
-        height: 30,
+        width: 90,
+        height: 90,
         resizeMode: "contain",
     },
     tierMetaVertical: {

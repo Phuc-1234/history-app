@@ -237,14 +237,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                                 tierManager.openTierDrawer();
                                             }}
                                         >
-                                            {data.badgeImgUrl ? (
-                                                <Image
-                                                    source={{ uri: data.badgeImgUrl }}
-                                                    style={styles.badgeIcon}
-                                                />
-                                            ) : (
-                                                <Zap size={14} color={colors.secondary} />
-                                            )}
+                                            <Zap size={14} color={colors.secondary} />
                                             <Text style={styles.chipText}>
                                                 {data.totalXp}XP
                                             </Text>

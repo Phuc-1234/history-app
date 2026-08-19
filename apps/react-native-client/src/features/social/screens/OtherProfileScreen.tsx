@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Zap, Flame } from "lucide-react-native";
 import {
     Avatar,
     EmptyState,
@@ -147,9 +148,6 @@ export function OtherProfileScreen() {
                 <View style={styles.profileHero}>
                     <Avatar user={profile} size={88} />
                     <Text style={styles.profileName}>{profile.name}</Text>
-                    <Text style={styles.profileSubtitle}>
-                        Lv. {profile.level} - {profile.title}
-                    </Text>
                     <View style={styles.profileStats}>
                         <StatCard
                             value={String(apiProfile?.stats.friends ?? 0)}
@@ -190,7 +188,7 @@ export function OtherProfileScreen() {
                                 { backgroundColor: colors.warning, borderWidth: 0 },
                             ]}
                         >
-                            <Ionicons name="trophy" size={24} color={colors.textLight} />
+                            <Zap size={24} color={colors.textLight} />
                             <Text style={[styles.badgeTitle, { color: colors.textLight }]}>
                                 {profile.xp.toLocaleString()} XP
                             </Text>
@@ -198,11 +196,22 @@ export function OtherProfileScreen() {
                         <View
                             style={[
                                 styles.badgeCard,
-                                { backgroundColor: colors.error, borderWidth: 0 },
+                                {
+                                    backgroundColor: apiProfile?.hasCompletedToday ? "#FFE8D6" : colors.surfaceVariant,
+                                    borderWidth: 0,
+                                },
                             ]}
                         >
-                            <Ionicons name="flame" size={24} color={colors.textLight} />
-                            <Text style={[styles.badgeTitle, { color: colors.textLight }]}>
+                            <Flame
+                                size={24}
+                                color={apiProfile?.hasCompletedToday ? "#FF4500" : "#98A2B3"}
+                            />
+                            <Text
+                                style={[
+                                    styles.badgeTitle,
+                                    { color: apiProfile?.hasCompletedToday ? colors.textPrimary : colors.textMuted },
+                                ]}
+                            >
                                 Chuỗi học {apiProfile?.currentStreak ?? 0}
                             </Text>
                         </View>
