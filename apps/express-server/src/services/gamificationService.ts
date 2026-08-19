@@ -1,5 +1,6 @@
 // services/gamificationService.ts
 import { prisma } from "@history-app/shared";
+import { rewardEngine } from "./rewardEngine";
 
 function getVnDateString(date: Date = new Date()): string {
     const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
@@ -46,7 +47,6 @@ export class GamificationService {
                 totalXp: true,
                 tier: { select: { name: true, badgeImgUrl: true } } as any,
                 userEquippedItems: {
-                    where: { equipmentSlot: "AVT_FRAME" },
                     include: { itemDefinition: true },
                 },
             },
@@ -56,6 +56,9 @@ export class GamificationService {
         const entries = users.map((u: any) => {
             const lastXpStr = u.lastXpGainedAt ? getVnDateString(u.lastXpGainedAt) : null;
             const hasCompletedToday = lastXpStr === todayStr;
+            const frameItem = u.userEquippedItems?.find((e: any) => e.equipmentSlot === "AVT_FRAME");
+            const leaderboardBgItem = u.userEquippedItems?.find((e: any) => e.equipmentSlot === "LEADERBOARD_BG" || e.equipmentSlot === "BACKGROUND");
+
             return {
                 id: u.id,
                 avatarUrl: u.profileImgUrl ?? null,
@@ -65,9 +68,8 @@ export class GamificationService {
                 hasCompletedToday,
                 badgeImgUrl: u.tier?.badgeImgUrl ?? null,
                 totalXp: u.totalXp,
-                equippedFrameUrl: u.userEquippedItems.length > 0
-                    ? u.userEquippedItems[0].itemDefinition.imgUrl
-                    : null,
+                equippedFrameUrl: frameItem?.itemDefinition?.imgUrl ?? null,
+                equippedLeaderboardBgUrl: leaderboardBgItem?.itemDefinition?.imgUrl ?? null,
             };
         });
 
@@ -195,6 +197,8 @@ export class GamificationService {
         }
 
         if (userId) {
+            await rewardEngine.checkStreakOnLogin(userId);
+
             const user = await prisma.user.findUnique({
                 where: { id: userId },
                 select: {

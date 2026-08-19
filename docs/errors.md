@@ -10,12 +10,12 @@
 Running `.\gradlew --stop` does not always kill all orphaned Gradle / Java daemon background processes on Windows. Unstopped daemons hold onto gigabytes of RAM.
 
 ### Solution
-- Check Task Manager for **Java(TM) Platform SE binary** processes and manually use **End Task** if memory remains occupied.
-- Set `--max-workers=2` when running builds:
+- Stop running daemons via Gradle:
   ```powershell
-  .\gradlew assembleRelease --max-workers=2
+  .\gradlew --stop
   ```
-- Configure `android.ninja.jobs=2` in `android/gradle.properties` to throttle concurrent C++ compilation jobs.
+- Check Task Manager for orphaned **Java(TM) Platform SE binary** processes and manually use **End Task** (or `taskkill /F /IM java.exe`) if memory remains occupied before running `.\gradlew assembleRelease`.
+
 
 ---
 
@@ -29,7 +29,7 @@ Running `.\gradlew --stop` does not always kill all orphaned Gradle / Java daemo
 Android Gradle Plugin (AGP) prevents custom library modules from using direct `implementation fileTree(...)` or `implementation files(...)` referencing local `.aar` files because sub-library AARs cannot package nested AARs.
 
 ### Fix
-1. In `modules/react-native-zalopay/android/build.gradle`, change the AAR dependency from `implementation` to `compileOnly`:
+1. In `apps/react-native-client/modules/react-native-zalopay/android/build.gradle`, change the AAR dependency from `implementation` to `compileOnly`:
    ```gradle
    dependencies {
        implementation 'com.facebook.react:react-android:+'

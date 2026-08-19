@@ -1,8 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useGetUserInventoryQuery, useActivateItemMutation } from "../services/itemApi";
 import { useGetProfileQuery } from "../../auth/services/authApi";
 import { useAppSelector } from "../../../store/storeHook";
 import { Alert } from "react-native";
+
+export type InventoryCategory = "ALL" | "POWERUP" | "AVT_FRAME" | "LEADERBOARD_BG";
 
 export interface InventoryItem {
     id: string;
@@ -23,8 +25,12 @@ export interface InventoryItem {
 export function useInventory() {
     const { data: inventoryData, isLoading, isFetching: isFetchingInventory, refetch: refetchInventory } = useGetUserInventoryQuery();
     const { refetch: refetchProfile } = useGetProfileQuery();
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState<InventoryCategory>("ALL");
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-    const [activateItem] = useActivateItemMutation();
+    const [activateItem, { isLoading: isActivatingMutationLoading }] = useActivateItemMutation();
+    const isActivatingRef = useRef(false);
+    const [isLocalActivating, setIsLocalActivating] = useState(false);
     const [conflictModalData, setConflictModalData] = useState<{
         dbId: number;
         itemName: string;
@@ -33,9 +39,11 @@ export function useInventory() {
 
     const profile = useAppSelector((state) => state.auth.profile);
 
+    const isActivating = isActivatingMutationLoading || isLocalActivating;
+
     const inventory = useMemo<InventoryItem[]>(() => {
         if (!inventoryData?.inventory) return [];
-        return inventoryData.inventory.map((ui) => {
+        const rawItems = inventoryData.inventory.map((ui) => {
             const def = ui.itemDefinition;
             let icon = "cube-outline";
             let iconBgColor = "#E3F2FD";
@@ -46,9 +54,15 @@ export function useInventory() {
                 iconBgColor = "#FFECC7";
                 iconColor = "#FF9F00";
             } else if (def.itemType === "SKIN") {
-                icon = "shield-outline";
-                iconBgColor = "#FFEBEE";
-                iconColor = "#E53935";
+                if (def.equipmentSlot === "LEADERBOARD_BG" || def.equipmentSlot === "BACKGROUND") {
+                    icon = "image-outline";
+                    iconBgColor = "#E8F5E9";
+                    iconColor = "#2E7D32";
+                } else {
+                    icon = "shield-outline";
+                    iconBgColor = "#FFEBEE";
+                    iconColor = "#E53935";
+                }
             } else if (def.itemType === "BADGE") {
                 icon = "ribbon-outline";
                 iconBgColor = "#EDE7F6";
@@ -56,10 +70,12 @@ export function useInventory() {
             }
 
             const isEquipped = def.itemType === "SKIN" &&
-                def.equipmentSlot === "AVT_FRAME" &&
-                profile?.equippedFrameUrl !== null &&
-                profile?.equippedFrameUrl !== undefined &&
-                profile.equippedFrameUrl === def.imgUrl;
+                ((def.equipmentSlot === "AVT_FRAME" &&
+                    Boolean(profile?.equippedFrameUrl) &&
+                    profile?.equippedFrameUrl === def.imgUrl) ||
+                ((def.equipmentSlot === "LEADERBOARD_BG" || def.equipmentSlot === "BACKGROUND") &&
+                    Boolean(profile?.equippedLeaderboardBgUrl) &&
+                    profile?.equippedLeaderboardBgUrl === def.imgUrl));
 
             const isActivated = Boolean(ui.isActivated) || isEquipped;
 
@@ -79,17 +95,46 @@ export function useInventory() {
                 isActivated,
             };
         });
+
+        // Rearrange activated items to put them first
+        return rawItems.sort((a, b) => {
+            if (a.isActivated && !b.isActivated) return -1;
+            if (!a.isActivated && b.isActivated) return 1;
+            return a.dbId - b.dbId;
+        });
     }, [inventoryData, profile]);
 
+    const filteredInventory = useMemo(() => {
+        return inventory.filter((item) => {
+            const matchesQuery = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+            if (!matchesQuery) return false;
+
+            if (selectedCategory === "ALL") return true;
+            if (selectedCategory === "POWERUP") return item.itemType === "XP_MUL" || item.itemType === "GOLD_MUL";
+            if (selectedCategory === "AVT_FRAME") return item.itemType === "SKIN" && item.equipmentSlot === "AVT_FRAME";
+            if (selectedCategory === "LEADERBOARD_BG") {
+                return item.itemType === "SKIN" && (item.equipmentSlot === "LEADERBOARD_BG" || item.equipmentSlot === "BACKGROUND");
+            }
+            return true;
+        });
+    }, [inventory, searchQuery, selectedCategory]);
+
     const selectedItem = useMemo(() => {
-        if (inventory.length === 0) return null;
-        if (!selectedItemId) return inventory[0];
-        return inventory.find((item) => item.id === selectedItemId) || inventory[0];
-    }, [inventory, selectedItemId]);
+        if (filteredInventory.length === 0) return null;
+        if (!selectedItemId) return filteredInventory[0];
+        return filteredInventory.find((item) => item.id === selectedItemId) || filteredInventory[0];
+    }, [filteredInventory, selectedItemId]);
 
     const handleUseItem = async (id: string, forceReplace: boolean = false) => {
+        if (isActivatingRef.current || isActivatingMutationLoading || isLocalActivating) return;
         const item = inventory.find((it) => it.id === id);
         if (!item) return;
+
+        // Prevent re-activating consumable if already active
+        if (item.isActivated && item.itemType !== "SKIN") return;
+
+        isActivatingRef.current = true;
+        setIsLocalActivating(true);
 
         try {
             const res = await activateItem({ itemDefinitionId: item.dbId, forceReplace }).unwrap();
@@ -110,13 +155,16 @@ export function useInventory() {
                     activeItemName: err?.data?.activeItemName || "hiệu ứng đang dùng",
                 });
             } else {
-                Alert.alert("Lỗi", err?.data?.error ?? err?.message ?? "Không thể thực hiện hành động này.");
+                Alert.alert("Lỗi", err?.data?.message ?? err?.data?.error ?? err?.message ?? "Không thể thực hiện hành động này.");
             }
+        } finally {
+            isActivatingRef.current = false;
+            setIsLocalActivating(false);
         }
     };
 
     const handleConfirmReplace = async () => {
-        if (!conflictModalData) return;
+        if (!conflictModalData || isActivatingRef.current || isLocalActivating) return;
         const targetDbId = conflictModalData.dbId;
         setConflictModalData(null);
         await handleUseItem(String(targetDbId), true);
@@ -138,11 +186,17 @@ export function useInventory() {
     };
 
     return {
-        inventory,
+        inventory: filteredInventory,
+        rawInventory: inventory,
+        searchQuery,
+        setSearchQuery,
+        selectedCategory,
+        setSelectedCategory,
         selectedItem,
         setSelectedItemId,
         handleUseItem,
         isLoading,
+        isActivating,
         handleRefresh,
         isRefreshing: isFetchingInventory,
         conflictModalData,

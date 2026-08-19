@@ -12,12 +12,20 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from "react-native";
-import { Coins, Search, Package, ShoppingCart } from "lucide-react-native";
-import { useShop } from "../hooks/useShop";
+import { Coins, Search, Package, ShoppingCart, Zap } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useShop, ShopCategory } from "../hooks/useShop";
 import { useRouter } from "expo-router";
 import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { CustomModal } from "../../../components/Modal";
+
+const CATEGORIES: { key: ShopCategory; label: string }[] = [
+    { key: "ALL", label: "Tất cả" },
+    { key: "POWERUP", label: "Hiệu ứng" },
+    { key: "AVT_FRAME", label: "Khung ảnh" },
+    { key: "LEADERBOARD_BG", label: "Nền BXH" },
+];
 
 export const ShopView: React.FC = () => {
     const router = useRouter();
@@ -25,22 +33,30 @@ export const ShopView: React.FC = () => {
     const {
         searchQuery,
         setSearchQuery,
+        selectedCategory,
+        setSelectedCategory,
         filteredItems,
         selectedItem,
         setSelectedItem,
         handlePurchase,
+        handlePurchaseAndUse,
+        conflictModalData,
+        handleConfirmReplace,
+        handleCloseConflictModal,
         purchaseModal,
         closePurchaseModal,
         isLoading,
+        isPurchasing,
         handleRefresh,
         isRefreshing,
     } = useShop();
 
     const { width } = useWindowDimensions();
 
-    const paddingHorizontal = 18;
-    const gap = 14;
-    const itemWidth = (width - (paddingHorizontal * 2 + gap)) / 2;
+    const paddingHorizontal = 16;
+    const gap = 10;
+    const numColumns = 3;
+    const itemWidth = Math.floor((width - (paddingHorizontal * 2 + gap * (numColumns - 1))) / numColumns);
 
     return (
         <View style={styles.screenWrapper}>
@@ -68,6 +84,37 @@ export const ShopView: React.FC = () => {
                     />
                 </View>
 
+                {/* Category Filter Chips */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.categoryChipsContainer}
+                >
+                    {CATEGORIES.map((cat) => {
+                        const isSelected = selectedCategory === cat.key;
+                        return (
+                            <TouchableOpacity
+                                key={cat.key}
+                                style={[
+                                    styles.categoryChip,
+                                    isSelected && styles.categoryChipActive,
+                                ]}
+                                activeOpacity={0.8}
+                                onPress={() => setSelectedCategory(cat.key)}
+                            >
+                                <Text
+                                    style={[
+                                        styles.categoryChipText,
+                                        isSelected && styles.categoryChipTextActive,
+                                    ]}
+                                >
+                                    {cat.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+
                 {/* Buy Gold Promo Banner */}
                 <TouchableOpacity
                     style={styles.buyGoldBanner}
@@ -75,7 +122,7 @@ export const ShopView: React.FC = () => {
                     onPress={() => router.push("/(tabs)/8_2_buy_gold")}
                 >
                     <View style={styles.buyGoldBannerLeft}>
-                        <Coins size={28} color={colors.secondary} />
+                        <Coins size={24} color={colors.secondary} />
                         <View>
                             <Text style={styles.buyGoldBannerTitle}>Nạp thêm Gold</Text>
                         </View>
@@ -83,7 +130,7 @@ export const ShopView: React.FC = () => {
                     <Text style={styles.buyGoldBannerButton}>Nạp ngay</Text>
                 </TouchableOpacity>
 
-                {/* 2-Column Store Products Grid Matrix */}
+                {/* 3-Column Store Products Grid Matrix */}
                 {isLoading ? (
                     <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 24 }} />
                 ) : filteredItems.length === 0 ? (
@@ -104,11 +151,11 @@ export const ShopView: React.FC = () => {
                                             style={[styles.cellImage, item.isOwned && { opacity: 0.5 }]}
                                         />
                                     ) : (
-                                        <Package size={36} color={colors.textMuted} />
+                                        <Package size={28} color={colors.textMuted} />
                                     )}
                                     {item.isOwned && (
                                         <View style={styles.ownedBadge}>
-                                            <Text style={styles.ownedBadgeText}>Đã sở hữu</Text>
+                                            <Text style={styles.ownedBadgeText}>Đã có</Text>
                                         </View>
                                     )}
                                 </View>
@@ -121,8 +168,8 @@ export const ShopView: React.FC = () => {
                                             <Text style={styles.ownedTextLabel}>Đã sở hữu</Text>
                                         ) : (
                                             <>
-                                                <Coins size={14} color={colors.secondary} style={styles.coinMiniIcon} />
-                                                <Text style={styles.coinCostText}>
+                                                <Coins size={12} color={colors.secondary} style={styles.coinMiniIcon} />
+                                                <Text style={styles.coinCostText} numberOfLines={1}>
                                                     {item.cost.toLocaleString()}
                                                 </Text>
                                             </>
@@ -172,31 +219,121 @@ export const ShopView: React.FC = () => {
                                     {selectedItem.description}
                                 </Text>
 
-                                <TouchableOpacity
-                                    style={[
-                                        styles.checkoutActionButton,
-                                        selectedItem.isOwned && styles.disabledCheckoutButton
-                                    ]}
-                                    activeOpacity={0.85}
-                                    onPress={() => !selectedItem.isOwned && handlePurchase(selectedItem)}
-                                    disabled={selectedItem.isOwned}
-                                >
-                                    {selectedItem.isOwned ? (
+                                {selectedItem.isOwned && selectedItem.itemType !== "XP_MUL" && selectedItem.itemType !== "GOLD_MUL" ? (
+                                    <TouchableOpacity
+                                        style={[styles.checkoutActionButton, styles.disabledCheckoutButton]}
+                                        disabled={true}
+                                    >
                                         <Text style={styles.checkoutButtonText}>Đã sở hữu</Text>
-                                    ) : (
-                                        <View style={styles.checkoutButtonInner}>
-                                            <ShoppingCart size={16} color={colors.textLight} />
-                                            <Text style={styles.checkoutButtonText}>Mua ngay •</Text>
-                                            <Coins size={14} color={colors.secondary} />
-                                            <Text style={styles.checkoutButtonText}>
-                                                {selectedItem.cost.toLocaleString()} xu
-                                            </Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
+                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={styles.modalActionButtonsGroup}>
+                                        {/* Buy & Use Now Button for equippable/activatable items */}
+                                        {selectedItem.itemType !== "BADGE" && (
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.checkoutActionButton,
+                                                    isPurchasing && styles.disabledCheckoutButton,
+                                                ]}
+                                                activeOpacity={0.85}
+                                                onPress={() => !isPurchasing && handlePurchaseAndUse(selectedItem)}
+                                                disabled={isPurchasing}
+                                            >
+                                                {isPurchasing ? (
+                                                    <View style={styles.checkoutButtonInner}>
+                                                        <ActivityIndicator size="small" color={colors.textLight} />
+                                                        <Text style={styles.checkoutButtonText}>Đang xử lý...</Text>
+                                                    </View>
+                                                ) : (
+                                                    <View style={styles.checkoutButtonInner}>
+                                                        <Zap size={16} color={colors.textLight} />
+                                                        <Text style={styles.checkoutButtonText}>
+                                                            {selectedItem.itemType === "SKIN" ? "Mua & Dùng ngay" : "Mua & Kích hoạt"} •
+                                                        </Text>
+                                                        <Coins size={14} color={colors.secondary} />
+                                                        <Text style={styles.checkoutButtonText}>
+                                                            {selectedItem.cost.toLocaleString()}
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </TouchableOpacity>
+                                        )}
+
+                                        {/* Standard Buy Only Button */}
+                                        <TouchableOpacity
+                                            style={[
+                                                selectedItem.itemType === "BADGE" ? styles.checkoutActionButton : styles.buyOnlyOutlineButton,
+                                                isPurchasing && styles.disabledCheckoutButton,
+                                            ]}
+                                            activeOpacity={0.85}
+                                            onPress={() => !isPurchasing && handlePurchase(selectedItem)}
+                                            disabled={isPurchasing}
+                                        >
+                                            {isPurchasing ? (
+                                                <View style={styles.checkoutButtonInner}>
+                                                    <ActivityIndicator size="small" color={selectedItem.itemType === "BADGE" ? colors.textLight : colors.primary} />
+                                                    <Text style={selectedItem.itemType === "BADGE" ? styles.checkoutButtonText : styles.buyOnlyOutlineButtonText}>Đang xử lý...</Text>
+                                                </View>
+                                            ) : (
+                                                <View style={styles.checkoutButtonInner}>
+                                                    <ShoppingCart size={16} color={selectedItem.itemType === "BADGE" ? colors.textLight : colors.primary} />
+                                                    <Text style={selectedItem.itemType === "BADGE" ? styles.checkoutButtonText : styles.buyOnlyOutlineButtonText}>
+                                                        Mua ngay •
+                                                    </Text>
+                                                    <Coins size={14} color={colors.secondary} />
+                                                    <Text style={selectedItem.itemType === "BADGE" ? styles.checkoutButtonText : styles.buyOnlyOutlineButtonText}>
+                                                        {selectedItem.cost.toLocaleString()}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
                             </View>
                         </View>
                     )}
+                </View>
+            </Modal>
+
+            {/* Conflict Resolution Modal */}
+            <Modal
+                visible={Boolean(conflictModalData)}
+                transparent
+                animationType="fade"
+                onRequestClose={handleCloseConflictModal}
+            >
+                <View style={styles.conflictModalOverlay}>
+                    <View style={styles.conflictModalContainer}>
+                        <Ionicons name="warning-outline" size={44} color={colors.warning} style={{ marginBottom: 12 }} />
+                        <Text style={styles.conflictModalTitle}>Thay thế hiệu ứng?</Text>
+                        <Text style={styles.conflictModalDesc}>
+                            Bạn đang có hiệu ứng{" "}
+                            <Text style={styles.conflictModalHighlightText}>
+                                {conflictModalData?.activeItemName}
+                            </Text>{" "}
+                            đang hoạt động. Việc kích hoạt{" "}
+                            <Text style={styles.conflictModalHighlightText}>
+                                {conflictModalData?.itemName}
+                            </Text>{" "}
+                            sẽ hủy hiệu ứng hiện tại và bạn sẽ mất nó vĩnh viễn.
+                        </Text>
+                        <View style={styles.conflictModalActions}>
+                            <TouchableOpacity
+                                style={styles.conflictCancelBtn}
+                                activeOpacity={0.8}
+                                onPress={handleCloseConflictModal}
+                            >
+                                <Text style={styles.conflictCancelBtnText}>Hủy</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.conflictConfirmBtn}
+                                activeOpacity={0.8}
+                                onPress={handleConfirmReplace}
+                            >
+                                <Text style={styles.conflictConfirmBtnText}>Xác nhận</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </Modal>
 
@@ -222,7 +359,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
     },
     scrollContent: {
-        paddingHorizontal: 18,
+        paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 32,
     },
@@ -234,8 +371,8 @@ const styles = StyleSheet.create({
         borderColor: colors.borderMedium,
         borderRadius: 12,
         paddingHorizontal: 14,
-        height: 48,
-        marginBottom: 12,
+        height: 44,
+        marginBottom: 10,
     },
     searchIcon: {
         marginRight: 8,
@@ -243,8 +380,34 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         fontFamily: typography.fonts.medium,
-        fontSize: 15,
+        fontSize: 14,
         color: colors.textPrimary,
+    },
+    categoryChipsContainer: {
+        flexDirection: "row",
+        gap: 8,
+        paddingBottom: 12,
+    },
+    categoryChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 30,
+        backgroundColor: colors.surfaceVariant,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    categoryChipActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    categoryChipText: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 13,
+        color: colors.textSecondary,
+    },
+    categoryChipTextActive: {
+        fontFamily: typography.fonts.bold,
+        color: colors.textLight,
     },
     emptyText: {
         textAlign: "center",
@@ -259,36 +422,36 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         backgroundColor: colors.secondaryContainer,
         borderRadius: 12,
-        padding: 14,
-        marginBottom: 16,
+        padding: 12,
+        marginBottom: 14,
         borderWidth: 1,
         borderColor: colors.secondaryHover,
     },
     buyGoldBannerLeft: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
+        gap: 10,
         flex: 1,
     },
     buyGoldBannerTitle: {
         fontFamily: typography.fonts.extraBold,
-        fontSize: 15,
+        fontSize: 14,
         color: colors.textPrimary,
     },
     buyGoldBannerButton: {
         fontFamily: typography.fonts.bold,
-        fontSize: 13,
+        fontSize: 12,
         color: colors.textLight,
         backgroundColor: colors.secondary,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 30,
         overflow: "hidden",
     },
     gridContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 14,
+        gap: 10,
     },
     productCell: {
         backgroundColor: colors.surface,
@@ -296,7 +459,7 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         borderWidth: 1,
         borderColor: colors.borderMedium,
-        marginBottom: 4,
+        marginBottom: 2,
     },
     productCellOwned: {
         borderColor: colors.borderMedium,
@@ -304,12 +467,12 @@ const styles = StyleSheet.create({
     },
     thumbnailWrapper: {
         width: "100%",
-        aspectRatio: 1.1,
+        aspectRatio: 1,
         backgroundColor: colors.surfaceVariant,
         alignItems: "center",
         justifyContent: "center",
         position: "relative",
-        padding: 10,
+        padding: 6,
     },
     cellImage: {
         width: "100%",
@@ -318,46 +481,47 @@ const styles = StyleSheet.create({
         zIndex: 2,
     },
     cellFooter: {
-        padding: 12,
+        padding: 8,
         backgroundColor: colors.surface,
     },
     cellName: {
         fontFamily: typography.fonts.bold,
-        fontSize: 14,
+        fontSize: 12,
         color: colors.textPrimary,
-        marginBottom: 4,
+        marginBottom: 2,
+        lineHeight: 15,
     },
     coinCostRow: {
         flexDirection: "row",
         alignItems: "center",
     },
     coinMiniIcon: {
-        marginRight: 4,
+        marginRight: 3,
     },
     coinCostText: {
         fontFamily: typography.fonts.semiBold,
-        fontSize: 13,
+        fontSize: 11,
         color: colors.textSecondary,
     },
     ownedTextLabel: {
         fontFamily: typography.fonts.medium,
-        fontSize: 13,
+        fontSize: 11,
         color: colors.textMuted,
     },
     ownedBadge: {
         position: "absolute",
-        bottom: 8,
-        left: 8,
+        bottom: 4,
+        left: 4,
         backgroundColor: "rgba(0, 0, 0, 0.6)",
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingHorizontal: 5,
+        paddingVertical: 2,
         borderRadius: 30,
         zIndex: 3,
     },
     ownedBadgeText: {
         fontFamily: typography.fonts.bold,
         color: colors.textLight,
-        fontSize: 10,
+        fontSize: 8,
     },
     modalBackdrop: {
         flex: 1,
@@ -368,7 +532,7 @@ const styles = StyleSheet.create({
     },
     modalCardContainer: {
         width: "100%",
-        maxWidth: 360,
+        maxWidth: 340,
         backgroundColor: colors.surface,
         borderRadius: 12,
         overflow: "hidden",
@@ -378,11 +542,11 @@ const styles = StyleSheet.create({
     },
     closeButtonPin: {
         position: "absolute",
-        top: 14,
-        right: 14,
-        width: 34,
-        height: 34,
-        borderRadius: 17,
+        top: 12,
+        right: 12,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: colors.surface,
         alignItems: "center",
         justifyContent: "center",
@@ -392,12 +556,12 @@ const styles = StyleSheet.create({
     },
     closeButtonText: {
         fontFamily: typography.fonts.bold,
-        fontSize: 14,
+        fontSize: 13,
         color: colors.textDark,
     },
     modalImageBanner: {
         width: "100%",
-        aspectRatio: 1,
+        aspectRatio: 1.1,
         backgroundColor: colors.surfaceVariant,
         justifyContent: "center",
         alignItems: "center",
@@ -409,45 +573,45 @@ const styles = StyleSheet.create({
         resizeMode: "contain",
     },
     modalDetailsWrapper: {
-        padding: 24,
+        padding: 18,
     },
     modalTitle: {
         fontFamily: typography.fonts.extraBold,
-        fontSize: 22,
+        fontSize: 18,
         color: colors.textPrimary,
-        marginBottom: 8,
-        lineHeight: 28,
+        marginBottom: 6,
+        lineHeight: 22,
     },
     modalDescription: {
         fontFamily: typography.fonts.regular,
-        fontSize: 14,
+        fontSize: 13,
         color: colors.textSecondary,
-        lineHeight: 20,
-        marginBottom: 20,
-    },
-    modalCostIndicatorRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.surfaceVariant,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 12,
+        lineHeight: 18,
         marginBottom: 16,
     },
-    modalCoinIcon: {
-        marginRight: 8,
-    },
-    modalCostLabelText: {
-        fontFamily: typography.fonts.bold,
-        fontSize: 15,
-        color: colors.textPrimary,
+    modalActionButtonsGroup: {
+        gap: 8,
     },
     checkoutActionButton: {
         backgroundColor: colors.primary,
         borderRadius: 30,
-        paddingVertical: 14,
+        paddingVertical: 11,
         alignItems: "center",
         justifyContent: "center",
+    },
+    buyOnlyOutlineButton: {
+        backgroundColor: colors.surface,
+        borderWidth: 1.5,
+        borderColor: colors.primary,
+        borderRadius: 30,
+        paddingVertical: 10,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    buyOnlyOutlineButtonText: {
+        fontFamily: typography.fonts.bold,
+        color: colors.primary,
+        fontSize: 14,
     },
     checkoutButtonInner: {
         flexDirection: "row",
@@ -457,10 +621,77 @@ const styles = StyleSheet.create({
     checkoutButtonText: {
         fontFamily: typography.fonts.bold,
         color: colors.textLight,
-        fontSize: 15,
+        fontSize: 14,
     },
     disabledCheckoutButton: {
         backgroundColor: colors.textMuted,
+        borderColor: colors.textMuted,
+    },
+    conflictModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.45)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    conflictModalContainer: {
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 24,
+        width: "100%",
+        maxWidth: 340,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    conflictModalTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 18,
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    conflictModalDesc: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 14,
+        color: colors.textSecondary,
+        textAlign: "center",
+        lineHeight: 20,
+        marginBottom: 20,
+    },
+    conflictModalHighlightText: {
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
+    },
+    conflictModalActions: {
+        flexDirection: "row",
+        width: "100%",
+        gap: 12,
+    },
+    conflictCancelBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        backgroundColor: colors.surfaceVariant,
+        alignItems: "center",
+    },
+    conflictCancelBtnText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: colors.textSecondary,
+    },
+    conflictConfirmBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 30,
+        backgroundColor: colors.error,
+        alignItems: "center",
+    },
+    conflictConfirmBtnText: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 14,
+        color: colors.textLight,
     },
 });
 

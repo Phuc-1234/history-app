@@ -14,12 +14,7 @@ export class ShopService {
         }
 
         return await prisma.$transaction(async (tx) => {
-            // 1. Fetch user and item
-            const user = await tx.user.findUnique({
-                where: { id: userId },
-            });
-            if (!user) throw new Error("User not found");
-
+            // 1. Fetch item definition
             const itemDef = await tx.itemDefinition.findUnique({
                 where: { id: itemDefinitionId },
             });
@@ -27,11 +22,27 @@ export class ShopService {
             if (!itemDef.shownInStore) throw new Error("Item is not available in the store");
 
             const totalPrice = itemDef.price * quantity;
-            if (user.totalGold < totalPrice) {
+
+            // 2. Atomic gold deduction check to prevent negative balance under concurrent requests
+            const deductResult = await tx.user.updateMany({
+                where: {
+                    id: userId,
+                    totalGold: { gte: totalPrice },
+                },
+                data: {
+                    totalGold: {
+                        decrement: totalPrice,
+                    },
+                },
+            });
+
+            if (deductResult.count === 0) {
+                const user = await tx.user.findUnique({ where: { id: userId } });
+                if (!user) throw new Error("User not found");
                 throw new Error("Insufficient gold");
             }
 
-            // 2. Check stack limits if maxStackSize is specified
+            // 3. Check stack limits if maxStackSize is specified
             const existingUserItem = await tx.userItem.findUnique({
                 where: {
                     userId_itemDefinitionId: {
@@ -48,16 +59,6 @@ export class ShopService {
             if (isSingleStack && newQty > 1) {
                 throw new Error(`Cannot purchase. Maximum stack size for ${itemDef.itemType} is 1. Current owned: ${currentQty}`);
             }
-
-            // 3. Deduct gold
-            const updatedUser = await tx.user.update({
-                where: { id: userId },
-                data: {
-                    totalGold: {
-                        decrement: totalPrice,
-                    },
-                },
-            });
 
             // 4. Update or create user item
             let updatedUserItem;
@@ -85,6 +86,10 @@ export class ShopService {
                 });
             }
 
+            const updatedUser = await tx.user.findUniqueOrThrow({
+                where: { id: userId },
+            });
+
             return {
                 goldRemaining: updatedUser.totalGold,
                 userItem: updatedUserItem,
@@ -108,7 +113,7 @@ export class ShopService {
             },
         });
 
-        // Query active effects
+        // Query active effects (newest first)
         const activeEffects = await client.userActiveEffect.findMany({
             where: {
                 userId,
@@ -116,16 +121,17 @@ export class ShopService {
                 expiresAt: { gt: now },
             },
             include: { itemDefinition: true },
+            orderBy: { startedAt: "desc" },
         });
 
         let xpMultiplier = 1.0;
         let goldMultiplier = 1.0;
 
         for (const eff of activeEffects) {
-            if (eff.itemType === "XP_MUL") {
-                xpMultiplier *= eff.effectValue;
-            } else if (eff.itemType === "GOLD_MUL") {
-                goldMultiplier *= eff.effectValue;
+            if (eff.itemType === "XP_MUL" && xpMultiplier === 1.0) {
+                xpMultiplier = eff.effectValue;
+            } else if (eff.itemType === "GOLD_MUL" && goldMultiplier === 1.0) {
+                goldMultiplier = eff.effectValue;
             }
         }
 
@@ -173,6 +179,9 @@ export class ShopService {
 
     async activateItem(userId: string, itemDefinitionId: number, forceReplace: boolean = false) {
         return await prisma.$transaction(async (tx) => {
+            // Row-level lock on user to serialize concurrent activations
+            await tx.$executeRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
+
             // 1. Fetch active effects (and lazily expire)
             const activeRes = await this.getUserActiveEffects(userId, tx);
 
@@ -203,8 +212,8 @@ export class ShopService {
                     if (existingSameType.itemDefinitionId === itemDefinitionId) {
                         return {
                             success: false,
-                            conflict: true,
-                            code: "ACTIVE_EFFECT_EXISTS",
+                            conflict: false,
+                            code: "ALREADY_ACTIVE",
                             message: `Hiệu ứng ${existingSameType.itemDefinition.name} đang hoạt động.`,
                             activeItemName: existingSameType.itemDefinition.name,
                         };
@@ -220,9 +229,13 @@ export class ShopService {
                         };
                     }
 
-                    // forceReplace is true -> expire previous active effect
-                    await tx.userActiveEffect.update({
-                        where: { id: existingSameType.id },
+                    // forceReplace is true -> expire all previous active effects of this type
+                    await tx.userActiveEffect.updateMany({
+                        where: {
+                            userId,
+                            itemType: itemDef.itemType,
+                            status: "ACTIVE",
+                        },
                         data: { status: "EXPIRED" },
                     });
                 }
@@ -271,12 +284,12 @@ export class ShopService {
                 };
             }
 
-            // 4. Verify it is a SKIN with equipmentSlot = AVT_FRAME
-            if (itemDef.itemType !== "SKIN" || itemDef.equipmentSlot !== "AVT_FRAME") {
+            // 4. Verify it is a SKIN with a defined equipmentSlot
+            if (itemDef.itemType !== "SKIN" || !itemDef.equipmentSlot) {
                 throw new Error("Item activation not supported yet");
             }
 
-            const slot = itemDef.equipmentSlot; // "AVT_FRAME"
+            const slot = itemDef.equipmentSlot;
 
             // 5. Toggle equip status
             const existingEquipped = await tx.userEquippedItem.findUnique({

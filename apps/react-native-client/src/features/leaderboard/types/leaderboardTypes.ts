@@ -5,6 +5,7 @@ export interface LeaderboardUser {
     name: string;
     avatarUrl: string | null;
     equippedFrameUrl?: string | null;
+    equippedLeaderboardBgUrl?: string | null;
     tierName: string;
     currentStreak: number;
     hasCompletedToday?: boolean;
@@ -23,6 +24,7 @@ export interface LeaderboardResponse {
         name: string;
         avatarUrl: string | null;
         equippedFrameUrl?: string | null;
+        equippedLeaderboardBgUrl?: string | null;
         totalXp: number;
         currentStreak: number;
     } | null;

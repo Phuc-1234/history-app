@@ -15,12 +15,15 @@ export default function QuestionsScreen() {
         autoPickStrategy?: string;
     }>();
 
+    const parsedCount = questionCount ? parseInt(questionCount, 10) : undefined;
+    const validCount = parsedCount && !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : undefined;
+
     const params: StartTestV2Request = {
         scopeType: scopeType as ScopeType | undefined,
         scopeId: scopeId ? parseInt(scopeId, 10) : undefined,
         purposeType: (purposeType as PurposeType) || "PRACTICE",
         ...(testId ? { testId } : {}),
-        ...(questionCount ? { questionCount: parseInt(questionCount, 10) } : {}),
+        ...(validCount ? { questionCount: validCount } : {}),
         ...(autoPickStrategy ? { autoPickStrategy } : {}),
     };
 

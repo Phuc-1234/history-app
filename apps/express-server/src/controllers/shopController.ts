@@ -78,6 +78,9 @@ export const activateItem = async (req: Request, res: Response) => {
         if (result.conflict) {
             return res.status(409).json(result);
         }
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
         return res.status(200).json(result);
     } catch (err: any) {
         console.error("Activate item error:", err);

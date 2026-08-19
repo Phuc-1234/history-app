@@ -234,7 +234,6 @@ export const authApi = apiSlice.injectEndpoints({
                             console.log("[authApi] getProfile: user is guest, setting profile to null");
                             dispatch(setProfile(null));
                         } else {
-                            console.log("[authApi] getProfile: user is logged in, setting profile:", data);
                             dispatch(setProfile(data as UserProfileSummary));
                         }
                     }

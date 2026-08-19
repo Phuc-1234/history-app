@@ -554,7 +554,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
                 summary: summary || null,
                 hlsUrl: "processing", // Sẽ cập nhật sau khi transcode xong
                 lessonId,
-                status: "PROCESSING",
+                status: "PENDING",
             },
         });
 
@@ -586,13 +586,99 @@ export const uploadVideo = async (req: Request, res: Response) => {
     }
 };
 
-export const updateVideo = async (req: Request<{ videoId: string }, any, UpdateVideoBody>, res: Response) => {
+export const updateVideo = async (req: Request<{ videoId: string }, any, any>, res: Response) => {
     try {
         const { videoId } = req.params;
-        const video = await adminService.updateVideo(videoId, req.body);
-        if (!video) return res.status(404).json({ error: "Video not found." });
-        return res.status(200).json(video);
+        const file = req.file;
+
+        if (file) {
+            const { title, summary } = req.body;
+            const position = req.body.position !== undefined ? Number(req.body.position) : undefined;
+            
+            let lessonId: number | null | undefined = undefined;
+            if (req.body.lessonId !== undefined) {
+                const val = req.body.lessonId;
+                if (val === "" || val === "null" || val === null) {
+                    lessonId = null;
+                } else {
+                    lessonId = Number(val);
+                }
+            }
+
+            const existing = await prisma.video.findUnique({ where: { id: videoId } });
+            if (!existing) {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+                return res.status(404).json({ error: "Video not found." });
+            }
+
+            // Update Database with status PROCESSING and hlsUrl "processing"
+            const updated = await prisma.video.update({
+                where: { id: videoId },
+                data: {
+                    ...(title !== undefined && { title }),
+                    ...(position !== undefined && !Number.isNaN(position) && { position }),
+                    ...(summary !== undefined && { summary: summary || null }),
+                    ...(lessonId !== undefined && { lessonId }),
+                    hlsUrl: "processing",
+                    status: "PENDING",
+                },
+            });
+
+            // Run FFmpeg and upload to R2 in background
+            videoProcessingService
+                .processVideoInBackground(updated.id, file.path, title || updated.title)
+                .catch((bgErr) => {
+                    console.error(`Background processing trigger failed for video ${updated.id}:`, bgErr);
+                });
+
+            return res.status(200).json(updated);
+        } else {
+            // Normal update without a new video file
+            const { title, summary, hlsUrl } = req.body;
+            const position = req.body.position !== undefined ? Number(req.body.position) : undefined;
+            
+            let lessonId: number | null | undefined = undefined;
+            if (req.body.lessonId !== undefined) {
+                const val = req.body.lessonId;
+                if (val === "" || val === "null" || val === null) {
+                    lessonId = null;
+                } else {
+                    lessonId = Number(val);
+                }
+            }
+
+            const existing = await prisma.video.findUnique({ where: { id: videoId } });
+            if (!existing) return res.status(404).json({ error: "Video not found." });
+
+            const updated = await prisma.video.update({
+                where: { id: videoId },
+                data: {
+                    ...(title !== undefined && { title }),
+                    ...(position !== undefined && !Number.isNaN(position) && { position }),
+                    ...(summary !== undefined && { summary: summary || null }),
+                    ...(hlsUrl !== undefined && { hlsUrl }),
+                    ...(lessonId !== undefined && { lessonId }),
+                },
+            });
+
+            return res.status(200).json({
+                id: updated.id,
+                title: updated.title,
+                position: updated.position,
+                summary: updated.summary ?? null,
+                hlsUrl: updated.hlsUrl,
+                status: updated.status,
+                lessonId: updated.lessonId,
+            });
+        }
     } catch (err) {
+        if (req.file && fs.existsSync(req.file.path)) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch {}
+        }
         console.error("Update video error:", err);
         return res.status(500).json({ error: "Failed to update video." });
     }

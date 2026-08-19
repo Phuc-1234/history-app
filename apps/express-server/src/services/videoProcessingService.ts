@@ -32,6 +32,12 @@ export class VideoProcessingService {
         let simulationInterval: any = null;
 
         try {
+            // Cập nhật trạng thái sang PROCESSING khi bắt đầu xử lý thực tế
+            await prisma.video.update({
+                where: { id: videoId },
+                data: { status: "PROCESSING" },
+            });
+
             // 1. Tạo thư mục tạm thời để chứa kết quả HLS
             if (!fs.existsSync(tempDir)) {
                 fs.mkdirSync(tempDir, { recursive: true });

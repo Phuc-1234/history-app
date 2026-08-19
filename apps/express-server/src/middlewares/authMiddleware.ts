@@ -146,14 +146,21 @@ export const optionalAuth = async (
     next: NextFunction,
 ) => {
     const lookupResult = await extractUserProfileFromToken(req);
-    if (lookupResult instanceof Error || !lookupResult) {
+    if (lookupResult instanceof Error) {
+        const isExpired = lookupResult.name === "TokenExpiredError";
+        return res.status(401).json({
+            error: isExpired
+                ? "Access token session has expired."
+                : "Access token signature is completely invalid.",
+            code: isExpired ? "TOKEN_EXPIRED" : "TOKEN_INVALID",
+        });
+    }
+    if (!lookupResult) {
         req.user = null;
-       // 👈 Ensure it's cleared if validation fails
     } else {
         req.user = lookupResult;
     }
 
-    // Always let the request pass down to the controller loop!
     return next();
 };
 

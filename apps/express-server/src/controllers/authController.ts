@@ -43,6 +43,11 @@ export const registerUser = async (
         if (!name || !email || !password || !confirmPassword) {
             return res.status(400).json({ error: "All fields are required." });
         }
+        if (name.trim().length > 30) {
+            return res.status(400).json({
+                error: "Tên không được vượt quá 30 ký tự.",
+            });
+        }
         if (password !== confirmPassword) {
             return res.status(400).json({ error: "Passwords do not match." });
         }

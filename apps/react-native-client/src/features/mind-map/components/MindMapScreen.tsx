@@ -462,16 +462,22 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         });
     }, [nodes, fitScale]);
     const hitRectsRef = useRef(hitRects);
-    hitRectsRef.current = hitRects;
-
     const lastExpandRef = useRef<string | null>(null);
     // Refs mirror the memoized values so handleNodePress has a STABLE identity
     // (empty deps). That keeps React.memo(NodeCard) effective: tapping one node
     // no longer forces every other node to re-render (jank on tap).
     const collapsedNodesRef = useRef(collapsedNodes);
-    collapsedNodesRef.current = collapsedNodes;
     const nodesRef = useRef(nodes);
-    nodesRef.current = nodes;
+    // Sync refs AFTER commit, not during render: assigning during render made
+    // the hit layer point at the NEW layout while the screen still showed the
+    // OLD one. Tapping that fast (spamming +/-) then toggled the wrong node —
+    // press node 3's button, node 2 opened — or matched nothing and the tap
+    // died. Post-commit, the rects and the painted SVG always agree.
+    useEffect(() => {
+        hitRectsRef.current = hitRects;
+        collapsedNodesRef.current = collapsedNodes;
+        nodesRef.current = nodes;
+    }, [hitRects, collapsedNodes, nodes]);
 
     const handleNodePress = useCallback(
         (nodeId: string, depth: number) => {
@@ -490,23 +496,27 @@ export default function MindMapScreen({ query }: MindMapScreenProps) {
         [toggleCollapse],
     );
 
-    // Single-overlay hit testing: find the topmost node whose rect contains the
-    // tap point (in display space). Returns the node id/depth or null. This lets
-    // us replace N native Pressables with ONE overlay Pressable — the main win
-    // for "Expand all" jank on mobile (native view creation is expensive).
+    // Single-overlay hit testing: among all collapse/expand icons within the
+    // touch radius (24dp), return the NEAREST one. layoutTree emits nodes in
+    // post-order (children before parents), so the old first-match-from-the-end
+    // scan preferred ancestors over the child actually tapped whenever two
+    // icons were close together (small map, dense rows) and toggled the wrong
+    // node. This lets us replace N native Pressables with ONE overlay
+    // Pressable — the main win for "Expand all" jank on mobile.
     const hitTest = useCallback((px: number, py: number) => {
         const rects = hitRectsRef.current;
-        for (let i = rects.length - 1; i >= 0; i -= 1) {
-            const r = rects[i];
+        let best: (typeof rects)[number] | null = null;
+        let bestDist = Infinity;
+        for (const r of rects) {
             if (!r.hasChildren || r.depth === 0) continue;
 
-            // Check if the touch point is close to the collapse/expand icon (24 dp touch target radius)
             const dist = Math.hypot(px - r.iconX, py - r.iconY);
-            if (dist <= 24) {
-                return r;
+            if (dist <= 24 && dist < bestDist) {
+                best = r;
+                bestDist = dist;
             }
         }
-        return null;
+        return best;
     }, []);
 
     // A minimal event shape covering what we read from both press and hover

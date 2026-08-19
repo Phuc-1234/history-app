@@ -60,22 +60,21 @@ const QuestionCountSelector: React.FC<QuestionCountSelectorProps> = ({
     const handleTextChange = (text: string) => {
         const cleaned = text.replace(/[^0-9]/g, "");
         setInputText(cleaned);
-        if (cleaned !== "") {
-            const num = parseInt(cleaned, 10);
-            if (num > maxCount) {
-                onChange(maxCount);
-                setInputText(String(maxCount));
-            } else if (num > 0) {
-                onChange(num);
-            }
-        }
     };
 
     const handleBlur = () => {
         if (!inputText || parseInt(inputText, 10) <= 0) {
-            const defaultVal = Math.min(10, maxCount);
+            const defaultVal = Math.min(10, maxCount) || 1;
             onChange(defaultVal);
             setInputText(String(defaultVal));
+        } else {
+            const num = parseInt(inputText, 10);
+            if (num > maxCount) {
+                onChange(maxCount);
+                setInputText(String(maxCount));
+            } else {
+                onChange(num);
+            }
         }
     };
 
@@ -143,23 +142,15 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
     const wrongQuestionCount = propWrongCount ?? practiceStats?.wrongQuestionCount ?? 0;
     const answeredQuestionCount = propAnsweredCount ?? practiceStats?.answeredQuestionCount ?? 0;
 
-    const [practiceCount, setPracticeCount] = useState(10);
-    const [wrongPracticeCount, setWrongPracticeCount] = useState(10);
+    const [practiceCount, setPracticeCount] = useState(Math.min(10, answeredQuestionCount));
+    const [wrongPracticeCount, setWrongPracticeCount] = useState(Math.min(10, wrongQuestionCount));
 
     useEffect(() => {
-        if (wrongQuestionCount <= 10) {
-            setWrongPracticeCount(wrongQuestionCount);
-        } else if (wrongPracticeCount > wrongQuestionCount) {
-            setWrongPracticeCount(wrongQuestionCount);
-        }
+        setWrongPracticeCount(Math.min(10, wrongQuestionCount));
     }, [wrongQuestionCount]);
 
     useEffect(() => {
-        if (answeredQuestionCount <= 10) {
-            setPracticeCount(answeredQuestionCount);
-        } else if (practiceCount > answeredQuestionCount) {
-            setPracticeCount(answeredQuestionCount);
-        }
+        setPracticeCount(Math.min(10, answeredQuestionCount));
     }, [answeredQuestionCount]);
 
     const { data: wrongTestInfo } = useGetTestInfoQuery(
@@ -268,14 +259,15 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                 {wrongQuestionCount > 0 && (
                     <TouchableOpacity
                         style={styles.practiceStartBtn}
-                        onPress={() =>
+                        onPress={() => {
+                            const count = wrongPracticeCount > 0 ? wrongPracticeCount : Math.min(10, wrongQuestionCount) || 1;
                             onPracticePress({
                                 scopeType,
                                 scopeId,
-                                questionCount: wrongPracticeCount,
+                                questionCount: count,
                                 autoPickStrategy: "WRONG",
-                            })
-                        }
+                            });
+                        }}
                         activeOpacity={0.8}
                     >
                         <Text style={styles.practiceStartBtnText}>Làm lại ngay</Text>
@@ -357,14 +349,15 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                 {answeredQuestionCount > 0 && (
                     <TouchableOpacity
                         style={styles.practiceStartBtn}
-                        onPress={() =>
+                        onPress={() => {
+                            const count = practiceCount > 0 ? practiceCount : Math.min(10, answeredQuestionCount) || 1;
                             onPracticePress({
                                 scopeType,
                                 scopeId,
-                                questionCount: practiceCount,
+                                questionCount: count,
                                 autoPickStrategy: "LOW_MASTERY",
-                            })
-                        }
+                            });
+                        }}
                         activeOpacity={0.8}
                     >
                         <Text style={styles.practiceStartBtnText}>Bắt đầu luyện tập</Text>
