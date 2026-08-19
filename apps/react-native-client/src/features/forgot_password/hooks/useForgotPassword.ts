@@ -16,7 +16,7 @@ const message = {
     otpRequired: (length: number) => `Vui lòng nhập đầy đủ mã ${length} số OTP.`,
     otpInvalid: "Mã OTP không đúng hoặc đã hết hạn.",
     passwordRequired: "Vui lòng nhập mật khẩu mới.",
-    passwordWeak: "Mật khẩu cần ít nhất 6 ký tự.",
+    passwordWeak: "Mật khẩu mới phải có ít nhất 6 ký tự.",
     confirmRequired: "Vui lòng xác nhận mật khẩu mới.",
     confirmMismatch: "Mật khẩu xác nhận không khớp.",
 };
@@ -114,7 +114,14 @@ export function useForgotPassword(initialEmail = "", initialToken = "", length =
             router.push({ pathname: "/(1_auth)/1_4_otp_forgot", params: { email: trimmedEmail } });
             return true;
         } catch (error: any) {
-            const backendError = error?.data?.error || "Không thể gửi mã xác thực vào lúc này.";
+            const rawError = error?.data?.error || error?.message || "";
+            const lower = rawError.toLowerCase();
+            let backendError = "Không thể gửi mã xác thực vào lúc này.";
+            if (lower.includes("rate") || lower.includes("after") || lower.includes("security")) {
+                backendError = "Vui lòng đợi 60 giây trước khi yêu cầu gửi lại mã.";
+            } else if (rawError && !lower.includes("error") && !lower.includes("failed")) {
+                backendError = rawError;
+            }
             setEmailError(backendError);
             return false;
         }
@@ -139,7 +146,12 @@ export function useForgotPassword(initialEmail = "", initialToken = "", length =
             });
             return true;
         } catch (error: any) {
-            const backendError = error?.data?.error || message.otpInvalid;
+            const rawError = error?.data?.error || error?.message || "";
+            const lower = rawError.toLowerCase();
+            let backendError = message.otpInvalid;
+            if (rawError && !lower.includes("token") && !lower.includes("expired") && !lower.includes("invalid") && !lower.includes("error")) {
+                backendError = rawError;
+            }
             setOtpError(backendError);
             return false;
         }
@@ -155,7 +167,14 @@ export function useForgotPassword(initialEmail = "", initialToken = "", length =
             Alert.alert("Gửi lại mã", "Mã xác thực mới đã được chuyển tới email của bạn.");
             return true;
         } catch (error: any) {
-            const backendError = error?.data?.error || "Không thể gửi lại mã vào lúc này.";
+            const rawError = error?.data?.error || error?.message || "";
+            const lower = rawError.toLowerCase();
+            let backendError = "Không thể gửi lại mã vào lúc này.";
+            if (lower.includes("rate") || lower.includes("after") || lower.includes("security")) {
+                backendError = "Vui lòng đợi 60 giây trước khi yêu cầu gửi lại mã.";
+            } else if (rawError && !lower.includes("error") && !lower.includes("failed")) {
+                backendError = rawError;
+            }
             Alert.alert("Lỗi", backendError);
             return false;
         }
@@ -193,7 +212,16 @@ export function useForgotPassword(initialEmail = "", initialToken = "", length =
             router.replace("/(1_auth)/1_1_login");
             return true;
         } catch (error: any) {
-            const backendError = error?.data?.error || "Không thể đặt lại mật khẩu vào lúc này.";
+            const rawError = error?.data?.error || error?.message || "";
+            const lower = rawError.toLowerCase();
+            let backendError = "Không thể đặt lại mật khẩu vào lúc này.";
+            if (lower.includes("same") || lower.includes("different") || lower.includes("trùng")) {
+                backendError = "Mật khẩu mới không được trùng mật khẩu cũ.";
+            } else if (lower.includes("short") || lower.includes("least") || lower.includes("weak") || lower.includes("ngắn")) {
+                backendError = "Mật khẩu mới phải có ít nhất 6 ký tự.";
+            } else if (rawError && !lower.includes("error") && !lower.includes("failed")) {
+                backendError = rawError;
+            }
             setNewPasswordError(backendError);
             return false;
         }

@@ -107,7 +107,7 @@ export function useRegisterOtp(
             }).unwrap();
 
             if ("error" in response) {
-                setOtpError(response.error);
+                setOtpError(response.error || "Mã OTP không đúng hoặc đã hết hạn.");
                 return;
             }
 
@@ -135,8 +135,12 @@ export function useRegisterOtp(
 
             router.replace("/(tabs)/home");
         } catch (error: any) {
-            const backendError =
-                error?.data?.error || "Mã xác thực không chính xác.";
+            const rawError = error?.data?.error || error?.message || "";
+            const lower = rawError.toLowerCase();
+            let backendError = "Mã OTP không đúng hoặc đã hết hạn.";
+            if (rawError && !lower.includes("token") && !lower.includes("expired") && !lower.includes("invalid") && !lower.includes("error")) {
+                backendError = rawError;
+            }
             setOtpError(backendError);
         }
     }, [otp, email, verifyOtp, router, length, dispatch]);
@@ -163,9 +167,15 @@ export function useRegisterOtp(
             setOtpCountdown(60);
             setOtpError(null);
         } catch (error: any) {
-            const backendMsg =
-                error?.data?.error || "Không thể gửi lại mã vào lúc này.";
-            Alert.alert("Lỗi hệ thống", backendMsg);
+            const rawError = error?.data?.error || error?.message || "";
+            const lower = rawError.toLowerCase();
+            let backendMsg = "Gửi lại mã OTP thất bại. Vui lòng thử lại sau.";
+            if (lower.includes("rate") || lower.includes("after") || lower.includes("security")) {
+                backendMsg = "Vui lòng đợi 60 giây trước khi yêu cầu gửi lại mã.";
+            } else if (rawError && !lower.includes("error") && !lower.includes("failed")) {
+                backendMsg = rawError;
+            }
+            Alert.alert("Thông báo", backendMsg);
         }
     }, [email, otpCountdown, isLoading, resendOtp, length]);
 

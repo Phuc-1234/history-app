@@ -25,6 +25,48 @@ GoogleSignin.configure({
     offlineAccess: true,
 });
 
+const translateAuthError = (
+    rawError?: string,
+    defaultMessage = "Tài khoản hoặc mật khẩu không chính xác.",
+): string => {
+    if (!rawError) return defaultMessage;
+    const lower = rawError.toLowerCase();
+    if (
+        lower.includes("invalid login credentials") ||
+        lower.includes("invalid email or password") ||
+        lower.includes("user not found") ||
+        lower.includes("invalid_grant") ||
+        lower.includes("invalid credentials")
+    ) {
+        return "Tài khoản hoặc mật khẩu không chính xác.";
+    }
+    if (lower.includes("confirmed") || lower.includes("unverified")) {
+        return "Email chưa được xác thực. Vui lòng kiểm tra hộp thư.";
+    }
+    if (
+        lower.includes("already registered") ||
+        lower.includes("already in use") ||
+        lower.includes("already exists")
+    ) {
+        return "Email này đã được đăng ký tài khoản.";
+    }
+    if (
+        lower.includes("rate") ||
+        lower.includes("too many requests") ||
+        lower.includes("after") ||
+        lower.includes("security")
+    ) {
+        return "Quá nhiều yêu cầu đăng nhập. Vui lòng thử lại sau ít phút.";
+    }
+    if (lower.includes("network") || lower.includes("fetch")) {
+        return "Lỗi kết nối mạng. Vui lòng kiểm tra lại đường truyền.";
+    }
+    if (lower.includes("password must be at least") || lower.includes("weak")) {
+        return "Mật khẩu phải có ít nhất 6 ký tự.";
+    }
+    return rawError;
+};
+
 export function useAuthForm() {
     const router = useRouter();
     const dispatch = useAppDispatch();
@@ -91,7 +133,7 @@ export function useAuthForm() {
 
             // 2. Handle Explicit Error status (if backend returns errors as 200 status codes)
             if (response.status === "error") {
-                showErrorModal("Lỗi đăng nhập", response.error);
+                showErrorModal("Lỗi đăng nhập", translateAuthError(response.error));
                 return;
             }
             // 3. Handle Clean Success Destination Routing
@@ -134,9 +176,10 @@ export function useAuthForm() {
                 return;
             }
 
-            const errorMessage =
-                error?.data?.error ||
-                "Tài khoản hoặc mật khẩu không chính xác.";
+            const errorMessage = translateAuthError(
+                error?.data?.error || error?.message,
+                "Tài khoản hoặc mật khẩu không chính xác.",
+            );
             showErrorModal("Đăng nhập thất bại", errorMessage);
         }
     }, [email, password, login, router, dispatch, showErrorModal, showLoading]);
@@ -182,7 +225,7 @@ export function useAuthForm() {
             }
 
             if (response.status === "error") {
-                showErrorModal("Lỗi đăng nhập", response.error);
+                showErrorModal("Lỗi đăng nhập", translateAuthError(response.error));
                 return;
             }
 
@@ -215,7 +258,10 @@ export function useAuthForm() {
                 });
                 return;
             }
-            const errorMessage = error?.data?.error || "Tài khoản hoặc mật khẩu không chính xác.";
+            const errorMessage = translateAuthError(
+                error?.data?.error || error?.message,
+                "Tài khoản hoặc mật khẩu không chính xác.",
+            );
             showErrorModal("Đăng nhập thất bại", errorMessage);
         }
     }, [email, password, login, router, dispatch, showErrorModal, showLoading]);
@@ -236,7 +282,7 @@ export function useAuthForm() {
             const response = await googleVerify({ idToken }).unwrap();
 
             if (response.status === "error") {
-                showErrorModal("Lỗi đăng nhập", response.error);
+                showErrorModal("Lỗi đăng nhập", translateAuthError(response.error));
                 return;
             }
 
@@ -268,7 +314,7 @@ export function useAuthForm() {
             if (error.code !== "SIGN_IN_CANCELLED") {
                 showErrorModal(
                     "Đăng nhập Google thất bại",
-                    error.message || "Đã xảy ra lỗi.",
+                    translateAuthError(error.message, "Đã xảy ra lỗi khi đăng nhập bằng Google."),
                 );
             }
         }
@@ -298,7 +344,7 @@ export function useAuthForm() {
             const response = await facebookVerify({ accessToken }).unwrap();
 
             if (response.status === "error") {
-                showErrorModal("Lỗi đăng nhập", response.error);
+                showErrorModal("Lỗi đăng nhập", translateAuthError(response.error));
                 return;
             }
 
@@ -329,7 +375,7 @@ export function useAuthForm() {
             console.error("Facebook Sign-in attempt failure:", error);
             showErrorModal(
                 "Đăng nhập Facebook thất bại",
-                error.message || "Đã xảy ra lỗi.",
+                translateAuthError(error.message, "Đã xảy ra lỗi khi đăng nhập bằng Facebook."),
             );
         }
     }, [facebookVerify, router, dispatch, showErrorModal, showLoading]);
