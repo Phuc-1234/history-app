@@ -10,7 +10,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { colors } from "@/theme/colors";
 import { typography } from "@/theme/typography";
-import { useEasterEgg } from "@/features/easter_egg";
 
 interface VibratingVoiceInputProps {
     isTranscribing: boolean;
@@ -42,14 +41,12 @@ export const VibratingVoiceInput: React.FC<VibratingVoiceInputProps> = ({
     isTranscribing,
     transcript,
 }) => {
-    const { isEngMode } = useEasterEgg();
-
     if (isTranscribing) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />
                 <Text style={styles.transcribingText}>
-                    {isEngMode ? "Transcribing..." : "Đang chép lời..."}
+                    Đang chép lời...
                 </Text>
             </View>
         );
@@ -65,7 +62,7 @@ export const VibratingVoiceInput: React.FC<VibratingVoiceInputProps> = ({
                 <WaveBar delay={50} maxScale={1.5} />
             </View>
             <Text style={styles.listeningText} numberOfLines={1}>
-                {transcript || (isEngMode ? "Listening..." : "Đang lắng nghe...")}
+                {transcript || "Đang lắng nghe..."}
             </Text>
         </View>
     );

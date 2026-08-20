@@ -282,10 +282,13 @@ export default function TestIntro({
                     <View style={{ flex: 1, minHeight: 12, maxHeight: 24 }} />
 
                     {/* Row 3: 2 rectangles of rewards */}
-                    <View style={styles.rewardsRow}>
+                    <View style={[
+                        styles.rewardsRow,
+                        (!(xpReward != null && xpReward > 0 && goldReward != null && goldReward > 0)) && { justifyContent: "center" }
+                    ]}>
                         {/* XP reward */}
                         {xpReward != null && xpReward > 0 && (
-                            <View style={{ flex: 1, position: "relative" }}>
+                            <View style={{ flex: 1, position: "relative", maxWidth: "48%" }}>
                                 <Card
                                     variant="accent"
                                     style={[
@@ -312,7 +315,7 @@ export default function TestIntro({
 
                         {/* Gold reward */}
                         {goldReward != null && goldReward > 0 && (
-                            <View style={{ flex: 1, position: "relative" }}>
+                            <View style={{ flex: 1, position: "relative", maxWidth: "48%" }}>
                                 <Card
                                     variant="accent"
                                     style={[
