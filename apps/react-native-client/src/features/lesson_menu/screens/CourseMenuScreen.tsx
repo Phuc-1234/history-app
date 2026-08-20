@@ -21,7 +21,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "../../../store/storeHook";
 import { PremiumModal } from "../../../components/PremiumModal";
 import { toastService } from "../../../services/toastService";
-import { easterEggService } from "../../easter_egg";
 
 
 function CourseCard({
@@ -248,20 +247,6 @@ export function CourseMenuScreen() {
             params: { grade: String(grade) },
         });
     };
-
-    const handleSearchSubmit = () => {
-        const code = searchQuery.trim().toLowerCase();
-        if (code === "eng on") {
-            easterEggService.setEngMode(true);
-            toastService.show("English mode activated!", "success");
-            setSearchQuery("");
-        } else if (code === "eng off") {
-            easterEggService.setEngMode(false);
-            toastService.show("English mode deactivated!", "info");
-            setSearchQuery("");
-        }
-    };
-
     const hasVisibleCards = publicGrades.length > 0 && publicGrades.some((g: any) => visibleMap[g.id] !== false);
 
     return (
@@ -286,7 +271,6 @@ export function CourseMenuScreen() {
                         onFocus={() => setIsSearchFocused(true)}
                         onBlur={() => setIsSearchFocused(false)}
                         returnKeyType="done"
-                        onSubmitEditing={handleSearchSubmit}
                     />
                 </View>
 
