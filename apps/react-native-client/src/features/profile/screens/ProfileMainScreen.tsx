@@ -60,6 +60,10 @@ export default function ProfileMainScreen() {
                             onPress={() => router.push("/(1_auth)/1_2_register")}
                         />
                     </View>
+                    <View style={styles.versionContainer}>
+                        <Text style={styles.versionText}>Phiên bản 4.5.2</Text>
+                        <Text style={styles.groupText}>Thực hiện bởi nhóm "Sử Việt"</Text>
+                    </View>
                 </View>
             </ScreenWrapper>
         );

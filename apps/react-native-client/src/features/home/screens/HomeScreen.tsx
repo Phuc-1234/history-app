@@ -23,6 +23,7 @@ import type { HomeLessonItem } from "../services/homeApi";
 import { PodiumSection } from "../../leaderboard/components/PodiumSection";
 import { AvatarWithFrame, FaintStarsOverlay } from "../../../components/ui";
 import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
+import { CustomModal } from "../../../components/Modal";
 
 // ─── Component: Thẻ bài học ───────────────────────────────────────────────────
 function LessonCard({
@@ -201,6 +202,8 @@ export default function HomeScreen() {
         }));
     }, [data?.leaderboard]);
 
+    const [guestModalVisible, setGuestModalVisible] = React.useState(false);
+
     const handleGoToLeaderboard = () =>
         router.push("/(tabs)/9_1_leaderboard" as never);
     const handleGoToLesson = (lessonId: number) =>
@@ -208,9 +211,27 @@ export default function HomeScreen() {
     const handleGoToLessons = () => router.push("/(tabs)/2_1_lessons" as never);
     const handleGoToTests = () =>
         router.push("/(tabs)/5_1_national_tests" as never);
-    const handleGoToFriends = () => router.push("/(social)/friends" as never);
-    const handleGoToItems = () => router.push("/(tabs)/7_1_item" as never);
-    const handleGoToPvp = () => router.push("/pvp" as never);
+    const handleGoToFriends = () => {
+        if (!profile) {
+            setGuestModalVisible(true);
+            return;
+        }
+        router.push("/(social)/friends" as never);
+    };
+    const handleGoToItems = () => {
+        if (!profile) {
+            setGuestModalVisible(true);
+            return;
+        }
+        router.push("/(tabs)/7_1_item" as never);
+    };
+    const handleGoToPvp = () => {
+        if (!profile) {
+            setGuestModalVisible(true);
+            return;
+        }
+        router.push("/pvp" as never);
+    };
 
     const isPro = !!profile?.isPro;
 
@@ -248,6 +269,10 @@ export default function HomeScreen() {
                         <TouchableOpacity
                             activeOpacity={0.7}
                             onPress={() => {
+                                if (!profile) {
+                                    setGuestModalVisible(true);
+                                    return;
+                                }
                                 router.push("/notifications" as never);
                             }}
                             style={styles.bellButton}
@@ -260,104 +285,126 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Thẻ chào người dùng */}
-                    <Card variant="soft" style={styles.userCard}>
-                        {isPro && (
-                            <View style={styles.cardProBadge}>
-                                <Text style={styles.cardProBadgeText}>PRO</Text>
-                            </View>
-                        )}
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 14,
-                            }}
-                        >
-                            <AvatarWithFrame
-                                uri={profile?.profileImgUrl}
-                                frameUri={profile?.equippedFrameUrl}
-                                size={56}
-                                name={profile?.name}
-                                borderWidth={2}
-                            />
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.greetingText}>
-                                    Chào, <Text style={styles.greetingUsername}>{profile?.name || "bạn"}</Text>!
-                                </Text>
-                                <View style={styles.badgeRow}>
-                                    {/* XP Badge */}
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.badge,
-                                            (topBarData?.xpMultiplier ?? 1) >
-                                                1 && styles.xpMultipliedBadge,
-                                        ]}
-                                        activeOpacity={0.7}
-                                        onPress={tierManager.openTierDrawer}
-                                    >
-                                        <Zap
-                                            size={15}
-                                            color={colors.secondary}
-                                        />
-                                        <Text style={styles.badgeText}>
-                                            {topBarData
-                                                ? `${topBarData.totalXp} XP`
-                                                : "0 XP"}
-                                        </Text>
-                                        {(topBarData?.xpMultiplier ?? 1) >
-                                            1 && (
-                                            <View style={styles.multiplierTag}>
-                                                <Text
-                                                    style={
-                                                        styles.multiplierTagText
-                                                    }
-                                                >
-                                                    x{topBarData?.xpMultiplier}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
+                    {/* Thẻ chào người dùng / Khuyến khích đăng nhập */}
+                    {profile ? (
+                        <Card variant="soft" style={styles.userCard}>
+                            {isPro && (
+                                <View style={styles.cardProBadge}>
+                                    <Text style={styles.cardProBadgeText}>PRO</Text>
+                                </View>
+                            )}
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 14,
+                                }}
+                            >
+                                <AvatarWithFrame
+                                    uri={profile?.profileImgUrl}
+                                    frameUri={profile?.equippedFrameUrl}
+                                    size={56}
+                                    name={profile?.name}
+                                    borderWidth={2}
+                                />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.greetingText}>
+                                        Chào, <Text style={styles.greetingUsername}>{profile?.name || "bạn"}</Text>!
+                                    </Text>
+                                    <View style={styles.badgeRow}>
+                                        {/* XP Badge */}
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.badge,
+                                                (topBarData?.xpMultiplier ?? 1) >
+                                                    1 && styles.xpMultipliedBadge,
+                                            ]}
+                                            activeOpacity={0.7}
+                                            onPress={tierManager.openTierDrawer}
+                                        >
+                                            <Zap
+                                                size={15}
+                                                color={colors.secondary}
+                                            />
+                                            <Text style={styles.badgeText}>
+                                                {topBarData
+                                                    ? `${topBarData.totalXp} XP`
+                                                    : "0 XP"}
+                                            </Text>
+                                            {(topBarData?.xpMultiplier ?? 1) >
+                                                1 && (
+                                                <View style={styles.multiplierTag}>
+                                                    <Text
+                                                        style={
+                                                            styles.multiplierTagText
+                                                        }
+                                                    >
+                                                        x{topBarData?.xpMultiplier}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
 
-                                    {/* Gold Badge */}
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.badge,
-                                            (topBarData?.goldMultiplier ?? 1) >
-                                                1 && styles.goldMultipliedBadge,
-                                        ]}
-                                        activeOpacity={0.7}
-                                        onPress={() =>
-                                            router.push("/(tabs)/7_1_item")
-                                        }
-                                    >
-                                        <Coins size={15} color={colors.gold} />
-                                        <Text style={styles.badgeText}>
-                                            {topBarData?.totalGold ?? "0"}
-                                        </Text>
-                                        {(topBarData?.goldMultiplier ?? 1) >
-                                            1 && (
-                                            <View
-                                                style={[
-                                                    styles.multiplierTag,
-                                                    styles.goldMultiplierTag,
-                                                ]}
-                                            >
-                                                <Text
-                                                    style={
-                                                        styles.multiplierTagText
-                                                    }
+                                        {/* Gold Badge */}
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.badge,
+                                                (topBarData?.goldMultiplier ?? 1) >
+                                                    1 && styles.goldMultipliedBadge,
+                                            ]}
+                                            activeOpacity={0.7}
+                                            onPress={() =>
+                                                router.push("/(tabs)/7_1_item")
+                                            }
+                                        >
+                                            <Coins size={15} color={colors.gold} />
+                                            <Text style={styles.badgeText}>
+                                                {topBarData?.totalGold ?? "0"}
+                                            </Text>
+                                            {(topBarData?.goldMultiplier ?? 1) >
+                                                1 && (
+                                                <View
+                                                    style={[
+                                                        styles.multiplierTag,
+                                                        styles.goldMultiplierTag,
+                                                    ]}
                                                 >
-                                                    x
-                                                    {topBarData?.goldMultiplier}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
+                                                    <Text
+                                                        style={
+                                                            styles.multiplierTagText
+                                                        }
+                                                    >
+                                                        x
+                                                        {topBarData?.goldMultiplier}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             </View>
-                        </View>
-                    </Card>
+                        </Card>
+                    ) : (
+                        <Card variant="soft" style={styles.guestCard}>
+                            <View style={styles.guestCardContent}>
+                                <Ionicons
+                                    name="person-circle-outline"
+                                    size={36}
+                                    color={colors.primary}
+                                />
+                                <Text style={styles.guestPromptText} numberOfLines={2}>
+                                    Đăng nhập để lưu tiến trình học tập của bạn!
+                                </Text>
+                                <TouchableOpacity
+                                    style={styles.guestLoginBtn}
+                                    activeOpacity={0.8}
+                                    onPress={() => router.push("/(1_auth)/1_1_login")}
+                                >
+                                    <Text style={styles.guestLoginBtnText}>Đăng nhập</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </Card>
+                    )}
                 </LinearGradient>
 
                 {/* ── Nội dung chính ── */}
@@ -412,37 +459,41 @@ export default function HomeScreen() {
                     {!isLoading && data && (
                         <>
                             {/* ── Section: Chuỗi học tập ── */}
-                            <HomeStreakSection
-                                currentStreak={topBarData?.currentStreak}
-                                onPress={streakManager.openStreakDrawer}
-                            />
+                            {profile && (
+                                <HomeStreakSection
+                                    currentStreak={topBarData?.currentStreak}
+                                    onPress={streakManager.openStreakDrawer}
+                                />
+                            )}
 
                             {/* Pro button — shiny gradient */}
-                            <TouchableOpacity
-                                style={styles.proButtonWrapper}
-                                onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
-                                activeOpacity={0.82}
-                            >
-                                <LinearGradient
-                                    colors={colors.proGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.squareButtonPro}
+                            {profile && (
+                                <TouchableOpacity
+                                    style={styles.proButtonWrapper}
+                                    onPress={() => router.push("/(10_proflie)/10_8_subscription" as any)}
+                                    activeOpacity={0.82}
                                 >
-                                    <FaintStarsOverlay />
-                                    {/* shimmer strip */}
                                     <LinearGradient
-                                        colors={["transparent", "rgba(255,255,255,0.35)", "transparent"]}
+                                        colors={colors.proGradient}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
-                                        style={styles.proShimmer}
-                                    />
-                                    <Ionicons name="sparkles" size={22} color="#fff" />
-                                    <Text style={styles.squareLabelPro}>
-                                        {profile?.isPro ? "Bạn đã là người dùng PRO!" : "Đăng ký Sắc Sử PRO"}
-                                    </Text>
-                                </LinearGradient>
-                            </TouchableOpacity>
+                                        style={styles.squareButtonPro}
+                                    >
+                                        <FaintStarsOverlay />
+                                        {/* shimmer strip */}
+                                        <LinearGradient
+                                            colors={["transparent", "rgba(255,255,255,0.35)", "transparent"]}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                            style={styles.proShimmer}
+                                        />
+                                        <Ionicons name="sparkles" size={22} color="#fff" />
+                                        <Text style={styles.squareLabelPro}>
+                                            {profile?.isPro ? "Bạn đã là người dùng PRO!" : "Đăng ký Sắc Sử PRO"}
+                                        </Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            )}
 
                             {/* ── Section: Bài học ── */}
                             <View style={styles.sectionHeader}>
@@ -577,7 +628,7 @@ export default function HomeScreen() {
                     )}
                 </View>
             </ScreenWrapper>
-            {topBarData && (
+            {topBarData?.isLoggedIn && (
                 <>
                     <StreakDrawerModal
                         visible={streakManager.streakDrawerVisible}
@@ -592,6 +643,20 @@ export default function HomeScreen() {
                     />
                 </>
             )}
+            <CustomModal
+                visible={guestModalVisible}
+                title="Yêu cầu đăng nhập"
+                message="Bạn cần đăng nhập để sử dụng tính năng này. Đăng nhập ngay?"
+                confirmText="Đăng nhập"
+                cancelText="Hủy"
+                onConfirm={() => {
+                    setGuestModalVisible(false);
+                    router.push("/(1_auth)/1_1_login");
+                }}
+                onCancel={() => setGuestModalVisible(false)}
+                showMascot={true}
+                mascotExpression="thinking"
+            />
         </>
     );
 }
@@ -683,6 +748,34 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         paddingVertical: 16,
         position: "relative",
+    },
+    guestCard: {
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 12,
+    },
+    guestCardContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+    },
+    guestPromptText: {
+        ...typography.bodyMediumSemiBold,
+        color: colors.textPrimary,
+        flex: 1,
+        fontSize: 13,
+    },
+    guestLoginBtn: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 30,
+    },
+    guestLoginBtnText: {
+        ...typography.bodyMediumBold,
+        color: colors.textLight,
+        fontSize: 13,
     },
     cardProBadge: {
         position: "absolute",

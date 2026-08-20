@@ -98,7 +98,7 @@ export const RankingView: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Absolute overlay to dismiss dropdown when tapping outside */}
-            {showFilterDropdown && (
+            {user && showFilterDropdown && (
                 <TouchableWithoutFeedback onPress={() => setShowFilterDropdown(false)}>
                     <View style={styles.overlay} />
                 </TouchableWithoutFeedback>
@@ -117,24 +117,26 @@ export const RankingView: React.FC = () => {
                     indicatorColor={colors.primary}
                     inactiveColor={colors.primary}
                 />
-                <TouchableOpacity
-                    style={[
-                        styles.filterButton,
-                        isFiltering && styles.filterButtonActive,
-                    ]}
-                    onPress={() => setShowFilterDropdown((prev) => !prev)}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons
-                        name="filter"
-                        size={20}
-                        color={isFiltering ? colors.textLight : colors.primary}
-                    />
-                </TouchableOpacity>
+                {user && (
+                    <TouchableOpacity
+                        style={[
+                            styles.filterButton,
+                            isFiltering && styles.filterButtonActive,
+                        ]}
+                        onPress={() => setShowFilterDropdown((prev) => !prev)}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons
+                            name="filter"
+                            size={20}
+                            color={isFiltering ? colors.textLight : colors.primary}
+                        />
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Filter Dropdown Popover */}
-            {showFilterDropdown && (
+            {user && showFilterDropdown && (
                 <Card style={styles.filterDropdownCard}>
                     <TouchableOpacity
                         style={styles.checkboxOption}

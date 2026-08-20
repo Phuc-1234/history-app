@@ -31,11 +31,7 @@ export default function OnboardingScreen() {
 
   const handleSkip = async () => {
     await setOnboardingComplete();
-    if (step === 0) {
-      router.replace("/(1_auth)/1_1_login");
-    } else {
-      router.replace("/(tabs)/home");
-    }
+    router.replace("/(tabs)/home");
   };
 
   const handleNext = async () => {

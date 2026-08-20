@@ -21,7 +21,10 @@ import colors from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import AppBackground from "../../../components/layout/AppBackground";
 
+import { useRouter } from "expo-router";
+
 export default function RegisterForm() {
+    const router = useRouter();
     const {
         name,
         setName,
@@ -203,6 +206,16 @@ export default function RegisterForm() {
                         </TouchableOpacity>
                     </View>
 
+                    {/* Guest Mode Link */}
+                    <TouchableOpacity
+                        style={styles.guestButton}
+                        activeOpacity={0.7}
+                        onPress={() => router.replace("/(tabs)/home")}
+                        disabled={isAnyLoading}
+                    >
+                        <Text style={styles.guestText}>Chế độ khách</Text>
+                    </TouchableOpacity>
+
                     {/* Footer */}
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>
@@ -333,6 +346,15 @@ const styles = StyleSheet.create({
         ...typography.bodyMediumBold,
         color: colors.textDark,
         letterSpacing: 0.5,
+    },
+    guestButton: {
+        alignSelf: "center",
+        marginVertical: 8,
+    },
+    guestText: {
+        ...typography.bodyMediumSemiBold,
+        color: colors.primary,
+        textDecorationLine: "underline",
     },
     footer: {
         flexDirection: "row",
