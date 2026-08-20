@@ -27,7 +27,7 @@ model Topic {
   lessons   Lesson[]
   questions Question[]
   tests     Test[]
-  grade     Grade      @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  grade     Grade      @relation(fields: [gradeId], references: [id], onDelete: Restrict)
 
   @@map("topics")
 }
@@ -41,7 +41,7 @@ model Lesson {
   isPro      Boolean     @default(false) @map("is_pro")
   imgUrl     String?     @map("img_url")
   flashcards Flashcard[]
-  topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Restrict)
   mindMap    MindMap?
   questions  Question[]
   sections   Section[]
@@ -55,7 +55,7 @@ model MindMap {
   id       Int    @id @default(autoincrement())
   lessonId Int    @unique @map("lesson_id")
   data     Json
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
 
   @@map("mind_maps")
 }
@@ -71,7 +71,7 @@ model Video {
   status    VideoStatus @default(PENDING)
   createdAt DateTime    @default(now()) @map("created_at")
   nodes     Node[]
-  lesson    Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson    Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Restrict)
 
   @@map("videos")
 }
@@ -86,7 +86,7 @@ model Section {
   flashcards      Flashcard[]
   nodes           Node[]
   questions       Question[]
-  lesson          Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson          Lesson      @relation(fields: [lessonId], references: [id], onDelete: Restrict)
   parentSection   Section?    @relation("SectionHierarchy", fields: [parentSectionId], references: [id])
   childSections   Section[]   @relation("SectionHierarchy")
   tests           Test[]
@@ -118,7 +118,7 @@ model Flashcard {
   lessonId       Int?            @map("lesson_id")
   sectionId      Int?            @map("section_id")
   nodeId         Int?            @map("node_id")
-  lesson         Lesson?         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson         Lesson?         @relation(fields: [lessonId], references: [id], onDelete: Restrict)
   node           Node?           @relation(fields: [nodeId], references: [id])
   section        Section?        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   userFlashcards UserFlashcard[]
@@ -135,7 +135,7 @@ model UserFlashcard {
   userId           String    @map("user_id")
   flashcardId      Int       @map("flashcard_id")
   flashcard        Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("user_flashcards")
 }
@@ -160,11 +160,11 @@ model Test {
   scopeId        Int?           @map("scope_id")
   scopeType      ScopeType?     @map("scope_type")
   testQuestions  TestQuestion[]
-  grade          Grade?         @relation(fields: [gradeId], references: [id])
-  lesson         Lesson?        @relation(fields: [lessonId], references: [id])
+  grade          Grade?         @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  lesson         Lesson?        @relation(fields: [lessonId], references: [id], onDelete: Restrict)
   preset         TestPreset?    @relation(fields: [presetId], references: [id])
   section        Section?       @relation(fields: [sectionId], references: [id])
-  topic          Topic?         @relation(fields: [topicId], references: [id])
+  topic          Topic?         @relation(fields: [topicId], references: [id], onDelete: Restrict)
   userTestLogs   UserTestLog[]
 
   @@map("tests")
@@ -187,11 +187,11 @@ model Question {
   scopeId           Int?                  @map("scope_id")
   scopeType         ScopeType?            @map("scope_type")
   answers           QuestionAnswer[]
-  grade             Grade?                @relation(fields: [gradeId], references: [id])
-  lesson            Lesson?               @relation(fields: [lessonId], references: [id])
+  grade             Grade?                @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  lesson            Lesson?               @relation(fields: [lessonId], references: [id], onDelete: Restrict)
   node              Node?                 @relation(fields: [nodeId], references: [id])
   section           Section?              @relation(fields: [sectionId], references: [id])
-  topic             Topic?                @relation(fields: [topicId], references: [id])
+  topic             Topic?                @relation(fields: [topicId], references: [id], onDelete: Restrict)
   testQuestions     TestQuestion[]
   userAnswerLogs    UserAnswerLog[]
   questionMasteries UserQuestionMastery[]
@@ -279,8 +279,8 @@ model FriendRequest {
   status     FriendRequestStatus @default(PENDING)
   createdAt  DateTime            @default(now()) @map("created_at")
   updatedAt  DateTime            @updatedAt @map("updated_at")
-  receiver   User                @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  sender     User                @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User                @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Restrict)
+  sender     User                @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Restrict)
 
   @@unique([senderId, receiverId])
   @@index([receiverId, status])
@@ -293,8 +293,8 @@ model Friendship {
   userId    String   @map("user_id")
   friendId  String   @map("friend_id")
   createdAt DateTime @default(now()) @map("created_at")
-  friend    User     @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
-  user      User     @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Restrict)
+  user      User     @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([userId, friendId])
   @@index([friendId])
@@ -306,8 +306,8 @@ model Follow {
   followerId  String   @map("follower_id")
   followingId String   @map("following_id")
   createdAt   DateTime @default(now()) @map("created_at")
-  follower    User     @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User     @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  follower    User     @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Restrict)
+  following   User     @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Restrict)
 
   @@unique([followerId, followingId])
   @@index([followingId])
@@ -356,7 +356,7 @@ model UserTestLog {
   rewardLogs            UserRewardLog[]
   generatedFromPreset   TestPreset?       @relation(fields: [generatedFromPresetId], references: [id])
   test                  Test?             @relation(fields: [testId], references: [id], onDelete: Cascade)
-  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@map("user_test_logs")
@@ -387,7 +387,7 @@ model UserNodeProgress {
   allTestPassedAt DateTime? @map("all_test_passed_at")
   nodeCompletedAt DateTime? @map("node_completed_at")
   node            Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@id([userId, nodeId])
   @@map("user_node_progress")
@@ -429,7 +429,7 @@ model GoldPurchase {
   providerTransId String?         @map("provider_trans_id")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("gold_purchases")
 }
@@ -460,7 +460,7 @@ model UserRewardLog {
   goldAwarded     Int               @default(0) @map("gold_awarded")
   userTestLogId   String?           @map("user_test_log_id")
   rewardRule      RewardRule        @relation(fields: [rewardRuleId], references: [id])
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Restrict)
   userTestLog     UserTestLog?      @relation(fields: [userTestLogId], references: [id])
 
   @@unique([userId, rewardRuleId, triggerTargetId, triggerTime])
@@ -474,7 +474,7 @@ model UserXpLog {
   sourceType String   @map("source_type")
   sourceId   String?  @map("source_id")
   createdAt  DateTime @default(now()) @map("created_at")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId, createdAt])
   @@map("user_xp_logs")
@@ -489,7 +489,7 @@ model Feedback {
   createdAt  DateTime       @default(now()) @map("created_at")
   targetId   String?        @map("target_id")
   targetType String?        @map("target_type")
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("feedbacks")
 }
@@ -500,7 +500,7 @@ model UserQuestionMastery {
   level              Int      @default(0)
   consecutiveCorrect Int      @default(0) @map("consecutive_correct")
   question           Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@id([userId, questionId])
   @@map("user_question_mastery")
@@ -519,7 +519,7 @@ model Subscription {
   endDate         DateTime?          @map("end_date") @db.Timestamptz(6)
   createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User               @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("subscriptions")
 }
@@ -560,7 +560,7 @@ model UserItem {
   itemDefinitionId Int            @map("item_definition_id")
   quantity         Int            @default(1)
   itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@id([userId, itemDefinitionId])
   @@map("user_items")
@@ -576,7 +576,7 @@ model UserActiveEffect {
   status           EffectStatus       @default(ACTIVE)
   itemType         ItemDefinitionType @map("item_type")
   itemDefinition   ItemDefinition     @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("user_active_effects")
 }
@@ -586,7 +586,7 @@ model UserEquippedItem {
   equipmentSlot    EquipmentSlot  @map("equipment_slot")
   itemDefinitionId Int            @map("item_definition_id")
   itemDefinition   ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@id([userId, equipmentSlot])
   @@map("user_equipped_items")
@@ -741,7 +741,7 @@ model Notification {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("notifications")
 }
@@ -753,7 +753,7 @@ model FcmToken {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@map("fcm_tokens")
@@ -780,7 +780,7 @@ model AiChatSession {
   createdAt DateTime        @default(now()) @map("created_at")
   updatedAt DateTime        @updatedAt @map("updated_at")
 
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Restrict)
   messages  AiChatMessage[]
 
   @@map("ai_chat_sessions")
@@ -807,7 +807,7 @@ model UserAiQuota {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([userId, date])
   @@map("user_ai_quotas")
@@ -835,7 +835,7 @@ model PvpRoom {
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
 
-  host                 User             @relation("HostPvpRooms", fields: [hostUserId], references: [id], onDelete: Cascade)
+  host                 User             @relation("HostPvpRooms", fields: [hostUserId], references: [id], onDelete: Restrict)
   participants         PvpParticipant[]
 
   @@index([code, status])
@@ -852,7 +852,7 @@ model PvpParticipant {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   room        PvpRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([roomId, userId])
   @@map("pvp_participants")
