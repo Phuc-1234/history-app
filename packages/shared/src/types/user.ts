@@ -29,11 +29,13 @@ export interface UpdateProfileRequestBody {
     name?: string;
     email?: string;
     profileImgUrl?: string | null;
+    isHidden?: boolean;
 }
 
 export interface UpdateUserDataRequestBody {
     name?: string;
     profileImgUrl?: string | null;
+    isHidden?: boolean;
 }
 
 export interface UpdateUserEmailRequestBody {

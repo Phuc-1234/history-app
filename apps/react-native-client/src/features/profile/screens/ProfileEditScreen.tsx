@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     Alert,
     TouchableOpacity,
+    Switch,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { User, Mail } from "lucide-react-native";
@@ -48,6 +49,7 @@ export default function ProfileEditScreen() {
     const [selectedFrameUrl, setSelectedFrameUrl] = useState<string | null>(
         profile?.equippedFrameUrl ?? null
     );
+    const [isHidden, setIsHidden] = useState<boolean>(profile?.isHidden ?? false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -70,7 +72,8 @@ export default function ProfileEditScreen() {
         setName(profile?.name ?? "");
         setEmail(profile?.email ?? "");
         setSelectedFrameUrl(profile?.equippedFrameUrl ?? null);
-    }, [profile?.email, profile?.equippedFrameUrl, profile?.name]);
+        setIsHidden(profile?.isHidden ?? false);
+    }, [profile?.email, profile?.equippedFrameUrl, profile?.isHidden, profile?.name]);
 
     const handleSelectFrame = (targetFrameUrl: string | null) => {
         const previousFrameUrl = selectedFrameUrl;
@@ -235,11 +238,16 @@ export default function ProfileEditScreen() {
                 setIsUploading(false);
             }
 
-            // 2. Save updates for name and image
-            if (trimmedName !== profile?.name || finalProfileImgUrl !== profile?.profileImgUrl) {
+            // 2. Save updates for name, image, and privacy
+            if (
+                trimmedName !== profile?.name ||
+                finalProfileImgUrl !== profile?.profileImgUrl ||
+                isHidden !== (profile?.isHidden ?? false)
+            ) {
                 await updateUserData({
                     name: trimmedName,
-                    profileImgUrl: finalProfileImgUrl
+                    profileImgUrl: finalProfileImgUrl,
+                    isHidden,
                 }).unwrap();
             }
 
@@ -434,6 +442,24 @@ export default function ProfileEditScreen() {
                                 style={styles.inputField}
                             />
 
+                            <View style={styles.privacyContainer}>
+                                <View style={styles.privacyTextGroup}>
+                                    <View style={styles.privacyHeaderRow}>
+                                        <Ionicons name="lock-closed-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+                                        <Text style={styles.privacyTitle}>Tài khoản riêng tư</Text>
+                                    </View>
+                                    <Text style={styles.privacySubtext}>
+                                        Không hiển thị trên Bảng xếp hạng và ẩn khỏi tìm kiếm bạn bè.
+                                    </Text>
+                                </View>
+                                <Switch
+                                    value={isHidden}
+                                    onValueChange={setIsHidden}
+                                    trackColor={{ false: colors.borderMedium, true: colors.primary }}
+                                    thumbColor="#FFFFFF"
+                                />
+                            </View>
+
                             {errorMsg && (
                                 <Text style={styles.errorText}>{errorMsg}</Text>
                             )}
@@ -598,5 +624,36 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: "center",
         justifyContent: "center",
+    },
+    privacyContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 14,
+        marginTop: 14,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+    },
+    privacyTextGroup: {
+        flex: 1,
+        marginRight: 12,
+    },
+    privacyHeaderRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 4,
+    },
+    privacyTitle: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 14,
+        color: colors.textPrimary,
+    },
+    privacySubtext: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 12,
+        color: colors.textMuted,
+        lineHeight: 16,
     },
 });

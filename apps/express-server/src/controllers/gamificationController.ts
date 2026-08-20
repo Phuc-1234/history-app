@@ -22,6 +22,7 @@ export const getLeaderboard = async (
             page,
             limit,
             sort as any,
+            req.user?.id
         );
 
         // If optional auth populated req.user, include current user position
