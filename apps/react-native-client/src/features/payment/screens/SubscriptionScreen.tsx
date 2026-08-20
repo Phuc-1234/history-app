@@ -107,15 +107,62 @@ export const SubscriptionScreen: React.FC = () => {
         Alert.alert("Đã sao chép", `${label} đã được sao chép.`);
     };
 
+    const renderProFeatures = () => (
+        <View style={styles.featuresContainer}>
+            <View style={styles.featureItem}>
+                <Ionicons name="book-outline" size={24} color={colors.primary} style={{ marginRight: 14 }} />
+                <View style={styles.featureTextContainer}>
+                    <Text style={styles.featureTitle}>Mở khoá toàn bộ bài học</Text>
+                    <Text style={styles.featureDesc}>Học toàn bộ bài học các khối lớp 10, 11, 12.</Text>
+                </View>
+            </View>
+            <View style={styles.featureItem}>
+                <Ionicons name="document-text-outline" size={24} color={colors.secondary} style={{ marginRight: 14 }} />
+                <View style={styles.featureTextContainer}>
+                    <Text style={styles.featureTitle}>Mở khoá toàn bộ đề thpt</Text>
+                    <Text style={styles.featureDesc}>Luyện thi THPT Quốc gia không giới hạn.</Text>
+                </View>
+            </View>
+            <View style={styles.featureItem}>
+                <Ionicons name="sparkles-outline" size={24} color={colors.secondaryHover} style={{ marginRight: 14 }} />
+                <View style={styles.featureTextContainer}>
+                    <Text style={styles.featureTitle}>Trợ lý AI Lịch sử thông minh</Text>
+                    <Text style={styles.featureDesc}>Trò chuyện, giải đáp thắc mắc với hạn mức gấp 10 lần.</Text>
+                </View>
+            </View>
+            <View style={styles.featureItem}>
+                <Ionicons name="albums-outline" size={24} color={colors.warning} style={{ marginRight: 14 }} />
+                <View style={styles.featureTextContainer}>
+                    <Text style={styles.featureTitle}>Mở khoá thẻ lật</Text>
+                    <Text style={styles.featureDesc}>Ghi nhớ kiến thức nhanh chóng với flashcard.</Text>
+                </View>
+            </View>
+            <View style={styles.featureItem}>
+                <Ionicons name="git-network-outline" size={24} color={colors.success} style={{ marginRight: 14 }} />
+                <View style={styles.featureTextContainer}>
+                    <Text style={styles.featureTitle}>Mở khoá mind map</Text>
+                    <Text style={styles.featureDesc}>Hệ thống hoá kiến thức bằng sơ đồ tư duy trực quan.</Text>
+                </View>
+            </View>
+        </View>
+    );
+
     const renderActiveSubscription = () => {
         const expiresStr = formatDate(profile?.proExpiresAt);
         return (
-            <View style={styles.activeContainer}>
-                <View style={styles.proCrownCard}>
-                    <Ionicons name="ribbon-outline" size={64} color={colors.secondary} style={{ marginBottom: 16 }} />
-                    <Text style={styles.proCardTitle}>Bạn là Thành Viên Pro</Text>
-                    <Text style={styles.proCardSubtitle}>
-                        Bạn đang tận hưởng toàn bộ đặc quyền cao cấp của HistoryApp.
+            <View>
+                <View style={styles.header}>
+                    <View style={styles.headerIconBg}>
+                        <Image
+                            source={require("../../../../assets/images/logo-main.png")}
+                            style={{ width: 60, height: 60, borderRadius: 30 }}
+                            resizeMode="contain"
+                        />
+                        <TwinklingStars mode="avatar" />
+                    </View>
+                    <Text style={styles.headerTitle}>Người dùng PRO</Text>
+                    <Text style={styles.headerSub}>
+                        Bạn đang tận hưởng các đặc quyền sau:
                     </Text>
                 </View>
 
@@ -130,6 +177,8 @@ export const SubscriptionScreen: React.FC = () => {
                         <Text style={styles.infoValue}>{expiresStr}</Text>
                     </View>
                 </View>
+
+                {renderProFeatures()}
             </View>
         );
     };
@@ -152,7 +201,10 @@ export const SubscriptionScreen: React.FC = () => {
                 </TouchableOpacity>
             </View>
             {profile?.isPro ? (
-                <ScrollView contentContainerStyle={styles.scrollContent}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
                     {renderActiveSubscription()}
                 </ScrollView>
             ) : (
@@ -175,43 +227,7 @@ export const SubscriptionScreen: React.FC = () => {
                         </Text>
                     </View>
 
-                    <View style={styles.featuresContainer}>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="book-outline" size={24} color={colors.primary} style={{ marginRight: 14 }} />
-                            <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Mở khoá toàn bộ bài học</Text>
-                                <Text style={styles.featureDesc}>Học toàn bộ bài học các khối lớp 10, 11, 12.</Text>
-                            </View>
-                        </View>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="document-text-outline" size={24} color={colors.secondary} style={{ marginRight: 14 }} />
-                            <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Mở khoá toàn bộ đề thpt</Text>
-                                <Text style={styles.featureDesc}>Luyện thi THPT Quốc gia không giới hạn.</Text>
-                            </View>
-                        </View>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="sparkles-outline" size={24} color={colors.secondaryHover} style={{ marginRight: 14 }} />
-                            <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Trợ lý AI Lịch sử thông minh</Text>
-                                <Text style={styles.featureDesc}>Trò chuyện, giải đáp thắc mắc với hạn mức gấp 10 lần.</Text>
-                            </View>
-                        </View>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="albums-outline" size={24} color={colors.warning} style={{ marginRight: 14 }} />
-                            <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Mở khoá thẻ lật</Text>
-                                <Text style={styles.featureDesc}>Ghi nhớ kiến thức nhanh chóng với flashcard.</Text>
-                            </View>
-                        </View>
-                        <View style={styles.featureItem}>
-                            <Ionicons name="git-network-outline" size={24} color={colors.success} style={{ marginRight: 14 }} />
-                            <View style={styles.featureTextContainer}>
-                                <Text style={styles.featureTitle}>Mở khoá mind map</Text>
-                                <Text style={styles.featureDesc}>Hệ thống hoá kiến thức bằng sơ đồ tư duy trực quan.</Text>
-                            </View>
-                        </View>
-                    </View>
+                    {renderProFeatures()}
 
                     {fetchingPackages ? (
                         <View style={{ paddingVertical: 24, alignItems: "center" }}>

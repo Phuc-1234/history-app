@@ -18,6 +18,7 @@ export interface SocialUser {
     profileImgUrl?: string | null;
     totalXp: number;
     currentStreak: number;
+    hasCompletedToday?: boolean;
     tierName?: string | null;
     badgeImgUrl?: string | null;
     isPrivate?: boolean;

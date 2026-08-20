@@ -119,14 +119,7 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                     activeOpacity={0.7}
                                     onPress={onOpenTier}
                                 >
-                                    {data.badgeImgUrl ? (
-                                        <Image
-                                            source={{ uri: data.badgeImgUrl }}
-                                            style={styles.badgeIcon}
-                                        />
-                                    ) : (
-                                        <Zap size={18} color="#FFFFFF" />
-                                    )}
+                                    <Zap size={18} color="#FFFFFF" />
                                     <Text style={styles.chipText}>
                                         {data.totalXp}XP
                                     </Text>
