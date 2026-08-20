@@ -21,7 +21,7 @@ export interface SocialUser {
     hasCompletedToday?: boolean;
     tierName?: string | null;
     badgeImgUrl?: string | null;
-    isPrivate?: boolean;
+    isHidden?: boolean;
     allowFollow?: boolean;
     allowFriendRequest?: boolean;
     relationStatus?: SocialRelationStatus;

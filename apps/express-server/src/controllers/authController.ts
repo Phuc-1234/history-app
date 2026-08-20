@@ -171,6 +171,7 @@ export const loginUser = async (
                 isPro: true,
                 proExpiresAt: true,
                 currentTierIndex: true,
+                isHidden: true,
                 tier: {
                     select: {
                         name: true,
@@ -201,6 +202,7 @@ export const loginUser = async (
             isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
             currentTierIndex: userProfile.currentTierIndex,
+            isHidden: userProfile.isHidden ?? false,
         };
 
         // Meets LoginSuccessResponse contract perfectly
@@ -266,6 +268,7 @@ export const verifyOtp = async (
                 isPro: true,
                 proExpiresAt: true,
                 currentTierIndex: true,
+                isHidden: true,
                 tier: {
                     select: {
                         name: true,
@@ -295,6 +298,7 @@ export const verifyOtp = async (
             isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
             currentTierIndex: userProfile.currentTierIndex,
+            isHidden: userProfile.isHidden ?? false,
         };
 
         // 4. Return tokens and data right back to the React Native UI layout
@@ -451,6 +455,7 @@ export const verifyGoogleSession = async (
                 isPro: true,
                 proExpiresAt: true,
                 currentTierIndex: true,
+                isHidden: true,
                 tier: {
                     select: {
                         name: true,
@@ -483,6 +488,7 @@ export const verifyGoogleSession = async (
             isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
             currentTierIndex: userProfile.currentTierIndex,
+            isHidden: userProfile.isHidden ?? false,
         };
 
         // 6. Return unified payload containing native, auto-refreshing Supabase session JWTs
@@ -551,6 +557,7 @@ export const verifyFacebookSession = async (
                 isPro: true,
                 proExpiresAt: true,
                 currentTierIndex: true,
+                isHidden: true,
                 tier: {
                     select: {
                         name: true,
@@ -581,6 +588,7 @@ export const verifyFacebookSession = async (
             isPro: userProfile.isPro ?? false,
             proExpiresAt: userProfile.proExpiresAt ? userProfile.proExpiresAt.toISOString() : null,
             currentTierIndex: userProfile.currentTierIndex,
+            isHidden: userProfile.isHidden ?? false,
         };
 
         return res.status(200).json({

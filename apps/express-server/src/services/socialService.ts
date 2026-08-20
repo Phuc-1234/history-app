@@ -34,7 +34,7 @@ const userSelect = {
     totalXp: true,
     currentStreak: true,
     lastXpGainedAt: true,
-    isPrivate: true,
+    isHidden: true,
     allowFollow: true,
     allowFriendRequest: true,
     tier: {
@@ -76,7 +76,7 @@ function publicUser(user: any) {
         hasCompletedToday,
         tierName: user.tier?.name ?? null,
         badgeImgUrl: user.tier?.badgeImgUrl ?? null,
-        isPrivate: user.isPrivate ?? false,
+        isHidden: user.isHidden ?? false,
         allowFollow: user.allowFollow ?? true,
         allowFriendRequest: user.allowFriendRequest ?? true,
         equippedFrameUrl: user.userEquippedItems && user.userEquippedItems.length > 0
@@ -243,6 +243,7 @@ export class SocialService {
                 JOIN lessons l ON s.lesson_id = l.id
                 JOIN topics t ON l.topic_id = t.id
                 WHERE u.is_hidden = false
+                  AND u.is_private = false
                   AND u.id <> ${currentUserId}
                   AND t.grade_id = ${myGrade}
                 LIMIT ${rawLimit}
@@ -260,6 +261,7 @@ export class SocialService {
                 FROM users u
                 JOIN user_node_progress unp ON u.id = unp.user_id
                 WHERE u.is_hidden = false
+                  AND u.is_private = false
                   AND u.id <> ${currentUserId}
                   AND unp.studied_at IS NOT NULL
                 GROUP BY u.id
@@ -567,7 +569,6 @@ export class SocialService {
             select: {
                 id: true,
                 isHidden: true,
-                isPrivate: true,
                 allowFollow: true,
             },
         });
@@ -575,7 +576,7 @@ export class SocialService {
         if (!target || target.isHidden) {
             throw Object.assign(new Error("User not found."), { statusCode: 404 });
         }
-        if (!target.allowFollow || target.isPrivate) {
+        if (!target.allowFollow || target.isHidden) {
             throw Object.assign(new Error("This user does not allow direct follows."), {
                 statusCode: 403,
             });

@@ -78,6 +78,7 @@ export const getUserProfile = async (
                 isPro: true,
                 proExpiresAt: true,
                 currentTierIndex: true,
+                isHidden: true,
                 tier: {
                     select: {
                         name: true,
@@ -124,6 +125,7 @@ export const getUserProfile = async (
             isPro: fullProfile.isPro ?? false,
             proExpiresAt: fullProfile.proExpiresAt ? fullProfile.proExpiresAt.toISOString() : null,
             currentTierIndex: fullProfile.currentTierIndex,
+            isHidden: fullProfile.isHidden ?? false,
         });
     } catch (error) {
         console.error("Express Profile Fetch Controller Crash:", error);
@@ -142,7 +144,7 @@ export const updateUserProfile = async (
             return res.status(401).json({ error: "Access denied. Valid session missing." });
         }
 
-        const { name, email, profileImgUrl } = req.body;
+        const { name, email, profileImgUrl, isHidden } = req.body;
         const trimmedName = name?.trim();
         const trimmedEmail = email?.trim();
 
@@ -186,6 +188,7 @@ export const updateUserProfile = async (
         if (trimmedName) dbUpdates.name = trimmedName;
         if (trimmedEmail) dbUpdates.email = trimmedEmail;
         if (profileImgUrl !== undefined) dbUpdates.profileImgUrl = profileImgUrl;
+        if (isHidden !== undefined) dbUpdates.isHidden = Boolean(isHidden);
 
         const updatedProfile = await prisma.user.update({
             where: { id: req.user.id },
@@ -201,6 +204,7 @@ export const updateUserProfile = async (
                 isPro: true,
                 proExpiresAt: true,
                 currentTierIndex: true,
+                isHidden: true,
                 tier: {
                     select: {
                         name: true,
@@ -223,6 +227,7 @@ export const updateUserProfile = async (
             isPro: updatedProfile.isPro ?? false,
             proExpiresAt: updatedProfile.proExpiresAt ? updatedProfile.proExpiresAt.toISOString() : null,
             currentTierIndex: updatedProfile.currentTierIndex,
+            isHidden: updatedProfile.isHidden ?? false,
         });
     } catch (error: any) {
         console.error("Express Profile Update Controller Crash:", error);
@@ -327,15 +332,15 @@ export const changeUserPassword = async (
 };
 
 export const updateUserData = async (
-    req: Request<{}, { message: string } | { error: string }, UpdateUserDataRequestBody>,
-    res: Response<{ message: string } | { error: string }>,
-): Promise<Response<{ message: string } | { error: string }>> => {
+    req: Request<{}, any, UpdateUserDataRequestBody>,
+    res: Response<any>,
+): Promise<Response<any>> => {
     try {
         if (!req.user) {
             return res.status(401).json({ error: "Access denied. Valid session missing." });
         }
 
-        const { name, profileImgUrl } = req.body;
+        const { name, profileImgUrl, isHidden } = req.body;
         const trimmedName = name?.trim();
 
         if (trimmedName === "") {
@@ -357,18 +362,50 @@ export const updateUserData = async (
         const dbUpdates: any = {};
         if (trimmedName) dbUpdates.name = trimmedName;
         if (profileImgUrl !== undefined) dbUpdates.profileImgUrl = profileImgUrl;
+        if (isHidden !== undefined) dbUpdates.isHidden = Boolean(isHidden);
 
-        if (Object.keys(dbUpdates).length > 0) {
-            await prisma.user.update({
-                where: { id: req.user.id },
-                data: dbUpdates,
-            });
-        }
+        console.log("[updateUserData] userId:", req.user.id, "| dbUpdates:", JSON.stringify(dbUpdates));
+        const updatedUser = await prisma.user.update({
+            where: { id: req.user.id },
+            data: dbUpdates,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                totalXp: true,
+                totalGold: true,
+                profileImgUrl: true,
+                currentStreak: true,
+                isPro: true,
+                proExpiresAt: true,
+                currentTierIndex: true,
+                isHidden: true,
+                tier: { select: { name: true, badgeImgUrl: true } },
+                userEquippedItems: { include: { itemDefinition: true } },
+            },
+        });
+
+        const frameItem = updatedUser.userEquippedItems.find((e) => e.equipmentSlot === "AVT_FRAME");
+        const leaderboardBgItem = updatedUser.userEquippedItems.find((e) => e.equipmentSlot === "LEADERBOARD_BG" || e.equipmentSlot === "BACKGROUND");
 
         return res.status(200).json({
-            message: "User data updated successfully.",
+            id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            totalXp: updatedUser.totalXp,
+            totalGold: updatedUser.totalGold,
+            profileImgUrl: updatedUser.profileImgUrl,
+            currentStreak: updatedUser.currentStreak,
+            tierName: updatedUser.tier.name,
+            badgeImgUrl: updatedUser.tier.badgeImgUrl,
+            isPro: updatedUser.isPro ?? false,
+            proExpiresAt: updatedUser.proExpiresAt ? updatedUser.proExpiresAt.toISOString() : null,
+            currentTierIndex: updatedUser.currentTierIndex,
+            isHidden: updatedUser.isHidden ?? false,
+            equippedFrameUrl: frameItem?.itemDefinition?.imgUrl ?? null,
+            equippedLeaderboardBgUrl: leaderboardBgItem?.itemDefinition?.imgUrl ?? null,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Express User Data Update Controller Crash:", error);
         return res.status(500).json({
             error: "Lỗi hệ thống khi cập nhật thông tin người dùng.",

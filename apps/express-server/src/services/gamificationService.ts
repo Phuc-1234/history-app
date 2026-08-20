@@ -8,15 +8,19 @@ function getVnDateString(date: Date = new Date()): string {
 }
 
 export class GamificationService {
-    async getLeaderboard(page = 1, limit = 20, sort: "xp" | "streak" = "xp") {
+    async getLeaderboard(page = 1, limit = 20, sort: "xp" | "streak" = "xp", requestingUserId?: string) {
         const pageNum = Math.max(1, Math.floor(page));
         const pageSize = Math.max(1, Math.floor(limit));
 
+        const hiddenFilter = requestingUserId
+            ? {
+                  isVerified: true,
+                  OR: [{ isHidden: false }, { id: requestingUserId }],
+              }
+            : { isVerified: true, isHidden: false };
+
         const total = await prisma.user.count({
-            where: {
-                isVerified: true,
-                isHidden: false,
-            },
+            where: hiddenFilter,
         });
 
         const orderBy =
@@ -31,10 +35,7 @@ export class GamificationService {
                   ];
 
         const users = await prisma.user.findMany({
-            where: {
-                isVerified: true,
-                isHidden: false,
-            },
+            where: hiddenFilter,
             orderBy,
             skip: (pageNum - 1) * pageSize,
             take: pageSize,
@@ -85,7 +86,8 @@ export class GamificationService {
                 where: { id: userId },
                 select: { currentStreak: true, totalXp: true, isHidden: true } as any,
             });
-            if (!user || (user as any).isHidden) return null;
+            if (!user) return null;
+            // If hidden, return position calculated among non-hidden users (for self-view)
             const higher = await prisma.user.count({
                 where: {
                     isVerified: true,
@@ -106,7 +108,7 @@ export class GamificationService {
             where: { id: userId },
             select: { totalXp: true, currentStreak: true, isHidden: true } as any,
         });
-        if (!user || (user as any).isHidden) return null;
+        if (!user) return null;
         const higher = await prisma.user.count({
             where: {
                 isVerified: true,

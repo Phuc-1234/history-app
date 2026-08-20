@@ -107,6 +107,7 @@ export interface UserProfileSummary {
     isPro?: boolean;
     proExpiresAt?: string | null;
     currentTierIndex: number;
+    isHidden?: boolean;
 }
 
 // --- POST /auth/login ---

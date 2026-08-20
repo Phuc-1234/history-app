@@ -269,24 +269,43 @@ export const authApi = apiSlice.injectEndpoints({
             }),
         }),
 
-        updateUserData: builder.mutation<{ message: string }, UpdateUserDataRequestBody>({
+        updateUserData: builder.mutation<UserProfileSummary, UpdateUserDataRequestBody>({
             query: (body) => ({
                 url: "/api/user/data",
                 method: "PUT",
                 body,
             }),
             invalidatesTags: ["User"],
-            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+            async onQueryStarted(arg, { dispatch, queryFulfilled, getState }) {
+                // Optimistic update immediately before server responds
+                const profileAtStart = (getState() as RootState).auth.profile;
+                if (profileAtStart) {
+                    dispatch(setProfile({
+                        ...profileAtStart,
+                        ...(arg.name ? { name: arg.name } : {}),
+                        ...(arg.profileImgUrl !== undefined ? { profileImgUrl: arg.profileImgUrl } : {}),
+                        ...(arg.isHidden !== undefined ? { isHidden: arg.isHidden } : {}),
+                    }));
+                }
                 try {
                     const { data } = await queryFulfilled;
                     console.log("[authApi] updateUserData success, data:", data);
-                    // Refresh profile
-                    dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+                    // Merge server response into latest Redux state (invalidatesTags will also trigger getProfile refetch)
+                    const latestProfile = (getState() as RootState).auth.profile;
+                    dispatch(setProfile({
+                        ...(latestProfile ?? profileAtStart ?? {}),
+                        ...data,
+                    } as UserProfileSummary));
                 } catch (error) {
+                    // Revert optimistic update on failure
+                    if (profileAtStart) {
+                        dispatch(setProfile(profileAtStart));
+                    }
                     console.error("[authApi] Failed to update user data:", error);
                 }
             },
         }),
+
 
         updateUserEmail: builder.mutation<{ message: string }, UpdateUserEmailRequestBody>({
             query: (body) => ({
