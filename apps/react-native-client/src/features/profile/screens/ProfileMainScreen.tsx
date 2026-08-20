@@ -19,6 +19,7 @@ import typography from "../../../theme/typography";
 import { Card } from "../../../components/Card";
 import Button from "../../../components/Button";
 import { FaintStarsOverlay } from "../../../components/ui";
+import { APP_CONFIG } from "@/config";
 
 export default function ProfileMainScreen() {
     const router = useRouter();
@@ -61,7 +62,7 @@ export default function ProfileMainScreen() {
                         />
                     </View>
                     <View style={styles.versionContainer}>
-                        <Text style={styles.versionText}>Phiên bản 4.5.2</Text>
+                        <Text style={styles.versionText}>Phiên bản {APP_CONFIG.VERSION}</Text>
                         <Text style={styles.groupText}>Thực hiện bởi nhóm "Sử Việt"</Text>
                     </View>
                 </View>
@@ -218,7 +219,7 @@ export default function ProfileMainScreen() {
             </View>
 
             <View style={styles.versionContainer}>
-                <Text style={styles.versionText}>Phiên bản 4.5.2</Text>
+                <Text style={styles.versionText}>Phiên bản {APP_CONFIG.VERSION}</Text>
                 <Text style={styles.groupText}>Thực hiện bởi nhóm "Sử Việt"</Text>
             </View>
             <TouchableOpacity
