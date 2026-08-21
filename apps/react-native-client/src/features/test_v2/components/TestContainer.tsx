@@ -311,12 +311,14 @@ export default function TestContainerV2({
     const displayTitle =
         session?.testTitle ||
         testInfo?.title ||
-        getScopePlaceholder(params.scopeType, params.purposeType);
+        getScopePlaceholder(params.scopeType, params.purposeType, params.autoPickStrategy);
     const branchConfig = {
         hierarchy:
             params.purposeType === "EXAM"
                 ? "KIỂM TRA"
-                : "THỬ THÁCH",
+                : params.autoPickStrategy === "WRONG"
+                    ? "LÀM LẠI CÂU SAI"
+                    : "LUYỆN TẬP",
         title: displayTitle,
         onBackPress: handleBack,
     };

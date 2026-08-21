@@ -33,10 +33,6 @@ function LessonCard({
     lesson: HomeLessonItem;
     onPress: () => void;
 }) {
-    const { completedNodes, totalNodes } = lesson.progress;
-    const percent =
-        totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
-
     return (
         <Card
             variant="soft"
@@ -59,21 +55,6 @@ function LessonCard({
                 <Text style={lessonStyles.lessonName} numberOfLines={1}>
                     {lesson.name}
                 </Text>
-                {totalNodes > 0 && (
-                    <View style={lessonStyles.progressRow}>
-                        <View style={lessonStyles.progressBar}>
-                            <View
-                                style={[
-                                    lessonStyles.progressFill,
-                                    { width: `${percent}%` },
-                                ]}
-                            />
-                        </View>
-                        <Text style={lessonStyles.progressText}>
-                            {percent}%
-                        </Text>
-                    </View>
-                )}
             </View>
             <Ionicons
                 name="chevron-forward"
@@ -112,30 +93,6 @@ const lessonStyles = StyleSheet.create({
         fontFamily: typography.fonts.medium,
         fontSize: 14,
         color: colors.textPrimary,
-        marginBottom: 6,
-    },
-    progressRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-    },
-    progressBar: {
-        flex: 1,
-        height: 4,
-        backgroundColor: colors.borderMedium,
-        borderRadius: 2,
-        overflow: "hidden",
-    },
-    progressFill: {
-        height: "100%",
-        backgroundColor: colors.primary,
-        borderRadius: 2,
-    },
-    progressText: {
-        fontFamily: typography.fonts.regular,
-        fontSize: 11,
-        color: colors.textMuted,
-        minWidth: 28,
     },
 });
 

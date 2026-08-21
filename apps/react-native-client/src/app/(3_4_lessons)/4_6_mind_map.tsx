@@ -5,6 +5,7 @@ import MindMapScreen from "../../features/mind-map/components/MindMapScreen";
 import type { MindMapQuery } from "../../features/mind-map/mindMapApi";
 import { useAppSelector } from "@/store/storeHook";
 import { PremiumModal } from "@/components/PremiumModal";
+import { CustomModal } from "@/components/Modal";
 
 function toMindMapQuery(params: {
     lessonId?: string;
@@ -37,6 +38,34 @@ export default function MindMapRoute() {
             router.replace("/(3_4_lessons)/lesson/default-id");
         }
     };
+
+    if (!profile) {
+        return (
+            <ScreenWrapper
+                showTopBar={false}
+                branchConfig={{
+                    hierarchy: params.lessonPosition ? `Bài ${params.lessonPosition}` : "Sơ đồ tư duy",
+                    title: "Sơ đồ tư duy",
+                    subtitle: params.lessonName || "",
+                    onBackPress: handleBack,
+                }}
+            >
+                <CustomModal
+                    visible={true}
+                    title="Yêu cầu đăng nhập"
+                    message="Bạn cần đăng nhập để sử dụng tính năng này. Đăng nhập ngay?"
+                    confirmText="Đăng nhập"
+                    cancelText="Hủy"
+                    onConfirm={() => {
+                        router.push("/(1_auth)/1_1_login");
+                    }}
+                    onCancel={handleBack}
+                    showMascot={true}
+                    mascotExpression="thinking"
+                />
+            </ScreenWrapper>
+        );
+    }
 
     if (!isUserPro) {
         return (

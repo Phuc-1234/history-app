@@ -73,8 +73,8 @@ export function TopBar({ data, showStatsBar = true, branchConfig, onOpenStreak, 
                                     size={32}
                                     color="#FFFFFF"
                                 />
-                                <Text style={styles.promptText} numberOfLines={2}>
-                                    Đăng nhập để lưu tiến trình học tập của bạn!
+                                <Text style={styles.promptText} numberOfLines={1}>
+                                    Khách
                                 </Text>
                             </View>
                             <TouchableOpacity

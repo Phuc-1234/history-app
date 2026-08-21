@@ -24,6 +24,7 @@ import { colors } from "../../../theme/colors";
 import Mascot from "@/components/Mascot";
 import { Check, X } from "lucide-react-native";
 import typography from "@/theme/typography";
+import { getScopePlaceholder } from "../components/TestIntro";
 
 export default function TestDetailScreen() {
     const router = useRouter();
@@ -63,6 +64,7 @@ export default function TestDetailScreen() {
 
     const date = new Date(userTestLog.startedAt);
     const dateStr = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+    const scopeText = userTestLog.testTitle || getScopePlaceholder(userTestLog.scopeType ?? undefined, userTestLog.purposeType, (userTestLog as any).autoPickStrategy);
 
     return (
         <View style={styles.container}>
@@ -79,9 +81,10 @@ export default function TestDetailScreen() {
                         <Text style={styles.bannerScore}>{scoreDisplay}</Text>
                         <Text style={styles.bannerScoreMax}>/10</Text>
                     </View>
+                    <Text style={styles.bannerTitle}>{scopeText}</Text>
                     <Text style={styles.bannerSubtext}>
                         {userTestLog.isPassed ? "Đạt" : "Chưa đạt"} • Lần{" "}
-                        {userTestLog.attemptNumber}
+                        {userTestLog.attemptNumber} • {userTestLog.purposeType === "PRACTICE" ? "Luyện tập" : "Kiểm tra"}
                     </Text>
                     <Text style={styles.bannerDate}>{dateStr}</Text>
                 </View>
@@ -655,6 +658,13 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.bold,
         color: colors.textMuted,
         marginLeft: 2,
+    },
+    bannerTitle: {
+        fontSize: 16,
+        color: colors.textPrimary,
+        fontFamily: typography.fonts.bold,
+        marginTop: 8,
+        textAlign: "center",
     },
     bannerSubtext: {
         fontSize: 13,

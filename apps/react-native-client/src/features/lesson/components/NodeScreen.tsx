@@ -93,14 +93,11 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
         if (!isLoggedIn || !node) return;
         setStudyDone(true);
         try {
-            const result = await finishStudy(nodeId).unwrap();
-            const msg =
-                result.consequences?.find((c: any) => c.message)?.message ??
-                "Đã ghi nhận hoàn thành!";
-            setToastMessage(msg);
+            await finishStudy(nodeId).unwrap();
+            setToastMessage("Đã hoàn thành nút kiến thức");
             setToastVisible(true);
         } catch {
-            setToastMessage("Đã ghi nhận hoàn thành!");
+            setToastMessage("Đã hoàn thành nút kiến thức");
             setToastVisible(true);
         }
     };
@@ -116,13 +113,10 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                     setStudyDone(true);
                 }
 
-                const result = await finishStudy(nodeId).unwrap();
+                await finishStudy(nodeId).unwrap();
 
                 if (!hasTest) {
-                    const msg =
-                        result.consequences?.find((c: any) => c.message)?.message ??
-                        "Đã ghi nhận hoàn thành!";
-                    setToastMessage(msg);
+                    setToastMessage("đã hoàn thành nút kiến thức");
                     setToastVisible(true);
                 }
             } catch (err) {

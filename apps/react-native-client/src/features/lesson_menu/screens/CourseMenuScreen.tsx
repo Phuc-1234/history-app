@@ -20,6 +20,7 @@ import { Card } from "../../../components/Card";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "../../../store/storeHook";
 import { PremiumModal } from "../../../components/PremiumModal";
+import { CustomModal } from "../../../components/Modal";
 import { toastService } from "../../../services/toastService";
 
 
@@ -205,6 +206,7 @@ export function CourseMenuScreen() {
 
     const [premiumModalVisible, setPremiumModalVisible] = useState(false);
     const [lockedFeatureName, setLockedFeatureName] = useState("");
+    const [guestModalVisible, setGuestModalVisible] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -233,6 +235,10 @@ export function CourseMenuScreen() {
     };
 
     const showProModal = (feature: string) => {
+        if (!profile) {
+            setGuestModalVisible(true);
+            return;
+        }
         setLockedFeatureName(feature);
         setPremiumModalVisible(true);
     };
@@ -318,6 +324,20 @@ export function CourseMenuScreen() {
                 visible={premiumModalVisible}
                 onClose={() => setPremiumModalVisible(false)}
                 featureName={lockedFeatureName}
+            />
+            <CustomModal
+                visible={guestModalVisible}
+                title="Yêu cầu đăng nhập"
+                message="Bạn cần đăng nhập để sử dụng tính năng này. Đăng nhập ngay?"
+                confirmText="Đăng nhập"
+                cancelText="Hủy"
+                onConfirm={() => {
+                    setGuestModalVisible(false);
+                    router.push("/(1_auth)/1_1_login");
+                }}
+                onCancel={() => setGuestModalVisible(false)}
+                showMascot={true}
+                mascotExpression="thinking"
             />
         </ScreenWrapper>
     );
