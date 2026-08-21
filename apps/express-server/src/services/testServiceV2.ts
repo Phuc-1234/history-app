@@ -71,21 +71,26 @@ async function resolveTestTitle(log: any): Promise<string> {
             }
             case "GRADE": {
                 const grade = await prisma.grade.findUnique({ where: { id }, select: { id: true } });
-                if (grade) return `Lớp: ${grade.id}`;
+                if (grade) return `Lớp ${grade.id}`;
                 break;
             }
         }
     }
 
-    if (log.generatedFromPresetId) {
-        const preset = await prisma.testPreset.findUnique({
-            where: { id: log.generatedFromPresetId },
-            select: { name: true },
-        });
-        if (preset?.name) return preset.name;
+    if (log.scopeType === "NATIONAL") {
+        return "Đề thi Quốc gia";
     }
 
-    return log.purposeType === "EXAM" ? "Bài thi tự do" : "Luyện tập tự do";
+    if (log.scopeType === "GRADE") {
+        return "Khối lớp";
+    }
+
+    if (log.purposeType === "PRACTICE") {
+        if (log.autoPickStrategy === "WRONG") return "Làm lại câu sai";
+        return "Luyện tập cá nhân";
+    }
+
+    return log.purposeType === "EXAM" ? "Bài kiểm tra" : "Luyện tập";
 }
 
 function toLogDto(log: any, testTitle?: string | null): UserTestLogV2Dto {
@@ -1156,6 +1161,7 @@ export class TestServiceV2 {
             scopeType,
             scopeId,
             purposeType,
+            autoPickStrategy: req.autoPickStrategy,
             generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
         };
         const title = await resolveTestTitle(mockLog);

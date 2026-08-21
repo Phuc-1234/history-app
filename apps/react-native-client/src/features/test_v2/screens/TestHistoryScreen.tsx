@@ -5,6 +5,7 @@ import Card from "../../../components/Card";
 import { CustomModal } from "../../../components/Modal";
 import { useGetTestHistoryQuery } from "../services/testApi";
 import { formatScore } from "../services/scoreEngine";
+import { getScopePlaceholder } from "../components/TestIntro";
 import type { UserTestLogV2 } from "../types";
 import { colors } from "../../../theme/colors";
 import typography from "@/theme/typography";
@@ -47,6 +48,8 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
             : "0";
         const date = new Date(item.startedAt);
         const dateStr = `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+        const scopeText = item.testTitle || getScopePlaceholder(item.scopeType ?? undefined, item.purposeType, (item as any).autoPickStrategy);
+        const purposeLabel = item.purposeType === "PRACTICE" ? "Luyện tập" : "Kiểm tra";
 
         return (
             <Card
@@ -73,9 +76,15 @@ export default function TestHistoryScreen({ scopeType, scopeId, testId }: Props 
                     <Text style={styles.attemptText}>Lần {item.attemptNumber}</Text>
                 </View>
 
+                <View style={styles.titleContainer}>
+                    <Text style={styles.scopeTitle} numberOfLines={2}>
+                        {scopeText}
+                    </Text>
+                </View>
+
                 <View style={styles.metaRow}>
                     <Text style={styles.metaText}>
-                        {item.purposeType === "PRACTICE" ? "Luyện tập" : "Kiểm tra"}
+                        {purposeLabel}
                     </Text>
                     <Text style={styles.metaText}>{dateStr}</Text>
                 </View>
@@ -115,6 +124,8 @@ const styles = StyleSheet.create({
     scoreRow: { flexDirection: "row", alignItems: "baseline" },
     scoreValue: { fontSize: 24, fontFamily: typography.fonts.black, color: colors.primary },
     scoreMax: { fontSize: 13, fontFamily: typography.fonts.bold, color: colors.textMuted, marginLeft: 2 },
+    titleContainer: { marginBottom: 8 },
+    scopeTitle: { fontSize: 15, fontFamily: typography.fonts.bold, color: colors.textPrimary },
     metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
     metaText: { fontSize: 12, color: colors.textPlaceholder, fontFamily: typography.fonts.medium },
 });

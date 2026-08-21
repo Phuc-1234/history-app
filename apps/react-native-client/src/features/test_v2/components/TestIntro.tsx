@@ -20,9 +20,31 @@ import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import typography from "@/theme/typography";
 import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
 
-export function getScopePlaceholder(scopeType?: string, purposeType?: string): string {
+export function getScopePlaceholder(scopeType?: string, purposeType?: string, autoPickStrategy?: string): string {
     const isExam = purposeType === "EXAM";
-    const typeLabel = isExam ? "Bài kiểm tra" : "Bài thử thách";
+    if (!isExam) {
+        const defaultFallback = autoPickStrategy === "WRONG" ? "Làm lại câu sai" : "Luyện tập cá nhân";
+        if (!scopeType) return defaultFallback;
+
+        switch (scopeType.toUpperCase()) {
+            case "GRADE":
+                return "Luyện tập theo khối lớp";
+            case "TOPIC":
+                return "Luyện tập theo chủ đề";
+            case "LESSON":
+                return "Luyện tập theo bài học";
+            case "SECTION":
+                return "Luyện tập theo phần";
+            case "NODE":
+                return "Luyện tập theo mục";
+            case "NATIONAL":
+                return "Đề thi Quốc gia";
+            default:
+                return defaultFallback;
+        }
+    }
+
+    const typeLabel = "Bài kiểm tra";
     if (!scopeType) return typeLabel;
 
     switch (scopeType.toUpperCase()) {
