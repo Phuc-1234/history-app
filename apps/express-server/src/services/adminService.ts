@@ -1390,6 +1390,7 @@ export class AdminService {
     async listTests(): Promise<AdminTestDto[]> {
         const tests = await prisma.test.findMany({
             include: {
+                preset: true,
                 testQuestions: {
                     select: {
                         questionId: true,
@@ -1410,11 +1411,11 @@ export class AdminService {
             isNationalTest: t.isNationalTest,
             isPro: t.isPro,
             imgUrl: t.imgUrl ?? null,
-            questionNumber: t.questionNumber,
-            timeLimit: t.timeLimit,
+            questionNumber: t.preset?.questionCount ?? t.questionNumber,
+            timeLimit: t.preset?.timeLimit ?? t.timeLimit,
             xpReward: t.xpReward,
             goldReward: t.goldReward,
-            passThreshold: t.passThreshold,
+            passThreshold: t.preset?.passThreshold ?? t.passThreshold,
             gradeId: t.gradeId,
             topicId: t.topicId,
             lessonId: t.lessonId,
@@ -1464,6 +1465,7 @@ export class AdminService {
             where: { testId: test.id },
             select: { questionId: true },
         });
+        const preset = test.presetId ? await prisma.testPreset.findUnique({ where: { id: test.presetId } }) : null;
 
         return {
             id: test.id,
@@ -1476,11 +1478,11 @@ export class AdminService {
             isNationalTest: test.isNationalTest,
             isPro: test.isPro,
             imgUrl: test.imgUrl ?? null,
-            questionNumber: test.questionNumber,
-            timeLimit: test.timeLimit,
+            questionNumber: preset?.questionCount ?? test.questionNumber,
+            timeLimit: preset?.timeLimit ?? test.timeLimit,
             xpReward: test.xpReward,
             goldReward: test.goldReward,
-            passThreshold: test.passThreshold,
+            passThreshold: preset?.passThreshold ?? test.passThreshold,
             gradeId: test.gradeId,
             topicId: test.topicId,
             lessonId: test.lessonId,
@@ -1538,6 +1540,7 @@ export class AdminService {
             where: { testId: id },
             select: { questionId: true },
         });
+        const updatedPreset = updated.presetId ? await prisma.testPreset.findUnique({ where: { id: updated.presetId } }) : null;
 
         return {
             id: updated.id,
@@ -1550,11 +1553,11 @@ export class AdminService {
             isNationalTest: updated.isNationalTest,
             isPro: updated.isPro,
             imgUrl: updated.imgUrl ?? null,
-            questionNumber: updated.questionNumber,
-            timeLimit: updated.timeLimit,
+            questionNumber: updatedPreset?.questionCount ?? updated.questionNumber,
+            timeLimit: updatedPreset?.timeLimit ?? updated.timeLimit,
             xpReward: updated.xpReward,
             goldReward: updated.goldReward,
-            passThreshold: updated.passThreshold,
+            passThreshold: updatedPreset?.passThreshold ?? updated.passThreshold,
             gradeId: updated.gradeId,
             topicId: updated.topicId,
             lessonId: updated.lessonId,
