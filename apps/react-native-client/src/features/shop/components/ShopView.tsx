@@ -124,7 +124,7 @@ export const ShopView: React.FC = () => {
                     <View style={styles.buyGoldBannerLeft}>
                         <Coins size={24} color={colors.secondary} />
                         <View>
-                            <Text style={styles.buyGoldBannerTitle}>Nạp thêm Gold</Text>
+                            <Text style={styles.buyGoldBannerTitle}>Nạp thêm Vàng</Text>
                         </View>
                     </View>
                     <Text style={styles.buyGoldBannerButton}>Nạp ngay</Text>
