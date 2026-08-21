@@ -13,6 +13,8 @@ import colors from "../theme/colors";
 import typography from "../theme/typography";
 import { Ionicons } from "@expo/vector-icons";
 
+import { useAppSelector } from "@/store/storeHook";
+
 interface PremiumModalProps {
     visible: boolean;
     onClose: () => void;
@@ -29,9 +31,14 @@ export function PremiumModal({
     description,
 }: PremiumModalProps) {
     const router = useRouter();
+    const profile = useAppSelector((state) => state.auth.profile);
 
     const handleUpgrade = () => {
         onClose();
+        if (!profile) {
+            router.push("/(1_auth)/1_1_login");
+            return;
+        }
         // Redirect to subscription screen
         router.push("/(10_proflie)/10_8_subscription" as any);
     };

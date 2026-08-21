@@ -18,6 +18,8 @@ import { useAppSelector } from "../../../store/storeHook";
 import { useLessonMenu } from "../hooks/useLessonMenu";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Card } from "../../../components/Card";
+import Button from "../../../components/Button";
+import { CustomModal } from "../../../components/Modal";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import FeedbackModal from "../../../components/FeedbackModal";
@@ -252,6 +254,7 @@ export function LessonMenu({
     const { data: gradesData } = useGetGradesQuery();
     const [premiumModalVisible, setPremiumModalVisible] = useState(false);
     const [lockedFeatureName, setLockedFeatureName] = useState("");
+    const [guestModalVisible, setGuestModalVisible] = useState(false);
 
     const isGradePro = React.useMemo(() => {
         const gradeObj = gradesData?.grades?.find((g) => g.id === selectedGrade);
@@ -259,6 +262,10 @@ export function LessonMenu({
     }, [gradesData, selectedGrade]);
 
     const showProModal = (feature: string) => {
+        if (!profile) {
+            setGuestModalVisible(true);
+            return;
+        }
         setLockedFeatureName(feature);
         setPremiumModalVisible(true);
     };
@@ -659,6 +666,31 @@ export function LessonMenu({
                                         );
                                     })()}
                                 </>
+                            ) : !profile ? (
+                                <View style={styles.guestContainer}>
+                                    <Ionicons
+                                        name="person-circle-outline"
+                                        size={80}
+                                        color={colors.primary}
+                                        style={styles.guestIcon}
+                                    />
+                                    <Text style={styles.guestTitle}>Chế độ khách</Text>
+                                    <Text style={styles.guestSubText}>
+                                        Vui lòng đăng nhập hoặc đăng ký tài khoản để sử dụng tính năng luyện tập.
+                                    </Text>
+                                    <View style={styles.guestActions}>
+                                        <Button
+                                            title="Đăng nhập"
+                                            variant="primary"
+                                            onPress={() => router.push("/(1_auth)/1_1_login")}
+                                        />
+                                        <Button
+                                            title="Đăng ký"
+                                            variant="outline"
+                                            onPress={() => router.push("/(1_auth)/1_2_register")}
+                                        />
+                                    </View>
+                                </View>
                             ) : (
                                 <View style={styles.practiceContainer}>
                                     {/* Độ thành thạo Card (Expandable) */}
@@ -746,6 +778,20 @@ export function LessonMenu({
                 visible={premiumModalVisible}
                 onClose={() => setPremiumModalVisible(false)}
                 featureName={lockedFeatureName}
+            />
+            <CustomModal
+                visible={guestModalVisible}
+                title="Yêu cầu đăng nhập"
+                message="Bạn cần đăng nhập để sử dụng tính năng này. Đăng nhập ngay?"
+                confirmText="Đăng nhập"
+                cancelText="Hủy"
+                onConfirm={() => {
+                    setGuestModalVisible(false);
+                    router.push("/(1_auth)/1_1_login");
+                }}
+                onCancel={() => setGuestModalVisible(false)}
+                showMascot={true}
+                mascotExpression="thinking"
             />
         </ScreenWrapper>
     );
@@ -1207,5 +1253,32 @@ const styles = StyleSheet.create({
     proBadgeText: {
         fontFamily: typography.fonts.bold,
         fontSize: 10,
+    },
+    guestContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 24,
+        paddingVertical: 32,
+    },
+    guestIcon: {
+        marginBottom: 16,
+    },
+    guestTitle: {
+        fontFamily: typography.fonts.bold,
+        fontSize: 22,
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    guestSubText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 15,
+        color: colors.textSecondary,
+        textAlign: "center",
+        marginBottom: 24,
+        lineHeight: 22,
+    },
+    guestActions: {
+        width: "100%",
+        gap: 8,
     },
 });

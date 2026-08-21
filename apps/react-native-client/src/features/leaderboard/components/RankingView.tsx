@@ -89,6 +89,9 @@ export const RankingView: React.FC = () => {
     };
 
     const handleUserPress = (targetUserId: string) => {
+        if (!user) {
+            return;
+        }
         if (myUserId && String(targetUserId) === String(myUserId)) {
             return;
         }
