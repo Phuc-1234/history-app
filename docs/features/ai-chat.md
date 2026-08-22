@@ -1,6 +1,6 @@
 # AI Chat Feature Documentation
 
-**Current Version:** 3.0  
+**Current Version:** 3.1  
 **Module Location:**
 - Frontend: [ai-chat](../../apps/react-native-client/src/features/ai-chat)
 - Backend: [aiChatRoutes.ts](../../apps/express-server/src/routes/aiChatRoutes.ts), [aiChatController.ts](../../apps/express-server/src/controllers/aiChatController.ts), [aiChatService.ts](../../apps/express-server/src/services/aiChatService.ts), [aiService.ts](../../apps/express-server/src/services/aiService.ts), [ai-tools](../../apps/express-server/src/services/ai-tools), [contentSearchService.ts](../../apps/express-server/src/services/contentSearchService.ts)
@@ -10,13 +10,18 @@
 ## 1. Feature Overview
 The AI Chat feature provides students with an interactive Vietnamese History AI study assistant inside the React Native Expo client, backed by an Express.js server, Prisma PostgreSQL database, and Google Gemini LLM API.
 
-### Key Capabilities (v2.2)
+### Key Capabilities
 - **3 Chat Modes per Session (Switchable Mid-Session):**
   - `COURSE_ONLY` ("Chỉ Giáo Trình"): Restricts AI answers strictly to database course material (`Lesson`, `Section`, `Node`).
   - `COURSE_FIRST` ("Ưu Tiên Giáo Trình"): Uses course material first; places an explicit disclaimer note *before* any external knowledge section.
   - `GENERAL` ("Chung"): Unrestricted general history AI assistant.
   - *Mid-Session Switching:* Users can change the active mode at any point during a chat session via the top mode selector pills. Mode changes trigger a `PATCH /api/ai-chat/sessions/:sessionId` update and apply immediately to subsequent messages.
-- **RAG Course Content Search Engine:** Automatically searches top 5 relevant lessons and nodes via [contentSearchService.ts](../../apps/express-server/src/services/contentSearchService.ts) to ground AI responses across the entire course database without restricting searches to active screen grade.
+- **3 Model Tiers with Unified Function Calling RAG (v3.1):**
+  - All 3 tiers (`LOW`, `MEDIUM`, `HIGH`) use the same Agentic RAG engine powered by Gemini Native Function Calling (`tools: [{ functionDeclarations }]`) and modular AI Tools (`ai-tools/`).
+  - Tiers differ solely in their maximum allowed roundtrip iterations (calls between backend and Gemini API during tool execution per message turn):
+    - `LOW` ("Thấp"): Tối đa **1 roundtrip** (1 lần gọi tool). Phù hợp tra cứu nhanh 1 bài/nút cụ thể.
+    - `MEDIUM` ("Trung bình"): Tối đa **3 roundtrips**. Cân bằng giữa tốc độ phản hồi và độ sâu thông tin.
+    - `HIGH` ("Cao"): Tối đa **5 roundtrips**. Cho phép đối chiếu, tra cứu nhiều bài học và tổng hợp kiến thức liên môn/liên bài phức tạp.
 - **Rich Markdown & Deep Link Navigation:** Render chat bubbles with bold, headers, lists, and clickable custom links (`[Title](lesson:ID)`, `[Title](node:ID)`) that navigate to target Expo Router screens ([AiMarkdownMessage.tsx](../../apps/react-native-client/src/features/ai-chat/components/AiMarkdownMessage.tsx)).
 - **Active Screen Context & Info Modal (v2.1/v2.5):** Detects user location across all app screens (LessonMenu, LessonSummary, Node, MindMap, Flashcard, Subscription, Tests, Leaderboards, etc.) via [useScreenContext.ts](../../apps/react-native-client/src/features/ai-chat/hooks/useScreenContext.ts) and uses active screen as contextual suggestion. Clicking the screen location tag in the AI Chat header opens an interactive modal explaining screen support status (whether AI directly reads the content or provides general history answers).
 - **Periodic Context Summarizer (v2.2):** Replaces rigid 16-message cutoff with a 15-message sliding window plus async background AI context summarization (`aiService.summarizeContext`) every 15 messages. Persists accumulated summary in `AiChatSession.summary` and injects it into Gemini prompt context.
@@ -33,31 +38,32 @@ history-app/
 ├── apps/react-native-client/src/features/ai-chat/
 │   ├── components/
 │   │   ├── AiChatFab.tsx            # Draggable FAB entry button
-│   │   ├── AiChatOverlay.tsx        # Main modal overlay UI with mode selector pills
+│   │   ├── AiChatOverlay.tsx        # Main modal overlay UI with mode & tier selectors
 │   │   ├── AiMarkdownMessage.tsx    # Markdown renderer with deep link navigation
 │   │   ├── AiSkeletonBubble.tsx     # Skeleton loading animation for AI responses
 │   │   └── VibratingVoiceInput.tsx  # Animated voice input wave indicator
 │   ├── hooks/
 │   │   ├── useAiChatFab.ts          # Gesture & drag-and-clamp logic for FAB
-│   │   ├── useAiChatOverlay.ts      # Orchestration hook for chat, mode & session state
+│   │   ├── useAiChatOverlay.ts      # Orchestration hook for chat, mode, tier & session state
 │   │   ├── useScreenContext.ts      # Active screen context detector
 │   │   └── useVoiceInput.ts         # Expo Speech Recognition listener hook
 │   └── services/
-│       └── aiChatApi.ts             # RTK Query API slice definitions (v2.0 types & mutations)
+│       └── aiChatApi.ts             # RTK Query API slice definitions (v3.1 types & mutations)
 └── apps/express-server/src/
     ├── routes/aiChatRoutes.ts       # Express router with requireStudent auth
-    ├── controllers/aiChatController.ts # HTTP request handlers with mode & screenContext
+    ├── controllers/aiChatController.ts # HTTP request handlers with mode, tier & screenContext
     └── services/
-        ├── aiChatService.ts         # Session, message & RAG query orchestration
-        ├── contentSearchService.ts  # Full-text/keyword course data retrieval engine
-        └── aiService.ts             # Gemini API integration with mode system prompts
+        ├── aiChatService.ts         # Session, message & tier orchestration
+        ├── ai-tools/                # Modular Gemini Native Tools (lesson, node, quiz, search)
+        ├── contentSearchService.ts  # Fallback search / course data helper
+        └── aiService.ts             # Gemini API integration with Tool Calling engine & prompts
 ```
 
 ---
 
 ## 3. Data Flow
 
-### A. RAG & Mode-Aware Message Processing Flow
+### A. RAG & Tier-Aware Message Processing Flow
 ```
 [User Sends Message in Chat Overlay]
   │
@@ -71,16 +77,21 @@ history-app/
   │
   ├──> Backend (aiChatService.sendMessage)
   │      ├── Save User message & screenContext to DB (prisma.aiChatMessage)
-  │      ├── Check session.mode (COURSE_ONLY | COURSE_FIRST | GENERAL)
-  │      ├── IF mode != GENERAL OR screenContext present:
-  │      │     └── Call contentSearchService.searchCourseContent(content, { contextLessonId, contextNodeId })
-  │      │           ├── Fetch active Node/Lesson if on screen
-  │      │           ├── Perform keyword search on Node.header, Node.body, Lesson.name, Lesson.summary
-  │      │           └── Return formatted grounding text + reference links (lesson:id, node:id)
+  │      ├── Retrieve session.modelTier (LOW | MEDIUM | HIGH) -> map to maxRoundtrips:
+  │      │     ├── LOW    => maxRoundtrips = 1
+  │      │     ├── MEDIUM => maxRoundtrips = 3
+  │      │     └── HIGH   => maxRoundtrips = 5
   │      ├── Build context history (sliding window 15 messages) + inject active session summary
-  │      ├── Call aiService.callGeminiChat(contents, { mode, groundingContext, screenContextText, summary })
-  │      │     ├── Construct system instruction according to mode, summary & citations
-  │      │     └── Send request to Gemini API (temperature: 0.2 for COURSE_ONLY, 0.7 for GENERAL)
+  │      ├── Call aiService.callGeminiWithTools(formattedContents, {
+  │      │       mode: session.mode,
+  │      │       screenContextText,
+  │      │       isSupportedScreen,
+  │      │       summary: session.summary,
+  │      │       maxRoundtrips
+  │      │   })
+  │      │     ├── Execute Gemini function calling loop up to maxRoundtrips
+  │      │     ├── Invoke matching tool declarations from ai-tools registry
+  │      │     └── Generate final grounded response
   │      ├── Save Assistant message to DB
   │      ├── IF totalMessages % 15 === 0:
   │      │     └── Trigger async background call aiService.summarizeContext -> update AiChatSession.summary in DB
@@ -101,6 +112,7 @@ history-app/
 |---|---|---|---|
 | `selectedSessionId` | `string \| null` | `null` | Active selected session ID |
 | `activeMode` | `"COURSE_ONLY" \| "COURSE_FIRST" \| "GENERAL"` | `"GENERAL"` | Active mode of selected chat session |
+| `selectedModelTier` | `"LOW" \| "MEDIUM" \| "HIGH"` | `"MEDIUM"` | Active model tier (Thấp / Trung bình / Cao) |
 | `screenContext` | `{ screenName, lessonId, nodeId, topicId }` | `ScreenContextPayload` | Active route & screen metadata |
 | `inputText` | `string` | `""` | Text input content |
 | `showSessionsDrawer` | `boolean` | `false` | Toggle between Chat view & Session list |
@@ -114,11 +126,18 @@ enum AiChatMode {
   GENERAL
 }
 
+enum AiModelTier {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model AiChatSession {
   id        String          @id @default(uuid())
   userId    String          @map("user_id")
   title     String
   mode      AiChatMode      @default(GENERAL)
+  modelTier AiModelTier     @default(MEDIUM) @map("model_tier")
   summary   String?         @db.Text
   createdAt DateTime        @default(now()) @map("created_at")
   updatedAt DateTime        @updatedAt @map("updated_at")
@@ -152,6 +171,7 @@ model AiChatMessage {
 | 2.5 | 2026-08-02 | Enabled local UI mode selection on new un-persisted empty chats prior to database session creation; deferred DB chat session creation until the user sends their first message. |
 | 2.6 | 2026-08-03 | Added Easter Egg (`eng on` / `eng off`) feature via `CourseMenuScreen` search bar to toggle `ai-chat` UI text translation, and updated Gemini system prompt to automatically respond in English when user message is in English. |
 | 3.0 | 2026-08-12 | Introduced High Model Tier (`AiModelTier`: `MEDIUM` / `HIGH`), Gemini Native Function Calling (`tools: [{ functionDeclarations }]`), modular AI Tool directory (`ai-tools/`), app domain overview (`appInfo.ts`), and automatic fallback to Medium RAG mode. |
+| 3.1 | 2026-08-22 | Nâng cấp hệ thống Model Tier lên 3 cấp độ (`LOW` / `MEDIUM` / `HIGH` tương ứng Thấp / Trung bình / Cao). Đồng nhất cơ chế RAG cho cả 3 tiers sang Gemini Native Function Calling với giới hạn roundtrips khác nhau (LOW: tối đa 1 roundtrip, MEDIUM: tối đa 3 roundtrips, HIGH: tối đa 5 roundtrips). |
 
 ---
 
@@ -179,3 +199,4 @@ model AiChatMessage {
 - **Deep Link Navigation:** Verify route targets exist in Expo Router (`/(3_4_lessons)/lesson/[id]` and `/(3_4_lessons)/lesson/node/[nodeId]`).
 - **Course Only Mode Zero-Match:** If `contentSearchService` returns no matching records, Gemini responds with standardized disclaimer ("Rất tiếc, thông tin này chưa có trong bộ giáo trình...").
 - **Prisma Schema Sync:** Always run `npx prisma generate --schema=./prisma/schema.prisma` inside `packages/shared` after modifying Prisma schema.
+

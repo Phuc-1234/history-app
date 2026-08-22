@@ -53,7 +53,8 @@ const MODES: { id: AiChatModeType; label: string; labelEn: string; icon: keyof t
 ];
 
 const MODEL_TIERS: { id: AiModelTierType; label: string; labelEn: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: "MEDIUM", label: "Thường", labelEn: "Standard", icon: "flash" },
+    { id: "LOW", label: "Thấp", labelEn: "Low", icon: "flash-outline" },
+    { id: "MEDIUM", label: "Trung bình", labelEn: "Medium", icon: "flash" },
     { id: "HIGH", label: "Cao", labelEn: "High", icon: "sparkles" },
 ];
 
