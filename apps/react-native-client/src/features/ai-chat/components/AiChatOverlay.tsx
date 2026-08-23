@@ -277,7 +277,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     style={[styles.overlayContainer, { height: SCREEN_HEIGHT  }]}
                 >
                     {/* Header */}
-                    <View style={[styles.header, isPro && styles.proHeader]}>
+                    <View style={[styles.header, isPro && styles.proHeader, { paddingTop: (insets.top || 0) + 12 }]}>
                         {isPro && <TwinklingStars mode="header" />}
                         <Pressable
                             style={styles.drawerToggleButton}
@@ -806,7 +806,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingTop: 12,
+        paddingBottom: 12,
         borderBottomWidth: 1,
         borderBottomColor: colors.surfaceVariant,
         backgroundColor: colors.surface,
