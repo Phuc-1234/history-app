@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { LessonSection } from "../hooks/useLessonSummary";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
@@ -68,6 +69,7 @@ export function ExpandableSection({
     onSectionTestPress,
 }: ExpandableSectionProps) {
     const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
     const [isExpanded, setIsExpanded] = useState(true);
 
     const hasSubsections = section.children && section.children.length > 0;
@@ -98,10 +100,10 @@ export function ExpandableSection({
                 <View style={styles.headerRight}>
                     <TouchableOpacity
                         style={styles.threeDots}
-                        onPress={(e) => {
+                        onPress={preventDoubleTap((e) => {
                             e.stopPropagation();
                             router.push(`/(3_4_lessons)/4_4_fcard?sectionId=${section.id}`);
-                        }}
+                        })}
                     >
                         <Image
                             source={require("../../../../assets/images/flashcard_ic.png")}

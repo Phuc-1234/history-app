@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import {
   StyleSheet,
   Text,
@@ -59,6 +60,7 @@ const CARD_ICONS = [
 
 export const NationalTestsView: React.FC = () => {
   const router = useRouter();
+  const preventDoubleTap = usePreventDoubleTap();
   const profile = useAppSelector((state) => state.auth.profile);
   const isUserPro = profile?.isPro === true;
 
@@ -89,14 +91,14 @@ export const NationalTestsView: React.FC = () => {
     return Math.round(total / tests.length);
   }, [tests]);
 
-  const handleTestPress = (id: string) => {
+  const handleTestPress = preventDoubleTap((id: string) => {
     router.push({
       pathname: "/(6_tests)/6_2_ques_choose",
       params: { testId: id, purposeType: "EXAM" },
     });
-  };
+  });
 
-  const handlePracticePress = (options: PracticeOptions) => {
+  const handlePracticePress = preventDoubleTap((options: PracticeOptions) => {
     router.push({
       pathname: "/(6_tests)/6_2_ques_choose",
       params: {
@@ -108,7 +110,7 @@ export const NationalTestsView: React.FC = () => {
         skipIntro: "true",
       },
     });
-  };
+  });
 
   const filteredTests = tests?.filter((item) =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

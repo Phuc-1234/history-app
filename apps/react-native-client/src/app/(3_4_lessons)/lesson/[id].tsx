@@ -1,12 +1,14 @@
 import React from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { LessonSummary, useLessonSummary } from "../../../features/lesson";
 import { SpecialLoading } from "../../../features/loading";
 
 export default function LessonSummaryScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
     const { summaryData, rootSections, loading, isFetching, refetch } = useLessonSummary(
         id || "default-id",
     );
@@ -31,7 +33,7 @@ export default function LessonSummaryScreen() {
                     <LessonSummary
                         data={summaryData}
                         sections={rootSections}
-                        onNodePress={(nodeId) => {
+                        onNodePress={preventDoubleTap((nodeId) => {
                             // Collect all node IDs across sections for prev/next nav
                             const collectNodeIds = (sections: any[]): number[] => {
                                 let ids: number[] = [];
@@ -51,8 +53,8 @@ export default function LessonSummaryScreen() {
                                     lessonName: summaryData.name,
                                 },
                             } as any);
-                        }}
-                        onSectionTestPress={(sectionId) => {
+                        })}
+                        onSectionTestPress={preventDoubleTap((sectionId) => {
                             router.push({
                                 pathname: "/(6_tests)/6_2_ques_choose",
                                 params: {
@@ -61,8 +63,8 @@ export default function LessonSummaryScreen() {
                                     purposeType: "PRACTICE",
                                 },
                             });
-                        }}
-                        onActionPress={(actionType) => {
+                        })}
+                        onActionPress={preventDoubleTap((actionType) => {
                             console.log(
                                 `Action triggers profile route pipeline: ${actionType} for Lesson ID: ${id}`,
                             );
@@ -87,7 +89,7 @@ export default function LessonSummaryScreen() {
                                     },
                                 });
                             }
-                        }}
+                        })}
                     />
                 </ScreenWrapper>
             )}
