@@ -27,6 +27,20 @@ export const contentApiSlice = apiSlice.injectEndpoints({
       query: (sectionId) => `/api/content/sections/${sectionId}/nodes`,
       providesTags: ["User"],
     }),
+    getScopeLineage: builder.query<
+      {
+        gradeId?: number;
+        topicId?: number;
+        lessonId?: number;
+        sectionId?: number;
+        nodeId?: number;
+      },
+      { scopeType: string; scopeId: number }
+    >({
+      query: ({ scopeType, scopeId }) =>
+        `/api/content/scope-lineage?scopeType=${scopeType}&scopeId=${scopeId}`,
+      providesTags: ["User"],
+    }),
   }),
 });
 
@@ -37,4 +51,5 @@ export const {
   useGetLessonsByTopicQuery,
   useGetSectionsByLessonQuery,
   useGetNodesBySectionQuery,
+  useGetScopeLineageQuery,
 } = contentApiSlice;

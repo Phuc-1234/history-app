@@ -19,6 +19,7 @@ import { colors } from "../../../theme/colors";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import typography from "@/theme/typography";
 import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 
 export function getScopePlaceholder(scopeType?: string, purposeType?: string, autoPickStrategy?: string): string {
     const isExam = purposeType === "EXAM";
@@ -175,7 +176,9 @@ export default function TestIntro({
               transform: [{ scale: scaleAnim }],
           };
 
-    const handleGoToPvp = () => {
+    const preventDoubleTap = usePreventDoubleTap();
+
+    const handleGoToPvp = preventDoubleTap(() => {
         router.push({
             pathname: "/pvp",
             params: {
@@ -186,7 +189,7 @@ export default function TestIntro({
                 initialQuestionCount: questionCount ? questionCount.toString() : undefined,
             },
         } as any);
-    };
+    });
 
     const branchConfig = {
         hierarchy: "",
