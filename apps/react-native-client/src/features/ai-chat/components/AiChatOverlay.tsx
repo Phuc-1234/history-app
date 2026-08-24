@@ -274,10 +274,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    style={[styles.overlayContainer, { height: SCREEN_HEIGHT  }]}
+                    style={[styles.overlayContainer, { marginTop: insets.top }]}
                 >
                     {/* Header */}
-                    <View style={[styles.header, isPro && styles.proHeader, { paddingTop: (insets.top || 0) + 12 }]}>
+                    <View style={[styles.header, isPro && styles.proHeader]}>
                         {isPro && <TwinklingStars mode="header" />}
                         <Pressable
                             style={styles.drawerToggleButton}
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
     },
     overlayContainer: {
-        height: OVERLAY_HEIGHT,
+        flex: 1,
         backgroundColor: colors.background,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
