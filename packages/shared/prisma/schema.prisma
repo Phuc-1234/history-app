@@ -103,7 +103,7 @@ model Node {
   imgUrl         String?            @map("img_url")
   videoId        String?            @map("video_id")
   flashcards     Flashcard[]
-  section        Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section        Section            @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   video          Video?             @relation(fields: [videoId], references: [id])
   questions      Question[]
   nodeProgresses UserNodeProgress[]
@@ -766,6 +766,7 @@ enum AiChatMode {
 }
 
 enum AiModelTier {
+  LOW
   MEDIUM
   HIGH
 }

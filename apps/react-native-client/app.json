@@ -60,7 +60,9 @@
         }
       ],
       "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      "@react-native-firebase/messaging",
+      "expo-asset",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

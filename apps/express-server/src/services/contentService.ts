@@ -947,7 +947,96 @@ export class ContentService {
         return true;
     }
 
-
+    async getScopeLineage(scopeType: string, scopeId: number): Promise<{
+        gradeId?: number;
+        topicId?: number;
+        lessonId?: number;
+        sectionId?: number;
+        nodeId?: number;
+    } | null> {
+        const upperType = scopeType.toUpperCase();
+        if (upperType === "GRADE") {
+            return { gradeId: scopeId };
+        }
+        if (upperType === "TOPIC") {
+            const topic = await prisma.topic.findUnique({
+                where: { id: scopeId },
+                select: { id: true, gradeId: true },
+            });
+            if (!topic) return null;
+            return { gradeId: topic.gradeId, topicId: topic.id };
+        }
+        if (upperType === "LESSON") {
+            const lesson = await prisma.lesson.findUnique({
+                where: { id: scopeId },
+                select: {
+                    id: true,
+                    topicId: true,
+                    topic: { select: { id: true, gradeId: true } },
+                },
+            });
+            if (!lesson) return null;
+            return {
+                gradeId: lesson.topic.gradeId,
+                topicId: lesson.topic.id,
+                lessonId: lesson.id,
+            };
+        }
+        if (upperType === "SECTION") {
+            const section = await prisma.section.findUnique({
+                where: { id: scopeId },
+                select: {
+                    id: true,
+                    lessonId: true,
+                    lesson: {
+                        select: {
+                            id: true,
+                            topicId: true,
+                            topic: { select: { id: true, gradeId: true } },
+                        },
+                    },
+                },
+            });
+            if (!section) return null;
+            return {
+                gradeId: section.lesson.topic.gradeId,
+                topicId: section.lesson.topic.id,
+                lessonId: section.lesson.id,
+                sectionId: section.id,
+            };
+        }
+        if (upperType === "NODE") {
+            const node = await prisma.node.findUnique({
+                where: { id: scopeId },
+                select: {
+                    id: true,
+                    sectionId: true,
+                    section: {
+                        select: {
+                            id: true,
+                            lessonId: true,
+                            lesson: {
+                                select: {
+                                    id: true,
+                                    topicId: true,
+                                    topic: { select: { id: true, gradeId: true } },
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            if (!node) return null;
+            return {
+                gradeId: node.section.lesson.topic.gradeId,
+                topicId: node.section.lesson.topic.id,
+                lessonId: node.section.lesson.id,
+                sectionId: node.section.id,
+                nodeId: node.id,
+            };
+        }
+        return {};
+    }
 }
 
 function convertSectionsToMindMapNode(lessonId: number, lessonName: string, sections: any[]): MindMapNode {

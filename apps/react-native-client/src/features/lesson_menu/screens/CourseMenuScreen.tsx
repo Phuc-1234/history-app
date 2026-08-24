@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { useGetGradeStructureQuery, useGetGradesQuery } from "../contentApiSlice";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
@@ -199,6 +200,7 @@ function GradeCourseCard({
 
 export function CourseMenuScreen() {
     const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
     const profile = useAppSelector((state) => state.auth.profile);
     const isUserPro = profile?.isPro === true;
 
@@ -243,7 +245,7 @@ export function CourseMenuScreen() {
         setPremiumModalVisible(true);
     };
 
-    const handleCoursePress = (grade: number) => {
+    const handleCoursePress = preventDoubleTap((grade: number) => {
         if (isGradePro(grade) && !isUserPro) {
             showProModal(`khóa học Lớp ${grade}`);
             return;
@@ -252,7 +254,7 @@ export function CourseMenuScreen() {
             pathname: "/(3_4_lessons)/lesson_menu",
             params: { grade: String(grade) },
         });
-    };
+    });
     const hasVisibleCards = publicGrades.length > 0 && publicGrades.some((g: any) => visibleMap[g.id] !== false);
 
     return (

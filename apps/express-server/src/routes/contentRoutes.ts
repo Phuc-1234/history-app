@@ -11,10 +11,14 @@ import {
     getNodesBySection,
     getNodeDetail,
     finishStudyNode,
+    getScopeLineage,
 } from "../controllers/contentController";
 import { optionalAuth, requireStudent } from "../middlewares/authMiddleware";
 
 const router = Router();
+
+// GET /api/content/scope-lineage
+router.get("/scope-lineage", optionalAuth, getScopeLineage);
 
 // GET /api/content/grades
 router.get("/grades", optionalAuth, getAllGrades);

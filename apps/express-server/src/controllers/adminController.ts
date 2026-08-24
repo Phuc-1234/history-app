@@ -242,7 +242,10 @@ export const deleteGrade = async (
         const deleted = await adminService.deleteGrade(gradeId);
         if (!deleted) return res.status(404).json({ error: "Grade not found." });
         return res.status(200).json({ message: `Grade ${gradeId} deleted successfully.` });
-    } catch (err) {
+    } catch (err: any) {
+        if (err.code === "P2003" || err.code === "P2014") {
+            return res.status(400).json({ error: "Lưu ý: Không thể xóa nội dung đang chứa nội dung con." });
+        }
         console.error("Delete grade error:", err);
         return res.status(500).json({ error: "Failed to delete grade." });
     }
@@ -298,7 +301,10 @@ export const deleteTopic = async (
         const deleted = await adminService.deleteTopic(topicId);
         if (!deleted) return res.status(404).json({ error: "Topic not found." });
         return res.status(200).json({ message: `Topic ${topicId} deleted successfully.` });
-    } catch (err) {
+    } catch (err: any) {
+        if (err.code === "P2003" || err.code === "P2014") {
+            return res.status(400).json({ error: "Lưu ý: Không thể xóa nội dung đang chứa nội dung con." });
+        }
         console.error("Delete topic error:", err);
         return res.status(500).json({ error: "Failed to delete topic." });
     }
@@ -354,7 +360,10 @@ export const deleteLesson = async (
         const deleted = await adminService.deleteLesson(lessonId);
         if (!deleted) return res.status(404).json({ error: "Lesson not found." });
         return res.status(200).json({ message: `Lesson ${lessonId} deleted successfully.` });
-    } catch (err) {
+    } catch (err: any) {
+        if (err.code === "P2003" || err.code === "P2014") {
+            return res.status(400).json({ error: "Lưu ý: Không thể xóa nội dung đang chứa nội dung con." });
+        }
         console.error("Delete lesson error:", err);
         return res.status(500).json({ error: "Failed to delete lesson." });
     }
@@ -416,7 +425,10 @@ export const deleteSection = async (
         const deleted = await adminService.deleteSection(sectionId);
         if (!deleted) return res.status(404).json({ error: "Section not found." });
         return res.status(200).json({ message: `Section ${sectionId} deleted successfully.` });
-    } catch (err) {
+    } catch (err: any) {
+        if (err.code === "P2003" || err.code === "P2014") {
+            return res.status(400).json({ error: "Lưu ý: Không thể xóa nội dung đang chứa nội dung con." });
+        }
         console.error("Delete section error:", err);
         return res.status(500).json({ error: "Failed to delete section." });
     }
@@ -472,7 +484,10 @@ export const deleteNode = async (
         const deleted = await adminService.deleteNode(nodeId);
         if (!deleted) return res.status(404).json({ error: "Node not found." });
         return res.status(200).json({ message: `Node ${nodeId} deleted successfully.` });
-    } catch (err) {
+    } catch (err: any) {
+        if (err.code === "P2003" || err.code === "P2014") {
+            return res.status(400).json({ error: "Lưu ý: Không thể xóa nội dung đang chứa nội dung con." });
+        }
         console.error("Delete node error:", err);
         return res.status(500).json({ error: "Failed to delete node." });
     }

@@ -258,3 +258,22 @@ export const finishStudyNode = async (
         return res.status(500).json({ error: "Failed to record study progress." });
     }
 };
+
+export const getScopeLineage = async (req: Request, res: Response) => {
+    try {
+        const { scopeType, scopeId } = req.query as { scopeType?: string; scopeId?: string };
+        if (!scopeType || !scopeId) {
+            return res.status(400).json({ error: "scopeType and scopeId are required." });
+        }
+        const id = Number(scopeId);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: "Invalid scopeId." });
+        }
+        const lineage = await contentService.getScopeLineage(scopeType, id);
+        return res.status(200).json(lineage || {});
+    } catch (err) {
+        console.error("Fetch scope lineage error:", err);
+        return res.status(500).json({ error: "Failed to fetch scope lineage." });
+    }
+};
+

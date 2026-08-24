@@ -1,7 +1,7 @@
 import { apiSlice } from "@/services/apiSlice";
 
 export type AiChatModeType = "COURSE_ONLY" | "COURSE_FIRST" | "GENERAL";
-export type AiModelTierType = "MEDIUM" | "HIGH";
+export type AiModelTierType = "LOW" | "MEDIUM" | "HIGH";
 
 export interface AiChatSessionDto {
     id: string;

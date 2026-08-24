@@ -2,6 +2,7 @@
 import React from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../../components/layout/ScreenWrapper";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { NodeScreen } from "../../../../features/lesson/components/NodeScreen";
 import { useAppSelector } from "../../../../store/storeHook";
 
@@ -12,6 +13,7 @@ export default function NodeDetailScreen() {
         lessonName?: string;
     }>();
     const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
     const id = Number(nodeId);
 
     const queries = useAppSelector((state: any) => state.api?.queries);
@@ -168,7 +170,7 @@ export default function NodeDetailScreen() {
                 nodeId={id}
                 lessonName={lessonName}
                 onBack={() => router.back()}
-                onQuizPress={() => {
+                onQuizPress={preventDoubleTap(() => {
                     router.push({
                         pathname: "/(6_tests)/6_2_ques_choose",
                         params: {
@@ -177,9 +179,9 @@ export default function NodeDetailScreen() {
                             purposeType: "PRACTICE",
                         },
                     });
-                }}
-                onPrevPress={onPrevPress}
-                onNextPress={onNextPress}
+                })}
+                onPrevPress={onPrevPress ? preventDoubleTap(onPrevPress) : undefined}
+                onNextPress={onNextPress ? preventDoubleTap(onNextPress) : undefined}
             />
         </ScreenWrapper>
     );
