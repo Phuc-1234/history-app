@@ -1,6 +1,7 @@
 # Release Build Troubleshooting & Known Errors
 
 ## 1. Zombie Gradle Daemons / Out of RAM
+**Status:** Resolved
 
 ### Symptom
 - `clang++` frontend crash or `Native memory allocation (malloc) failed`.
@@ -20,6 +21,7 @@ Running `.\gradlew --stop` does not always kill all orphaned Gradle / Java daemo
 ---
 
 ## 2. ZaloPay Local AAR Dependency (`hasLocalAarDeps` Error)
+**Status:** Resolved but need to apply everytime
 
 ### Symptom
 - Build failure during `:react-native-zalopay:bundleReleaseAar` with:
@@ -45,4 +47,24 @@ Android Gradle Plugin (AGP) prevents custom library modules from using direct `i
    ```
 
 > [!IMPORTANT]
-   > Since the `android` folder is generated/modified by `npx expo prebuild` and is git-ignored, these changes to `apps/react-native-client/android/app/build.gradle` must be checked and re-applied manually before building if `prebuild` or `prebuild --clean` has been executed.
+> Since the `android` folder is generated/modified by `npx expo prebuild` and is git-ignored, these changes to `apps/react-native-client/android/app/build.gradle` must be checked and re-applied manually before building if `prebuild` or `prebuild --clean` has been executed.
+
+
+---
+
+## 3. Media3 Version Collision (`expo-audio` & `react-native-video`)
+**Status:** Untested, keep watch
+
+### Symptom
+- App crashes immediately upon opening screens with video (e.g. `NodeScreen`, `VideoStreamScreen`):
+  > `java.lang.NoSuchMethodError: No direct method <init>(Landroidx/media3/exoplayer/upstream/DefaultAllocator;IIIIIZIZ)V in class Landroidx/media3/exoplayer/DefaultLoadControl;`
+  > `com.brentvatne.exoplayer.ReactExoplayerView$RNVLoadControl.<init>(ReactExoplayerView.java:568)`
+
+### Issue
+`expo-audio` depends on `androidx.media3: 1.9.0`, causing Gradle to resolve `media3` app-wide to `1.9.0`. However, `react-native-video` (v6.x) relies on a `DefaultLoadControl` constructor that was removed in Media3 1.9.0.
+
+### Fix
+1. Migrate from `react-native-video` to official Expo SDK 56 `expo-video` (`~56.1.4`):
+   - Replace `"react-native-video"` with `"expo-video"` in `apps/react-native-client/package.json` and `apps/react-native-client/app.json`.
+   - Update `VideoPlayer.tsx` to use `useVideoPlayer` and `VideoView` from `expo-video`.
+2. Run `npx expo prebuild --clean` to re-link native modules cleanly without old `react-native-video` bindings.
