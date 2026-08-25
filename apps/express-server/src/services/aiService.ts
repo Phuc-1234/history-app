@@ -74,135 +74,6 @@ export class AIService {
         throw new Error(`All Gemini API keys failed. Last error: ${lastError?.message}`);
     }
 
-    async callGeminiChat(
-        contents: { role: "user" | "model"; parts: { text: string }[] }[],
-        options?: {
-            mode?: "COURSE_ONLY" | "COURSE_FIRST" | "GENERAL";
-            groundingContext?: string;
-            screenContextText?: string;
-            isSupportedScreen?: boolean;
-            summary?: string;
-        }
-    ): Promise<{ text: string; usageTokens: number }> {
-        const keys = [
-            process.env.GEMINI_API_KEY_1,
-            process.env.GEMINI_API_KEY_2,
-            process.env.GEMINI_API_KEY_3
-        ].map(k => k?.trim().replace(/^"|"$/g, "")).filter(Boolean) as string[];
-
-        if (keys.length === 0) {
-            throw new Error("No Gemini API keys found in environment variables.");
-        }
-
-        const model = (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim().replace(/^"|"$/g, "");
-        let lastError: Error | null = null;
-        const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
-
-        const currentDateStr = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "numeric", day: "numeric" });
-        let systemPrompt = `Thời gian thực tế hôm nay: ${currentDateStr} (Múi giờ Việt Nam).\n` +
-            "Bạn là trợ lý AI học tập lịch sử Việt Nam thân thiện, hữu ích. Hãy trả lời ngắn gọn, chính xác và sử dụng định dạng Markdown rõ ràng.\n\n" +
-            "QUY TẮC NGÔN NGỮ TRẢ LỜI (BẮT BUỘC):\n" +
-            "- Nếu tin nhắn mới nhất của người dùng được viết bằng tiếng Anh (hoặc người dùng hỏi bằng tiếng Anh), bạn BẮT BUỘC phải trả lời hoàn toàn bằng tiếng Anh.\n" +
-            "- Nếu tin nhắn của người dùng bằng tiếng Việt, bạn trả lời bằng tiếng Việt.\n\n" +
-            "QUY TẮC HIỂN THỊ LIÊN KẾT BÀI HỌC, NÚT KIẾN THỨC VÀ KHỐI LỚP (QUAN TRỌNG):\n" +
-            "- LIÊN KẾT KHỐI LỚP: Khi gợi ý hoặc nhắc tới chương trình học của các khối lớp (Lớp 10, Lớp 11, Lớp 12), BẮT BUỘC sử dụng cú pháp: [Lịch sử lớp 10](grade:10), [Lịch sử lớp 11](grade:11), [Lịch sử lớp 12](grade:12). TUYỆT ĐỐI KHÔNG DÙNG lesson:ID cho khối lớp!\n" +
-            "- LIÊN KẾT BÀI HỌC: Chỉ sử dụng [Tên bài học](lesson:ID) khi ID đó thực sự tồn tại trong phần 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' bên dưới. KHÔNG tự suy đoán hay bịa mã ID bài học.\n" +
-            "- LIÊN KẾT NÚT KIẾN THỨC: Chỉ sử dụng [Tiêu đề nút](node:ID) khi ID đó thực sự xuất hiện trong dữ liệu giáo trình bên dưới. TUYỆT ĐỐI KHÔNG DÙNG \"Nút id ___\", \"Nút ___\", \"Nút ID ___\" hay bất kỳ mã ID nào làm tên hiển thị của liên kết (CẤM CỤT THỂ: [Nút id 12](node:12) hoặc [Nút 12](node:12)). Luôn dùng Tiêu đề nút hoặc một cụm từ tóm tắt nội dung ngắn gọn (3-6 từ) làm tên hiển thị.\n" +
-            "- KHÔNG đặt ngoặc vuông [] quanh các từ văn bản thuần túy, trừ khi tạo liên kết Markdown đúng định dạng (lesson:ID, node:ID, grade:ID).\n\n";
-
-        if (options?.summary) {
-            systemPrompt += `TÓM TẮT BỐI CẢNH CÁC TIN NHẮN TRƯỚC ĐÓ TRONG CUỘC TRÒ CHUYỆN:\n${options.summary}\n\n`;
-        }
-
-        if (options?.screenContextText) {
-            if (options.isSupportedScreen === false) {
-                systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ:
-${options.screenContextText}
-- LƯU Ý QUAN TRỌNG VỀ BỐI CẢNH MÀN HÌNH CHƯA HỖ TRỢ:
-  + Màn hình hiện tại của người dùng KHÔNG HỖ TRỢ tính năng nhận biết bối cảnh nội dung tự động.
-  + Nếu người dùng hỏi về bối cảnh của màn hình này hoặc dùng các từ mập mờ chỉ màn hình này (ví dụ: "bài thi này", "bảng xếp hạng này", "màn hình này", "phần này", "kết quả này"), bạn BẮT BUỘC phải thông báo lịch sự rằng tính năng nhận biết bối cảnh cho màn hình này chưa được hỗ trợ, nhưng gợi ý họ vẫn có thể đặt câu hỏi chung về Lịch sử Việt Nam hoặc hỏi về các bài học (ví dụ: "Tính năng nhận biết bối cảnh cho màn hình này chưa được hỗ trợ, nhưng bạn vẫn có thể đặt câu hỏi chung về Lịch sử Việt Nam hoặc hỏi về các bài học!").
-  + Nếu người dùng hỏi câu hỏi lịch sử chung không phụ thuộc vào bối cảnh màn hình, bạn vẫn trả lời câu hỏi lịch sử đó bình thường.\n\n`;
-            } else {
-                systemPrompt += `MÀN HÌNH NGƯỜI DÙNG ĐANG MỞ (GỢI Ý BỐI CẢNH):
-${options.screenContextText}
-- LƯU Ý QUAN TRỌNG VỀ BỐI CẢNH MÀN HÌNH:
-  + Màn hình này là GỢI Ý NGUYÊN THỂ khi người dùng dùng từ mập mờ (ví dụ: "bài này", "nút này", "màn hình này", "ở đây", "nội dung này").
-  + Màn hình này KHÔNG PHẢI là giới hạn duy nhất cho phạm vi câu hỏi. Người dùng có thể hỏi về bất kỳ bài học hoặc chủ đề nào khác trong bộ giáo trình. Bạn cần sử dụng toàn bộ 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' để trả lời.\n\n`;
-            }
-        }
-
-        if (options?.mode === "COURSE_ONLY") {
-            systemPrompt += `CHẾ ĐỘ: CHỈ SỬ DỤNG DỮ LIỆU GIÁO TRÌNH (COURSE ONLY).
-QUY TẮC BẮT BUỘC:
-1. Bạn CHỈ ĐƯỢC PHÉP trả lời dựa trên thông tin có trong phần 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' bên dưới. KHÔNG tự suy đoán hay lấy thông tin bên ngoài.
-2. Nếu dữ liệu giáo trình không có câu trả lời cho thắc mắc, hãy trả lời lịch sự: "Rất tiếc, thông tin này chưa có trong bộ giáo trình của ứng dụng."
-3. Khi nhắc tới Bài học hoặc Nút kiến thức trong dữ liệu giáo trình, BẮT BUỘC chèn liên kết Markdown theo đúng cú pháp:
-   - Bài học: [Tên bài học](lesson:ID) (ví dụ: [Bài 3: Cách mạng tháng Tám](lesson:3))
-   - Nút kiến thức: [Tiêu đề nút](node:ID) (ví dụ: [Chi tiết diễn biến](node:12))
-
-DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT:
-${options.groundingContext || "Không tìm thấy dữ liệu giáo trình liên quan."}`;
-        } else if (options?.mode === "COURSE_FIRST") {
-            systemPrompt += `CHẾ ĐỘ: ƯU TIÊN DỮ LIỆU GIÁO TRÌNH (COURSE FIRST).
-QUY TẮC BẮT BUỘC:
-1. Hãy ưu tiên sử dụng thông tin trong phần 'DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT' bên dưới để trả lời.
-2. Nếu câu hỏi vượt quá dữ liệu giáo trình và bạn bổ sung thêm kiến thức lịch sử bên ngoài, BẮT BUỘC phải viết dòng ghi chú ĐẦU TIÊN ngay trước phần kiến thức ngoài đó để phân tách rõ ràng với thông tin giáo trình:
-   "\n\n> ⚠️ *Lưu ý: Phần thông tin dưới đây được tổng hợp thêm từ nguồn ngoài giáo trình chuẩn của ứng dụng:*\n\n"
-3. Khi trích dẫn thông tin từ giáo trình, hãy chèn liên kết Markdown: [Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).
-
-DỮ LIỆU GIÁO TRÌNH TRÍCH XUẤT:
-${options.groundingContext || "Không tìm thấy dữ liệu giáo trình trực tiếp."}`;
-        } else {
-            systemPrompt += `CHẾ ĐỘ: TRỢ LÝ TỰ DO (GENERAL).
-Hãy hỗ trợ học sinh giải đáp thắc mắc lịch sử tự do, chính xác và sinh động. Khi nhắc tới các nội dung trong ứng dụng, bạn có thể tạo liên kết Markdown [Tên bài](lesson:ID) hoặc [Chi tiết nút](node:ID) nếu phù hợp.`;
-
-            if (options?.groundingContext) {
-                systemPrompt += `\n\nDỮ LIỆU BỐI CẢNH MÀN HÌNH BÀI HỌC HIỆN TẠI NGƯỜI DÙNG ĐANG XEM:\n${options.groundingContext}`;
-            }
-        }
-
-        for (const apiKey of shuffledKeys) {
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        systemInstruction: {
-                            parts: [{ text: systemPrompt }]
-                        },
-                        contents,
-                        generationConfig: {
-                            temperature: options?.mode === "COURSE_ONLY" ? 0.2 : 0.7
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    const errText = await response.text().catch(() => "");
-                    throw new Error(`Status ${response.status}: ${errText}`);
-                }
-
-                const data: any = await response.json();
-                const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!textResponse) {
-                    throw new Error("Invalid response structure from Gemini.");
-                }
-
-                const usageTokens = data.usageMetadata?.totalTokenCount ||
-                    Math.ceil((systemPrompt.length + JSON.stringify(contents).length + textResponse.length) / 4);
-
-                return { text: textResponse, usageTokens };
-            } catch (error: any) {
-                console.error(`Gemini chat call failed with key ending in ...${apiKey.slice(-5)}:`, error.message);
-                lastError = error;
-            }
-        }
-        throw new Error(`All Gemini API keys failed. Last error: ${lastError?.message}`);
-    }
-
     async callGeminiWithTools(
         contents: any[],
         options?: {
@@ -210,6 +81,7 @@ Hãy hỗ trợ học sinh giải đáp thắc mắc lịch sử tự do, chính
             screenContextText?: string;
             isSupportedScreen?: boolean;
             summary?: string;
+            maxRoundtrips?: number;
         }
     ): Promise<{ text: string; usageTokens: number }> {
         const keys = [
@@ -228,7 +100,7 @@ Hãy hỗ trợ học sinh giải đáp thắc mắc lịch sử tự do, chính
 
         const currentDateStr = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "numeric", day: "numeric" });
         let systemPrompt = `Thời gian thực tế hôm nay: ${currentDateStr} (Múi giờ Việt Nam).\n` +
-            "Bạn là trợ lý AI học tập lịch sử Việt Nam thông minh cấp cao (High Model Tier).\n" +
+            "Bạn là trợ lý AI học tập lịch sử Việt Nam thông minh.\n" +
             "Bạn có khả năng gọi các Công cụ (Tools) để tra cứu dữ liệu chính xác từ hệ thống cơ sở dữ liệu ứng dụng trước khi trả lời.\n\n" +
             APP_OVERALL_INFO + "\n\n" +
             "QUY TẮC NGÔN NGỮ TRẢ LỜI (BẮT BUỘC):\n" +
@@ -271,11 +143,12 @@ Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thi
 
         const currentContents = JSON.parse(JSON.stringify(contents));
         let totalUsageTokens = 0;
+        const maxToolCalls = options?.maxRoundtrips ?? 3;
 
         for (const apiKey of shuffledKeys) {
             try {
                 let toolCallsExecuted = 0;
-                const MAX_TOOL_CALLS = 3;
+                const MAX_TOOL_CALLS = maxToolCalls;
 
                 // Loop up to MAX_TOOL_CALLS + 1 (last turn generates final text)
                 for (let turn = 0; turn < MAX_TOOL_CALLS + 1; turn++) {
@@ -322,7 +195,7 @@ Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thi
                     if (functionCallPart && shouldIncludeTools) {
                         toolCallsExecuted++;
                         const { name: toolName, args: toolArgs } = functionCallPart.functionCall;
-                        console.log(`[AI High Tier] Gemini requested tool call #${toolCallsExecuted}: '${toolName}' with args:`, toolArgs);
+                        console.log(`[AI Chat] Gemini requested tool call #${toolCallsExecuted}/${MAX_TOOL_CALLS}: '${toolName}' with args:`, toolArgs);
 
                         // Execute the tool locally
                         const toolResult = await aiToolRegistry.executeToolCall(toolName, toolArgs);
@@ -359,12 +232,12 @@ Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thi
 
                 throw new Error("Max tool call iterations reached without final text response.");
             } catch (error: any) {
-                console.error(`Gemini High Tier chat call failed with key ending in ...${apiKey.slice(-5)}:`, error.message);
+                console.error(`Gemini tool chat call failed with key ending in ...${apiKey.slice(-5)}:`, error.message);
                 lastError = error;
             }
         }
 
-        throw new Error(`All Gemini API keys failed in High Tier. Last error: ${lastError?.message}`);
+        throw new Error(`All Gemini API keys failed in Tool Calling mode. Last error: ${lastError?.message}`);
     }
 
 

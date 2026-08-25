@@ -1,21 +1,23 @@
 import React from "react";
 import { LessonMenu } from "../components/LessonMenu";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 
 export function LessonMenuScreen() {
     const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
     const { grade } = useLocalSearchParams();
     const selectedGrade = grade ? parseInt(grade as string, 10) : 11;
 
-    const handleLessonNavigation = (id: number) => {
+    const handleLessonNavigation = preventDoubleTap((id: number) => {
         router.push(`/(3_4_lessons)/lesson/${id}`);
-    };
+    });
 
     const handleMindmapView = (topicId: number) => {
         console.log(`Open context-mindmap for Topic ID: ${topicId}`);
     };
 
-    const handleTestEngine = (scopeType: string, scopeId: number) => {
+    const handleTestEngine = preventDoubleTap((scopeType: string, scopeId: number) => {
         router.push({
             pathname: "/(6_tests)/6_2_ques_choose",
             params: {
@@ -24,9 +26,9 @@ export function LessonMenuScreen() {
                 purposeType: "EXAM",
             },
         });
-    };
+    });
 
-    const handlePracticeTest = (options: { scopeType: string; scopeId?: number; questionCount: number; autoPickStrategy: string }) => {
+    const handlePracticeTest = preventDoubleTap((options: { scopeType: string; scopeId?: number; questionCount: number; autoPickStrategy: string }) => {
         router.push({
             pathname: "/(6_tests)/6_2_ques_choose",
             params: {
@@ -38,7 +40,7 @@ export function LessonMenuScreen() {
                 skipIntro: "true",
             },
         });
-    };
+    });
 
     return (
         <LessonMenu

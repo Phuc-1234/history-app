@@ -182,6 +182,16 @@ export default function LoginForm() {
                         </TouchableOpacity>
                     </View>
 
+                    {/* Guest Mode Link */}
+                    <TouchableOpacity
+                        style={styles.guestButton}
+                        activeOpacity={0.7}
+                        onPress={() => router.replace("/(tabs)/home")}
+                        disabled={isLoading}
+                    >
+                        <Text style={styles.guestText}>Chế độ khách</Text>
+                    </TouchableOpacity>
+
                     {/* Footer */}
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>

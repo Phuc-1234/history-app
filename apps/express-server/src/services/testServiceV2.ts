@@ -71,21 +71,26 @@ async function resolveTestTitle(log: any): Promise<string> {
             }
             case "GRADE": {
                 const grade = await prisma.grade.findUnique({ where: { id }, select: { id: true } });
-                if (grade) return `Lớp: ${grade.id}`;
+                if (grade) return `Lớp ${grade.id}`;
                 break;
             }
         }
     }
 
-    if (log.generatedFromPresetId) {
-        const preset = await prisma.testPreset.findUnique({
-            where: { id: log.generatedFromPresetId },
-            select: { name: true },
-        });
-        if (preset?.name) return preset.name;
+    if (log.scopeType === "NATIONAL") {
+        return "Đề thi Quốc gia";
     }
 
-    return log.purposeType === "EXAM" ? "Bài thi tự do" : "Luyện tập tự do";
+    if (log.scopeType === "GRADE") {
+        return "Khối lớp";
+    }
+
+    if (log.purposeType === "PRACTICE") {
+        if (log.autoPickStrategy === "WRONG") return "Làm lại câu sai";
+        return "Luyện tập cá nhân";
+    }
+
+    return log.purposeType === "EXAM" ? "Bài kiểm tra" : "Luyện tập";
 }
 
 function toLogDto(log: any, testTitle?: string | null): UserTestLogV2Dto {
@@ -665,8 +670,8 @@ export class TestServiceV2 {
         // Resolve final parameters (Request overrides -> Preset settings -> Default fallbacks)
         const validReqCount = (typeof req.questionCount === "number" && !isNaN(req.questionCount) && req.questionCount > 0) ? req.questionCount : undefined;
         const finalQuestionCount = validReqCount !== undefined ? validReqCount : (preset?.questionCount ?? 10);
-        const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
-        const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
+        const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (preset?.passThreshold ?? test?.passThreshold ?? 80);
+        const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (preset?.timeLimit ?? test?.timeLimit ?? null);
         const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
 
         if (testId && test) {
@@ -1119,8 +1124,8 @@ export class TestServiceV2 {
         // Resolve final parameters (Request overrides -> Preset settings -> Default fallbacks)
         const validReqCount = (typeof req.questionCount === "number" && !isNaN(req.questionCount) && req.questionCount > 0) ? req.questionCount : undefined;
         const finalQuestionCount = validReqCount !== undefined ? validReqCount : (preset?.questionCount ?? 10);
-        const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (test?.passThreshold ?? preset?.passThreshold ?? 80);
-        const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (test?.timeLimit ?? preset?.timeLimit ?? null);
+        const finalPassThreshold = req.passThreshold !== undefined ? req.passThreshold : (preset?.passThreshold ?? test?.passThreshold ?? 80);
+        const finalTimeLimit = req.timeLimit !== undefined ? req.timeLimit : (preset?.timeLimit ?? test?.timeLimit ?? null);
         const finalDifficultyRatioJson = req.difficultyRatioJson !== undefined ? req.difficultyRatioJson : (preset?.difficultyRatioJson ?? { 1: 40, 2: 30, 3: 20, 4: 10 });
 
         let questionCount = 0;
@@ -1156,6 +1161,7 @@ export class TestServiceV2 {
             scopeType,
             scopeId,
             purposeType,
+            autoPickStrategy: req.autoPickStrategy,
             generatedFromPresetId: preset?.id !== "default-fallback" ? preset?.id : undefined,
         };
         const title = await resolveTestTitle(mockLog);

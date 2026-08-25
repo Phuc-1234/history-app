@@ -4,6 +4,7 @@ import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { FlashcardFreePlayScreen } from "../../features/flashcard";
 import { useAppSelector } from "@/store/storeHook";
 import { PremiumModal } from "@/components/PremiumModal";
+import { CustomModal } from "@/components/Modal";
 
 export default function FlashcardRoute() {
     const router = useRouter();
@@ -24,6 +25,33 @@ export default function FlashcardRoute() {
             router.replace("/(tabs)/lesson" as any);
         }
     };
+
+    if (!profile) {
+        return (
+            <ScreenWrapper
+                showTopBar={false}
+                branchConfig={{
+                    hierarchy: "LỚP SỬ 10 > CHƯƠNG I",
+                    title: "Sử học và đời sống",
+                    onBackPress: handleBack,
+                }}
+            >
+                <CustomModal
+                    visible={true}
+                    title="Yêu cầu đăng nhập"
+                    message="Bạn cần đăng nhập để sử dụng tính năng này. Đăng nhập ngay?"
+                    confirmText="Đăng nhập"
+                    cancelText="Hủy"
+                    onConfirm={() => {
+                        router.push("/(1_auth)/1_1_login");
+                    }}
+                    onCancel={handleBack}
+                    showMascot={true}
+                    mascotExpression="thinking"
+                />
+            </ScreenWrapper>
+        );
+    }
 
     if (!isUserPro) {
         return (

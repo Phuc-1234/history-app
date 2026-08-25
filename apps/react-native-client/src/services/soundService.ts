@@ -1,5 +1,7 @@
 // src/services/soundService.ts — Sound service for Test V2 using custom MP3 assets
 import { Platform } from "react-native";
+import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
+import { Asset } from "expo-asset";
 
 // ── Require user MP3 assets ───────────────────────────────────────────
 let PRACTICE_CORRECT_ASSET: any = null;
@@ -31,65 +33,78 @@ try {
     console.warn("[SoundService] Could not load meo`cuoi.mp3 asset:", e);
 }
 
-// ── Native Sound Player (expo-av / expo-audio) ────────────────────────
-let expoAudioModule: any = null;
-
-try {
-    expoAudioModule = require("expo-av");
-} catch {
+let isAudioConfigured = false;
+async function configureAudioSession() {
+    if (isAudioConfigured) return;
     try {
-        expoAudioModule = require("expo-audio");
+        await setAudioModeAsync({
+            playsInSilentMode: true,
+            interruptionMode: "mixWithOthers",
+        });
+        isAudioConfigured = true;
     } catch {
-        expoAudioModule = null;
+        // Ignore audio mode configuration failure if not supported on platform
     }
 }
 
-async function playAssetOrUri(assetSource: any, fallbackToneSequence: Array<{ freq: number; duration: number; type?: OscillatorType; volume?: number }>) {
-    // 1. Web Execution
-    if (Platform.OS === "web") {
-        try {
-            if (assetSource) {
-                const src = typeof assetSource === "string"
-                    ? assetSource
-                    : assetSource?.default || assetSource?.uri || assetSource;
-                
-                if (typeof src === "string" || typeof assetSource === "number") {
-                    const audio = new Audio(src);
-                    audio.volume = 0.8;
-                    const playPromise = audio.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch((err) => {
-                            console.warn("[SoundService] HTML5 Audio play error, falling back to synth:", err);
-                            playWebToneSequence(fallbackToneSequence);
-                        });
-                    }
-                    return;
-                }
-            }
-        } catch (e) {
-            console.warn("[SoundService] Web audio asset failed, using synth:", e);
-        }
-        playWebToneSequence(fallbackToneSequence);
-        return;
-    }
+async function playAssetOrUri(
+    assetSource: any,
+    fallbackToneSequence: Array<{ freq: number; duration: number; type?: OscillatorType; volume?: number }>
+) {
+    await configureAudioSession();
 
-    // 2. Native Execution (iOS / Android)
-    if (expoAudioModule?.Audio && assetSource) {
+    // 1. Try expo-audio player
+    if (assetSource != null) {
         try {
-            const sourceParam = typeof assetSource === "string" ? { uri: assetSource } : assetSource;
-            const { sound } = await expoAudioModule.Audio.Sound.createAsync(
-                sourceParam,
-                { shouldPlay: true, volume: 1.0 }
-            );
-            sound.setOnPlaybackStatusUpdate((status: any) => {
+            const player = createAudioPlayer(assetSource);
+            player.volume = 1.0;
+            player.play();
+
+            const subscription = player.addListener("playbackStatusUpdate", (status) => {
                 if (status.didJustFinish) {
-                    sound.unloadAsync().catch(() => {});
+                    subscription?.remove();
+                    try {
+                        player.remove();
+                    } catch {
+                        // ignore
+                    }
                 }
             });
             return;
-        } catch (err) {
-            console.warn("[SoundService] Native expo-av asset playback failed:", err);
+        } catch (expoAudioError) {
+            console.warn("[SoundService] expo-audio failed, trying fallbacks:", expoAudioError);
         }
+    }
+
+    // 2. Web HTML5 Audio fallback
+    if (Platform.OS === "web") {
+        try {
+            let audioUri: string | null = null;
+            if (typeof assetSource === "string") {
+                audioUri = assetSource;
+            } else if (typeof assetSource === "number") {
+                const asset = Asset.fromModule(assetSource);
+                audioUri = asset.uri || asset.localUri || null;
+            } else if (assetSource?.uri) {
+                audioUri = assetSource.uri;
+            }
+
+            if (audioUri) {
+                const audio = new Audio(audioUri);
+                audio.volume = 0.8;
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(() => {
+                        playWebToneSequence(fallbackToneSequence);
+                    });
+                }
+                return;
+            }
+        } catch {
+            // fallback to synth
+        }
+
+        playWebToneSequence(fallbackToneSequence);
     }
 }
 

@@ -26,6 +26,7 @@ import {
     useGetLessonsByTopicQuery,
     useGetSectionsByLessonQuery,
     useGetNodesBySectionQuery,
+    useGetScopeLineageQuery,
 } from "@/features/lesson_menu/contentApiSlice";
 import type { PvpRoom } from "../types";
 
@@ -73,6 +74,32 @@ export function CreateRoomTab({
     const [selectedNodeId, setSelectedNodeId] = useState<number | null>(
         initialScopeType === "NODE" ? initialScopeId ?? null : null
     );
+
+    // Resolve hierarchy lineage if coming from an initial scope (e.g. TestIntro)
+    const { data: lineageData } = useGetScopeLineageQuery(
+        { scopeType: initialScopeType!, scopeId: initialScopeId! },
+        { skip: !initialScopeType || !initialScopeId || initialScopeType === "NATIONAL" }
+    );
+
+    useEffect(() => {
+        if (lineageData) {
+            if (lineageData.gradeId !== undefined && lineageData.gradeId !== null) {
+                setSelectedGradeId(lineageData.gradeId);
+            }
+            if (lineageData.topicId !== undefined && lineageData.topicId !== null) {
+                setSelectedTopicId(lineageData.topicId);
+            }
+            if (lineageData.lessonId !== undefined && lineageData.lessonId !== null) {
+                setSelectedLessonId(lineageData.lessonId);
+            }
+            if (lineageData.sectionId !== undefined && lineageData.sectionId !== null) {
+                setSelectedSectionId(lineageData.sectionId);
+            }
+            if (lineageData.nodeId !== undefined && lineageData.nodeId !== null) {
+                setSelectedNodeId(lineageData.nodeId);
+            }
+        }
+    }, [lineageData]);
 
     // Collapsible states
     const [isScopeCollapsed, setIsScopeCollapsed] = useState<boolean>(true);
@@ -547,7 +574,7 @@ export function CreateRoomTab({
                                                 <Text style={styles.pickerTriggerLabel}>Chủ đề:</Text>
                                                 <Text style={styles.pickerTriggerValue}>
                                                     {topicsData?.topics.find((t: any) => t.id === selectedTopicId)?.name ??
-                                                        "Bấm để chọn chủ đề"}
+                                                        (fetchingTopics && selectedTopicId ? "Đang tải..." : "Bấm để chọn chủ đề")}
                                                 </Text>
                                             </TouchableOpacity>
                                         )}
@@ -562,7 +589,7 @@ export function CreateRoomTab({
                                                 <Text style={styles.pickerTriggerLabel}>Bài học:</Text>
                                                 <Text style={styles.pickerTriggerValue}>
                                                     {lessonsData?.lessons.find((l: any) => l.id === selectedLessonId)?.name ??
-                                                        "Bấm để chọn bài học"}
+                                                        (fetchingLessons && selectedLessonId ? "Đang tải..." : "Bấm để chọn bài học")}
                                                 </Text>
                                             </TouchableOpacity>
                                         )}
@@ -577,7 +604,7 @@ export function CreateRoomTab({
                                                 <Text style={styles.pickerTriggerLabel}>Mục:</Text>
                                                 <Text style={styles.pickerTriggerValue}>
                                                     {sectionsData?.sections.find((s: any) => s.id === selectedSectionId)?.name ??
-                                                        "Bấm để chọn mục"}
+                                                        (fetchingSections && selectedSectionId ? "Đang tải..." : "Bấm để chọn mục")}
                                                 </Text>
                                             </TouchableOpacity>
                                         )}
@@ -592,7 +619,7 @@ export function CreateRoomTab({
                                                 <Text style={styles.pickerTriggerLabel}>Phần:</Text>
                                                 <Text style={styles.pickerTriggerValue}>
                                                     {nodesData?.nodes.find((n: any) => n.id === selectedNodeId)?.header ??
-                                                        "Bấm để chọn phần"}
+                                                        (fetchingNodes && selectedNodeId ? "Đang tải..." : "Bấm để chọn phần")}
                                                 </Text>
                                             </TouchableOpacity>
                                         )}

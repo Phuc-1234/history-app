@@ -19,10 +19,33 @@ import { colors } from "../../../theme/colors";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import typography from "@/theme/typography";
 import { useGetUserActiveEffectsQuery } from "@/features/inventory/services/itemApi";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 
-export function getScopePlaceholder(scopeType?: string, purposeType?: string): string {
+export function getScopePlaceholder(scopeType?: string, purposeType?: string, autoPickStrategy?: string): string {
     const isExam = purposeType === "EXAM";
-    const typeLabel = isExam ? "Bài kiểm tra" : "Bài thử thách";
+    if (!isExam) {
+        const defaultFallback = autoPickStrategy === "WRONG" ? "Làm lại câu sai" : "Luyện tập cá nhân";
+        if (!scopeType) return defaultFallback;
+
+        switch (scopeType.toUpperCase()) {
+            case "GRADE":
+                return "Luyện tập theo khối lớp";
+            case "TOPIC":
+                return "Luyện tập theo chủ đề";
+            case "LESSON":
+                return "Luyện tập theo bài học";
+            case "SECTION":
+                return "Luyện tập theo phần";
+            case "NODE":
+                return "Luyện tập theo mục";
+            case "NATIONAL":
+                return "Đề thi Quốc gia";
+            default:
+                return defaultFallback;
+        }
+    }
+
+    const typeLabel = "Bài kiểm tra";
     if (!scopeType) return typeLabel;
 
     switch (scopeType.toUpperCase()) {
@@ -153,7 +176,9 @@ export default function TestIntro({
               transform: [{ scale: scaleAnim }],
           };
 
-    const handleGoToPvp = () => {
+    const preventDoubleTap = usePreventDoubleTap();
+
+    const handleGoToPvp = preventDoubleTap(() => {
         router.push({
             pathname: "/pvp",
             params: {
@@ -164,7 +189,7 @@ export default function TestIntro({
                 initialQuestionCount: questionCount ? questionCount.toString() : undefined,
             },
         } as any);
-    };
+    });
 
     const branchConfig = {
         hierarchy: "",
@@ -282,10 +307,13 @@ export default function TestIntro({
                     <View style={{ flex: 1, minHeight: 12, maxHeight: 24 }} />
 
                     {/* Row 3: 2 rectangles of rewards */}
-                    <View style={styles.rewardsRow}>
+                    <View style={[
+                        styles.rewardsRow,
+                        (!(xpReward != null && xpReward > 0 && goldReward != null && goldReward > 0)) && { justifyContent: "center" }
+                    ]}>
                         {/* XP reward */}
                         {xpReward != null && xpReward > 0 && (
-                            <View style={{ flex: 1, position: "relative" }}>
+                            <View style={{ flex: 1, position: "relative", maxWidth: "48%" }}>
                                 <Card
                                     variant="accent"
                                     style={[
@@ -312,7 +340,7 @@ export default function TestIntro({
 
                         {/* Gold reward */}
                         {goldReward != null && goldReward > 0 && (
-                            <View style={{ flex: 1, position: "relative" }}>
+                            <View style={{ flex: 1, position: "relative", maxWidth: "48%" }}>
                                 <Card
                                     variant="accent"
                                     style={[

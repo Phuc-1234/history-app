@@ -82,7 +82,7 @@ export const BuyGoldScreen: React.FC = () => {
                                     baseGoldAmount: pkg.goldAmount,
                                     bonusGold: pkg.bonusGold || 0,
                                     priceVnd: pkg.priceVnd,
-                                    label: `${totalGold} Gold`,
+                                    label: pkg.name || `${totalGold} Vàng`,
                                 };
                             });
                             setGoldPackages(formattedList);
@@ -169,9 +169,9 @@ export const BuyGoldScreen: React.FC = () => {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Mua Gold</Text>
+                    <Text style={styles.headerTitle}>Mua Vàng</Text>
                     <Text style={styles.headerSub}>
-                        1 Gold = 2.000đ · Thanh toán an toàn qua ZaloPay hoặc Ngân hàng VietQR
+                        Thanh toán an toàn qua ZaloPay hoặc Ngân hàng VietQR
                     </Text>
                 </View>
 
@@ -196,10 +196,10 @@ export const BuyGoldScreen: React.FC = () => {
                                 {pkg.bonusGold > 0 ? (
                                     <View style={{ alignItems: "center", marginBottom: 4 }}>
                                         <Text style={[styles.packageGoldLabel, { fontSize: 13, textDecorationLine: "line-through", color: colors.textSecondary, marginBottom: 2 }]}>
-                                            {pkg.baseGoldAmount} Gold
+                                            {pkg.baseGoldAmount} Vàng
                                         </Text>
                                         <Text style={styles.packageGoldLabel}>
-                                            {pkg.goldAmount} Gold
+                                            {pkg.goldAmount} Vàng
                                         </Text>
                                     </View>
                                 ) : (
@@ -214,9 +214,9 @@ export const BuyGoldScreen: React.FC = () => {
                 ) : (
                     <View style={styles.emptyPackageCard}>
                         <Ionicons name="cube-outline" size={40} color={colors.textMuted} style={{ marginBottom: 8 }} />
-                        <Text style={styles.emptyPackageTitle}>Hiện chưa có gói nạp Gold nào</Text>
+                        <Text style={styles.emptyPackageTitle}>Hiện chưa có gói nạp Vàng nào</Text>
                         <Text style={styles.emptyPackageSub}>
-                            Các gói nạp Gold đang được cập nhật hoặc tạm ẩn. Vui lòng quay lại sau!
+                            Các gói nạp Vàng đang được cập nhật hoặc tạm ẩn. Vui lòng quay lại sau!
                         </Text>
                     </View>
                 )}
@@ -336,7 +336,7 @@ export const BuyGoldScreen: React.FC = () => {
 
                 <Text style={styles.footnote}>
                     Giao dịch được xử lý bởi{" "}
-                    {getProviderLabel(selectedProvider)} · Sandbox mode
+                    {getProviderLabel(selectedProvider)}
                 </Text>
             </ScrollView>
 
@@ -361,7 +361,7 @@ export const BuyGoldScreen: React.FC = () => {
                         <Text style={styles.modalSub}>
                             {isSuccess
                                 ? `Bạn đã nhận được ${state.phase === "success" ? state.result.goldAmount : ""
-                                } Gold`
+                                } Vàng`
                                 : (state.phase === "failed" ? state.error : "")}
                         </Text>
                         <TouchableOpacity style={styles.modalButtonWrapper} onPress={reset} activeOpacity={0.85}>
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 26,
         fontFamily: typography.fonts.extraBold,
-        color: colors.textPrimary,
+        color: colors.primary,
         marginBottom: 6,
     },
     headerSub: {
@@ -570,9 +570,11 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 16,
         alignItems: "center",
+        justifyContent: "center",
         borderWidth: 2,
         borderColor: colors.borderMedium,
         position: "relative",
+        minHeight: 90,
     },
     packageCardSelected: {
         borderColor: colors.primary,
@@ -602,7 +604,7 @@ const styles = StyleSheet.create({
     packageGoldLabel: {
         fontSize: 16,
         fontFamily: typography.fonts.bold,
-        color: colors.textPrimary,
+        color: colors.primary,
         marginBottom: 4,
     },
     packagePrice: {

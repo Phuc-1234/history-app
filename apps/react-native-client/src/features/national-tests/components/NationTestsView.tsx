@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import {
   StyleSheet,
   Text,
@@ -16,6 +17,8 @@ import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors } from "@/theme/colors";
 import typography from "@/theme/typography";
 import { Card } from "@/components/Card";
+import Button from "@/components/Button";
+import { CustomModal } from "@/components/Modal";
 import { useGetNationalTestsQuery, useLazyGetTestInfoQuery } from "@/features/test_v2/services/testApi";
 import {
   BookOpen,
@@ -57,16 +60,22 @@ const CARD_ICONS = [
 
 export const NationalTestsView: React.FC = () => {
   const router = useRouter();
+  const preventDoubleTap = usePreventDoubleTap();
   const profile = useAppSelector((state) => state.auth.profile);
   const isUserPro = profile?.isPro === true;
 
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
   const [lockedFeatureName, setLockedFeatureName] = useState("");
+  const [guestModalVisible, setGuestModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("DE_THI");
 
   const [getTestInfo] = useLazyGetTestInfoQuery();
 
   const showProModal = (feature: string) => {
+    if (!profile) {
+      setGuestModalVisible(true);
+      return;
+    }
     setLockedFeatureName(feature);
     setPremiumModalVisible(true);
   };
@@ -82,14 +91,14 @@ export const NationalTestsView: React.FC = () => {
     return Math.round(total / tests.length);
   }, [tests]);
 
-  const handleTestPress = (id: string) => {
+  const handleTestPress = preventDoubleTap((id: string) => {
     router.push({
       pathname: "/(6_tests)/6_2_ques_choose",
       params: { testId: id, purposeType: "EXAM" },
     });
-  };
+  });
 
-  const handlePracticePress = (options: PracticeOptions) => {
+  const handlePracticePress = preventDoubleTap((options: PracticeOptions) => {
     router.push({
       pathname: "/(6_tests)/6_2_ques_choose",
       params: {
@@ -101,7 +110,7 @@ export const NationalTestsView: React.FC = () => {
         skipIntro: "true",
       },
     });
-  };
+  });
 
   const filteredTests = tests?.filter((item) =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -130,10 +139,41 @@ export const NationalTestsView: React.FC = () => {
       </View>
 
       {activeTab === "LUYEN_TAP" ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: 16 }]}
-        >
+        !profile ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.guestScrollContent}
+          >
+            <View style={styles.guestContainer}>
+              <Ionicons
+                name="person-circle-outline"
+                size={80}
+                color={colors.primary}
+                style={styles.guestIcon}
+              />
+              <Text style={styles.guestTitle}>Chế độ khách</Text>
+              <Text style={styles.guestSubText}>
+                Vui lòng đăng nhập hoặc đăng ký tài khoản để sử dụng tính năng luyện tập.
+              </Text>
+              <View style={styles.guestActions}>
+                <Button
+                  title="Đăng nhập"
+                  variant="primary"
+                  onPress={() => router.push("/(1_auth)/1_1_login")}
+                />
+                <Button
+                  title="Đăng ký"
+                  variant="outline"
+                  onPress={() => router.push("/(1_auth)/1_2_register")}
+                />
+              </View>
+            </View>
+          </ScrollView>
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.scrollContent, { paddingHorizontal: 16 }]}
+          >
           {/* Độ thành thạo Card (Expandable) */}
           <Card variant="bordered" style={[styles.practiceCard, { marginBottom: 16 }]}>
             <TouchableOpacity
@@ -217,6 +257,7 @@ export const NationalTestsView: React.FC = () => {
             isActiveTab={activeTab === "LUYEN_TAP"}
           />
         </ScrollView>
+        )
       ) : (
         <>
           <View style={styles.searchContainer}>
@@ -349,6 +390,20 @@ export const NationalTestsView: React.FC = () => {
         visible={premiumModalVisible}
         onClose={() => setPremiumModalVisible(false)}
         featureName={lockedFeatureName}
+      />
+      <CustomModal
+        visible={guestModalVisible}
+        title="Yêu cầu đăng nhập"
+        message="Bạn cần đăng nhập để sử dụng tính năng này. Đăng nhập ngay?"
+        confirmText="Đăng nhập"
+        cancelText="Hủy"
+        onConfirm={() => {
+          setGuestModalVisible(false);
+          router.push("/(1_auth)/1_1_login");
+        }}
+        onCancel={() => setGuestModalVisible(false)}
+        showMascot={true}
+        mascotExpression="thinking"
       />
     </ScreenWrapper>
   );
@@ -567,5 +622,36 @@ const styles = StyleSheet.create({
     fontFamily: typography.fonts.medium,
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  guestScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+  },
+  guestContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guestIcon: {
+    marginBottom: 16,
+  },
+  guestTitle: {
+    fontFamily: typography.fonts.bold,
+    fontSize: 22,
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  guestSubText: {
+    fontFamily: typography.fonts.regular,
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  guestActions: {
+    width: "100%",
+    gap: 8,
   },
 });

@@ -24,8 +24,10 @@ import { StreakDrawerModal } from "../../features/streak";
 import { TierDrawerModal } from "../../features/tier";
 import { AiChatFab } from "../../features/ai-chat/components/AiChatFab";
 import { AiChatOverlay } from "../../features/ai-chat/components/AiChatOverlay";
+import { CustomModal } from "../Modal";
 
 const DRAWER_WIDTH = 280;
+const GUEST_ALLOWED_TAB_IDS = new Set(["home", "lessons", "tests", "leaderboard", "profile"]);
 
 interface SideDrawerContextType {
     openDrawer: () => void;
@@ -47,6 +49,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     const [isOpen, setIsOpen] = useState(false);
     const [renderDrawer, setRenderDrawer] = useState(false);
     const [aiChatVisible, setAiChatVisible] = useState(false);
+    const [guestModalVisible, setGuestModalVisible] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const segments = useSegments() as string[];
@@ -152,7 +155,11 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         return "";
     })();
 
-    const handleTabPress = (route: string) => {
+    const handleTabPress = (tabId: string, route: string) => {
+        if (!data.isLoggedIn && !GUEST_ALLOWED_TAB_IDS.has(tabId)) {
+            setGuestModalVisible(true);
+            return;
+        }
         closeDrawer();
         router.navigate(route as any);
     };
@@ -321,7 +328,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                             isActive && styles.tabItemActive,
                                         ]}
                                         activeOpacity={0.7}
-                                        onPress={() => handleTabPress(tab.route)}
+                                        onPress={() => handleTabPress(tab.id, tab.route)}
                                     >
                                         {tab.id === "pvp" ? (
                                             <Swords
@@ -367,8 +374,23 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                     />
                 </>
             )}
-            {!shouldHideAiFab && <AiChatFab onPress={() => setAiChatVisible(true)} />}
+            {!shouldHideAiFab && data.isLoggedIn && <AiChatFab onPress={() => setAiChatVisible(true)} />}
             <AiChatOverlay visible={aiChatVisible} onClose={() => setAiChatVisible(false)} />
+            <CustomModal
+                 visible={guestModalVisible}
+                 title="Yêu cầu đăng nhập"
+                 message="Bạn cần đăng nhập để sử dụng tính năng này. Đăng nhập ngay?"
+                 confirmText="Đăng nhập"
+                 cancelText="Hủy"
+                 onConfirm={() => {
+                     setGuestModalVisible(false);
+                     closeDrawer();
+                     router.push("/(1_auth)/1_1_login");
+                 }}
+                 onCancel={() => setGuestModalVisible(false)}
+                 showMascot={true}
+                 mascotExpression="thinking"
+             />
         </SideDrawerContext.Provider>
     );
 }

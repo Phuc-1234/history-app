@@ -1,6 +1,5 @@
 import { prisma, AiChatMode, AiModelTier } from "@history-app/shared";
 import { AIService } from "./aiService";
-import { contentSearchService } from "./contentSearchService";
 
 const aiService = new AIService();
 
@@ -119,23 +118,6 @@ export class AiChatService {
                 .catch(() => {});
         }
 
-        // Search grounding course context if mode is COURSE_ONLY / COURSE_FIRST or screenContext has lessonId/nodeId/grade
-        let groundingContext = "";
-        if (
-            session.mode === AiChatMode.COURSE_ONLY ||
-            session.mode === AiChatMode.COURSE_FIRST ||
-            screenContext?.lessonId ||
-            screenContext?.nodeId ||
-            screenContext?.grade
-        ) {
-            const searchResult = await contentSearchService.searchCourseContent(content, {
-                contextLessonId: screenContext?.lessonId,
-                contextNodeId: screenContext?.nodeId,
-                contextGrade: screenContext?.grade
-            });
-            groundingContext = searchResult.formattedContext;
-        }
-
         let screenContextText = "";
         if (screenContext?.screenName) {
             screenContextText = `- Màn hình: ${screenContext.screenName}`;
@@ -151,43 +133,23 @@ export class AiChatService {
             parts: [{ text: msg.content }]
         }));
 
-        let assistantText = "";
-        let usageTokens = 0;
-
-        if (session.modelTier === AiModelTier.HIGH) {
-            try {
-                console.log(`[AI Chat] Executing High Tier (Tool Calling Engine) for session ${sessionId}...`);
-                const res = await aiService.callGeminiWithTools(formattedContents, {
-                    mode: session.mode,
-                    screenContextText,
-                    isSupportedScreen: screenContext?.isSupported,
-                    summary: session.summary || undefined
-                });
-                assistantText = res.text;
-                usageTokens = res.usageTokens;
-            } catch (highTierErr: any) {
-                console.error("[AI High Tier] High tier tool calling failed, falling back to Medium RAG mode:", highTierErr.message);
-                const res = await aiService.callGeminiChat(formattedContents, {
-                    mode: session.mode,
-                    groundingContext,
-                    screenContextText,
-                    isSupportedScreen: screenContext?.isSupported,
-                    summary: session.summary || undefined
-                });
-                assistantText = res.text;
-                usageTokens = res.usageTokens;
-            }
+        let maxRoundtrips = 3;
+        if (session.modelTier === AiModelTier.LOW) {
+            maxRoundtrips = 1;
+        } else if (session.modelTier === AiModelTier.HIGH) {
+            maxRoundtrips = 5;
         } else {
-            const res = await aiService.callGeminiChat(formattedContents, {
-                mode: session.mode,
-                groundingContext,
-                screenContextText,
-                isSupportedScreen: screenContext?.isSupported,
-                summary: session.summary || undefined
-            });
-            assistantText = res.text;
-            usageTokens = res.usageTokens;
+            maxRoundtrips = 3;
         }
+
+        console.log(`[AI Chat] Executing Tier ${session.modelTier} (Max Roundtrips: ${maxRoundtrips}) for session ${sessionId}...`);
+        const { text: assistantText, usageTokens } = await aiService.callGeminiWithTools(formattedContents, {
+            mode: session.mode,
+            screenContextText,
+            isSupportedScreen: screenContext?.isSupported,
+            summary: session.summary || undefined,
+            maxRoundtrips
+        });
 
         // Update token quota tracking
         await prisma.userAiQuota.upsert({

@@ -28,7 +28,15 @@ import { CustomModal } from "@/components/Modal";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useAiChatOverlay, DisplayChatMessage } from "../hooks/useAiChatOverlay";
 import { AiChatModeType, AiModelTierType } from "../services/aiChatApi";
-import { useEasterEgg } from "@/features/easter_egg";
+
+function isEnglishText(text: string): boolean {
+    const vietnameseCharRegex = /[àáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i;
+    if (vietnameseCharRegex.test(text)) {
+        return false;
+    }
+    const englishCharRegex = /[a-zA-Z]/;
+    return englishCharRegex.test(text);
+}
 
 interface AiChatOverlayProps {
     visible: boolean;
@@ -45,12 +53,12 @@ const MODES: { id: AiChatModeType; label: string; labelEn: string; icon: keyof t
 ];
 
 const MODEL_TIERS: { id: AiModelTierType; label: string; labelEn: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: "MEDIUM", label: "Thường", labelEn: "Standard", icon: "flash" },
+    { id: "LOW", label: "Thấp", labelEn: "Low", icon: "flash-outline" },
+    { id: "MEDIUM", label: "Trung bình", labelEn: "Medium", icon: "flash" },
     { id: "HIGH", label: "Cao", labelEn: "High", icon: "sparkles" },
 ];
 
 export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }) => {
-    const { isEngMode } = useEasterEgg();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const flatListRef = useRef<FlatList>(null);
@@ -156,7 +164,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             updateSpeakingId(id);
             const plainText = stripMarkdown(content);
             Speech.speak(plainText, {
-                language: isEngMode ? "en-US" : "vi-VN",
+                language: isEnglishText(plainText) ? "en-US" : "vi-VN",
                 onDone: () => {
                     if (speakingIdRef.current === id) {
                         updateSpeakingId(null);
@@ -209,7 +217,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                             <Pressable style={styles.retryButton} onPress={() => handleSend(item.content)}>
                                 <Ionicons name="alert-circle-outline" size={14} color={colors.error} />
                                 <Text style={styles.retryText}>
-                                    {isEngMode ? "Failed to send, tap to retry" : "Gửi thất bại, chạm để thử lại"}
+                                    Gửi thất bại, chạm để thử lại
                                 </Text>
                             </Pressable>
                         )}
@@ -248,10 +256,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         onPress={() => setShowPremiumModal(true)}
                     >
                         <Text style={styles.quotaNoteText}>
-                            {isEngMode ? "You have reached today's AI Chat limit." : "Bạn đã dùng hết hạn mức AI Chat hôm nay."}
+                            Bạn đã dùng hết hạn mức AI Chat hôm nay.
                             {"\n"}
                             <Text style={styles.quotaNoteHighlight}>
-                                {isEngMode ? "Upgrade PRO" : "Nâng cấp PRO"}
+                                Nâng cấp PRO
                             </Text>
                         </Text>
                     </Pressable>
@@ -266,7 +274,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    style={[styles.overlayContainer, { height: SCREEN_HEIGHT  }]}
+                    style={[styles.overlayContainer, { marginTop: insets.top }]}
                 >
                     {/* Header */}
                     <View style={[styles.header, isPro && styles.proHeader]}>
@@ -285,8 +293,8 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <View style={styles.headerTitleContainer}>
                             <Text style={[styles.headerTitle, isPro && styles.proHeaderTitle]} numberOfLines={1}>
                                 {showSessionsDrawer
-                                    ? (isEngMode ? "Chat History" : "Lịch sử trò chuyện")
-                                    : sessions.find((s) => s.id === selectedSessionId)?.title || (isEngMode ? "Viet History AI Assistant" : "Trợ lý AI Sử Việt")}
+                                    ? "Lịch sử trò chuyện"
+                                    : sessions.find((s) => s.id === selectedSessionId)?.title || "Trợ lý AI Sử Việt"}
                             </Text>
                             {!showSessionsDrawer && screenContext?.isSupported && screenContext?.screenName && (
                                 <Pressable
@@ -295,7 +303,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 >
                                     <Ionicons name="location-sharp" size={11} color={isPro ? colors.textLight : colors.primary} style={{ marginRight: 3 }} />
                                     <Text style={[styles.headerSubTitle, isPro && styles.proHeaderSubTitle]} numberOfLines={1}>
-                                        {isEngMode ? "Viewing: " : "Đang xem: "}<Text style={[styles.headerSubTitleHighlight, isPro && styles.proHeaderSubTitleHighlight]}>{screenContext.screenName}</Text>
+                                        Đang xem: <Text style={[styles.headerSubTitleHighlight, isPro && styles.proHeaderSubTitleHighlight]}>{screenContext.screenName}</Text>
                                     </Text>
                                 </Pressable>
                             )}
@@ -329,7 +337,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 4 }}>
                                                     <Ionicons name={currentModeItem.icon} size={14} color={colors.primary} style={{ marginRight: 6 }} />
                                                     <Text style={styles.dropdownButtonText} numberOfLines={1}>
-                                                        {isEngMode ? currentModeItem.labelEn : currentModeItem.label}
+                                                        {currentModeItem.label}
                                                     </Text>
                                                 </View>
                                                 <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
@@ -345,7 +353,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                 <View style={{ flexDirection: "row", alignItems: "center", flex: 1, paddingRight: 4 }}>
                                                     <Ionicons name={currentTierItem.icon} size={14} color="#8E24AA" style={{ marginRight: 6 }} />
                                                     <Text style={styles.dropdownButtonText} numberOfLines={1}>
-                                                        {isEngMode ? currentTierItem.labelEn : currentTierItem.label}
+                                                        {currentTierItem.label}
                                                     </Text>
                                                 </View>
                                                 <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
@@ -381,7 +389,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                         style={{ marginRight: 8 }}
                                                     />
                                                     <Text style={[styles.inlineDropdownText, isActive && styles.inlineDropdownTextActive]}>
-                                                        {isEngMode ? mode.labelEn : mode.label}
+                                                        {mode.label}
                                                     </Text>
                                                     {isActive && <Ionicons name="checkmark" size={14} color={colors.primary} style={{ marginLeft: "auto" }} />}
                                                 </Pressable>
@@ -417,7 +425,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                         style={{ marginRight: 8 }}
                                                     />
                                                     <Text style={[styles.inlineDropdownText, isActive && styles.inlineDropdownTextActive]}>
-                                                        {isEngMode ? tier.labelEn : tier.label}
+                                                        {tier.label}
                                                     </Text>
                                                     {isActive && <Ionicons name="checkmark" size={14} color="#8E24AA" style={{ marginLeft: "auto" }} />}
                                                 </Pressable>
@@ -442,7 +450,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                                 <Ionicons name="sparkles" size={14} color={colors.primary} style={{ marginRight: 6 }} />
                                                 <Text style={styles.quotaCardTitle}>
-                                                    {isEngMode ? "Today's AI Quota" : "Hạn mức AI hôm nay"}
+                                                    Hạn mức AI hôm nay
                                                 </Text>
                                             </View>
 
@@ -451,7 +459,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                     <View style={styles.proBadgePill}>
                                                         <Ionicons name="ribbon" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
                                                         <Text style={styles.proBadgeText}>
-                                                            {isEngMode ? "PRO (Limit x10)" : "PRO (Hạn mức x10)"}
+                                                            PRO (Hạn mức x10)
                                                         </Text>
                                                     </View>
                                                     <TwinklingStars mode="badge" />
@@ -466,7 +474,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                 >
                                                     <Ionicons name="flash" size={12} color={colors.textLight} style={{ marginRight: 4 }} />
                                                     <Text style={styles.upgradeBtnText}>
-                                                        {isEngMode ? "Upgrade PRO (x10)" : "Nâng cấp PRO (x10)"}
+                                                        Nâng cấp PRO (x10)
                                                     </Text>
                                                 </Pressable>
                                             )}
@@ -486,7 +494,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
 
                                         <View style={styles.quotaInfoRow}>
                                             <Text style={styles.quotaUsageText}>
-                                                {isEngMode ? `Used ${usedPercent}% of daily limit` : `Đã dùng ${usedPercent}% hạn mức ngày`}
+                                                Đã dùng {usedPercent}% hạn mức ngày
                                             </Text>
                                         </View>
                                     </>
@@ -496,7 +504,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                             <View style={styles.divider} />
                             <View style={styles.drawerHeader}>
                                 <Text style={styles.drawerTitle}>
-                                    {isEngMode ? "Chat List" : "Danh sách hội thoại"}
+                                    Danh sách hội thoại
                                 </Text>
                             </View>
                             {isLoadingSessions ? (
@@ -531,10 +539,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                                 </Text>
                                                 <Text style={styles.sessionItemModeText}>
                                                     {item.mode === "COURSE_ONLY"
-                                                        ? (isEngMode ? "Course Only" : "Chỉ Giáo Trình")
+                                                        ? "Chỉ Giáo Trình"
                                                         : item.mode === "COURSE_FIRST"
-                                                        ? (isEngMode ? "Course First" : "Ưu Tiên Giáo Trình")
-                                                        : (isEngMode ? "General" : "Chung")}
+                                                        ? "Ưu Tiên Giáo Trình"
+                                                        : "Chung"}
                                                 </Text>
                                             </View>
                                         </Pressable>
@@ -555,12 +563,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             <TwinklingStars mode="fab" />
                                         </View>
                                         <Text style={styles.emptyTitle}>
-                                            {isEngMode ? "Hello! How can I help you?" : "Xin chào! Tôi có thể giúp gì cho bạn?"}
+                                            Xin chào! Tôi có thể giúp gì cho bạn?
                                         </Text>
                                         <Text style={styles.emptySub}>
-                                            {isEngMode
-                                                ? "Ask anything about Vietnamese history, timelines, historical figures, or lessons!"
-                                                : "Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!"}
+                                            Hỏi bất kỳ điều gì về lịch sử Việt Nam, mốc thời gian, nhân vật hoặc bài học!
                                         </Text>
                                     </View>
                                 ) : (
@@ -600,10 +606,10 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                             style={styles.textInput}
                                             placeholder={
                                                 activeMode === "COURSE_ONLY"
-                                                    ? (isEngMode ? "Ask about course materials..." : "Hỏi về giáo trình bài học...")
+                                                    ? "Hỏi về giáo trình bài học..."
                                                     : activeMode === "COURSE_FIRST"
-                                                    ? (isEngMode ? "Ask course first..." : "Hỏi ưu tiên giáo trình...")
-                                                    : (isEngMode ? "Enter your question..." : "Nhập câu hỏi...")
+                                                    ? "Hỏi ưu tiên giáo trình..."
+                                                    : "Nhập câu hỏi..."
                                             }
                                             placeholderTextColor={colors.textPlaceholder}
                                             value={inputText}
@@ -652,9 +658,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     </Pressable>
                                 </View>
                                 <Text style={styles.disclaimerText}>
-                                    {isEngMode
-                                        ? "AI may make mistakes. Please verify important information."
-                                        : "AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng."}
+                                    AI có thể mắc sai lầm. Hãy kiểm tra các thông tin quan trọng.
                                 </Text>
                             </View>
                         </>
@@ -678,14 +682,14 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                         <Pressable style={styles.actionOptionRow} onPress={handleOpenRename}>
                             <Ionicons name="pencil-outline" size={20} color={colors.textPrimary} style={{ marginRight: 12 }} />
                             <Text style={styles.actionOptionText}>
-                                {isEngMode ? "Rename" : "Đổi tên"}
+                                Đổi tên
                             </Text>
                         </Pressable>
                         <View style={styles.actionOptionDivider} />
                         <Pressable style={styles.actionOptionRow} onPress={handleConfirmDelete}>
                             <Ionicons name="trash-outline" size={20} color={colors.error} style={{ marginRight: 12 }} />
                             <Text style={[styles.actionOptionText, { color: colors.error }]}>
-                                {isEngMode ? "Delete conversation" : "Xóa hội thoại"}
+                                Xóa hội thoại
                             </Text>
                         </Pressable>
                     </View>
@@ -703,13 +707,13 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowRenameModal(false)} />
                     <View style={styles.renameModalContainer}>
                         <Text style={styles.renameModalTitle}>
-                            {isEngMode ? "Rename Conversation" : "Đổi tên cuộc trò chuyện"}
+                            Đổi tên cuộc trò chuyện
                         </Text>
                         <TextInput
                             style={styles.renameInput}
                             value={renameTitleInput}
                             onChangeText={setRenameTitleInput}
-                            placeholder={isEngMode ? "Enter new name..." : "Nhập tên mới..."}
+                            placeholder="Nhập tên mới..."
                             placeholderTextColor={colors.textPlaceholder}
                             autoFocus
                             maxLength={100}
@@ -723,7 +727,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                 }}
                             >
                                 <Text style={styles.renameCancelText}>
-                                    {isEngMode ? "Cancel" : "Hủy"}
+                                    Hủy
                                 </Text>
                             </Pressable>
                             <Pressable
@@ -738,7 +742,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     <ActivityIndicator size="small" color="#FFF" />
                                 ) : (
                                     <Text style={styles.renameSaveText}>
-                                        {isEngMode ? "Save" : "Lưu"}
+                                        Lưu
                                     </Text>
                                 )}
                             </Pressable>
@@ -752,7 +756,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                 visible={errorModal.visible}
                 title={errorModal.title}
                 message={errorModal.message}
-                confirmText={isEngMode ? "OK" : "Đồng ý"}
+                confirmText="Đồng ý"
                 onConfirm={() => setErrorModal((prev) => ({ ...prev, visible: false }))}
                 showMascot
                 mascotExpression="sad"
@@ -762,30 +766,21 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
             <PremiumModal
                 visible={showPremiumModal}
                 onClose={() => setShowPremiumModal(false)}
-                title={isEngMode ? "AI Chat Quota Limit" : "Hạn mức AI Chat"}
-                description={
-                    isEngMode
-                        ? "You have reached your AI Chat limit for today. Upgrade to PRO to get 10x higher quota:"
-                        : "Bạn đã đạt hạn mức AI Chat hôm nay. Nâng cấp PRO để nhận thêm hạn mức cao gấp 10 lần:"
-                }
+                title="Hạn mức AI Chat"
+                description="Bạn đã đạt hạn mức AI Chat hôm nay. Nâng cấp PRO để nhận thêm hạn mức cao gấp 10 lần:"
             />
 
             {/* Screen Context Info Modal */}
             <CustomModal
                 visible={showScreenContextModal}
-                title={isEngMode ? "Screen Context" : "Ngữ cảnh màn hình"}
+                title="Ngữ cảnh màn hình"
                 message={
-                    isEngMode
-                        ? `Viewing: ${screenContext?.screenName || "App screen"}\n\n` +
-                          (screenContext?.isSupported
-                              ? "AI supports reading and directly answering content on this screen (Lessons, knowledge nodes, mindmaps, flashcards)."
-                              : "This screen does not currently support direct AI content reading (Exams, leaderboards, shop, profile,...). AI will still assist you with general historical knowledge.")
-                        : `Đang xem: ${screenContext?.screenName || "Màn hình ứng dụng"}\n\n` +
-                          (screenContext?.isSupported
-                              ? "AI hỗ trợ đọc và giải đáp trực tiếp nội dung trên màn hình này (Bài học, nút kiến thức, sơ đồ tư duy, thẻ ghi nhớ)."
-                              : "Màn hình này hiện chưa hỗ trợ AI đọc nội dung trực tiếp (Bài thi, bảng xếp hạng, cửa hàng, cá nhân,...). AI vẫn sẽ hỗ trợ bạn giải đáp kiến thức lịch sử tổng quan.")
+                    `Đang xem: ${screenContext?.screenName || "Màn hình ứng dụng"}\n\n` +
+                    (screenContext?.isSupported
+                        ? "AI hỗ trợ đọc và giải đáp trực tiếp nội dung trên màn hình này (Bài học, nút kiến thức, sơ đồ tư duy, thẻ ghi nhớ)."
+                        : "Màn hình này hiện chưa hỗ trợ AI đọc nội dung trực tiếp (Bài thi, bảng xếp hạng, cửa hàng, cá nhân,...). AI vẫn sẽ hỗ trợ bạn giải đáp kiến thức lịch sử tổng quan.")
                 }
-                confirmText={isEngMode ? "OK" : "Đã hiểu"}
+                confirmText="Đã hiểu"
                 onConfirm={() => setShowScreenContextModal(false)}
             />
         </Modal>
@@ -799,7 +794,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
     },
     overlayContainer: {
-        height: OVERLAY_HEIGHT,
+        flex: 1,
         backgroundColor: colors.background,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
@@ -811,7 +806,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingTop: 12,
+        paddingBottom: 12,
         borderBottomWidth: 1,
         borderBottomColor: colors.surfaceVariant,
         backgroundColor: colors.surface,
