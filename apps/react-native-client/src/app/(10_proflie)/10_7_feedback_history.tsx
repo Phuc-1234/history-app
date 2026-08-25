@@ -13,6 +13,7 @@ import { ScreenWrapper } from "../../components/layout/ScreenWrapper";
 import { colors } from "../../theme/colors";
 import typography from "../../theme/typography";
 import { Card } from "../../components/Card";
+import { FeedbackTargetRow } from "../../components/FeedbackTargetRow";
 import { useGetFeedbackHistoryQuery } from "../../features/profile/services/feedbackApi";
 
 type FeedbackType = "BUG" | "FEATURE" | "OTHER" | "INCORRECT_INFO";
@@ -86,14 +87,7 @@ export default function FeedbackHistoryScreen() {
                     <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
                 </View>
                 <Text style={styles.feedbackContent}>{item.content}</Text>
-                {item.targetName && (
-                    <View style={styles.targetContainer}>
-                        <Ionicons name="flag-outline" size={12} color={colors.primary} />
-                        <Text style={styles.targetText} numberOfLines={1}>
-                            {item.targetName}
-                        </Text>
-                    </View>
-                )}
+                {item.targetName && <FeedbackTargetRow targetName={item.targetName} />}
             </Card>
         );
     };
@@ -185,24 +179,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.textPrimary,
         lineHeight: 20,
-    },
-    targetContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: colors.primaryContainer,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 8,
-        marginTop: 12,
-        borderWidth: 1,
-        borderColor: colors.borderLight,
-        gap: 6,
-    },
-    targetText: {
-        fontFamily: typography.fonts.semiBold,
-        fontSize: 12,
-        color: colors.primary,
-        flex: 1,
     },
 
     emptyContainer: {
