@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, View, TouchableOpacity } from "react-native";
-import Video, { VideoRef } from "react-native-video";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -27,7 +27,7 @@ async function safeLockOrientation(
 }
 
 interface VideoPlayerProps {
-  videoId:  string;
+  videoId: string;
   videoUrl: string;
   onEnd: () => void;
   onNextWhenError: () => void;
@@ -43,38 +43,83 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isFocused, setIsFocused] = useState(true);
   const [isUserPlaying, setIsUserPlaying] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [duration, setDuration] = useState<number | null>(null);
-  const videoRef = useRef<VideoRef>(null);
+  const videoViewRef = useRef<VideoView>(null);
   const navigation = useNavigation();
 
+  const player = useVideoPlayer(videoUrl ? { uri: videoUrl } : null, (p) => {
+    p.loop = false;
+    p.timeUpdateEventInterval = 0.5;
+  });
+
   useEffect(() => {
-    const unsubscribeFocus = navigation.addListener("focus", () => {
-      setIsFocused(true);
+    if (!player) return;
+
+    const subStatus = player.addListener("statusChange", ({ status, error }) => {
+      if (status === "error") {
+        console.log("[VideoPlayer] Video error:", error);
+        setLoading(false);
+        setHasError(true);
+      } else if (status === "loading") {
+        setLoading(true);
+        setHasError(false);
+      } else if (status === "readyToPlay") {
+        setLoading(false);
+      }
     });
+
+    const subPlayToEnd = player.addListener("playToEnd", () => {
+      onEnd();
+    });
+
+    const subTimeUpdate = player.addListener("timeUpdate", ({ currentTime }) => {
+      if (onProgress && player.duration > 0) {
+        onProgress(currentTime, player.duration);
+      }
+    });
+
+    const subPlaying = player.addListener("playingChange", ({ isPlaying }) => {
+      setIsUserPlaying(isPlaying);
+      if (isPlaying) {
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      subStatus.remove();
+      subPlayToEnd.remove();
+      subTimeUpdate.remove();
+      subPlaying.remove();
+    };
+  }, [player, onEnd, onProgress]);
+
+  useEffect(() => {
     const unsubscribeBlur = navigation.addListener("blur", () => {
-      setIsFocused(false);
+      try {
+        player?.pause();
+      } catch {}
     });
     return () => {
-      unsubscribeFocus();
       unsubscribeBlur();
-      // Ensure orientation is reset when component unmounts
+      try {
+        player?.pause();
+      } catch {}
       safeLockOrientation(ScreenOrientation.OrientationLock.DEFAULT);
     };
-  }, [navigation]);
+  }, [navigation, player]);
 
   const handlePlayPress = async () => {
-    setIsUserPlaying(true);
-    setIsFullscreen(true);
-    await safeLockOrientation(ScreenOrientation.OrientationLock.LANDSCAPE);
-    videoRef.current?.presentFullscreenPlayer();
+    try {
+      setIsUserPlaying(true);
+      player.play();
+      await safeLockOrientation(ScreenOrientation.OrientationLock.LANDSCAPE);
+      await videoViewRef.current?.enterFullscreen();
+    } catch (e) {
+      console.log("[VideoPlayer] Play failed:", e);
+    }
   };
 
-  const handleFullscreenDismiss = async () => {
-    setIsFullscreen(false);
-    setIsUserPlaying(false);
+  const handleFullscreenExit = async () => {
     await safeLockOrientation(ScreenOrientation.OrientationLock.DEFAULT);
   };
 
@@ -84,46 +129,18 @@ export default function VideoPlayer({
         <VideoError onNext={onNextWhenError} />
       ) : (
         <>
-          <Video
-            ref={videoRef}
+          <VideoView
+            ref={videoViewRef}
             key={videoId}
-            source={{
-              uri: videoUrl,
-              type: "m3u8",
-            }}
+            player={player}
             style={styles.video}
-            controls={isFullscreen}
-            resizeMode="contain"
-            useTextureView={true}
-            paused={!isFocused || !isUserPlaying}
-            fullscreen={isFullscreen}
-            fullscreenOrientation="landscape"
-            onFullscreenPlayerDidDismiss={handleFullscreenDismiss}
-            onLoadStart={() => {
-              setLoading(true);
-              setHasError(false);
+            contentFit="contain"
+            nativeControls={true}
+            fullscreenOptions={{
+              enable: true,
+              orientation: "landscape",
             }}
-            onLoad={(data) => {
-              setLoading(false);
-              if (data && typeof data.duration === "number") {
-                setDuration(data.duration);
-              }
-            }}
-
-            onBuffer={({ isBuffering }) => {
-              setLoading(isBuffering);
-            }}
-            onProgress={(data) => {
-              if (onProgress && duration !== null && typeof data.currentTime === "number") {
-                onProgress(data.currentTime, duration);
-              }
-            }}
-            onEnd={onEnd}
-            onError={(error) => {
-              console.log("Video error:", error);
-              setLoading(false);
-              setHasError(true);
-            }}
+            onFullscreenExit={handleFullscreenExit}
           />
           {!isUserPlaying && !loading && (
             <TouchableOpacity

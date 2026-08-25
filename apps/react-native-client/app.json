@@ -28,7 +28,7 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-video",
+      "expo-video",
       [
         "expo-splash-screen",
         {
