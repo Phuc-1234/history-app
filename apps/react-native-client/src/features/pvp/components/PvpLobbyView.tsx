@@ -1,10 +1,12 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, FlatList } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, FlatList, Clipboard } from "react-native";
 import { colors, radii, spacing, typography } from "@/theme";
 import { AvatarWithFrame } from "@/components/ui";
+import { toastService } from "@/services/toastService";
+import { API_BASE_URL } from "@/services/config";
 import type { PvpParticipant, PvpRoom } from "../types";
 import { useStartPvpRoomMutation } from "../services/pvpApi";
-import { Swords } from "lucide-react-native";
+import { Swords, Link2 } from "lucide-react-native";
 
 const SWORD_BACKGROUNDS = [
     { size: 40, top: "10%", left: "5%", rotate: "15deg" },
@@ -37,6 +39,12 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
         }
     };
 
+    const handleCopyLink = () => {
+        const link = `${API_BASE_URL}/pvp/${room.code}`;
+        Clipboard.setString(link);
+        toastService.show("Đã sao chép liên kết phòng!", "success");
+    };
+
     return (
         <View style={styles.container}>
             {/* Background Swords */}
@@ -64,6 +72,14 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
                 <Text style={styles.configSubtitle}>
                     {room.questionCount} câu hỏi • {room.timePerQuestion}s / câu
                 </Text>
+                <TouchableOpacity
+                    style={styles.copyLinkButton}
+                    onPress={handleCopyLink}
+                    activeOpacity={0.8}
+                >
+                    <Link2 size={16} color="#FFFFFF" />
+                    <Text style={styles.copyLinkText}>Sao chép liên kết</Text>
+                </TouchableOpacity>
             </View>
 
             {/* Participants list */}
@@ -167,6 +183,24 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontFamily: typography.fonts.regular,
         color: colors.primary100,
+    },
+    copyLinkButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: spacing.xs,
+        marginTop: spacing.md,
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        paddingVertical: spacing.xs + 2,
+        paddingHorizontal: spacing.md,
+        borderRadius: radii.pill,
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.35)",
+    },
+    copyLinkText: {
+        fontSize: 13,
+        fontFamily: typography.fonts.bold,
+        color: "#FFFFFF",
     },
     sectionTitle: {
         fontSize: 18,

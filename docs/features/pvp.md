@@ -1,6 +1,6 @@
 # Real-time PVP Competition Feature Documentation
 
-**Current Version:** 2.4  
+**Current Version:** 2.5  
 **Module Location:**
 - Backend Routes: [pvpRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/pvpRoutes.ts)
 - Backend Controllers: [pvpController.ts](file:///e:/history-app/apps/express-server/src/controllers/pvpController.ts)
@@ -402,9 +402,18 @@ sequenceDiagram
 - Added `activeQuestionResult` memo in [PvpGameScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpGameScreen.tsx) filtering `questionResult` by `questionIndex === currentQuestionIndex`.
 - Added `questionIndex` filtering and state reset guard in [usePvpRealtime.ts](file:///e:/history-app/apps/react-native-client/src/features/pvp/hooks/usePvpRealtime.ts) so previous question correct answer data is cleared when moving to the next question, preventing random options from rendering in dashed "missed" style during active question answering.
 
+### Version 2.5
+
+#### 1. Deep Link Room Sharing & Auto-Joining
+- Added a "Sao chép liên kết" (Copy Link) button to [PvpLobbyView.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/components/PvpLobbyView.tsx) that generates an HTTP shareable URL (`${API_BASE_URL}/pvp/${room.code}`) and copies it to clipboard (`Clipboard.setString`).
+- Added public HTTP redirect landing bridge endpoint (`GET /pvp/:code` and `GET /api/pvp/link/:code`) in backend [pvpController.ts](file:///e:/history-app/apps/express-server/src/controllers/pvpController.ts) and [index.ts](file:///e:/history-app/apps/express-server/src/index.ts). When clicked in messaging apps (Zalo, Messenger, etc.), it renders an auto-redirecting HTML page triggering `historyapp://pvp?roomCode={code}` into the app.
+- Configured deep link scheme handling in [+native-intent.tsx](file:///e:/history-app/apps/react-native-client/src/app/+native-intent.tsx) and [pvp.tsx](file:///e:/history-app/apps/react-native-client/src/app/pvp.tsx) to capture `roomCode` and `code` parameters.
+- Implemented automatic room joining upon app launch/navigation in [PvpMainScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/pvp/screens/PvpMainScreen.tsx) via `joinPvpRoom` mutation.
+- Deep link joining is fully supported for both **public** and **private** rooms.
+
 ---
 
-### Detailed Test Cases (v2.3)
+### Detailed Test Cases (v2.3 - v2.5)
 
 | Test Case ID | Scenario | Steps | Expected Result | Status |
 | :--- | :--- | :--- | :--- | :--- |
@@ -421,3 +430,7 @@ sequenceDiagram
 | **TC-PVP-2311** | Soft-leave on final question result | 1. Room reaches Q10 Result phase.<br>2. Player B soft-leaves.<br>3. Host A advances to game finished screen. | Room status changes to `FINISHED`. Player B re-opening app is not prompted for active room since match is complete. Final standings are preserved in database. | Untested |
 | **TC-PVP-2312** | Host manual transition override vs fallback race | 1. Host A soft-leaves in manual mode (`autoNext = false`).<br>2. Server starts 5s fallback timer.<br>3. Host A reconnects and taps "Tiếp tục" at 4.8s. | `triggerNextState` cancels fallback timer and advances room exactly once to next state. | Untested |
 | **TC-PVP-2313** | Back button handling during match | 1. Player A is in an `IN_PROGRESS` PVP match.<br>2. Player A taps the top bar back button or phone's hardware back button. | Exit confirmation modal opens ("Rời khỏi phòng thi đấu?") instead of soft-leaving the room directly. Tapping "Ở lại" closes modal and resumes game; tapping "Rời phòng" leaves room. | Untested |
+| **TC-PVP-2501** | Copy Deep Link in Lobby | 1. Host creates a public or private PVP room.<br>2. Host lands on Lobby screen.<br>3. Host taps "Sao chép liên kết". | Deep link (e.g. `historyapp://pvp?roomCode=1234`) is copied to clipboard and success toast ("Đã sao chép liên kết phòng!") is displayed. | Untested |
+| **TC-PVP-2502** | Auto-join PVP room via Deep Link | 1. User B receives deep link on a device with the app installed.<br>2. User B taps the deep link.<br>3. App opens directly to `/pvp` screen. | App detects `roomCode` parameter, automatically calls `joinRoom`, enters Lobby View of the target room, and shows "Đã tham gia phòng #1234!" toast. | Untested |
+| **TC-PVP-2503** | Deep Link join for Private Room | 1. Host creates a Private room (`isPublic = false`).<br>2. Host copies link and shares to User B.<br>3. User B taps link. | User B successfully joins the private room lobby via code in deep link despite room not appearing in public room list. | Untested |
+

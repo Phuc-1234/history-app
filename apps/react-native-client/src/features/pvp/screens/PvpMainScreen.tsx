@@ -1,21 +1,23 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, BackHandler } from "react-native";
 import { Swords } from "lucide-react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { SlidingTabBar } from "@/components/SlidingTabBar";
 import { colors, radii, spacing, typography } from "@/theme";
+import { toastService } from "@/services/toastService";
 import { CreateRoomTab } from "../components/CreateRoomTab";
 import { JoinRoomTab } from "../components/JoinRoomTab";
 import { PvpLobbyView } from "../components/PvpLobbyView";
 import { PvpGameScreen } from "./PvpGameScreen";
 import { usePvpRealtime } from "../hooks/usePvpRealtime";
-import { useGetActivePvpRoomQuery, useLeavePvpRoomMutation } from "../services/pvpApi";
+import { useGetActivePvpRoomQuery, useLeavePvpRoomMutation, useJoinPvpRoomMutation } from "../services/pvpApi";
 import { useSelector } from "react-redux";
 import type { PvpRoom } from "../types";
 import { useFocusEffect, useRouter } from "expo-router";
 
 interface PvpMainScreenProps {
     onExit?: () => void;
+    initialRoomCode?: string;
     initialMode?: "AUTO_PICK" | "CURATED";
     initialTestId?: string;
     initialScopeType?: string;
@@ -37,6 +39,7 @@ const SWORD_BACKGROUNDS = [
 
 export function PvpMainScreen({
     onExit,
+    initialRoomCode,
     initialMode,
     initialTestId,
     initialScopeType,
@@ -52,6 +55,38 @@ export function PvpMainScreen({
 
     const { data: activeRoomData, refetch: refetchActiveRoom } = useGetActivePvpRoomQuery();
     const [leavePvpRoomMut] = useLeavePvpRoomMutation();
+    const [joinPvpRoomMut] = useJoinPvpRoomMutation();
+    const autoJoinedRoomRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!initialRoomCode || initialRoomCode.trim().length !== 4) return;
+        const normalizedCode = initialRoomCode.trim();
+        if (autoJoinedRoomRef.current === normalizedCode) return;
+        if (currentRoom?.code === normalizedCode) return;
+
+        autoJoinedRoomRef.current = normalizedCode;
+
+        const autoJoin = async () => {
+            try {
+                if (currentRoom?.code && currentRoom.code !== normalizedCode) {
+                    try {
+                        await leavePvpRoomMut({ roomCode: currentRoom.code }).unwrap();
+                    } catch (e) {
+                        // ignore error when leaving previous room
+                    }
+                }
+                const room = await joinPvpRoomMut({ roomCode: normalizedCode }).unwrap();
+                setCurrentRoom(room);
+                toastService.show(`Đã tham gia phòng #${room.code}!`, "success");
+            } catch (err: any) {
+                console.error("Failed to auto-join PVP room from link:", err);
+                const msg = err?.data?.error ?? err?.message ?? "Không thể vào phòng bằng liên kết";
+                toastService.show(msg, "error");
+            }
+        };
+
+        autoJoin();
+    }, [initialRoomCode, currentRoom?.code, joinPvpRoomMut, leavePvpRoomMut]);
 
     useFocusEffect(
         React.useCallback(() => {

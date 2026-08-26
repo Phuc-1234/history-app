@@ -150,3 +150,78 @@ export const getPublicRooms = async (req: Request, res: Response) => {
     }
 };
 
+export const redirectToPvpRoom = (req: Request, res: Response) => {
+    const code = (req.params.code || req.query.roomCode || req.query.code || "").toString().trim();
+    const deepLinkUrl = `historyapp://pvp?roomCode=${encodeURIComponent(code)}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tham gia phòng thi đấu PVP</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 32px 24px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .code-badge {
+            font-size: 36px;
+            font-weight: 800;
+            color: #c37938;
+            letter-spacing: 6px;
+            margin: 16px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #c37938;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 16px;
+            text-decoration: none;
+            padding: 14px 28px;
+            border-radius: 30px;
+            margin-top: 20px;
+        }
+        .subtext {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Thi đấu Lịch Sử PVP</h2>
+        <p>Đang chuyển hướng bạn vào phòng thi đấu...</p>
+        <div class="code-badge">#${code || "----"}</div>
+        <a id="open-btn" class="btn" href="${deepLinkUrl}">Mở trong ứng dụng</a>
+        <p class="subtext">Nếu ứng dụng không tự động mở, hãy bấm nút ở trên.</p>
+    </div>
+    <script>
+        window.location.href = "${deepLinkUrl}";
+    </script>
+</body>
+</html>`;
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.status(200).send(html);
+};
+
