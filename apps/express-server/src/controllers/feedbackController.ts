@@ -1,6 +1,51 @@
 import { Request, Response } from "express";
 import { prisma, FeedbackStatus } from "@history-app/shared";
 
+// Strip HTML tags and decode entities so no raw "&nbsp;" / broken entity leaks into display text
+const htmlToPlainText = (html: string): string => {
+    let clean = html.replace(/<[^>]*>/g, " ");
+
+    const namedEntities: Record<string, string> = {
+        "&nbsp;": " ",
+        "&lt;": "<",
+        "&gt;": ">",
+        "&amp;": "&",
+        "&quot;": '"',
+        "&apos;": "'",
+        "&ldquo;": "“",
+        "&rdquo;": "”",
+        "&lsquo;": "‘",
+        "&rsquo;": "’",
+    };
+
+    clean = clean.replace(/&[a-zA-Z0-9#]+;/g, (match) => {
+        if (namedEntities[match]) return namedEntities[match];
+        if (match.startsWith("&#")) {
+            const body = match.slice(2, -1);
+            const isHex = body[0] === "x" || body[0] === "X";
+            const code = parseInt(isHex ? body.slice(1) : body, isHex ? 16 : 10);
+            if (!isNaN(code)) return String.fromCodePoint(code);
+        }
+        return match;
+    });
+
+    // Decoded entities may reveal new tags — strip again before collapsing whitespace
+    clean = clean.replace(/<[^>]*>/g, " ");
+    return clean.replace(/\s+/g, " ").trim();
+};
+
+// Truncate at a word boundary so the text never ends with a broken word/entity
+const truncateText = (text: string, maxLength: number): string => {
+    if (text.length <= maxLength) return text;
+    const slice = text.slice(0, maxLength);
+    const lastSpace = slice.lastIndexOf(" ");
+    const cut = lastSpace > maxLength * 0.5 ? slice.slice(0, lastSpace) : slice;
+    return cut.trimEnd() + "…";
+};
+
+// Cap long node/question content so list payloads stay light; clients expand/collapse the rest
+const TARGET_TEXT_CAP = 500;
+
 // Helper function to resolve human-readable target name
 const resolveTargetName = async (targetType: string | null, targetId: string | null): Promise<string | null> => {
     if (!targetType || !targetId) return null;
@@ -24,7 +69,9 @@ const resolveTargetName = async (targetType: string | null, targetId: string | n
                     select: { position: true, header: true, body: true }
                 });
                 if (!node) return `Mục (ID: ${numericId})`;
-                const title = node.header || node.body.replace(/<[^>]*>/g, "").substring(0, 30) + "...";
+                const title = node.header
+                    ? htmlToPlainText(node.header)
+                    : truncateText(htmlToPlainText(node.body), TARGET_TEXT_CAP);
                 return `Mục ${node.position}: ${title}`;
             }
             case "QUESTION": {
@@ -33,8 +80,7 @@ const resolveTargetName = async (targetType: string | null, targetId: string | n
                     select: { promptText: true }
                 });
                 if (!question) return `Câu hỏi (ID: ${numericId})`;
-                const plainText = question.promptText.replace(/<[^>]*>/g, "").trim().substring(0, 50) + "...";
-                return `Câu hỏi: ${plainText}`;
+                return `Câu hỏi: ${truncateText(htmlToPlainText(question.promptText), TARGET_TEXT_CAP)}`;
             }
             default:
                 return `${targetType} (ID: ${targetId})`;
