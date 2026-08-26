@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/services/supabaseClient";
 import type { PvpLeaderboardEntry, PvpParticipant, PvpRoom, QuestionV2 } from "../types";
+import { playTestPassSound } from "@/services/soundService";
+import { hapticLight, hapticMedium, hapticSuccess } from "@/services/hapticsService";
 
 export interface PvpRealtimeState {
     participants: PvpParticipant[];
@@ -163,6 +165,7 @@ export function usePvpRealtime(
                 setQuestionResult(null);
                 setAnsweredUserIds([]);
                 setShowLeaderboard(false);
+                hapticLight();
             })
             .on("broadcast", { event: "PLAYER_ANSWERED" }, ({ payload }) => {
                 if (payload?.userId) {
@@ -198,6 +201,7 @@ export function usePvpRealtime(
                     leaderboard,
                 });
                 setShowLeaderboard(false);
+                hapticMedium();
             })
             .on("broadcast", { event: "SHOW_LEADERBOARD" }, () => {
                 setShowLeaderboard(true);
@@ -205,6 +209,8 @@ export function usePvpRealtime(
             .on("broadcast", { event: "GAME_OVER" }, ({ payload }) => {
                 setFinalLeaderboard(payload.leaderboard ?? []);
                 setShowLeaderboard(false);
+                playTestPassSound();
+                hapticSuccess();
             })
             .subscribe(async (status) => {
                 if (status === "SUBSCRIBED" && currentUserId) {

@@ -49,6 +49,7 @@ import {
 import FeedbackModal from "@/components/FeedbackModal";
 import PracticeFeedbackMascot from "./PracticeFeedbackMascot";
 import { playTestPassSound, playTestFailSound } from "@/services/soundService";
+import { hapticSuccess, hapticError } from "@/services/hapticsService";
 
 import type {
     StartTestV2Request,
@@ -206,8 +207,10 @@ export default function TestContainerV2({
         if (status === "completed" && result?.userTestLog) {
             if (result.userTestLog.isPassed) {
                 playTestPassSound();
+                hapticSuccess();
             } else {
                 playTestFailSound();
+                hapticError();
             }
         }
     }, [status, result?.userTestLog?.isPassed]);

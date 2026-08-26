@@ -4,6 +4,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAppDispatch, useAppSelector } from "@/store/storeHook";
 import { appLogout } from "@/features/auth/store/authSlice";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
+import { toggleSound, toggleHaptics } from "@/features/settings/store/settingsSlice";
 import ProfileAvatar from "../components/ProfileAvatar";
 import ProfileMenuItem from "../components/ProfileMenuItem";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
@@ -29,6 +31,8 @@ export default function ProfileMainScreen() {
     const { refetch, isFetching } = useGetProfileQuery();
 
     const profile = useAppSelector((state) => state.auth.profile);
+    const soundEnabled = useAppSelector((state) => state.settings?.soundEnabled ?? true);
+    const hapticsEnabled = useAppSelector((state) => state.settings?.hapticsEnabled ?? true);
 
     if (!profile) {
         return (
@@ -215,6 +219,38 @@ export default function ProfileMainScreen() {
                         label="Đổi mật khẩu"
                         onPress={handleChangePassword}
                     />
+                </Card>
+
+                <Text style={styles.sectionHeader}>Cài đặt ứng dụng</Text>
+                <Card variant="soft" style={styles.menuContainer}>
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingLeft}>
+                            <View style={styles.iconContainer}>
+                                <Ionicons name="volume-high-outline" size={20} color={colors.primary} />
+                            </View>
+                            <Text style={styles.menuLabel}>Âm thanh</Text>
+                        </View>
+                        <Switch
+                            value={soundEnabled}
+                            onValueChange={() => dispatch(toggleSound())}
+                            trackColor={{ false: "#767577", true: colors.primary }}
+                            thumbColor={"#ffffff"}
+                        />
+                    </View>
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingLeft}>
+                            <View style={styles.iconContainer}>
+                                <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
+                            </View>
+                            <Text style={styles.menuLabel}>Rung (Haptics)</Text>
+                        </View>
+                        <Switch
+                            value={hapticsEnabled}
+                            onValueChange={() => dispatch(toggleHaptics())}
+                            trackColor={{ false: "#767577", true: colors.primary }}
+                            thumbColor={"#ffffff"}
+                        />
+                    </View>
                 </Card>
             </View>
 
@@ -417,5 +453,30 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#fff",
         textAlign: "center",
+    },
+    settingRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    settingLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+    },
+    iconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.background,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    menuLabel: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 15,
+        color: colors.textPrimary,
     },
 });
