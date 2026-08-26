@@ -30,6 +30,7 @@ import MatchQuestion from "../../test_v2/components/MatchQuestion";
 import PracticeFeedbackMascot from "../../test_v2/components/PracticeFeedbackMascot";
 import { evaluateQuestion } from "../../test_v2/services/scoreEngine";
 import { useSubmitPvpAnswerMutation, useNextPvpStateMutation } from "../services/pvpApi";
+import { playPracticeCorrectSound, playPracticeWrongSound } from "@/services/soundService";
 
 interface PvpGameScreenProps {
     roomCode: string;
@@ -272,6 +273,21 @@ export function PvpGameScreen({
         activeQuestionResult?.leaderboard.find((p) => p.userId === currentUserId)?.score ?? myPrevScore;
     const myPointGain = Math.max(0, myCurrentScore - myPrevScore);
     const isMyAnswerCorrect = evalResult ? evalResult.isCorrect : (myPointGain > 0);
+
+    const lastPlayedQuestionIndex = useRef<number>(-1);
+
+    useEffect(() => {
+        if (activeQuestionResult && activeQuestionResult.questionIndex !== undefined) {
+            if (lastPlayedQuestionIndex.current !== activeQuestionResult.questionIndex) {
+                lastPlayedQuestionIndex.current = activeQuestionResult.questionIndex;
+                if (isMyAnswerCorrect) {
+                    playPracticeCorrectSound();
+                } else {
+                    playPracticeWrongSound();
+                }
+            }
+        }
+    }, [activeQuestionResult, isMyAnswerCorrect]);
 
     // ── Final GameOver View ──
     if (finalLeaderboard) {

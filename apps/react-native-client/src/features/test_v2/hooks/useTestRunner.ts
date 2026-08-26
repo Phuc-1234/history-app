@@ -22,6 +22,7 @@ import {
 import { evaluateQuestion, isSingleChoice } from "../services/scoreEngine";
 import { useLoading } from "../../loading";
 import { playPracticeCorrectSound, playPracticeWrongSound } from "../../../services/soundService";
+import { hapticSuccess, hapticError } from "../../../services/hapticsService";
 
 export type TestRunnerStatus = "idle" | "loading" | "running" | "submitting" | "completed";
 
@@ -329,8 +330,10 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
 
         if (evalResult.isCorrect) {
             playPracticeCorrectSound();
+            hapticSuccess();
         } else {
             playPracticeWrongSound();
+            hapticError();
         }
     }, [purposeType, currentQuestion, draftAnswers]);
 

@@ -2,6 +2,7 @@
 import { Platform } from "react-native";
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import { Asset } from "expo-asset";
+import { store } from "../store/store";
 
 // ── Require user MP3 assets ───────────────────────────────────────────
 let PRACTICE_CORRECT_ASSET: any = null;
@@ -9,28 +10,37 @@ let PRACTICE_WRONG_ASSET: any = null;
 let TEST_PASS_ASSET: any = null;
 let TEST_FAIL_ASSET: any = null;
 
+let playerCorrect: any = null;
+let playerWrong: any = null;
+let playerTestPass: any = null;
+let playerTestFail: any = null;
+
 try {
-    PRACTICE_CORRECT_ASSET = require("../../assets/sounds/coin_mario.mp3");
+    PRACTICE_CORRECT_ASSET = require("../../assets/sounds/correct.mp3");
+    playerCorrect = createAudioPlayer(PRACTICE_CORRECT_ASSET);
 } catch (e) {
-    console.warn("[SoundService] Could not load coin_mario.mp3 asset:", e);
+    console.warn("[SoundService] Could not load correct.mp3 asset:", e);
 }
 
 try {
-    PRACTICE_WRONG_ASSET = require("../../assets/sounds/vine boom.mp3");
+    PRACTICE_WRONG_ASSET = require("../../assets/sounds/incorrect.mp3");
+    playerWrong = createAudioPlayer(PRACTICE_WRONG_ASSET);
 } catch (e) {
-    console.warn("[SoundService] Could not load vine boom.mp3 asset:", e);
+    console.warn("[SoundService] Could not load incorrect.mp3 asset:", e);
 }
 
 try {
-    TEST_PASS_ASSET = require("../../assets/sounds/yatta.mp3");
+    TEST_PASS_ASSET = require("../../assets/sounds/pass answer.mp3");
+    playerTestPass = createAudioPlayer(TEST_PASS_ASSET);
 } catch (e) {
-    console.warn("[SoundService] Could not load yatta.mp3 asset:", e);
+    console.warn("[SoundService] Could not load pass answer.mp3 asset:", e);
 }
 
 try {
-    TEST_FAIL_ASSET = require("../../assets/sounds/meo`cuoi.mp3");
+    TEST_FAIL_ASSET = require("../../assets/sounds/game over.mp3");
+    playerTestFail = createAudioPlayer(TEST_FAIL_ASSET);
 } catch (e) {
-    console.warn("[SoundService] Could not load meo`cuoi.mp3 asset:", e);
+    console.warn("[SoundService] Could not load game over.mp3 asset:", e);
 }
 
 let isAudioConfigured = false;
@@ -49,11 +59,26 @@ async function configureAudioSession() {
 
 async function playAssetOrUri(
     assetSource: any,
-    fallbackToneSequence: Array<{ freq: number; duration: number; type?: OscillatorType; volume?: number }>
+    fallbackToneSequence: Array<{ freq: number; duration: number; type?: OscillatorType; volume?: number }>,
+    preloadedPlayer?: any
 ) {
+    if (!store.getState().settings?.soundEnabled) return;
+
     await configureAudioSession();
 
-    // 1. Try expo-audio player
+    // 1. Try preloaded expo-audio player
+    if (preloadedPlayer && Platform.OS !== "web") {
+        try {
+            preloadedPlayer.volume = 1.0;
+            preloadedPlayer.seekTo(0);
+            preloadedPlayer.play();
+            return;
+        } catch (e) {
+            console.warn("[SoundService] preloaded expo-audio failed:", e);
+        }
+    }
+
+    // 1b. Try dynamic expo-audio player
     if (assetSource != null) {
         try {
             const player = createAudioPlayer(assetSource);
@@ -152,7 +177,7 @@ export function playPracticeCorrectSound() {
     void playAssetOrUri(PRACTICE_CORRECT_ASSET, [
         { freq: 523.25, duration: 0.1, type: "sine", volume: 0.35 },
         { freq: 783.99, duration: 0.25, type: "sine", volume: 0.45 },
-    ]);
+    ], playerCorrect);
 }
 
 /**
@@ -162,7 +187,7 @@ export function playPracticeWrongSound() {
     void playAssetOrUri(PRACTICE_WRONG_ASSET, [
         { freq: 349.23, duration: 0.12, type: "triangle", volume: 0.35 },
         { freq: 220.00, duration: 0.28, type: "sawtooth", volume: 0.30 },
-    ]);
+    ], playerWrong);
 }
 
 /**
@@ -174,7 +199,7 @@ export function playTestPassSound() {
         { freq: 659.25, duration: 0.12, type: "sine", volume: 0.4 },
         { freq: 783.99, duration: 0.15, type: "sine", volume: 0.45 },
         { freq: 1046.50, duration: 0.5, type: "triangle", volume: 0.5 },
-    ]);
+    ], playerTestPass);
 }
 
 /**
@@ -185,7 +210,7 @@ export function playTestFailSound() {
         { freq: 440.00, duration: 0.16, type: "sawtooth", volume: 0.35 },
         { freq: 349.23, duration: 0.16, type: "sawtooth", volume: 0.35 },
         { freq: 293.66, duration: 0.45, type: "sawtooth", volume: 0.35 },
-    ]);
+    ], playerTestFail);
 }
 
 export const soundService = {

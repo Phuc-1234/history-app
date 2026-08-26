@@ -5,12 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiSlice } from '../services/apiSlice';
 import authReducer from "../features/auth/store/authSlice";
 import testHistoryReducer from '../features/test_v2/store/testHistorySlice';
+import settingsReducer from '../features/settings/store/settingsSlice';
 
 // Combine your reducers (add your feature auth or history slices here later)
 const rootReducer = combineReducers({
   [apiSlice.reducerPath]: apiSlice.reducer,
   auth: authReducer,
   testHistory: testHistoryReducer,
+  settings: settingsReducer,
 });
 
 // Configure Redux Persist to save states automatically
