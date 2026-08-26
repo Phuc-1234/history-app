@@ -11,10 +11,15 @@ import {
     getAvailableQuestionsCount,
     leaveRoom,
     getPublicRooms,
+    redirectToPvpRoom,
 } from "../controllers/pvpController";
 import { requireStudent } from "../middlewares/authMiddleware";
 
 const router = Router();
+
+// GET /api/pvp/link/:code (Public deep link landing bridge)
+router.get("/link/:code", redirectToPvpRoom);
+router.get("/link", redirectToPvpRoom);
 
 // GET /api/pvp/public-rooms
 router.get("/public-rooms", requireStudent, getPublicRooms);

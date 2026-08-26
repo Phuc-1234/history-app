@@ -232,7 +232,9 @@ export default function ProfileMainScreen() {
                         </View>
                         <Switch
                             value={soundEnabled}
-                            onValueChange={() => dispatch(toggleSound())}
+                            onValueChange={() => {
+                                dispatch(toggleSound());
+                            }}
                             trackColor={{ false: "#767577", true: colors.primary }}
                             thumbColor={"#ffffff"}
                         />
@@ -242,11 +244,13 @@ export default function ProfileMainScreen() {
                             <View style={styles.iconContainer}>
                                 <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
                             </View>
-                            <Text style={styles.menuLabel}>Rung (Haptics)</Text>
+                            <Text style={styles.menuLabel}>Rung</Text>
                         </View>
                         <Switch
                             value={hapticsEnabled}
-                            onValueChange={() => dispatch(toggleHaptics())}
+                            onValueChange={() => {
+                                dispatch(toggleHaptics());
+                            }}
                             trackColor={{ false: "#767577", true: colors.primary }}
                             thumbColor={"#ffffff"}
                         />

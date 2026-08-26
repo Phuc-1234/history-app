@@ -21,5 +21,11 @@ export function redirectSystemPath(options: { path: string; initial: boolean }) 
     return `/8_2_buy_gold${queryString}`;
   }
 
+  // Handle PVP path format: pvp/1234 -> /pvp?roomCode=1234
+  const pvpPathMatch = path.match(/^\/?pvp\/(\d{4})/);
+  if (pvpPathMatch) {
+    return `/pvp?roomCode=${pvpPathMatch[1]}`;
+  }
+
   return path;
 }

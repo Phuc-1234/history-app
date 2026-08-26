@@ -5,6 +5,8 @@ import { PvpMainScreen } from "@/features/pvp";
 export default function PvpRoute() {
     const router = useRouter();
     const params = useLocalSearchParams<{
+        roomCode?: string;
+        code?: string;
         initialMode?: string;
         initialTestId?: string;
         initialScopeType?: string;
@@ -15,6 +17,7 @@ export default function PvpRoute() {
     return (
         <PvpMainScreen
             onExit={() => router.back()}
+            initialRoomCode={params.roomCode || params.code}
             initialMode={params.initialMode as any}
             initialTestId={params.initialTestId}
             initialScopeType={params.initialScopeType}

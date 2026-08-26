@@ -46,6 +46,8 @@ import packageRoutes from "./routes/packageRoutes";
 import aiChatRoutes from "./routes/aiChatRoutes";
 import pvpRoutes from "./routes/pvpRoutes";
 
+import { redirectToPvpRoom } from "./controllers/pvpController";
+
 // API Route Bindings
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
@@ -64,6 +66,10 @@ app.use("/api/shop", shopRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/ai-chat", aiChatRoutes);
 app.use("/api/pvp", pvpRoutes);
+
+// Public HTTP Deep Link Redirect Bridge for PVP Room Sharing
+app.get("/pvp/:code", redirectToPvpRoom);
+app.get("/pvp", redirectToPvpRoom);
 
 // Base Health Check Route (Great for beating Render's spin-down rate limits!)
 app.get("/api/healthcheck", (req: Request, res: Response) => {
