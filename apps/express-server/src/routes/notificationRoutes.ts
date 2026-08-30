@@ -147,9 +147,77 @@ router.get('/', requireStudent, async (req: Request, res: Response) => {
   try {
     const notifications = await db.notification.findMany({
       where: { userId },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            profileImgUrl: true,
+            userEquippedItems: {
+              where: { equipmentSlot: 'AVT_FRAME' },
+              include: { itemDefinition: true },
+            },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
-    return res.status(200).json({ notifications });
+
+    const friendRequestIds = notifications
+      .filter((n: any) => n.type === 'FRIEND_REQUEST' && n.targetId)
+      .map((n: any) => n.targetId);
+
+    const friendRequests = friendRequestIds.length > 0
+      ? await db.friendRequest.findMany({
+          where: { id: { in: friendRequestIds } },
+          select: { id: true, status: true },
+        })
+      : [];
+
+    const statusMap = new Map<string, string>(
+      friendRequests.map((fr: any) => [fr.id, fr.status])
+    );
+
+    const formattedNotifications = notifications.map((n: any) => {
+      let requestStatus: string | null = null;
+      if (n.type === 'FRIEND_REQUEST' && n.targetId) {
+        requestStatus = statusMap.get(n.targetId) || null;
+      }
+
+      let formattedSender: {
+        id: string;
+        name: string;
+        profileImgUrl: string | null;
+        equippedFrameUrl: string | null;
+      } | null = null;
+      if (n.sender) {
+        const frameUrl = n.sender.userEquippedItems?.[0]?.itemDefinition?.imgUrl ?? null;
+        formattedSender = {
+          id: n.sender.id,
+          name: n.sender.name,
+          profileImgUrl: n.sender.profileImgUrl,
+          equippedFrameUrl: frameUrl,
+        };
+      }
+
+      return {
+        id: n.id,
+        userId: n.userId,
+        senderId: n.senderId,
+        targetId: n.targetId,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        isRead: n.isRead,
+        isHidden: n.isHidden,
+        createdAt: n.createdAt,
+        updatedAt: n.updatedAt,
+        sender: formattedSender,
+        requestStatus,
+      };
+    });
+
+    return res.status(200).json({ notifications: formattedNotifications });
   } catch (error: any) {
     console.error('[Notification] Error fetching notifications:', error);
     return res.status(500).json({ error: 'Failed to fetch notifications', details: error.message });
@@ -199,6 +267,40 @@ router.put('/:id/read', requireStudent, async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[Notification] Error marking notification as read:', error);
     return res.status(500).json({ error: 'Failed to mark notification as read', details: error.message });
+  }
+});
+
+/**
+ * API: PUT /api/notifications/:id/toggle-hide
+ * Toggle or set hidden status for a notification
+ */
+router.put('/:id/toggle-hide', requireStudent, async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { id } = req.params;
+  const { isHidden } = req.body;
+  try {
+    const notification = await db.notification.findFirst({
+      where: { id, userId },
+    });
+
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    const newHiddenState = typeof isHidden === 'boolean' ? isHidden : !notification.isHidden;
+
+    const updated = await db.notification.update({
+      where: { id },
+      data: { isHidden: newHiddenState },
+    });
+
+    return res.status(200).json({
+      message: newHiddenState ? 'Notification hidden' : 'Notification unhidden',
+      isHidden: updated.isHidden,
+    });
+  } catch (error: any) {
+    console.error('[Notification] Error toggling notification hidden state:', error);
+    return res.status(500).json({ error: 'Failed to update notification', details: error.message });
   }
 });
 

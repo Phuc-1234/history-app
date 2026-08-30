@@ -182,24 +182,22 @@ Mounted once at root layout [_layout.tsx](file:///e:/history-app/apps/react-nati
          └── Re-register newToken with backend: POST /api/notifications/register-token
 ```
 
-### B. Notification Screen & Tab Architecture ([NotificationsScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/notification/screens/NotificationsScreen.tsx))
+### B. Notification Screen & Filter Architecture ([NotificationsScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/notification/screens/NotificationsScreen.tsx))
 
-The screen aggregates two separate data sources via a 3-tab segmented control:
-1. **Source 1: Friend Requests API** (`socialApi.useGetIncomingFriendRequestsQuery`)
-   - Shows pending friend requests with Accept (`acceptFriendRequest`) and Reject (`rejectFriendRequest`) buttons using [UserCard](file:///e:/history-app/apps/react-native-client/src/components/ui/UserCard.tsx).
-2. **Source 2: System Notifications API** (`notificationApi.useGetNotificationsQuery`)
-   - Shows persistent notifications from `Notification` table.
-   - Allows marking single item read (`markNotificationAsRead`) or bulk read (`markAllNotificationsAsRead`).
-   - Formats relative time via `formatRelativeTime` (`"Vừa xong"`, `"X phút trước"`, `"X giờ trước"`, `"Hôm qua"`, `"dd/MM/yyyy"`).
-
-**Tab Breakdown:**
-- **"Tất cả" (Default):** Displays both Friend Requests section (if any) and System Notifications section.
-- **"Lời mời":** Displays only incoming Friend Requests with Accept/Reject actions.
-- **"Hệ thống":** Displays only DB System Notifications with "Đọc tất cả" header action.
+The screen displays a unified notification feed with a single-select horizontal filter bar:
+1. **Single Data Source:** `notificationApi.useGetNotificationsQuery` (fetches `Notification` table records with sender and underlying `FriendRequest` status).
+2. **Filter Chips (Single-Select):**
+   - **"Tất cả" (Default):** Displays all notifications.
+   - **"Lời mời kết bạn":** Filters for `FRIEND_REQUEST` notifications.
+   - **"Chấp nhận kết bạn":** Filters for `FRIEND_ACCEPT` notifications.
+3. **Interactive Friend Request Cards ([NotificationItem.tsx](file:///e:/history-app/apps/react-native-client/src/features/notification/components/NotificationItem.tsx)):**
+   - Renders "Chấp nhận" (Primary pill button) & "Từ chối" (Outline pill button) directly within pending `FRIEND_REQUEST` notification cards.
+   - Transitions to status badges ("Đã chấp nhận kết bạn" / "Đã từ chối") once acted upon.
+4. **Read/Unread Controls:** Single item mark read and bulk "Đọc tất cả" header action.
 
 **Auto-Sync Triggers:**
-- Screen focus listener (`navigation.addListener("focus")`) refetches both queries.
-- App state listener (`AppState.addEventListener("change")` -> `"active"`) refetches both queries when returning from background.
+- Screen focus listener (`navigation.addListener("focus")`) refetches query.
+- App state listener (`AppState.addEventListener("change")` -> `"active"`) refetches query when returning from background.
 
 ---
 

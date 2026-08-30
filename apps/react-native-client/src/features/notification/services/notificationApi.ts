@@ -21,6 +21,17 @@ export const notificationApi = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ["Notification"],
         }),
+        toggleHideNotification: builder.mutation<
+            { message: string; isHidden: boolean },
+            { id: string; isHidden?: boolean }
+        >({
+            query: ({ id, isHidden }) => ({
+                url: `/api/notifications/${id}/toggle-hide`,
+                method: "PUT",
+                body: { isHidden },
+            }),
+            invalidatesTags: ["Notification"],
+        }),
     }),
 });
 
@@ -28,4 +39,5 @@ export const {
     useGetNotificationsQuery,
     useMarkNotificationAsReadMutation,
     useMarkAllNotificationsAsReadMutation,
+    useToggleHideNotificationMutation,
 } = notificationApi;

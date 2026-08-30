@@ -389,6 +389,8 @@ export class SocialService {
             await db.notification.create({
                 data: {
                     userId: receiverId,
+                    senderId: senderId,
+                    targetId: request.id,
                     type: "FRIEND_REQUEST",
                     title,
                     body,
@@ -442,6 +444,8 @@ export class SocialService {
             db.notification.create({
                 data: {
                     userId: request.senderId,
+                    senderId: currentUserId,
+                    targetId: requestId,
                     type: "FRIEND_ACCEPT",
                     title,
                     body,

@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, AppState, AppStateStatus } from "react-native";
-import { useNavigation } from "expo-router";
-import { ScreenShell, EmptyState, UserCard, SegmentTabs } from "@/components/ui";
 import {
-    useGetIncomingFriendRequestsQuery,
+    StyleSheet,
+    Text,
+    View,
+    ScrollView,
+    TouchableOpacity,
+    ActivityIndicator,
+    AppState,
+    AppStateStatus,
+    RefreshControl,
+} from "react-native";
+import { useNavigation, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { ScreenShell, EmptyState } from "@/components/ui";
+import {
     useAcceptFriendRequestMutation,
     useRejectFriendRequestMutation,
 } from "@/features/social/services/socialApi";
@@ -11,14 +21,29 @@ import {
     useGetNotificationsQuery,
     useMarkNotificationAsReadMutation,
     useMarkAllNotificationsAsReadMutation,
+    useToggleHideNotificationMutation,
 } from "../services/notificationApi";
-import { toViewUser } from "@/features/social/utils/socialView";
+import { toastService } from "@/services/toastService";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { colors } from "@/theme/colors";
 import { typography } from "@/theme/typography";
 import type { SystemNotification } from "../types";
 import { NotificationItem } from "../components/NotificationItem";
 
-type Tab = "Tất cả" | "Lời mời" | "Hệ thống";
+type NotificationFilterType = "all" | "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "HIDDEN";
+
+interface FilterOption {
+    id: NotificationFilterType;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+}
+
+const FILTER_OPTIONS: FilterOption[] = [
+    { id: "all", label: "Tất cả", icon: "layers-outline" },
+    { id: "FRIEND_REQUEST", label: "Lời mời kết bạn", icon: "person-add-outline" },
+    { id: "FRIEND_ACCEPT", label: "Chấp nhận kết bạn", icon: "people-outline" },
+    { id: "HIDDEN", label: "Đã ẩn", icon: "eye-off-outline" },
+];
 
 function formatRelativeTime(dateString: string): string {
     const now = new Date();
@@ -37,36 +62,49 @@ function formatRelativeTime(dateString: string): string {
     return date.toLocaleDateString("vi-VN", {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric"
+        year: "numeric",
     });
 }
 
 export function NotificationsScreen() {
-    const [activeTab, setActiveTab] = useState<Tab>("Tất cả");
+    const [selectedFilter, setSelectedFilter] = useState<NotificationFilterType>("all");
+    const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+    const [localStatusOverrides, setLocalStatusOverrides] = useState<
+        Record<string, "ACCEPTED" | "REJECTED">
+    >({});
+    const [localHiddenOverrides, setLocalHiddenOverrides] = useState<
+        Record<string, boolean>
+    >({});
+    const [localReadOverrides, setLocalReadOverrides] = useState<
+        Record<string, boolean>
+    >({});
+
     const navigation = useNavigation();
+    const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
 
-    // Queries & Mutations for real friend requests
-    const { data: incomingData, isLoading: isLoadingRequests, isError: isErrorRequests, refetch: refetchRequests } = useGetIncomingFriendRequestsQuery();
-    const [acceptRequest] = useAcceptFriendRequestMutation();
-    const [rejectRequest] = useRejectFriendRequestMutation();
+    const {
+        data: notificationData,
+        isLoading,
+        isFetching,
+        isError,
+        refetch,
+    } = useGetNotificationsQuery();
 
-    // Queries & Mutations for DB notifications
-    const { data: notificationData, isLoading: isLoadingNotis, isError: isErrorNotis, refetch: refetchNotis } = useGetNotificationsQuery();
     const [markAsRead] = useMarkNotificationAsReadMutation();
     const [markAllAsRead] = useMarkAllNotificationsAsReadMutation();
+    const [acceptRequest] = useAcceptFriendRequestMutation();
+    const [rejectRequest] = useRejectFriendRequestMutation();
+    const [toggleHideNotification] = useToggleHideNotificationMutation();
 
     useEffect(() => {
-        // Refetch queries when screen comes into focus
         const unsubscribeFocus = navigation.addListener("focus", () => {
-            refetchRequests();
-            refetchNotis();
+            refetch();
         });
 
-        // Refetch queries when app returns from background to foreground
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
             if (nextAppState === "active") {
-                refetchRequests();
-                refetchNotis();
+                refetch();
             }
         };
 
@@ -76,21 +114,19 @@ export function NotificationsScreen() {
             unsubscribeFocus();
             appStateSubscription.remove();
         };
-    }, [navigation, refetchRequests, refetchNotis]);
-
-    const friendRequests = incomingData?.requests ?? [];
-    
-    // Map DB notifications to include calculated timestamp
-    const systemNotis: SystemNotification[] = (notificationData?.notifications ?? []).map(noti => ({
-        ...noti,
-        timestamp: formatRelativeTime(noti.createdAt)
-    }));
+    }, [navigation, refetch]);
 
     const handleMarkAsRead = async (id: string) => {
+        setLocalReadOverrides((prev) => ({ ...prev, [id]: true }));
         try {
             await markAsRead(id).unwrap();
         } catch (error) {
             console.error("Failed to mark notification as read:", error);
+            setLocalReadOverrides((prev) => {
+                const next = { ...prev };
+                delete next[id];
+                return next;
+            });
         }
     };
 
@@ -102,80 +138,206 @@ export function NotificationsScreen() {
         }
     };
 
-    const hasUnreadSystem = systemNotis.some(n => !n.isRead);
+    const handleNavigateToUserProfile = preventDoubleTap((targetUserId: string) => {
+        router.push(`/(social)/profile?userId=${targetUserId}` as never);
+    });
 
-    // Rendering Helpers
-    const renderFriendRequests = () => {
-        if (friendRequests.length === 0) return null;
-        return (
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Lời mời kết bạn</Text>
-                <View style={styles.listGap}>
-                    {friendRequests.map((request) => {
-                        const user = request.user ? toViewUser(request.user) : null;
-                        if (!user) return null;
-                        return (
-                            <UserCard
-                                key={request.id}
-                                user={user}
-                                primaryLabel="Chấp nhận"
-                                primaryIcon="checkmark"
-                                primaryVariant="primary"
-                                primaryOnPress={() => acceptRequest(request.id)}
-                                secondaryLabel="Từ chối"
-                                secondaryIcon="close"
-                                secondaryVariant="outline"
-                                secondaryOnPress={() => rejectRequest(request.id)}
-                            />
-                        );
-                    })}
-                </View>
-            </View>
-        );
+    const handleCardPress = async (notification: SystemNotification) => {
+        // Mark as read when tapping anywhere on the card
+        if (!notification.isRead) {
+            handleMarkAsRead(notification.id);
+        }
+
+        // If friend request or friend accept, navigate to profile
+        const targetUserId =
+            notification.type === "FRIEND_REQUEST" ||
+            notification.type === "FRIEND_ACCEPT"
+                ? notification.senderId || notification.sender?.id
+                : undefined;
+
+        if (targetUserId) {
+            handleNavigateToUserProfile(targetUserId);
+        }
     };
 
-    const renderSystemNotifications = () => {
-        if (systemNotis.length === 0) return null;
-        return (
-            <View style={styles.section}>
-                <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>Thông báo hệ thống</Text>
-                    {hasUnreadSystem && (
-                        <TouchableOpacity onPress={handleMarkAllAsRead}>
-                            <Text style={styles.headerLink}>Đọc tất cả</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-                <View style={styles.listGap}>
-                    {systemNotis.map((noti) => (
-                        <NotificationItem
-                            key={noti.id}
-                            notification={noti}
-                            onMarkAsRead={() => handleMarkAsRead(noti.id)}
-                        />
-                    ))}
-                </View>
-            </View>
-        );
+    const handleToggleHide = async (notification: SystemNotification) => {
+        const nextHiddenState = !notification.isHidden;
+        // Optimistic UI state
+        setLocalHiddenOverrides((prev) => ({
+            ...prev,
+            [notification.id]: nextHiddenState,
+        }));
+
+        if (nextHiddenState) {
+            toastService.show("Đã ẩn thông báo", "info");
+        } else {
+            toastService.show("Đã bỏ ẩn thông báo", "success");
+        }
+
+        try {
+            await toggleHideNotification({
+                id: notification.id,
+                isHidden: nextHiddenState,
+            }).unwrap();
+        } catch (error) {
+            console.error("Failed to toggle notification hidden state:", error);
+            // Revert on error
+            setLocalHiddenOverrides((prev) => {
+                const next = { ...prev };
+                delete next[notification.id];
+                return next;
+            });
+            toastService.show("Không thể cập nhật trạng thái thông báo", "error");
+        }
     };
 
-    const isLoading = isLoadingRequests || isLoadingNotis;
-    const isError = isErrorRequests || isErrorNotis;
+    const handleAccept = async (notification: SystemNotification) => {
+        if (!notification.targetId) return;
+        const reqId = notification.targetId;
+        setProcessingRequestId(reqId);
+        setLocalStatusOverrides((prev) => ({ ...prev, [reqId]: "ACCEPTED" }));
+        setLocalReadOverrides((prev) => ({ ...prev, [notification.id]: true }));
+
+        try {
+            await acceptRequest(reqId).unwrap();
+            if (!notification.isRead) {
+                await markAsRead(notification.id).unwrap();
+            }
+        } catch (error) {
+            console.error("Failed to accept friend request:", error);
+            setLocalStatusOverrides((prev) => {
+                const next = { ...prev };
+                delete next[reqId];
+                return next;
+            });
+        } finally {
+            setProcessingRequestId(null);
+        }
+    };
+
+    const handleReject = async (notification: SystemNotification) => {
+        if (!notification.targetId) return;
+        const reqId = notification.targetId;
+        setProcessingRequestId(reqId);
+        setLocalStatusOverrides((prev) => ({ ...prev, [reqId]: "REJECTED" }));
+        setLocalReadOverrides((prev) => ({ ...prev, [notification.id]: true }));
+
+        try {
+            await rejectRequest(reqId).unwrap();
+            if (!notification.isRead) {
+                await markAsRead(notification.id).unwrap();
+            }
+        } catch (error) {
+            console.error("Failed to reject friend request:", error);
+            setLocalStatusOverrides((prev) => {
+                const next = { ...prev };
+                delete next[reqId];
+                return next;
+            });
+        } finally {
+            setProcessingRequestId(null);
+        }
+    };
+
+    const allNotifications: SystemNotification[] = (
+        notificationData?.notifications ?? []
+    ).map((noti) => {
+        const overrideStatus = noti.targetId ? localStatusOverrides[noti.targetId] : undefined;
+        const overrideHidden = localHiddenOverrides[noti.id] !== undefined
+            ? localHiddenOverrides[noti.id]
+            : noti.isHidden;
+        const overrideRead = localReadOverrides[noti.id] !== undefined
+            ? localReadOverrides[noti.id]
+            : noti.isRead;
+
+        return {
+            ...noti,
+            isRead: !!overrideRead,
+            isHidden: !!overrideHidden,
+            requestStatus: overrideStatus ?? noti.requestStatus,
+            timestamp: formatRelativeTime(noti.createdAt),
+        };
+    });
+
+    const filteredNotifications = allNotifications.filter((noti) => {
+        if (selectedFilter === "HIDDEN") {
+            return noti.isHidden;
+        }
+        if (noti.isHidden) {
+            return false;
+        }
+        if (selectedFilter === "all") {
+            return true;
+        }
+        return noti.type === selectedFilter;
+    });
+
+    const hasUnread = allNotifications.some((n) => !n.isRead && !n.isHidden);
 
     return (
         <ScreenShell title="Thông báo" titleColor="#FFFFFF">
             <View style={styles.container}>
-                <View style={styles.tabsContainer}>
-                    <SegmentTabs
-                        tabs={["Tất cả", "Lời mời", "Hệ thống"]}
-                        active={activeTab}
-                        onChange={(t) => setActiveTab(t as Tab)}
-                    />
+                {/* Horizontal single-select filter bar */}
+                <View style={styles.filterBarContainer}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.filterScrollContent}
+                    >
+                        {FILTER_OPTIONS.map((opt) => {
+                            const isSelected = selectedFilter === opt.id;
+                            return (
+                                <TouchableOpacity
+                                    key={opt.id}
+                                    style={[
+                                        styles.filterChip,
+                                        isSelected && styles.filterChipActive,
+                                    ]}
+                                    onPress={() => setSelectedFilter(opt.id)}
+                                    activeOpacity={0.75}
+                                >
+                                    <Ionicons
+                                        name={opt.icon}
+                                        size={16}
+                                        color={isSelected ? "#FFFFFF" : colors.primary}
+                                    />
+                                    <Text
+                                        style={[
+                                            styles.filterChipText,
+                                            isSelected && styles.filterChipTextActive,
+                                        ]}
+                                    >
+                                        {opt.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
                 </View>
+
+                {/* Sub-header row for unread actions */}
+                {hasUnread && !isLoading && selectedFilter !== "HIDDEN" && (
+                    <View style={styles.subHeaderRow}>
+                        <Text style={styles.countText}>
+                            {filteredNotifications.length} thông báo
+                        </Text>
+                        <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
+                            <Text style={styles.markAllReadText}>Đọc tất cả</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 <ScrollView
                     contentContainerStyle={styles.content}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isFetching}
+                            onRefresh={refetch}
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
+                        />
+                    }
                 >
                     {isLoading && (
                         <View style={styles.loader}>
@@ -183,50 +345,45 @@ export function NotificationsScreen() {
                         </View>
                     )}
 
-                    {!isLoading && (
-                        <>
-                            {activeTab === "Tất cả" && (
-                                <>
-                                    {friendRequests.length === 0 && systemNotis.length === 0 && (
-                                        <EmptyState title="Không có thông báo nào." />
-                                    )}
-                                    {renderFriendRequests()}
-                                    {renderSystemNotifications()}
-                                </>
-                            )}
+                    {!isLoading && isError && (
+                        <EmptyState
+                            title="Không thể tải thông báo."
+                            actionLabel="Thử lại"
+                            onAction={refetch}
+                        />
+                    )}
 
-                            {activeTab === "Lời mời" && (
-                                <>
-                                    {isErrorRequests && (
-                                        <EmptyState
-                                            title="Không tải được lời mời kết bạn."
-                                            actionLabel="Tải lại"
-                                            onAction={refetchRequests}
-                                        />
-                                    )}
-                                    {!isErrorRequests && friendRequests.length === 0 && (
-                                        <EmptyState title="Không có lời mời kết bạn nào." />
-                                    )}
-                                    {!isErrorRequests && renderFriendRequests()}
-                                </>
-                            )}
+                    {!isLoading && !isError && filteredNotifications.length === 0 && (
+                        <EmptyState
+                            title={
+                                selectedFilter === "FRIEND_REQUEST"
+                                    ? "Không có lời mời kết bạn nào."
+                                    : selectedFilter === "FRIEND_ACCEPT"
+                                    ? "Không có thông báo chấp nhận kết bạn nào."
+                                    : selectedFilter === "HIDDEN"
+                                    ? "Không có thông báo nào bị ẩn."
+                                    : "Không có thông báo nào."
+                            }
+                        />
+                    )}
 
-                            {activeTab === "Hệ thống" && (
-                                <>
-                                    {isErrorNotis && (
-                                        <EmptyState
-                                            title="Không tải được thông báo hệ thống."
-                                            actionLabel="Tải lại"
-                                            onAction={refetchNotis}
-                                        />
-                                    )}
-                                    {!isErrorNotis && systemNotis.length === 0 && (
-                                        <EmptyState title="Không có thông báo hệ thống nào." />
-                                    )}
-                                    {!isErrorNotis && systemNotis.length > 0 && renderSystemNotifications()}
-                                </>
-                            )}
-                        </>
+                    {!isLoading && !isError && filteredNotifications.length > 0 && (
+                        <View style={styles.listGap}>
+                            {filteredNotifications.map((noti) => (
+                                <NotificationItem
+                                    key={noti.id}
+                                    notification={noti}
+                                    onPress={() => handleCardPress(noti)}
+                                    onMarkAsRead={() => handleMarkAsRead(noti.id)}
+                                    onAccept={() => handleAccept(noti)}
+                                    onReject={() => handleReject(noti)}
+                                    onToggleHide={() => handleToggleHide(noti)}
+                                    isProcessingAction={
+                                        !!noti.targetId && processingRequestId === noti.targetId
+                                    }
+                                />
+                            ))}
+                        </View>
                     )}
                 </ScrollView>
             </View>
@@ -239,39 +396,62 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    tabsContainer: {
+    filterBarContainer: {
+        paddingVertical: 12,
+        backgroundColor: colors.background,
+    },
+    filterScrollContent: {
         paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 4,
+        gap: 8,
+    },
+    filterChip: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 30,
+        backgroundColor: colors.surface,
+        borderWidth: 1.5,
+        borderColor: colors.borderMedium,
+    },
+    filterChipActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    filterChipText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 13,
+        color: colors.textPrimary,
+    },
+    filterChipTextActive: {
+        color: "#FFFFFF",
+    },
+    subHeaderRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingBottom: 8,
+    },
+    countText: {
+        fontFamily: typography.fonts.regular,
+        fontSize: 12,
+        color: colors.textMuted,
+    },
+    markAllReadText: {
+        fontFamily: typography.fonts.semiBold,
+        fontSize: 12,
+        color: colors.primary,
     },
     content: {
         paddingHorizontal: 16,
-        paddingTop: 8,
+        paddingTop: 4,
         paddingBottom: 32,
     },
     loader: {
         paddingVertical: 40,
         alignItems: "center",
-    },
-    section: {
-        marginBottom: 20,
-    },
-    sectionHeaderRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 10,
-    },
-    sectionTitle: {
-        fontFamily: typography.fonts.bold,
-        fontSize: 15,
-        color: colors.textPrimary,
-        marginBottom: 10,
-    },
-    headerLink: {
-        fontFamily: typography.fonts.semiBold,
-        fontSize: 13,
-        color: colors.primary,
     },
     listGap: {
         gap: 12,
