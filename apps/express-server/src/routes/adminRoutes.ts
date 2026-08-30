@@ -3,7 +3,7 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { requireAdmin, requireSuperAdmin } from "../middlewares/authMiddleware";
+import { requireAdmin } from "../middlewares/authMiddleware";
 import {
     getOverviewStats,
     getXpActivitySeries,
@@ -156,7 +156,7 @@ router.post("/grades", createGrade);
 router.patch("/grades/:gradeId", updateGrade);
 
 // DELETE /api/admin/grades/:gradeId
-router.delete("/grades/:gradeId", requireSuperAdmin, deleteGrade);
+router.delete("/grades/:gradeId", deleteGrade);
 
 // ─── Topic ────────────────────────────────────────────────────────────────────
 // POST   /api/admin/topics
@@ -166,7 +166,7 @@ router.post("/topics", createTopic);
 router.patch("/topics/:topicId", updateTopic);
 
 // DELETE /api/admin/topics/:topicId
-router.delete("/topics/:topicId", requireSuperAdmin, deleteTopic);
+router.delete("/topics/:topicId", deleteTopic);
 
 // ─── Lesson ───────────────────────────────────────────────────────────────────
 // POST   /api/admin/lessons
@@ -176,7 +176,7 @@ router.post("/lessons", createLesson);
 router.patch("/lessons/:lessonId", updateLesson);
 
 // DELETE /api/admin/lessons/:lessonId
-router.delete("/lessons/:lessonId", requireSuperAdmin, deleteLesson);
+router.delete("/lessons/:lessonId", deleteLesson);
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 // POST   /api/admin/sections
@@ -186,7 +186,7 @@ router.post("/sections", createSection);
 router.patch("/sections/:sectionId", updateSection);
 
 // DELETE /api/admin/sections/:sectionId
-router.delete("/sections/:sectionId", requireSuperAdmin, deleteSection);
+router.delete("/sections/:sectionId", deleteSection);
 
 // ─── Node ─────────────────────────────────────────────────────────────────────
 // POST   /api/admin/nodes
@@ -196,7 +196,7 @@ router.post("/nodes", createNode);
 router.patch("/nodes/:nodeId", updateNode);
 
 // DELETE /api/admin/nodes/:nodeId
-router.delete("/nodes/:nodeId", requireSuperAdmin, deleteNode);
+router.delete("/nodes/:nodeId", deleteNode);
 
 // ─── User ─────────────────────────────────────────────────────────────────────
 // GET    /api/admin/users
@@ -209,7 +209,7 @@ router.get("/users/:userId/streak/calendar", getUserMonthlyStreakCalendar);
 router.patch("/users/:userId", updateUser);
 
 // DELETE /api/admin/users/:userId
-router.delete("/users/:userId", requireSuperAdmin, deleteUser);
+router.delete("/users/:userId", deleteUser);
 
 // ─── Video ────────────────────────────────────────────────────────────────────
 // GET    /api/admin/videos
@@ -228,7 +228,7 @@ router.post("/images/upload", upload.single("image"), uploadImage);
 router.patch("/videos/:videoId", upload.single("video"), updateVideo);
 
 // DELETE /api/admin/videos/:videoId
-router.delete("/videos/:videoId", requireSuperAdmin, deleteVideo);
+router.delete("/videos/:videoId", deleteVideo);
 
 // ─── Question ─────────────────────────────────────────────────────────────────
 // GET    /api/admin/questions
@@ -244,7 +244,7 @@ router.post("/questions", createQuestion);
 router.patch("/questions/:questionId", updateQuestion);
 
 // DELETE /api/admin/questions/:questionId
-router.delete("/questions/:questionId", requireSuperAdmin, deleteQuestion);
+router.delete("/questions/:questionId", deleteQuestion);
 
 // ─── Test ─────────────────────────────────────────────────────────────────────
 // GET    /api/admin/tests
@@ -257,7 +257,7 @@ router.post("/tests", createTest);
 router.patch("/tests/:testId", updateTest);
 
 // DELETE /api/admin/tests/:testId
-router.delete("/tests/:testId", requireSuperAdmin, deleteTest);
+router.delete("/tests/:testId", deleteTest);
 
 // ─── Flashcard ───────────────────────────────────────────────────────────────
 // GET    /api/admin/flashcards
@@ -270,7 +270,7 @@ router.post("/flashcards", createFlashcard);
 router.patch("/flashcards/:flashcardId", updateFlashcard);
 
 // DELETE /api/admin/flashcards/:flashcardId
-router.delete("/flashcards/:flashcardId", requireSuperAdmin, deleteFlashcard);
+router.delete("/flashcards/:flashcardId", deleteFlashcard);
 
 // POST   /api/admin/lessons/:lessonId/flashcards/bulk
 router.post("/lessons/:lessonId/flashcards/bulk", bulkCreateFlashcards);
@@ -294,7 +294,7 @@ router.post("/test-presets", createTestPreset);
 // PATCH  /api/admin/test-presets/:id
 router.patch("/test-presets/:id", updateTestPreset);
 // DELETE /api/admin/test-presets/:id
-router.delete("/test-presets/:id", requireSuperAdmin, deleteTestPreset);
+router.delete("/test-presets/:id", deleteTestPreset);
 
 // ─── Scope Test Preset Default ───────────────────────────────────────────────
 // GET    /api/admin/scope-test-preset-defaults
@@ -302,7 +302,7 @@ router.get("/scope-test-preset-defaults", listScopeTestPresetDefaults);
 // POST   /api/admin/scope-test-preset-defaults
 router.post("/scope-test-preset-defaults", setScopeTestPresetDefault);
 // DELETE /api/admin/scope-test-preset-defaults/:scopeType/:purposeType
-router.delete("/scope-test-preset-defaults/:scopeType/:purposeType", requireSuperAdmin, deleteScopeTestPresetDefault);
+router.delete("/scope-test-preset-defaults/:scopeType/:purposeType", deleteScopeTestPresetDefault);
 
 // ─── Reward Rules ────────────────────────────────────────────────────────────
 // GET    /api/admin/reward-rules
@@ -312,7 +312,7 @@ router.post("/reward-rules", createRewardRule);
 // PATCH  /api/admin/reward-rules/:id
 router.patch("/reward-rules/:id", updateRewardRule);
 // DELETE /api/admin/reward-rules/:id
-router.delete("/reward-rules/:id", requireSuperAdmin, deleteRewardRule);
+router.delete("/reward-rules/:id", deleteRewardRule);
 
 // ─── Item Definitions ─────────────────────────────────────────────────────────
 // GET    /api/admin/item-definitions
@@ -322,7 +322,7 @@ router.post("/item-definitions", createItemDefinition);
 // PATCH  /api/admin/item-definitions/:id
 router.patch("/item-definitions/:id", updateItemDefinition);
 // DELETE /api/admin/item-definitions/:id
-router.delete("/item-definitions/:id", requireSuperAdmin, deleteItemDefinition);
+router.delete("/item-definitions/:id", deleteItemDefinition);
 
 // ─── Tier ─────────────────────────────────────────────────────────────────────
 // GET    /api/admin/tiers
@@ -332,7 +332,7 @@ router.post("/tiers", createTier);
 // PATCH  /api/admin/tiers/:index
 router.patch("/tiers/:index", updateTier);
 // DELETE /api/admin/tiers/:index
-router.delete("/tiers/:index", requireSuperAdmin, deleteTier);
+router.delete("/tiers/:index", deleteTier);
 
 // ─── Packages (Gold & Pro) ───────────────────────────────────────────────────
 // GET    /api/admin/packages/gold
@@ -342,7 +342,7 @@ router.post("/packages/gold", createGoldPackageAdmin);
 // PUT    /api/admin/packages/gold/:id
 router.put("/packages/gold/:id", updateGoldPackageAdmin);
 // DELETE /api/admin/packages/gold/:id
-router.delete("/packages/gold/:id", requireSuperAdmin, deleteGoldPackageAdmin);
+router.delete("/packages/gold/:id", deleteGoldPackageAdmin);
 
 // GET    /api/admin/packages/pro
 router.get("/packages/pro", listProPackagesAdmin);
@@ -351,7 +351,7 @@ router.post("/packages/pro", createProPackageAdmin);
 // PUT    /api/admin/packages/pro/:id
 router.put("/packages/pro/:id", updateProPackageAdmin);
 // DELETE /api/admin/packages/pro/:id
-router.delete("/packages/pro/:id", requireSuperAdmin, deleteProPackageAdmin);
+router.delete("/packages/pro/:id", deleteProPackageAdmin);
 
 export default router;
 

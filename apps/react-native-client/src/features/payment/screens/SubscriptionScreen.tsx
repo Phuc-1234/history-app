@@ -161,9 +161,6 @@ export const SubscriptionScreen: React.FC = () => {
                         <TwinklingStars mode="avatar" />
                     </View>
                     <Text style={styles.headerTitle}>Người dùng PRO</Text>
-                    <Text style={styles.headerSub}>
-                        Bạn đang tận hưởng các đặc quyền sau:
-                    </Text>
                 </View>
 
                 <View style={styles.infoCard}>
@@ -178,6 +175,9 @@ export const SubscriptionScreen: React.FC = () => {
                     </View>
                 </View>
 
+                <Text style={styles.featuresSectionLabel}>
+                    Bạn đang tận hưởng các đặc quyền sau:
+                </Text>
                 {renderProFeatures()}
             </View>
         );
@@ -635,6 +635,12 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         textTransform: "uppercase",
         letterSpacing: 0.8,
+    },
+    featuresSectionLabel: {
+        fontSize: 14,
+        fontFamily: typography.fonts.bold,
+        color: colors.textPrimary,
+        marginBottom: 12,
     },
     providerRow: {
         flexDirection: "row",

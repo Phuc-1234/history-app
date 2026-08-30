@@ -13,13 +13,47 @@ const router = Router();
 // In a real application, you should save this in MongoDB/PostgreSQL associated with users
 const registeredTokens = new Set<string>();
 
-// Initialize Firebase Admin SDK
-const serviceAccountPath = path.resolve(__dirname, '../../service-account.json');
+function getServiceAccountCredentials(): any | null {
+  const candidatePaths = [
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
+    '/etc/secrets/service-account.json',
+    path.resolve(process.cwd(), 'service-account.json'),
+    path.resolve(process.cwd(), 'apps/express-server/service-account.json'),
+    path.resolve(__dirname, '../../service-account.json'),
+    path.resolve(__dirname, '../../../service-account.json'),
+  ].filter((p): p is string => Boolean(p));
+
+  for (const filePath of candidatePaths) {
+    if (fs.existsSync(filePath)) {
+      try {
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      } catch (err) {
+        console.error(`❌ [Firebase Error] Failed to parse service-account.json at ${filePath}:`, err);
+      }
+    }
+  }
+
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } catch {
+      try {
+        const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8');
+        return JSON.parse(decoded);
+      } catch (err) {
+        console.error('❌ [Firebase Error] Failed to parse FIREBASE_SERVICE_ACCOUNT env var:', err);
+      }
+    }
+  }
+
+  return null;
+}
+
 let firebaseInitialized = false;
 
 try {
-  if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+  const serviceAccount = getServiceAccountCredentials();
+  if (serviceAccount) {
     if (getApps().length === 0) {
       initializeApp({
         credential: cert(serviceAccount),
@@ -29,9 +63,7 @@ try {
     console.log('🔥 Firebase Admin SDK initialized successfully.');
   } else {
     console.warn(
-      '⚠️  [Firebase Warning]: service-account.json not found at ' +
-        serviceAccountPath +
-        '. Push notifications will not be sent.'
+      '⚠️  [Firebase Warning]: service-account.json not found in candidate paths (/etc/secrets, cwd, apps/express-server). Push notifications will not be sent.'
     );
   }
 } catch (error) {

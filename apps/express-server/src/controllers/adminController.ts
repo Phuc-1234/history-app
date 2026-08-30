@@ -1402,7 +1402,23 @@ export const listTiers = async (req: Request, res: Response) => {
 };
 
 export const createTier = async (req: Request<{}, any, CreateTierBody>, res: Response) => {
-    return res.status(400).json({ error: "not available now" });
+    try {
+        const { index, name, xpThreshold } = req.body;
+        if (index === undefined || index === null || Number.isNaN(Number(index))) {
+            return res.status(400).json({ error: "Invalid tier index." });
+        }
+        if (!name || typeof name !== "string" || !name.trim()) {
+            return res.status(400).json({ error: "Tier name is required." });
+        }
+        if (xpThreshold === undefined || xpThreshold === null || Number.isNaN(Number(xpThreshold))) {
+            return res.status(400).json({ error: "Invalid xp threshold." });
+        }
+        const tier = await adminService.createTier(req.body);
+        return res.status(201).json(tier);
+    } catch (err: any) {
+        console.error("Create tier error:", err);
+        return res.status(500).json({ error: err?.message || "Failed to create tier." });
+    }
 };
 
 export const updateTier = async (req: Request<{ index: string }, any, UpdateTierBody>, res: Response) => {
@@ -1421,7 +1437,18 @@ export const updateTier = async (req: Request<{ index: string }, any, UpdateTier
 };
 
 export const deleteTier = async (req: Request<{ index: string }>, res: Response) => {
-    return res.status(400).json({ error: "not available now" });
+    try {
+        const index = Number(req.params.index);
+        if (Number.isNaN(index)) {
+            return res.status(400).json({ error: "Invalid tier index." });
+        }
+        const success = await adminService.deleteTier(index);
+        if (!success) return res.status(404).json({ error: "Tier not found." });
+        return res.status(200).json({ message: "Tier deleted successfully." });
+    } catch (err: any) {
+        console.error("Delete tier error:", err);
+        return res.status(400).json({ error: err?.message || "Failed to delete tier." });
+    }
 };
 
 

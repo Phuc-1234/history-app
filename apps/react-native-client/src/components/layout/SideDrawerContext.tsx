@@ -186,16 +186,16 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         { id: "pvp", label: "Thi đấu PVP", icon: "game-controller-outline", activeIcon: "game-controller", route: "/pvp" },
         { id: "lessons", label: "Bài học", icon: "book-outline", activeIcon: "book", route: "/(tabs)/2_1_lessons" },
         { id: "tests", label: "Luyện đề", icon: "clipboard-outline", activeIcon: "clipboard", route: "/(tabs)/5_1_national_tests" },
+        { id: "notifications", label: "Thông báo", icon: "notifications-outline", activeIcon: "notifications", route: "/notifications" },
         { id: "leaderboard", label: "Bảng xếp hạng", icon: "stats-chart-outline", activeIcon: "stats-chart", route: "/(tabs)/9_1_leaderboard" },
         { id: "profile", label: "Hồ sơ cá nhân", icon: "person-outline", activeIcon: "person", route: "/(tabs)/10_1_profile" },
+        { id: "friends", label: "Bạn bè", icon: "people-outline", activeIcon: "people", route: "/(social)/friends" },
         { id: "items", label: "Vật phẩm", icon: "cart-outline", activeIcon: "gift", route: "/(tabs)/7_1_item" },
         { id: "buy_gold", label: "Nạp vàng", icon: "cash-outline", activeIcon: "cash", route: "/(tabs)/8_2_buy_gold" },
-        { id: "notifications", label: "Thông báo", icon: "notifications-outline", activeIcon: "notifications", route: "/notifications" },
+        { id: "subscription", label: "Đăng ký gói", icon: "card-outline", activeIcon: "card", route: "/(10_proflie)/10_8_subscription" },
         { id: "reminders", label: "Nhắc hẹn học tập", icon: "alarm-outline", activeIcon: "alarm", route: "" },
-        { id: "friends", label: "Bạn bè", icon: "people-outline", activeIcon: "people", route: "/(social)/friends" },
         { id: "test_history", label: "Lịch sử làm bài", icon: "time-outline", activeIcon: "time", route: "/(10_proflie)/10_4_test_history" },
         { id: "feedback", label: "Gửi góp ý", icon: "chatbubble-ellipses-outline", activeIcon: "chatbubble-ellipses", route: "/(10_proflie)/10_6_feedback" },
-        { id: "subscription", label: "Đăng ký gói", icon: "card-outline", activeIcon: "card", route: "/(10_proflie)/10_8_subscription" },
     ];
 
     return (
@@ -340,6 +340,12 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                                     >
                                         {tab.id === "pvp" ? (
                                             <Swords
+                                                size={22}
+                                                color={isActive ? colors.primary : colors.textSecondary}
+                                                style={styles.tabIcon}
+                                            />
+                                        ) : tab.id === "buy_gold" ? (
+                                            <Coins
                                                 size={22}
                                                 color={isActive ? colors.primary : colors.textSecondary}
                                                 style={styles.tabIcon}

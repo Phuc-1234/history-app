@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     Modal,
     View,
@@ -10,12 +10,15 @@ import {
     Image,
     ActivityIndicator,
     Pressable,
+    RefreshControl,
 } from "react-native";
 import { X, Award, CheckCircle2, Lock, Gift, Sparkles, ChevronRight, Zap, Coins } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 import { useGetTiersQuery, TierItem } from "../services/tierApi";
+import { useGetProfileQuery } from "@/features/auth/services/authApi";
+import { useAppSelector } from "../../../store/storeHook";
 
 interface TierDrawerModalProps {
     visible: boolean;
@@ -30,10 +33,21 @@ export default function TierDrawerModal({
     totalXp = 0,
     currentTierIndex = 1,
 }: TierDrawerModalProps) {
+    const profile = useAppSelector((state) => state.auth.profile);
     const [activeReward, setActiveReward] = useState<{ name: string; quantity: number } | null>(null);
-    const { data: tiersData, isLoading, isError } = useGetTiersQuery(undefined, {
+    const { data: tiersData, isLoading, isError, refetch: refetchTiers, isFetching: isFetchingTiers } = useGetTiersQuery(undefined, {
         skip: !visible,
     });
+    const { refetch: refetchProfile, isFetching: isFetchingProfile } = useGetProfileQuery(undefined, {
+        skip: !profile || !visible,
+    });
+
+    const handleRefresh = useCallback(async () => {
+        await refetchTiers();
+        await refetchProfile();
+    }, [refetchTiers, refetchProfile]);
+
+    const isRefreshing = isFetchingTiers || isFetchingProfile;
 
     const tiers = tiersData?.tiers ?? [];
 
@@ -97,6 +111,14 @@ export default function TierDrawerModal({
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isRefreshing}
+                                onRefresh={handleRefresh}
+                                colors={[colors.primary]}
+                                tintColor={colors.primary}
+                            />
+                        }
                     >
                         {/* Current Tier & Progress */}
                         <View style={styles.heroSection}>

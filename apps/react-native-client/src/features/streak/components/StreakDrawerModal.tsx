@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     Modal,
     View,
@@ -10,12 +10,14 @@ import {
     Image,
     ActivityIndicator,
     Pressable,
+    RefreshControl,
 } from "react-native";
 import { X, Flame, CheckCircle2, Lock, Gift, Sparkles, Trophy, Calendar, ChevronRight, Zap, Coins, AlarmClock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 import { useGetStreakInfoQuery, StreakMilestone } from "../services/streakApi";
+import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useAppSelector } from "../../../store/storeHook";
 import { MonthlyStreakModal } from "./MonthlyStreakModal";
 import { StudyReminderModal } from "../../notification";
@@ -53,7 +55,17 @@ export default function StreakDrawerModal({
     const [monthlyModalVisible, setMonthlyModalVisible] = useState(false);
     const [reminderModalVisible, setReminderModalVisible] = useState(false);
     const [activeReward, setActiveReward] = useState<{ name: string; quantity: number } | null>(null);
-    const { data: streakData, isLoading, isError } = useGetStreakInfoQuery(undefined, { skip: !profile });
+    const { data: streakData, isLoading, isError, refetch: refetchStreak, isFetching: isFetchingStreak } = useGetStreakInfoQuery(undefined, { skip: !profile || !visible });
+    const { refetch: refetchProfile, isFetching: isFetchingProfile } = useGetProfileQuery(undefined, { skip: !profile || !visible });
+
+    const handleRefresh = useCallback(async () => {
+        await Promise.all([
+            refetchStreak(),
+            refetchProfile(),
+        ]);
+    }, [refetchStreak, refetchProfile]);
+
+    const isRefreshing = isFetchingStreak || isFetchingProfile;
 
     const activeStreak = streakData?.currentStreak ?? currentStreak;
     const highestStreak = streakData?.highestStreak ?? activeStreak;
@@ -99,6 +111,14 @@ export default function StreakDrawerModal({
                         <ScrollView
                             showsVerticalScrollIndicator={false}
                             contentContainerStyle={styles.scrollContent}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={isRefreshing}
+                                    onRefresh={handleRefresh}
+                                    colors={[colors.primary]}
+                                    tintColor={colors.primary}
+                                />
+                            }
                         >
                             {/* Current Streak Info */}
                             <View style={styles.heroSection}>

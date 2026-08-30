@@ -20,6 +20,7 @@ import typography from "../theme/typography";
 import Button from "./Button";
 import { useCreateFeedbackMutation } from "../features/profile/services/feedbackApi";
 import { Toast } from "./Toast";
+import { stripHtml } from "@/utils/htmlUtils";
 
 type FeedbackType = "BUG" | "FEATURE" | "OTHER" | "INCORRECT_INFO";
 
@@ -120,17 +121,17 @@ export default function FeedbackModal({
                         contentContainerStyle={styles.scrollContainer}
                         keyboardShouldPersistTaps="handled"
                     >
-                        {targetTitle && (
+                        {targetTitle && stripHtml(targetTitle) ? (
                             <View style={styles.contextBox}>
                                 <View style={styles.contextHeader}>
                                     <Ionicons name="flag" size={14} color={colors.primary} />
                                     <Text style={styles.contextLabel}>Ngữ cảnh góp ý:</Text>
                                 </View>
                                 <Text style={styles.contextValue} numberOfLines={3}>
-                                    {targetTitle}
+                                    {stripHtml(targetTitle)}
                                 </Text>
                             </View>
-                        )}
+                        ) : null}
 
                         <Text style={styles.sectionLabel}>Chọn loại góp ý</Text>
                         <View style={styles.typeGrid}>

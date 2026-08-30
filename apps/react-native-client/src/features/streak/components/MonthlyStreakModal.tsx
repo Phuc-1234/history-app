@@ -247,10 +247,20 @@ export function MonthlyStreakModal({ visible, onClose }: MonthlyStreakModalProps
 
                                     const xp = dailyXpMap.get(day) || 0;
                                     const flameStyle = getFlameStyle(xp);
+                                    const isToday =
+                                        today.getFullYear() === year &&
+                                        today.getMonth() + 1 === month &&
+                                        today.getDate() === day;
 
                                     return (
                                         <View key={`slot-${slotIdx}`} style={styles.dayCell}>
-                                            <View style={[styles.dayCircle, { backgroundColor: flameStyle.bg }]}>
+                                            <View
+                                                style={[
+                                                    styles.dayCircle,
+                                                    { backgroundColor: flameStyle.bg },
+                                                    isToday && styles.dayCircleToday,
+                                                ]}
+                                            >
                                                 <Flame size={15} color={flameStyle.iconColor} />
                                                 <Text style={[styles.dayNumber, flameStyle.textStyle]}>
                                                     {day}
@@ -496,6 +506,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    dayCircleToday: {
+        borderWidth: 2,
+        borderColor: colors.primary,
+    },
     skeletonCircle: {
         width: 38,
         height: 38,
@@ -508,7 +522,7 @@ const styles = StyleSheet.create({
     },
     xpText: {
         fontSize: 9,
-        fontFamily: typography.fonts.medium,
+        fontFamily: typography.fonts.bold,
         color: colors.primary,
         marginTop: 1,
     },

@@ -2237,6 +2237,11 @@ export class AdminService {
         const existing = await prisma.tier.findUnique({ where: { index } });
         if (!existing) return false;
 
+        const usersCount = await prisma.user.count({ where: { currentTierIndex: index } });
+        if (usersCount > 0) {
+            throw new Error(`Không thể xóa danh hiệu này vì đang có ${usersCount} người dùng đang ở danh hiệu này.`);
+        }
+
         await prisma.$transaction(async (tx) => {
             const targetIdStr = String(index);
             await tx.rewardRule.deleteMany({

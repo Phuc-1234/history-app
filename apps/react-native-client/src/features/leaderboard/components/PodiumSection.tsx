@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { DisplayUser } from "../hooks/useLeaderboard";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
@@ -54,37 +55,61 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             <Text style={styles.rankNumberText}>{user2.rank || 2}</Text>
                         </View>
                     </View>
-                    <Text style={[styles.podiumName, isMe2 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
-                        {user2.name}
-                    </Text>
-                    {isMe2 && (
-                        <View style={[styles.meTag, { marginTop: 4 }]}>
-                            <Text style={styles.meTagText}>Tôi</Text>
-                        </View>
-                    )}
-                    <UserSocialBadges
-                        isFriend={user2.isFriend}
-                        isFollowing={user2.isFollowing}
-                        style={styles.centerBadges}
-                    />
-                    <Text style={styles.rank2Xp}>
-                        {showStreak ? (
+
+                    <View style={[styles.podiumBase, styles.rank2Base, isMe2 && styles.mePodiumBase]}>
+                        {user2.equippedLeaderboardBgUrl ? (
                             <>
-                                <Flame size={13} color={user2.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
-                                <Text> {user2.streak} ngày</Text>
+                                <Image
+                                    source={{ uri: user2.equippedLeaderboardBgUrl }}
+                                    style={styles.rank2BgImage}
+                                    resizeMode="cover"
+                                />
+                                <View
+                                    style={[
+                                        StyleSheet.absoluteFill,
+                                        {
+                                            backgroundColor: isMe2
+                                                ? "rgba(255, 255, 255, 0.72)"
+                                                : "rgba(255, 255, 255, 0.78)",
+                                        },
+                                    ]}
+                                />
                             </>
                         ) : (
-                            `${user2.xp.toLocaleString()} XP`
-                        )}
-                    </Text>
-                    <View style={[styles.podiumBase, styles.rank2Base, isMe2 && styles.mePodiumBase]}>
-                        {user2.equippedLeaderboardBgUrl && (
-                            <Image
-                                source={{ uri: user2.equippedLeaderboardBgUrl }}
+                            <LinearGradient
+                                colors={["rgba(22, 163, 74, 0.03)", "rgba(22, 163, 74, 0.3)", colors.success]}
+                                locations={[0, 0.5, 1]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 0, y: 1 }}
                                 style={StyleSheet.absoluteFill}
-                                resizeMode="cover"
                             />
                         )}
+
+                        <View style={styles.podiumContent}>
+                            <Text style={[styles.podiumName, isMe2 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
+                                {user2.name}
+                            </Text>
+                            {isMe2 && (
+                                <View style={styles.meTag}>
+                                    <Text style={styles.meTagText}>Tôi</Text>
+                                </View>
+                            )}
+                            <UserSocialBadges
+                                isFriend={user2.isFriend}
+                                isFollowing={user2.isFollowing}
+                                style={styles.centerBadges}
+                            />
+                            <Text style={styles.rank2Xp}>
+                                {showStreak ? (
+                                    <>
+                                        <Flame size={13} color={user2.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
+                                        <Text> {user2.streak} ngày</Text>
+                                    </>
+                                ) : (
+                                    `${user2.xp.toLocaleString()} XP`
+                                )}
+                            </Text>
+                        </View>
                     </View>
                 </TouchableOpacity>
             ) : (
@@ -102,7 +127,7 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                         name="trophy"
                         size={isSmallDevice ? 20 : 24}
                         color={colors.secondary}
-                        style={{ marginBottom: 10, zIndex: 3 }}
+                        style={{ marginBottom: 6, zIndex: 3 }}
                     />
                     <View style={styles.avatarWrapper}>
                         <AvatarWithFrame
@@ -117,37 +142,61 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             <Text style={styles.rankNumberText}>{user1.rank || 1}</Text>
                         </View>
                     </View>
-                    <Text style={[styles.podiumName, styles.rank1Name, isMe1 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
-                        {user1.name}
-                    </Text>
-                    {isMe1 && (
-                        <View style={[styles.meTag, { marginTop: 4 }]}>
-                            <Text style={styles.meTagText}>Tôi</Text>
-                        </View>
-                    )}
-                    <UserSocialBadges
-                        isFriend={user1.isFriend}
-                        isFollowing={user1.isFollowing}
-                        style={styles.centerBadges}
-                    />
-                    <Text style={styles.rank1Xp}>
-                        {showStreak ? (
+
+                    <View style={[styles.podiumBase, styles.rank1Base, isMe1 && styles.mePodiumBase]}>
+                        {user1.equippedLeaderboardBgUrl ? (
                             <>
-                                <Flame size={15} color={user1.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
-                                <Text> {user1.streak} ngày</Text>
+                                <Image
+                                    source={{ uri: user1.equippedLeaderboardBgUrl }}
+                                    style={styles.rank1BgImage}
+                                    resizeMode="cover"
+                                />
+                                <View
+                                    style={[
+                                        StyleSheet.absoluteFill,
+                                        {
+                                            backgroundColor: isMe1
+                                                ? "rgba(255, 255, 255, 0.72)"
+                                                : "rgba(255, 255, 255, 0.78)",
+                                        },
+                                    ]}
+                                />
                             </>
                         ) : (
-                            `${user1.xp.toLocaleString()} XP`
-                        )}
-                    </Text>
-                    <View style={[styles.podiumBase, styles.rank1Base, isMe1 && styles.mePodiumBase]}>
-                        {user1.equippedLeaderboardBgUrl && (
-                            <Image
-                                source={{ uri: user1.equippedLeaderboardBgUrl }}
+                            <LinearGradient
+                                colors={["rgba(229, 169, 59, 0.03)", "rgba(229, 169, 59, 0.35)", colors.secondary]}
+                                locations={[0, 0.5, 1]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 0, y: 1 }}
                                 style={StyleSheet.absoluteFill}
-                                resizeMode="cover"
                             />
                         )}
+
+                        <View style={styles.podiumContent}>
+                            <Text style={[styles.podiumName, styles.rank1Name, isMe1 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
+                                {user1.name}
+                            </Text>
+                            {isMe1 && (
+                                <View style={styles.meTag}>
+                                    <Text style={styles.meTagText}>Tôi</Text>
+                                </View>
+                            )}
+                            <UserSocialBadges
+                                isFriend={user1.isFriend}
+                                isFollowing={user1.isFollowing}
+                                style={styles.centerBadges}
+                            />
+                            <Text style={styles.rank1Xp}>
+                                {showStreak ? (
+                                    <>
+                                        <Flame size={15} color={user1.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
+                                        <Text> {user1.streak} ngày</Text>
+                                    </>
+                                ) : (
+                                    `${user1.xp.toLocaleString()} XP`
+                                )}
+                            </Text>
+                        </View>
                     </View>
                 </TouchableOpacity>
             ) : (
@@ -173,37 +222,61 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
                             <Text style={styles.rankNumberText}>{user3.rank || 3}</Text>
                         </View>
                     </View>
-                    <Text style={[styles.podiumName, isMe3 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
-                        {user3.name}
-                    </Text>
-                    {isMe3 && (
-                        <View style={[styles.meTag, { marginTop: 4 }]}>
-                            <Text style={styles.meTagText}>Tôi</Text>
-                        </View>
-                    )}
-                    <UserSocialBadges
-                        isFriend={user3.isFriend}
-                        isFollowing={user3.isFollowing}
-                        style={styles.centerBadges}
-                    />
-                    <Text style={styles.rank3Xp}>
-                        {showStreak ? (
+
+                    <View style={[styles.podiumBase, styles.rank3Base, isMe3 && styles.mePodiumBase]}>
+                        {user3.equippedLeaderboardBgUrl ? (
                             <>
-                                <Flame size={13} color={user3.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
-                                <Text> {user3.streak} ngày</Text>
+                                <Image
+                                    source={{ uri: user3.equippedLeaderboardBgUrl }}
+                                    style={styles.rank3BgImage}
+                                    resizeMode="cover"
+                                />
+                                <View
+                                    style={[
+                                        StyleSheet.absoluteFill,
+                                        {
+                                            backgroundColor: isMe3
+                                                ? "rgba(255, 255, 255, 0.72)"
+                                                : "rgba(255, 255, 255, 0.78)",
+                                        },
+                                    ]}
+                                />
                             </>
                         ) : (
-                            `${user3.xp.toLocaleString()} XP`
-                        )}
-                    </Text>
-                    <View style={[styles.podiumBase, styles.rank3Base, isMe3 && styles.mePodiumBase]}>
-                        {user3.equippedLeaderboardBgUrl && (
-                            <Image
-                                source={{ uri: user3.equippedLeaderboardBgUrl }}
+                            <LinearGradient
+                                colors={["rgba(195, 121, 56, 0.03)", "rgba(195, 121, 56, 0.3)", colors.primary]}
+                                locations={[0, 0.5, 1]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 0, y: 1 }}
                                 style={StyleSheet.absoluteFill}
-                                resizeMode="cover"
                             />
                         )}
+
+                        <View style={styles.podiumContent}>
+                            <Text style={[styles.podiumName, isMe3 && { fontFamily: typography.fonts.bold, color: "#EA580C" }]} numberOfLines={1}>
+                                {user3.name}
+                            </Text>
+                            {isMe3 && (
+                                <View style={styles.meTag}>
+                                    <Text style={styles.meTagText}>Tôi</Text>
+                                </View>
+                            )}
+                            <UserSocialBadges
+                                isFriend={user3.isFriend}
+                                isFollowing={user3.isFollowing}
+                                style={styles.centerBadges}
+                            />
+                            <Text style={styles.rank3Xp}>
+                                {showStreak ? (
+                                    <>
+                                        <Flame size={13} color={user3.hasCompletedToday ? "#FF4500" : "#98A2B3"} />
+                                        <Text> {user3.streak} ngày</Text>
+                                    </>
+                                ) : (
+                                    `${user3.xp.toLocaleString()} XP`
+                                )}
+                            </Text>
+                        </View>
                     </View>
                 </TouchableOpacity>
             ) : (
@@ -213,8 +286,17 @@ export const PodiumSection: React.FC<PodiumSectionProps> = ({
     );
 };
 
-const createStyles = (isSmallDevice: boolean) =>
-    StyleSheet.create({
+const createStyles = (isSmallDevice: boolean) => {
+    const { width: windowWidth } = Dimensions.get("window");
+    const rowWidth = isSmallDevice ? Math.min(windowWidth - 44, 300) : (windowWidth - 44);
+    const rank1Height = Math.round((rowWidth / 2) * 1.15);
+    const rank2Height = rank1Height - (isSmallDevice ? 34 : 36);
+    const rank3Height = rank1Height - (isSmallDevice ? 50 : 52);
+    const podiumWidth = Math.round(((rowWidth - 12) / 3) * 0.94);
+
+    const bleed = 30;
+
+    return StyleSheet.create({
         podiumSection: {
             marginTop: 18,
             flexDirection: "row",
@@ -232,30 +314,11 @@ const createStyles = (isSmallDevice: boolean) =>
             marginTop: 2,
             marginBottom: 2,
         },
-        crownIcon: {
-            fontSize: isSmallDevice ? 20 : 22,
-            marginBottom: -2,
-            zIndex: 3,
-        },
         avatarWrapper: {
             position: "relative",
             alignItems: "center",
             justifyContent: "center",
-        },
-        podiumAvatar: {
-            width: isSmallDevice ? 54 : 58,
-            height: isSmallDevice ? 54 : 58,
-            borderRadius: isSmallDevice ? 27 : 29,
-            borderWidth: 2,
-            borderColor: colors.borderDark,
-            backgroundColor: colors.surfaceVariant,
-        },
-        rank1Avatar: {
-            width: isSmallDevice ? 68 : 72,
-            height: isSmallDevice ? 68 : 72,
-            borderRadius: isSmallDevice ? 34 : 36,
-            borderColor: colors.secondary,
-            borderWidth: 3,
+            marginBottom: 8,
         },
         rankNumberBadge: {
             position: "absolute",
@@ -277,70 +340,96 @@ const createStyles = (isSmallDevice: boolean) =>
             color: colors.textLight, 
             fontSize: 11 
         },
+        podiumBase: {
+            width: "94%",
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            overflow: "hidden",
+            position: "relative",
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: colors.borderLight,
+        },
+        podiumContent: {
+            width: "100%",
+            alignItems: "center",
+            paddingTop: 8,
+            paddingHorizontal: 4,
+            zIndex: 2,
+        },
+        rank1Base: {
+            height: rank1Height,
+        },
+        rank2Base: {
+            height: rank2Height,
+        },
+        rank3Base: {
+            height: rank3Height,
+        },
+        rank1BgImage: {
+            position: "absolute",
+            width: rank1Height + bleed,
+            height: podiumWidth + bleed,
+            top: (rank1Height - (podiumWidth + bleed)) / 2,
+            left: (podiumWidth - (rank1Height + bleed)) / 2,
+            transform: [{ rotate: "90deg" }],
+        },
+        rank2BgImage: {
+            position: "absolute",
+            width: rank2Height + bleed,
+            height: podiumWidth + bleed,
+            top: (rank2Height - (podiumWidth + bleed)) / 2,
+            left: (podiumWidth - (rank2Height + bleed)) / 2,
+            transform: [{ rotate: "90deg" }],
+        },
+        rank3BgImage: {
+            position: "absolute",
+            width: rank3Height + bleed,
+            height: podiumWidth + bleed,
+            top: (rank3Height - (podiumWidth + bleed)) / 2,
+            left: (podiumWidth - (rank3Height + bleed)) / 2,
+            transform: [{ rotate: "90deg" }],
+        },
+        mePodiumBase: {
+            borderWidth: 2,
+            borderColor: colors.primary,
+        },
         podiumName: {
-            fontFamily: typography.fonts.medium,
-            marginTop: 10,
+            fontFamily: typography.fonts.bold,
             color: colors.textPrimary,
             fontSize: isSmallDevice ? 11 : 12,
             textAlign: "center",
         },
         rank1Name: {
-            fontFamily: typography.fonts.medium,
-            fontSize: isSmallDevice ? 15 : 16,
-            marginTop: 12,
+            fontSize: isSmallDevice ? 13 : 14,
         },
         rank1Xp: {
             fontFamily: typography.fonts.bold,
-            fontSize: isSmallDevice ? 13 : 14,
-            color: colors.secondary,
-            marginTop: 3,
-            marginBottom: 8,
+            fontSize: isSmallDevice ? 12 : 13,
+            color: colors.secondaryHover,
+            marginTop: 2,
             textAlign: "center",
         },
         rank2Xp: {
             fontFamily: typography.fonts.semiBold,
             fontSize: isSmallDevice ? 11 : 12,
             color: colors.success,
-            marginTop: 4,
-            marginBottom: 8,
+            marginTop: 2,
             textAlign: "center",
         },
         rank3Xp: {
             fontFamily: typography.fonts.semiBold,
             fontSize: isSmallDevice ? 11 : 12,
             color: colors.primary,
-            marginTop: 4,
-            marginBottom: 8,
+            marginTop: 2,
             textAlign: "center",
-        },
-        podiumBase: {
-            width: "92%",
-            borderTopLeftRadius: 5,
-            borderTopRightRadius: 5,
-            overflow: "hidden",
-            position: "relative",
-        },
-        rank1Base: {
-            height: isSmallDevice ? 96 : 102,
-            backgroundColor: colors.secondary,
-        },
-        rank2Base: {
-            height: isSmallDevice ? 62 : 66,
-            backgroundColor: colors.success,
-        },
-        rank3Base: {
-            height: isSmallDevice ? 46 : 50,
-            backgroundColor: colors.primary,
-        },
-        mePodiumBase: {
-            borderWidth: 2,
-            borderColor: colors.primary,
         },
         meTag: {
             backgroundColor: "#EA580C",
             paddingHorizontal: 6,
             paddingVertical: 1,
             borderRadius: 12,
+            marginTop: 2,
         },
         meTagText: {
             fontFamily: typography.fonts.bold,
@@ -348,4 +437,5 @@ const createStyles = (isSmallDevice: boolean) =>
             color: "#FFFFFF",
         },
     });
+};
 

@@ -9,6 +9,8 @@ import {
     Switch,
     ActivityIndicator,
     Pressable,
+    Animated,
+    Easing,
 } from "react-native";
 import {
     AlarmClock,
@@ -26,6 +28,7 @@ import {
 } from "../services/notificationApi";
 import { toastService } from "@/services/toastService";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import Mascot from "@/components/Mascot";
 
 interface StudyReminderModalProps {
     visible: boolean;
@@ -53,6 +56,55 @@ export function StudyReminderModal({ visible, onClose }: StudyReminderModalProps
 
     const hourScrollRef = useRef<ScrollView>(null);
     const minuteScrollRef = useRef<ScrollView>(null);
+    const swirveAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (!visible) {
+            swirveAnim.setValue(0);
+            return;
+        }
+
+        const animation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(swirveAnim, {
+                    toValue: 1,
+                    duration: 1200,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(swirveAnim, {
+                    toValue: -1,
+                    duration: 1200,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(swirveAnim, {
+                    toValue: 0,
+                    duration: 1200,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+
+        animation.start();
+        return () => animation.stop();
+    }, [visible]);
+
+    const rotate = swirveAnim.interpolate({
+        inputRange: [-1, 0, 1],
+        outputRange: ["-10deg", "0deg", "10deg"],
+    });
+
+    const translateY = swirveAnim.interpolate({
+        inputRange: [-1, 0, 1],
+        outputRange: [-2, 0, -2],
+    });
+
+    const translateX = swirveAnim.interpolate({
+        inputRange: [-1, 0, 1],
+        outputRange: [-2, 0, 2],
+    });
 
     // Sync state when data loads
     useEffect(() => {
@@ -202,8 +254,27 @@ export function StudyReminderModal({ visible, onClose }: StudyReminderModalProps
                     {/* Header */}
                     <View style={styles.header}>
                         <View style={styles.headerTitleRow}>
-                            <View style={styles.bellIconBox}>
-                                <AlarmClock size={20} color={colors.primary} />
+                            <View style={styles.mascotWrapper}>
+                                <Mascot
+                                    expression="thinking"
+                                    width={108}
+                                    height={108}
+                                />
+                                <Animated.View
+                                    style={[
+                                        styles.mascotBubble,
+                                        {
+                                            transform: [
+                                                { translateX },
+                                                { translateY },
+                                                { rotate },
+                                            ],
+                                        },
+                                    ]}
+                                >
+                                    <AlarmClock size={20} color={colors.primary} />
+                                    <View style={styles.bubbleTail} />
+                                </Animated.View>
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.title}>Nhắc hẹn học tập</Text>
@@ -572,13 +643,38 @@ const styles = StyleSheet.create({
         gap: 12,
         flex: 1,
     },
-    bellIconBox: {
-        width: 36,
-        height: 36,
-        borderRadius: 12,
-        backgroundColor: colors.primaryContainer,
+    mascotWrapper: {
+        width: 108,
+        height: 108,
         alignItems: "center",
         justifyContent: "center",
+        position: "relative",
+    },
+    mascotBubble: {
+        position: "absolute",
+        top: -4,
+        right: 0,
+        backgroundColor: colors.primaryContainer,
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 7,
+        borderWidth: 1.5,
+        borderColor: colors.borderMedium,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 10,
+    },
+    bubbleTail: {
+        position: "absolute",
+        bottom: -5,
+        left: 8,
+        width: 8,
+        height: 8,
+        backgroundColor: colors.primaryContainer,
+        borderRightWidth: 1.5,
+        borderBottomWidth: 1.5,
+        borderColor: colors.borderMedium,
+        transform: [{ rotate: "45deg" }],
     },
     title: {
         fontFamily: typography.fonts.bold,

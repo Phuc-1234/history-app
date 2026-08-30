@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { AppHtmlRenderer } from "../../../components/AppHtmlRenderer";
 import Animated, {
     FadeIn,
@@ -50,6 +51,7 @@ import FeedbackModal from "@/components/FeedbackModal";
 import PracticeFeedbackMascot from "./PracticeFeedbackMascot";
 import { playTestPassSound, playTestFailSound } from "@/services/soundService";
 import { hapticSuccess, hapticError } from "@/services/hapticsService";
+import { stripHtml } from "@/utils/htmlUtils";
 
 import type {
     StartTestV2Request,
@@ -157,6 +159,7 @@ export default function TestContainerV2({
     const { width } = useWindowDimensions();
     const runner = useTestRunnerV2(params);
     const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
     const profile = useAppSelector((state) => state.auth.profile);
     const [wasInitiallyLoggedIn] = useState(!!profile);
     const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(
@@ -562,12 +565,12 @@ export default function TestContainerV2({
 
                         <TouchableOpacity
                             style={styles.viewDetailsBtn}
-                            onPress={() => {
+                            onPress={preventDoubleTap(() => {
                                 router.push({
                                     pathname: "/(10_proflie)/10_5_test_detail",
                                     params: { logId: String(userTestLog.id) },
                                 });
-                            }}
+                            })}
                         >
                             <Text style={styles.viewDetailsBtnText}>
                                 Xem chi tiết bài làm
@@ -576,7 +579,7 @@ export default function TestContainerV2({
 
                         <TouchableOpacity
                             style={styles.exitBtn}
-                            onPress={onExit || (() => router.back())}
+                            onPress={preventDoubleTap(onExit || (() => router.back()))}
                         >
                             <ArrowLeft size={16} color={colors.primary} />
                             <Text style={styles.exitBtnText}>Về bài học</Text>
@@ -916,7 +919,7 @@ export default function TestContainerV2({
                             {/* Question component by type */}
                             {currentQuestion.type === "CHOOSE" && (
                                 <ChooseQuestion
-                                    key={currentQuestion.id}
+                                    key={`${session?.id || "new"}-${currentQuestion.id}`}
                                     question={currentQuestion}
                                     userAnswer={
                                         getAnswerForQuestion(
@@ -931,7 +934,7 @@ export default function TestContainerV2({
                             )}
                             {currentQuestion.type === "FILL" && (
                                 <FillQuestion
-                                    key={currentQuestion.id}
+                                    key={`${session?.id || "new"}-${currentQuestion.id}`}
                                     question={currentQuestion}
                                     userAnswer={
                                         getAnswerForQuestion(
@@ -946,7 +949,7 @@ export default function TestContainerV2({
                             )}
                             {currentQuestion.type === "MATCH" && (
                                 <MatchQuestion
-                                    key={currentQuestion.id}
+                                    key={`${session?.id || "new"}-${currentQuestion.id}`}
                                     question={currentQuestion}
                                     userAnswer={
                                         getAnswerForQuestion(
@@ -1255,7 +1258,7 @@ export default function TestContainerV2({
                         onClose={() => setFeedbackModalVisible(false)}
                         targetType="QUESTION"
                         targetId={currentQuestion.id}
-                        targetTitle={`Câu hỏi số ${currentIndex + 1}: ${currentQuestion.promptText.replace(/<[^>]*>/g, "").trim().substring(0, 55)}...`}
+                        targetTitle={`Câu hỏi số ${currentIndex + 1}: ${stripHtml(currentQuestion.promptText).substring(0, 55)}...`}
                     />
                 )}
             </View>

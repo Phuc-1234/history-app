@@ -1,6 +1,7 @@
 // services/gamificationService.ts
 import { prisma } from "@history-app/shared";
 import { rewardEngine } from "./rewardEngine";
+import { shopService } from "./shopService";
 
 function getVnDateString(date: Date = new Date()): string {
     const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
@@ -125,7 +126,18 @@ export class GamificationService {
         return higher + 1;
     }
 
-    async getTiers() {
+    async getTiers(userId?: string) {
+        if (userId) {
+            try {
+                await prisma.$transaction(async (tx) => {
+                    const { xpMultiplier, goldMultiplier } = await shopService.getUserActiveEffects(userId, tx);
+                    await rewardEngine.checkTierUp(userId, null, tx, xpMultiplier, goldMultiplier);
+                });
+            } catch (err) {
+                console.error("Error checking tier-up in getTiers:", err);
+            }
+        }
+
         const tiers = await prisma.tier.findMany({ orderBy: { index: "asc" } });
 
         const rewardRules = await prisma.rewardRule.findMany({
