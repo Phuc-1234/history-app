@@ -198,17 +198,12 @@ export function CreateRoomTab({
 
     const handleQuestionCountChange = (text: string) => {
         const digits = text.replace(/[^0-9]/g, "");
-        if (digits === "0") {
-            setQuestionCount(1);
-            setQuestionCountInput("1");
-            return;
-        }
         setQuestionCountInput(digits);
         const parsed = parseInt(digits, 10);
-        if (!isNaN(parsed) && parsed > 0) {
+        if (!isNaN(parsed) && parsed >= 5) {
             setQuestionCount(parsed);
         } else if (digits === "") {
-            setQuestionCount(1);
+            setQuestionCount(5);
         }
     };
 
@@ -231,12 +226,12 @@ export function CreateRoomTab({
             }
 
             let finalCount = questionCount;
-            if (isNaN(finalCount) || finalCount <= 0) {
-                finalCount = 1;
+            if (isNaN(finalCount) || finalCount < 5) {
+                finalCount = 5;
             }
 
-            if (!skipCountQuery && availableCount <= 0) {
-                const msg = "Không thể tạo phòng: Phạm vi đã chọn không có câu hỏi nào (0 câu)";
+            if (!skipCountQuery && availableCount < 5) {
+                const msg = `Không thể tạo phòng: Phạm vi đã chọn không đủ câu hỏi (cần tối thiểu 5 câu, hiện có ${availableCount} câu)`;
                 setErrorMsg(msg);
                 toastService.show(msg, "error");
                 return;

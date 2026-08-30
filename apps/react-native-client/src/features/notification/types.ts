@@ -18,4 +18,5 @@ export interface SystemNotification {
         equippedFrameUrl?: string | null;
     } | null;
     requestStatus?: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | null;
+    pvpRoomStatus?: "LOBBY" | "FULL" | "IN_PROGRESS" | "EXPIRED" | "NOT_FOUND" | "ALREADY_JOINED" | null;
 }

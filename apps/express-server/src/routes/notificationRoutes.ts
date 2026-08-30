@@ -178,10 +178,54 @@ router.get('/', requireStudent, async (req: Request, res: Response) => {
       friendRequests.map((fr: any) => [fr.id, fr.status])
     );
 
+    const pvpRoomCodes = notifications
+      .filter((n: any) => n.type === 'PVP_INVITE' && n.targetId)
+      .map((n: any) => n.targetId);
+
+    const pvpRooms = pvpRoomCodes.length > 0
+      ? await db.pvpRoom.findMany({
+          where: {
+            OR: [
+              { code: { in: pvpRoomCodes } },
+              { id: { in: pvpRoomCodes } },
+            ],
+          },
+          include: { participants: { select: { userId: true } } },
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
+
     const formattedNotifications = notifications.map((n: any) => {
       let requestStatus: string | null = null;
       if (n.type === 'FRIEND_REQUEST' && n.targetId) {
         requestStatus = statusMap.get(n.targetId) || null;
+      }
+
+      let pvpRoomStatus: string | null = null;
+      if (n.type === 'PVP_INVITE' && n.targetId) {
+        const matchingRoomWhereJoined = pvpRooms.find(
+          (r: any) =>
+            (r.code === n.targetId || r.id === n.targetId) &&
+            r.participants.some((p: any) => p.userId === n.userId)
+        );
+
+        if (matchingRoomWhereJoined) {
+          pvpRoomStatus = 'ALREADY_JOINED';
+          requestStatus = 'ACCEPTED';
+        } else {
+          const mostRecentRoom = pvpRooms.find(
+            (r: any) => r.code === n.targetId || r.id === n.targetId
+          );
+          if (!mostRecentRoom) {
+            pvpRoomStatus = 'NOT_FOUND';
+          } else if (mostRecentRoom.status === 'LOBBY') {
+            pvpRoomStatus = mostRecentRoom.participants.length >= 8 ? 'FULL' : 'LOBBY';
+          } else if (mostRecentRoom.status === 'IN_PROGRESS') {
+            pvpRoomStatus = 'IN_PROGRESS';
+          } else {
+            pvpRoomStatus = 'EXPIRED';
+          }
+        }
       }
 
       let formattedSender: {
@@ -214,6 +258,7 @@ router.get('/', requireStudent, async (req: Request, res: Response) => {
         updatedAt: n.updatedAt,
         sender: formattedSender,
         requestStatus,
+        pvpRoomStatus,
       };
     });
 

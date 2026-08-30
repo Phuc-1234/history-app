@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
+import { router } from 'expo-router';
 import { notificationService } from '../services/notificationService';
 import { toastService } from '@/services/toastService';
 import { useAppSelector } from '@/store/storeHook';
@@ -59,7 +60,11 @@ export function useNotification() {
       // 3. Listen to background actions (User clicks notification when app is in background)
       unsubscribeNotificationOpened = messaging().onNotificationOpenedApp((remoteMessage) => {
         console.log('User clicked notification (Background state):', remoteMessage);
-        // TODO: Handle navigation here
+        try {
+          router.push('/notifications' as never);
+        } catch (err) {
+          console.warn('[Notification] Failed to navigate to /notifications from background:', err);
+        }
       });
 
       // 4. Listen to app startup from killed state (User clicks notification when app is killed)
@@ -68,7 +73,13 @@ export function useNotification() {
         .then((remoteMessage) => {
           if (remoteMessage && isMounted) {
             console.log('App opened from notification (Killed state):', remoteMessage);
-            // TODO: Handle navigation here
+            setTimeout(() => {
+              try {
+                router.push('/notifications' as never);
+              } catch (err) {
+                console.warn('[Notification] Failed to navigate to /notifications from killed state:', err);
+              }
+            }, 300);
           }
         })
         .catch(err => console.warn('[Firebase getInitialNotification] failed:', err));

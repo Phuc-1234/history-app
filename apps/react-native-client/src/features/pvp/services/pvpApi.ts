@@ -15,7 +15,7 @@ export const pvpApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
-            invalidatesTags: ["PvpPublicRooms"],
+            invalidatesTags: ["PvpPublicRooms", "ActivePvpRoom"],
         }),
 
         joinPvpRoom: builder.mutation<PvpRoom, JoinPvpRoomRequest>({
@@ -24,7 +24,7 @@ export const pvpApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
-            invalidatesTags: ["PvpPublicRooms"],
+            invalidatesTags: ["PvpPublicRooms", "ActivePvpRoom"],
         }),
 
         leavePvpRoom: builder.mutation<void, { roomCode: string }>({
@@ -33,7 +33,7 @@ export const pvpApi = apiSlice.injectEndpoints({
                 method: "POST",
                 body,
             }),
-            invalidatesTags: ["PvpPublicRooms"],
+            invalidatesTags: ["PvpPublicRooms", "ActivePvpRoom"],
         }),
 
         getPvpRoomInfo: builder.query<PvpRoom, string>({
@@ -42,6 +42,7 @@ export const pvpApi = apiSlice.injectEndpoints({
 
         getActivePvpRoom: builder.query<PvpRoom | null, void>({
             query: () => "/api/pvp/active-room",
+            providesTags: ["ActivePvpRoom"],
         }),
 
         getPublicRooms: builder.query<PvpPublicRoomDto[], void>({
@@ -89,6 +90,17 @@ export const pvpApi = apiSlice.injectEndpoints({
                 params,
             }),
         }),
+
+        inviteFriendToPvpRoom: builder.mutation<
+            { message: string; roomCode: string; targetUserId: string },
+            { roomCode: string; targetUserId: string }
+        >({
+            query: (body) => ({
+                url: "/api/pvp/invite",
+                method: "POST",
+                body,
+            }),
+        }),
     }),
     overrideExisting: __DEV__,
 });
@@ -108,5 +120,6 @@ export const {
     useNextPvpStateMutation,
     useGetCuratedTestsQuery,
     useGetAvailableQuestionsCountQuery,
+    useInviteFriendToPvpRoomMutation,
 } = pvpApi;
 

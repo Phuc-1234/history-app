@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, BackHandler } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, BackHandler, ActivityIndicator } from "react-native";
 import { Swords } from "lucide-react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { SlidingTabBar } from "@/components/SlidingTabBar";
@@ -52,21 +52,36 @@ export function PvpMainScreen({
 
     const [activeTab, setActiveTab] = useState<"create" | "join">("create");
     const [currentRoom, setCurrentRoom] = useState<PvpRoom | null>(null);
+    const [isAutoJoining, setIsAutoJoining] = useState<boolean>(
+        !!(initialRoomCode && initialRoomCode.trim().length === 4)
+    );
+    const [isReentering, setIsReentering] = useState(false);
 
     const { data: activeRoomData, refetch: refetchActiveRoom } = useGetActivePvpRoomQuery();
     const [leavePvpRoomMut] = useLeavePvpRoomMutation();
     const [joinPvpRoomMut] = useJoinPvpRoomMutation();
     const autoJoinedRoomRef = useRef<string | null>(null);
+    const justLeftRoomCodeRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if (!initialRoomCode || initialRoomCode.trim().length !== 4) return;
+        if (!initialRoomCode || initialRoomCode.trim().length !== 4) {
+            setIsAutoJoining(false);
+            return;
+        }
         const normalizedCode = initialRoomCode.trim();
-        if (autoJoinedRoomRef.current === normalizedCode) return;
-        if (currentRoom?.code === normalizedCode) return;
+        if (autoJoinedRoomRef.current === normalizedCode) {
+            setIsAutoJoining(false);
+            return;
+        }
+        if (currentRoom?.code === normalizedCode) {
+            setIsAutoJoining(false);
+            return;
+        }
 
         autoJoinedRoomRef.current = normalizedCode;
 
         const autoJoin = async () => {
+            setIsAutoJoining(true);
             try {
                 if (currentRoom?.code && currentRoom.code !== normalizedCode) {
                     try {
@@ -76,12 +91,15 @@ export function PvpMainScreen({
                     }
                 }
                 const room = await joinPvpRoomMut({ roomCode: normalizedCode }).unwrap();
+                justLeftRoomCodeRef.current = null;
                 setCurrentRoom(room);
                 toastService.show(`Đã tham gia phòng #${room.code}!`, "success");
             } catch (err: any) {
                 console.error("Failed to auto-join PVP room from link:", err);
                 const msg = err?.data?.error ?? err?.message ?? "Không thể vào phòng bằng liên kết";
                 toastService.show(msg, "error");
+            } finally {
+                setIsAutoJoining(false);
             }
         };
 
@@ -119,21 +137,43 @@ export function PvpMainScreen({
         : null;
 
     const handleRoomJoinedOrCreate = (room: PvpRoom) => {
+        justLeftRoomCodeRef.current = null;
         setCurrentRoom(room);
     };
 
     const handleLeaveRoom = useCallback(async () => {
-        if (currentRoom?.code) {
+        const leavingCode = currentRoom?.code || effectiveRoom?.code;
+        if (leavingCode) {
+            justLeftRoomCodeRef.current = leavingCode;
+        }
+        setCurrentRoom(null);
+        resetState();
+        if (leavingCode) {
             try {
-                await leavePvpRoomMut({ roomCode: currentRoom.code }).unwrap();
+                await leavePvpRoomMut({ roomCode: leavingCode }).unwrap();
             } catch (err) {
                 console.error("Failed to leave room on backend:", err);
             }
         }
-        setCurrentRoom(null);
-        resetState();
         refetchActiveRoom();
-    }, [currentRoom?.code, leavePvpRoomMut, resetState, refetchActiveRoom]);
+    }, [currentRoom?.code, effectiveRoom?.code, leavePvpRoomMut, resetState, refetchActiveRoom]);
+
+    const handleReenterActiveRoom = async (room: PvpRoom) => {
+        if (isReentering) return;
+        setIsReentering(true);
+        try {
+            const freshRoom = await joinPvpRoomMut({ roomCode: room.code }).unwrap();
+            justLeftRoomCodeRef.current = null;
+            setCurrentRoom(freshRoom);
+        } catch (err: any) {
+            console.error("Failed to re-enter active room:", err);
+            const msg = err?.data?.error ?? err?.message ?? "Không thể vào lại phòng";
+            toastService.show(msg, "error");
+            refetchActiveRoom();
+        } finally {
+            setIsReentering(false);
+        }
+    };
 
     const handleBackPress = useCallback(() => {
         if (effectiveRoom) {
@@ -156,6 +196,28 @@ export function PvpMainScreen({
         const subscription = BackHandler.addEventListener("hardwareBackPress", onHardwareBackPress);
         return () => subscription.remove();
     }, [effectiveRoom, isGameStarted, handleBackPress]);
+
+    const branchConfig = {
+        hierarchy: "PVP",
+        title: "Thi đấu PVP",
+        hideBack: false,
+        hideHome: false,
+        onBackPress: handleBackPress,
+    };
+
+    // If auto-joining from an initial room code, render a clean loading state to prevent screen flash
+    if (isAutoJoining && !effectiveRoom) {
+        return (
+            <ScreenWrapper showTopBar={false} branchConfig={branchConfig} showHistoricalBackground={false}>
+                <View style={styles.autoJoinLoadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary600 || "#C37938"} />
+                    <Text style={styles.autoJoinLoadingText}>
+                        Đang tham gia phòng #{initialRoomCode?.trim()}...
+                    </Text>
+                </View>
+            </ScreenWrapper>
+        );
+    }
 
     // If game has started or is IN_PROGRESS, switch to full-screen PvpGameScreen
     if (effectiveRoom && (isGameStarted || effectiveRoom.status === "IN_PROGRESS")) {
@@ -180,14 +242,6 @@ export function PvpMainScreen({
             />
         );
     }
-
-    const branchConfig = {
-        hierarchy: "PVP",
-        title: "Thi đấu PVP",
-        hideBack: false,
-        hideHome: false,
-        onBackPress: handleBackPress,
-    };
 
     // If in lobby, show PvpLobbyView wrapped in ScreenWrapper
     if (effectiveRoom) {
@@ -227,7 +281,11 @@ export function PvpMainScreen({
                 </View>
 
                 {/* Active Room Re-entry Banner Section */}
-                {activeRoomData && !currentRoom && (
+                {activeRoomData &&
+                    !currentRoom &&
+                    !isAutoJoining &&
+                    activeRoomData.code !== justLeftRoomCodeRef.current &&
+                    (activeRoomData.status === "LOBBY" || activeRoomData.status === "IN_PROGRESS") && (
                     <View style={styles.activeRoomCard}>
                         <View style={styles.activeRoomHeader}>
                             <View style={styles.activeRoomBadge}>
@@ -245,10 +303,15 @@ export function PvpMainScreen({
                         <View style={styles.activeRoomActions}>
                             <TouchableOpacity
                                 style={styles.reenterButton}
-                                onPress={() => setCurrentRoom(activeRoomData)}
+                                onPress={() => handleReenterActiveRoom(activeRoomData)}
+                                disabled={isReentering}
                                 activeOpacity={0.8}
                             >
-                                <Text style={styles.reenterButtonText}>Quay lại phòng</Text>
+                                {isReentering ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.reenterButtonText}>Quay lại phòng</Text>
+                                )}
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -259,6 +322,7 @@ export function PvpMainScreen({
                                     } catch (err) {
                                         console.error("Failed to leave active room:", err);
                                     }
+                                    justLeftRoomCodeRef.current = activeRoomData.code;
                                     refetchActiveRoom();
                                 }}
                                 activeOpacity={0.8}
@@ -379,6 +443,19 @@ const styles = StyleSheet.create({
         marginTop: spacing.md,
         marginBottom: spacing.xs,
         backgroundColor: colors.neutral100,
+    },
+    autoJoinLoadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: spacing.xl,
+        gap: spacing.md,
+    },
+    autoJoinLoadingText: {
+        ...typography.bodyMedium,
+        color: colors.neutral700,
+        fontWeight: "600",
+        textAlign: "center",
     },
 });
 

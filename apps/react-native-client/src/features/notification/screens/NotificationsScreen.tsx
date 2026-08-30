@@ -17,6 +17,7 @@ import {
     useAcceptFriendRequestMutation,
     useRejectFriendRequestMutation,
 } from "@/features/social/services/socialApi";
+import { useJoinPvpRoomMutation } from "@/features/pvp/services/pvpApi";
 import {
     useGetNotificationsQuery,
     useMarkNotificationAsReadMutation,
@@ -95,6 +96,7 @@ export function NotificationsScreen() {
     const [markAllAsRead] = useMarkAllNotificationsAsReadMutation();
     const [acceptRequest] = useAcceptFriendRequestMutation();
     const [rejectRequest] = useRejectFriendRequestMutation();
+    const [joinPvpRoomMut] = useJoinPvpRoomMutation();
     const [toggleHideNotification] = useToggleHideNotificationMutation();
 
     useEffect(() => {
@@ -142,6 +144,10 @@ export function NotificationsScreen() {
         router.push(`/(social)/profile?userId=${targetUserId}` as never);
     });
 
+    const handleNavigateToPvpRoom = preventDoubleTap((roomCode: string) => {
+        router.push(`/pvp?roomCode=${roomCode}` as never);
+    });
+
     const handleCardPress = async (notification: SystemNotification) => {
         // Mark as read when tapping anywhere on the card
         if (!notification.isRead) {
@@ -149,14 +155,25 @@ export function NotificationsScreen() {
         }
 
         // If friend request or friend accept, navigate to profile
-        const targetUserId =
+        if (
             notification.type === "FRIEND_REQUEST" ||
             notification.type === "FRIEND_ACCEPT"
-                ? notification.senderId || notification.sender?.id
-                : undefined;
+        ) {
+            const targetUserId = notification.senderId || notification.sender?.id;
+            if (targetUserId) {
+                handleNavigateToUserProfile(targetUserId);
+            }
+            return;
+        }
 
-        if (targetUserId) {
-            handleNavigateToUserProfile(targetUserId);
+        // If PVP invite, if still joinable, attempt to join
+        if (notification.type === "PVP_INVITE") {
+            const isRejected =
+                localStatusOverrides[notification.id] === "REJECTED" ||
+                notification.requestStatus === "REJECTED";
+            if (!isRejected && notification.pvpRoomStatus === "LOBBY") {
+                handleAccept(notification);
+            }
         }
     };
 
@@ -192,63 +209,116 @@ export function NotificationsScreen() {
     };
 
     const handleAccept = async (notification: SystemNotification) => {
-        if (!notification.targetId) return;
-        const reqId = notification.targetId;
-        setProcessingRequestId(reqId);
-        setLocalStatusOverrides((prev) => ({ ...prev, [reqId]: "ACCEPTED" }));
-        setLocalReadOverrides((prev) => ({ ...prev, [notification.id]: true }));
+        if (notification.type === "PVP_INVITE") {
+            const roomCode = notification.targetId;
+            if (!roomCode) return;
 
-        try {
-            await acceptRequest(reqId).unwrap();
-            if (!notification.isRead) {
-                await markAsRead(notification.id).unwrap();
+            setProcessingRequestId(notification.id);
+            setLocalStatusOverrides((prev) => ({ ...prev, [notification.id]: "ACCEPTED" }));
+            setLocalReadOverrides((prev) => ({ ...prev, [notification.id]: true }));
+
+            try {
+                await joinPvpRoomMut({ roomCode }).unwrap();
+                if (!notification.isRead) {
+                    await markAsRead(notification.id).unwrap();
+                }
+                handleNavigateToPvpRoom(roomCode);
+            } catch (err: any) {
+                console.error("Failed to join PVP room from invite:", err);
+                const msg = err?.data?.error ?? err?.message ?? "Không thể tham gia phòng thi đấu";
+                toastService.show(msg, "error");
+                setLocalStatusOverrides((prev) => {
+                    const next = { ...prev };
+                    delete next[notification.id];
+                    return next;
+                });
+                refetch();
+            } finally {
+                setProcessingRequestId(null);
             }
-        } catch (error) {
-            console.error("Failed to accept friend request:", error);
-            setLocalStatusOverrides((prev) => {
-                const next = { ...prev };
-                delete next[reqId];
-                return next;
-            });
-        } finally {
-            setProcessingRequestId(null);
+            return;
+        }
+
+        if (notification.type === "FRIEND_REQUEST") {
+            if (!notification.targetId) return;
+            const reqId = notification.targetId;
+            setProcessingRequestId(reqId);
+            setLocalStatusOverrides((prev) => ({ ...prev, [reqId]: "ACCEPTED" }));
+            setLocalReadOverrides((prev) => ({ ...prev, [notification.id]: true }));
+
+            try {
+                await acceptRequest(reqId).unwrap();
+                if (!notification.isRead) {
+                    await markAsRead(notification.id).unwrap();
+                }
+            } catch (error) {
+                console.error("Failed to accept friend request:", error);
+                setLocalStatusOverrides((prev) => {
+                    const next = { ...prev };
+                    delete next[reqId];
+                    return next;
+                });
+            } finally {
+                setProcessingRequestId(null);
+            }
         }
     };
 
     const handleReject = async (notification: SystemNotification) => {
-        if (!notification.targetId) return;
-        const reqId = notification.targetId;
-        setProcessingRequestId(reqId);
-        setLocalStatusOverrides((prev) => ({ ...prev, [reqId]: "REJECTED" }));
-        setLocalReadOverrides((prev) => ({ ...prev, [notification.id]: true }));
+        if (notification.type === "PVP_INVITE") {
+            setLocalStatusOverrides((prev) => ({ ...prev, [notification.id]: "REJECTED" }));
+            setLocalReadOverrides((prev) => ({ ...prev, [notification.id]: true }));
 
-        try {
-            await rejectRequest(reqId).unwrap();
-            if (!notification.isRead) {
-                await markAsRead(notification.id).unwrap();
+            try {
+                if (!notification.isRead) {
+                    await markAsRead(notification.id).unwrap();
+                }
+                toastService.show("Đã từ chối lời mời thách đấu", "info");
+            } catch (error) {
+                console.error("Failed to mark rejected PVP invite as read:", error);
             }
-        } catch (error) {
-            console.error("Failed to reject friend request:", error);
-            setLocalStatusOverrides((prev) => {
-                const next = { ...prev };
-                delete next[reqId];
-                return next;
-            });
-        } finally {
-            setProcessingRequestId(null);
+            return;
+        }
+
+        if (notification.type === "FRIEND_REQUEST") {
+            if (!notification.targetId) return;
+            const reqId = notification.targetId;
+            setProcessingRequestId(reqId);
+            setLocalStatusOverrides((prev) => ({ ...prev, [reqId]: "REJECTED" }));
+            setLocalReadOverrides((prev) => ({ ...prev, [notification.id]: true }));
+
+            try {
+                await rejectRequest(reqId).unwrap();
+                if (!notification.isRead) {
+                    await markAsRead(notification.id).unwrap();
+                }
+            } catch (error) {
+                console.error("Failed to reject friend request:", error);
+                setLocalStatusOverrides((prev) => {
+                    const next = { ...prev };
+                    delete next[reqId];
+                    return next;
+                });
+            } finally {
+                setProcessingRequestId(null);
+            }
         }
     };
 
     const allNotifications: SystemNotification[] = (
         notificationData?.notifications ?? []
     ).map((noti) => {
-        const overrideStatus = noti.targetId ? localStatusOverrides[noti.targetId] : undefined;
-        const overrideHidden = localHiddenOverrides[noti.id] !== undefined
-            ? localHiddenOverrides[noti.id]
-            : noti.isHidden;
-        const overrideRead = localReadOverrides[noti.id] !== undefined
-            ? localReadOverrides[noti.id]
-            : noti.isRead;
+        const overrideStatus =
+            (noti.targetId ? localStatusOverrides[noti.targetId] : undefined) ??
+            localStatusOverrides[noti.id];
+        const overrideHidden =
+            localHiddenOverrides[noti.id] !== undefined
+                ? localHiddenOverrides[noti.id]
+                : noti.isHidden;
+        const overrideRead =
+            localReadOverrides[noti.id] !== undefined
+                ? localReadOverrides[noti.id]
+                : noti.isRead;
 
         return {
             ...noti,
@@ -379,7 +449,8 @@ export function NotificationsScreen() {
                                     onReject={() => handleReject(noti)}
                                     onToggleHide={() => handleToggleHide(noti)}
                                     isProcessingAction={
-                                        !!noti.targetId && processingRequestId === noti.targetId
+                                        (!!noti.targetId && processingRequestId === noti.targetId) ||
+                                        processingRequestId === noti.id
                                     }
                                 />
                             ))}

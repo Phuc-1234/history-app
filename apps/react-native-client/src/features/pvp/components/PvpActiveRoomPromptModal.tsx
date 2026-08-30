@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, Text, Modal, StyleSheet, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { useSelector } from "react-redux";
 import { Swords } from "lucide-react-native";
 import { colors, radii, spacing, typography } from "@/theme";
@@ -8,6 +8,7 @@ import { useGetActivePvpRoomQuery, useLeavePvpRoomMutation } from "../services/p
 
 export function PvpActiveRoomPromptModal() {
     const router = useRouter();
+    const pathname = usePathname();
     const isAuthenticated = useSelector((state: any) => !!state.auth?.token);
     const [visible, setVisible] = useState(false);
     const hasPromptedRef = useRef(false);
@@ -24,7 +25,7 @@ export function PvpActiveRoomPromptModal() {
         }
     }, [isAuthenticated, isSuccess, activeRoom]);
 
-    if (!visible || !activeRoom) return null;
+    if (!visible || !activeRoom || pathname === "/pvp") return null;
 
     const isMatchInProgress = activeRoom.status === "IN_PROGRESS";
     const statusText = isMatchInProgress ? "Đang thi đấu" : "Phòng chờ";

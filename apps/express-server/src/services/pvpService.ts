@@ -1,6 +1,7 @@
 import { prisma } from "@history-app/shared";
 import { Prisma } from "@prisma/client";
 import { supabaseAdmin } from "../config/supabaseClient";
+import { pushNotificationService } from "./pushNotificationService";
 import { scoreQuestion } from "./scoreEngine";
 import { autoPickQuestions, expandScopeToQuestionWhere } from "./testServiceV2";
 import {
@@ -89,8 +90,11 @@ export class PvpService {
         const transitionInterval = req.transitionInterval ?? 4;
 
         const availableCount = await this.getAvailableQuestionsCount(req.scopeType, req.scopeId, req.testId);
-        if (availableCount <= 0) {
-            throw serviceError("Không có câu hỏi nào khả dụng cho phạm vi này (0 câu)", "NO_QUESTIONS");
+        if (questionCount < 5) {
+            throw serviceError("Số lượng câu hỏi tối thiểu là 5 câu", "MIN_QUESTIONS_REQUIRED");
+        }
+        if (availableCount < 5) {
+            throw serviceError(`Không đủ câu hỏi khả dụng cho phạm vi này (cần tối thiểu 5 câu, hiện có ${availableCount} câu)`, "NO_QUESTIONS");
         }
         if (questionCount > availableCount) {
             throw serviceError(`Số câu hỏi yêu cầu (${questionCount}) vượt quá số câu hiện có (${availableCount})`, "NO_QUESTIONS");
@@ -119,6 +123,27 @@ export class PvpService {
 
         if (sequence.length === 0) {
             throw serviceError("Không có câu hỏi khả dụng cho cài đặt này", "NO_QUESTIONS");
+        }
+
+        // Cancel previous empty/stale LOBBY rooms where host is sole participant
+        try {
+            const staleLobbies = await prisma.pvpRoom.findMany({
+                where: {
+                    hostUserId,
+                    status: "LOBBY",
+                },
+                include: { participants: true },
+            });
+            for (const stale of staleLobbies) {
+                if (stale.participants.length <= 1) {
+                    await prisma.pvpRoom.update({
+                        where: { id: stale.id },
+                        data: { status: "CANCELLED" },
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Failed to clean up stale lobbies:", e);
         }
 
         const roomCode = await generate4DigitCode();
@@ -263,54 +288,139 @@ export class PvpService {
     }
 
     // ── Leave Room ─────────────────────────────────────────────────────────
-    async leaveRoom(userId: string, roomCode: string): Promise<void> {
-        const room = await prisma.pvpRoom.findFirst({
-            where: { code: roomCode, status: { in: ["LOBBY", "IN_PROGRESS"] } },
-            include: { participants: true },
-        });
+    async leaveRoom(userId: string, roomCode?: string): Promise<void> {
+        const targetRooms = roomCode
+            ? await prisma.pvpRoom.findMany({
+                  where: {
+                      code: roomCode,
+                      status: { in: ["LOBBY", "IN_PROGRESS"] },
+                      participants: { some: { userId } },
+                  },
+                  include: { participants: true },
+                  orderBy: { createdAt: "desc" },
+              })
+            : await prisma.pvpRoom.findMany({
+                  where: {
+                      status: { in: ["LOBBY", "IN_PROGRESS"] },
+                      participants: { some: { userId } },
+                  },
+                  include: { participants: true },
+                  orderBy: { createdAt: "desc" },
+              });
 
-        if (!room) return;
+        for (const room of targetRooms) {
+            const participant = room.participants.find((p) => p.userId === userId);
+            if (!participant) continue;
 
-        const participant = room.participants.find((p) => p.userId === userId);
-        if (!participant) return;
+            await prisma.pvpParticipant.delete({ where: { id: participant.id } });
 
-        await prisma.pvpParticipant.delete({ where: { id: participant.id } });
-
-        const remainingParticipants = await prisma.pvpParticipant.findMany({
-            where: { roomId: room.id },
-            include: { user: { select: { id: true, name: true, profileImgUrl: true } } },
-        });
-
-        let newHostUserId: string | null = null;
-
-        if (remainingParticipants.length === 0) {
-            const timerState = activeRoomTimers.get(roomCode);
-            if (timerState?.timeout) clearTimeout(timerState.timeout);
-            activeRoomTimers.delete(roomCode);
-
-            await prisma.pvpRoom.update({
-                where: { id: room.id },
-                data: { status: "CANCELLED" },
+            const remainingParticipants = await prisma.pvpParticipant.findMany({
+                where: { roomId: room.id },
+                include: { user: { select: { id: true, name: true, profileImgUrl: true } } },
             });
-        } else if (room.hostUserId === userId) {
-            newHostUserId = remainingParticipants[0].userId;
-            await prisma.pvpRoom.update({
-                where: { id: room.id },
-                data: { hostUserId: newHostUserId },
+
+            let newHostUserId: string | null = null;
+
+            if (remainingParticipants.length === 0) {
+                const timerState = activeRoomTimers.get(room.code);
+                if (timerState?.timeout) clearTimeout(timerState.timeout);
+                activeRoomTimers.delete(room.code);
+
+                await prisma.pvpRoom.update({
+                    where: { id: room.id },
+                    data: { status: "CANCELLED" },
+                });
+            } else if (room.hostUserId === userId) {
+                newHostUserId = remainingParticipants[0].userId;
+                await prisma.pvpRoom.update({
+                    where: { id: room.id },
+                    data: { hostUserId: newHostUserId },
+                });
+            }
+
+            const participantDtos: PvpParticipantDto[] = remainingParticipants.map((p) => ({
+                userId: p.userId,
+                name: p.user.name,
+                profileImgUrl: p.user.profileImgUrl,
+                score: p.score,
+            }));
+
+            await this.broadcast(room.code, "PLAYER_JOINED", {
+                participants: participantDtos,
+                hostUserId: newHostUserId ?? (room.hostUserId === userId ? null : room.hostUserId),
             });
         }
+    }
 
-        const participantDtos: PvpParticipantDto[] = remainingParticipants.map((p) => ({
-            userId: p.userId,
-            name: p.user.name,
-            profileImgUrl: p.user.profileImgUrl,
-            score: p.score,
-        }));
+    // ── Invite Friend ──────────────────────────────────────────────────────
+    async inviteFriend(currentUserId: string, roomCode: string, targetUserId: string) {
+        if (currentUserId === targetUserId) {
+            throw serviceError("Không thể tự mời chính mình", "CANNOT_INVITE_SELF");
+        }
 
-        await this.broadcast(roomCode, "PLAYER_JOINED", {
-            participants: participantDtos,
-            hostUserId: newHostUserId ?? (room.hostUserId === userId ? null : room.hostUserId),
+        const room = await prisma.pvpRoom.findFirst({
+            where: { code: roomCode, status: { in: ["LOBBY", "IN_PROGRESS"] } },
+            orderBy: { createdAt: "desc" },
+            include: {
+                participants: {
+                    select: { userId: true },
+                },
+            },
         });
+
+        if (!room) throw serviceError("Phòng không tồn tại", "ROOM_NOT_FOUND");
+
+        if (room.status !== "LOBBY") {
+            throw serviceError("Phòng đã bắt đầu thi đấu hoặc kết thúc", "ROOM_NOT_LOBBY");
+        }
+
+        if (room.participants.length >= 8) {
+            throw serviceError("Phòng đã đầy (tối đa 8 người)", "ROOM_FULL");
+        }
+
+        const isCallerInRoom = room.participants.some((p) => p.userId === currentUserId);
+        if (!isCallerInRoom) {
+            throw serviceError("Bạn phải ở trong phòng để mời người khác", "NOT_IN_ROOM");
+        }
+
+        const isTargetInRoom = room.participants.some((p) => p.userId === targetUserId);
+        if (isTargetInRoom) {
+            throw serviceError("Người bạn này đã ở trong phòng rồi", "ALREADY_IN_ROOM");
+        }
+
+        const sender = await prisma.user.findUnique({
+            where: { id: currentUserId },
+            select: { name: true },
+        });
+        const senderName = sender?.name || "Một người bạn";
+        const title = "Lời mời thách đấu PvP";
+        const body = `${senderName} đã mời bạn tham gia phòng thi đấu #${room.code}.`;
+
+        try {
+            await prisma.notification.create({
+                data: {
+                    userId: targetUserId,
+                    senderId: currentUserId,
+                    targetId: room.code,
+                    type: "PVP_INVITE",
+                    title,
+                    body,
+                },
+            });
+
+            await pushNotificationService.sendToUser(targetUserId, title, body, {
+                type: "PVP_INVITE",
+                roomCode: room.code,
+            });
+        } catch (err) {
+            console.error("Failed to create PVP_INVITE notification:", err);
+        }
+
+        return {
+            message: "Đã gửi lời mời thách đấu",
+            roomCode: room.code,
+            targetUserId,
+        };
     }
 
     // ── Get Room Info ──────────────────────────────────────────────────────

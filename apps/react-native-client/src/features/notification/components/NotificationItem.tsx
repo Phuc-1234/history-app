@@ -38,6 +38,8 @@ export function NotificationItem({
 }: NotificationItemProps) {
     const isFriendRequest = notification.type === "FRIEND_REQUEST";
     const isFriendAccept = notification.type === "FRIEND_ACCEPT";
+    const isPvpInvite = notification.type === "PVP_INVITE";
+
     const isPending =
         notification.requestStatus === "PENDING" ||
         (!notification.requestStatus && !!notification.targetId);
@@ -107,7 +109,7 @@ export function NotificationItem({
     });
 
     const renderAvatar = () => {
-        if (notification.sender || isFriendRequest || isFriendAccept) {
+        if (notification.sender || isFriendRequest || isFriendAccept || isPvpInvite) {
             return (
                 <AvatarWithFrame
                     uri={senderAvatar}
@@ -188,6 +190,7 @@ export function NotificationItem({
                             {notification.body}
                         </Text>
 
+                        {/* Friend Request Action Section */}
                         {isFriendRequest && (
                             <View style={styles.actionSection}>
                                 {isProcessingAction ? (
@@ -232,6 +235,90 @@ export function NotificationItem({
                                         <Text style={styles.statusTextRejected}>
                                             Đã từ chối
                                         </Text>
+                                    </View>
+                                ) : null}
+                            </View>
+                        )}
+
+                        {/* PVP Invite Action Section */}
+                        {isPvpInvite && (
+                            <View style={styles.actionSection}>
+                                {isProcessingAction ? (
+                                    <View style={styles.actionLoading}>
+                                        <ActivityIndicator size="small" color={colors.primary} />
+                                    </View>
+                                ) : isAccepted || notification.pvpRoomStatus === "ALREADY_JOINED" ? (
+                                    <View style={styles.statusRow}>
+                                        <Ionicons
+                                            name="checkmark-circle"
+                                            size={16}
+                                            color={colors.success}
+                                        />
+                                        <Text style={styles.statusTextAccepted}>
+                                            Đã tham gia phòng thi đấu
+                                        </Text>
+                                    </View>
+                                ) : isRejected ? (
+                                    <View style={styles.statusRow}>
+                                        <Ionicons
+                                            name="close-circle"
+                                            size={16}
+                                            color={colors.textMuted}
+                                        />
+                                        <Text style={styles.statusTextRejected}>
+                                            Đã từ chối lời mời
+                                        </Text>
+                                    </View>
+                                ) : notification.pvpRoomStatus === "FULL" ? (
+                                    <View style={styles.statusRow}>
+                                        <Ionicons
+                                            name="alert-circle"
+                                            size={16}
+                                            color={colors.error}
+                                        />
+                                        <Text style={[styles.statusTextRejected, { color: colors.error }]}>
+                                            Phòng thi đấu đã đầy (8/8)
+                                        </Text>
+                                    </View>
+                                ) : notification.pvpRoomStatus === "IN_PROGRESS" ? (
+                                    <View style={styles.statusRow}>
+                                        <Ionicons
+                                            name="time-outline"
+                                            size={16}
+                                            color={colors.secondary}
+                                        />
+                                        <Text style={[styles.statusTextRejected, { color: colors.secondary }]}>
+                                            Trận đấu đã bắt đầu
+                                        </Text>
+                                    </View>
+                                ) : notification.pvpRoomStatus === "EXPIRED" ||
+                                  notification.pvpRoomStatus === "NOT_FOUND" ? (
+                                    <View style={styles.statusRow}>
+                                        <Ionicons
+                                            name="close-circle"
+                                            size={16}
+                                            color={colors.textMuted}
+                                        />
+                                        <Text style={styles.statusTextRejected}>
+                                            Phòng đã kết thúc hoặc bị hủy
+                                        </Text>
+                                    </View>
+                                ) : onAccept && onReject ? (
+                                    <View style={styles.actionButtonsRow}>
+                                        <PrimaryButton
+                                            label="Tham gia"
+                                            icon="play"
+                                            variant="primary"
+                                            style={styles.actionButton}
+                                            onPress={onAccept}
+                                        />
+                                        <PrimaryButton
+                                            label="Từ chối"
+                                            icon="close"
+                                            variant="outline"
+                                            style={styles.actionButton}
+                                            onPress={onReject}
+                                        />
                                     </View>
                                 ) : null}
                             </View>

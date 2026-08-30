@@ -23,6 +23,9 @@ import Animated, {
 import { LogOut } from "lucide-react-native";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { colors, radii, spacing, typography } from "@/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { toastService } from "@/services/toastService";
+import { useGetFriendsQuery, useSendFriendRequestMutation } from "@/features/social/services/socialApi";
 import type { PvpLeaderboardEntry, PvpParticipant, QuestionV2 } from "../types";
 import ChooseQuestion from "../../test_v2/components/ChooseQuestion";
 import FillQuestion from "../../test_v2/components/FillQuestion";
@@ -86,6 +89,35 @@ export function PvpGameScreen({
 
     const [submitAnswerMut, { isLoading: isSubmitting }] = useSubmitPvpAnswerMutation();
     const [nextPvpState, { isLoading: isAdvancingState }] = useNextPvpStateMutation();
+
+    const { data: friendsData } = useGetFriendsQuery(undefined, {
+        skip: !finalLeaderboard,
+    });
+    const [sendFriendRequestMut] = useSendFriendRequestMutation();
+    const [sentFriendRequestIds, setSentFriendRequestIds] = useState<Set<string>>(new Set());
+    const [sendingFriendRequestId, setSendingFriendRequestId] = useState<string | null>(null);
+
+    const friendUserIds = useMemo(() => {
+        const list = friendsData?.friends ?? [];
+        return new Set(list.map((f) => f.user.id));
+    }, [friendsData]);
+
+    const handleAddFriend = async (targetUserId: string, targetUserName: string) => {
+        if (sendingFriendRequestId) return;
+        setSendingFriendRequestId(targetUserId);
+
+        try {
+            await sendFriendRequestMut({ receiverId: targetUserId }).unwrap();
+            setSentFriendRequestIds((prev) => new Set([...prev, targetUserId]));
+            toastService.show(`Đã gửi lời mời kết bạn đến ${targetUserName}!`, "success");
+        } catch (err: any) {
+            console.error("Failed to send friend request:", err);
+            const msg = err?.data?.error ?? err?.message ?? "Không thể gửi lời mời kết bạn";
+            toastService.show(msg, "error");
+        } finally {
+            setSendingFriendRequestId(null);
+        }
+    };
 
     // Reanimated shared value for smooth timer unfill animation
     const timerProgress = useSharedValue(1);
@@ -305,6 +337,10 @@ export function PvpGameScreen({
                     <ScrollView style={styles.leaderboardList}>
                         {finalLeaderboard.map((item) => {
                             const isMe = item.userId === currentUserId;
+                            const isFriend = friendUserIds.has(item.userId);
+                            const isRequestSent = sentFriendRequestIds.has(item.userId);
+                            const isSending = sendingFriendRequestId === item.userId;
+
                             return (
                                 <Animated.View
                                     key={item.userId}
@@ -323,6 +359,39 @@ export function PvpGameScreen({
                                         {item.name} {isMe ? "(Bạn)" : ""}
                                     </Text>
                                     <Text style={styles.rankScore}>{item.score}đ</Text>
+
+                                    {/* Add Friend button for non-friends */}
+                                    {!isMe && (
+                                        <View style={styles.rankActionContainer}>
+                                            {isFriend ? (
+                                                <View style={styles.friendBadge}>
+                                                    <Ionicons name="people" size={13} color={colors.primary700} />
+                                                    <Text style={styles.friendBadgeText}>Bạn bè</Text>
+                                                </View>
+                                            ) : isRequestSent ? (
+                                                <View style={styles.sentBadge}>
+                                                    <Ionicons name="checkmark" size={13} color={colors.success} />
+                                                    <Text style={styles.sentBadgeText}>Đã gửi</Text>
+                                                </View>
+                                            ) : (
+                                                <TouchableOpacity
+                                                    style={styles.addFriendButton}
+                                                    onPress={() => handleAddFriend(item.userId, item.name)}
+                                                    disabled={isSending}
+                                                    activeOpacity={0.75}
+                                                >
+                                                    {isSending ? (
+                                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                                    ) : (
+                                                        <>
+                                                            <Ionicons name="person-add" size={13} color="#FFFFFF" />
+                                                            <Text style={styles.addFriendButtonText}>Kết bạn</Text>
+                                                        </>
+                                                    )}
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    )}
                                 </Animated.View>
                             );
                         })}
@@ -1000,6 +1069,53 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: typography.fonts.bold,
         color: colors.primary700,
+        marginRight: spacing.sm,
+    },
+    rankActionContainer: {
+        minWidth: 82,
+        alignItems: "flex-end",
+    },
+    addFriendButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: colors.primary600,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: radii.pill,
+    },
+    addFriendButtonText: {
+        fontSize: 12,
+        fontFamily: typography.fonts.medium,
+        color: "#FFFFFF",
+    },
+    friendBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        backgroundColor: colors.primary100,
+        borderRadius: radii.pill,
+    },
+    friendBadgeText: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: colors.primary700,
+    },
+    sentBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        backgroundColor: colors.successContainer || "#EAF7EE",
+        borderRadius: radii.pill,
+    },
+    sentBadgeText: {
+        fontSize: 11,
+        fontFamily: typography.fonts.medium,
+        color: colors.success,
     },
     exitButton: {
         backgroundColor: colors.primary600,
