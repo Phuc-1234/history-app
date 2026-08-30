@@ -1220,25 +1220,17 @@ export class TestServiceV2 {
         };
     }
 
-    async getNationalTests(userId?: string): Promise<NationalTestDto[]> {
-        const tests = await prisma.test.findMany({
-            where: {
-                isNationalTest: true,
-            },
-            select: {
-                id: true,
-                title: true,
-                summary: true,
-                isPro: true,
-                imgUrl: true,
-                testQuestions: {
-                    select: {
-                        questionId: true,
-                    },
-                },
-            },
-        });
-
+    private async populateTestStats(
+        tests: Array<{
+            id: string;
+            title: string;
+            summary: string | null;
+            isPro: boolean;
+            imgUrl: string | null;
+            testQuestions: { questionId: number }[];
+        }>,
+        userId?: string
+    ): Promise<NationalTestDto[]> {
         if (!userId) {
             return tests.map((t) => ({
                 id: t.id,
@@ -1284,7 +1276,7 @@ export class TestServiceV2 {
         return tests.map((t) => {
             const tqIds = t.testQuestions.map((tq) => tq.questionId);
             const totalQuestions = tqIds.length;
-            
+
             let masteryPercentage = 0;
             if (totalQuestions > 0) {
                 const totalLevel = tqIds.reduce((sum, qId) => sum + (masteryMap.get(qId) ?? 0), 0);
@@ -1301,6 +1293,60 @@ export class TestServiceV2 {
                 masteryPercentage,
             };
         });
+    }
+
+    async getNationalTests(userId?: string): Promise<NationalTestDto[]> {
+        const tests = await prisma.test.findMany({
+            where: {
+                isNationalTest: true,
+            },
+            select: {
+                id: true,
+                title: true,
+                summary: true,
+                isPro: true,
+                imgUrl: true,
+                testQuestions: {
+                    select: {
+                        questionId: true,
+                    },
+                },
+            },
+            orderBy: { title: "asc" },
+        });
+
+        return this.populateTestStats(tests, userId);
+    }
+
+    async getCuratedTestsByScope(
+        userId?: string,
+        scopeType?: string,
+        scopeId?: number
+    ): Promise<NationalTestDto[]> {
+        if (!scopeType || !scopeId) return [];
+
+        const tests = await prisma.test.findMany({
+            where: {
+                isNationalTest: false,
+                scopeType: scopeType as any,
+                scopeId,
+            },
+            select: {
+                id: true,
+                title: true,
+                summary: true,
+                isPro: true,
+                imgUrl: true,
+                testQuestions: {
+                    select: {
+                        questionId: true,
+                    },
+                },
+            },
+            orderBy: { title: "asc" },
+        });
+
+        return this.populateTestStats(tests, userId);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────

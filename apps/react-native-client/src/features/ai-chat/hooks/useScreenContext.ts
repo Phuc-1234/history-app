@@ -2,6 +2,49 @@ import { useSegments, useGlobalSearchParams } from "expo-router";
 import { useAppSelector } from "@/store/storeHook";
 import { ScreenContextPayload } from "../services/aiChatApi";
 
+const stripHtml = (html?: string | null): string => {
+    if (!html) return "";
+    let clean = html.replace(/<[^>]*>/g, " ");
+
+    const entities: Record<string, string> = {
+        "&nbsp;": " ",
+        "&lt;": "<",
+        "&gt;": ">",
+        "&amp;": "&",
+        "&quot;": '"',
+        "&apos;": "'",
+        "&cent;": "¢",
+        "&pound;": "£",
+        "&yen;": "¥",
+        "&euro;": "€",
+        "&copy;": "©",
+        "&reg;": "®",
+        "&ldquo;": "“",
+        "&rdquo;": "”",
+        "&lsquo;": "‘",
+        "&rsquo;": "’",
+    };
+
+    clean = clean.replace(/&[a-zA-Z0-9#]+;/g, (match) => {
+        if (entities[match]) return entities[match];
+        if (match.startsWith("&#")) {
+            const code = parseInt(match.slice(2, -1), 10);
+            if (!isNaN(code)) return String.fromCharCode(code);
+        }
+        return match;
+    });
+
+    clean = clean.replace(/<[^>]*>/g, " ");
+    return clean.replace(/\s+/g, " ").trim();
+};
+
+const getSnippet = (text: string, maxLength = 60): string => {
+    if (!text) return "";
+    const clean = text.trim();
+    if (clean.length <= maxLength) return clean;
+    return `${clean.slice(0, maxLength).trim()}...`;
+};
+
 export function useScreenContext(): ScreenContextPayload {
     const segments = useSegments() as string[];
     const params = useGlobalSearchParams<{
@@ -25,9 +68,9 @@ export function useScreenContext(): ScreenContextPayload {
     const topicId = params.topicId && !isNaN(Number(params.topicId)) ? Number(params.topicId) : undefined;
     const grade = params.grade && !isNaN(Number(params.grade)) ? Number(params.grade) : undefined;
 
-    // Helper: Find lesson name or node title from RTK Query cache if available
+    // Helper: Find lesson name or node title/snippet from RTK Query cache if available
     let resolvedLessonName = params.lessonName;
-    let resolvedNodeHeader: string | undefined;
+    let resolvedNodeTitle: string | undefined;
 
     if (queries) {
         for (const queryKey of Object.keys(queries)) {
@@ -37,27 +80,51 @@ export function useScreenContext(): ScreenContextPayload {
                     resolvedLessonName = `Bài ${qData.position}: ${qData.name}`;
                 }
             }
-            if (nodeId && queryKey.startsWith("getLessonTree(")) {
-                const qData = queries[queryKey]?.data;
-                if (qData?.sections) {
-                    const findNodeHeader = (sections: any[]): string | undefined => {
-                        for (const sec of sections) {
-                            if (sec.nodes) {
-                                const matched = sec.nodes.find((n: any) => n.id === nodeId);
-                                if (matched) return matched.header || sec.name;
-                            }
-                            if (sec.children) {
-                                const res = findNodeHeader(sec.children);
-                                if (res) return res;
+            if (nodeId) {
+                if (queryKey.startsWith(`getNodeDetail(${nodeId})`)) {
+                    const nodeData = queries[queryKey]?.data;
+                    if (nodeData) {
+                        if (nodeData.header?.trim()) {
+                            resolvedNodeTitle = nodeData.header.trim();
+                        } else if (nodeData.body) {
+                            const clean = stripHtml(nodeData.body);
+                            if (clean) {
+                                resolvedNodeTitle = getSnippet(clean, 60);
                             }
                         }
-                        return undefined;
-                    };
-                    const header = findNodeHeader(qData.sections);
-                    if (header) {
-                        resolvedNodeHeader = header;
-                        if (!resolvedLessonName && qData.name) {
-                            resolvedLessonName = `Bài ${qData.position}: ${qData.name}`;
+                    }
+                }
+                if (queryKey.startsWith("getLessonTree(")) {
+                    const qData = queries[queryKey]?.data;
+                    if (qData?.sections) {
+                        const findNode = (sections: any[]): { header?: string | null; body?: string } | undefined => {
+                            for (const sec of sections) {
+                                if (sec.nodes) {
+                                    const matched = sec.nodes.find((n: any) => n.id === nodeId);
+                                    if (matched) return matched;
+                                }
+                                if (sec.children) {
+                                    const res = findNode(sec.children);
+                                    if (res) return res;
+                                }
+                            }
+                            return undefined;
+                        };
+                        const matched = findNode(qData.sections);
+                        if (matched) {
+                            if (!resolvedNodeTitle) {
+                                if (matched.header?.trim()) {
+                                    resolvedNodeTitle = matched.header.trim();
+                                } else if (matched.body) {
+                                    const clean = stripHtml(matched.body);
+                                    if (clean) {
+                                        resolvedNodeTitle = getSnippet(clean, 60);
+                                    }
+                                }
+                            }
+                            if (!resolvedLessonName && qData.name) {
+                                resolvedLessonName = `Bài ${qData.position}: ${qData.name}`;
+                            }
                         }
                     }
                 }
@@ -76,8 +143,8 @@ export function useScreenContext(): ScreenContextPayload {
     }
 
     if (routeStr.includes("node") || nodeId) {
-        const title = resolvedNodeHeader
-            ? `Nút: "${resolvedNodeHeader}"`
+        const title = resolvedNodeTitle
+            ? `Nút: "${resolvedNodeTitle}"`
             : (resolvedLessonName ? `Chi tiết: ${resolvedLessonName}` : (nodeId ? `Nút kiến thức #${nodeId}` : "Chi tiết kiến thức"));
         return {
             screenName: title,

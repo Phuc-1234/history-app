@@ -1,8 +1,9 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { colors } from "@/theme/colors";
 import { typography } from "@/theme/typography";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 
 interface AiMarkdownMessageProps {
     content: string;
@@ -15,11 +16,12 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
     content,
     textColor = colors.textPrimary,
     onCloseOverlay,
-    selectable = true,
+    selectable = false,
 }) => {
     const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
 
-    const handleLinkPress = (url: string) => {
+    const handleLinkPress = preventDoubleTap((url: string) => {
         if (onCloseOverlay) {
             onCloseOverlay();
         }
@@ -36,8 +38,10 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
                 pathname: "/(3_4_lessons)/lesson_menu",
                 params: { grade },
             } as any);
+        } else if (url.startsWith("http://") || url.startsWith("https://")) {
+            Linking.openURL(url).catch(() => {});
         }
-    };
+    });
 
     // Helper to render formatted inline text (bold, italic, links)
     const renderInlineText = (text: string, baseStyle: any): React.ReactNode => {
@@ -45,7 +49,7 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
         // Bold: **text**
         // Italic: *text* or _text_
         // Tag Badge: [tag]
-        const tokenRegex = /(\[.+?\]\((?:lesson:\d+|node:\d+|grade:\d+|https?:\/\/[^\)]+)\)|\*\*.+?\*\*|\*.+?\*|_.+?_|\[.+?\])/g;
+        const tokenRegex = /(\[.+?\]\([^\)]+\)|\*\*.+?\*\*|\*.+?\*|_.+?_|\[.+?\])/g;
 
         const parts = text.split(tokenRegex);
 
@@ -61,13 +65,28 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
                 const label = part.substring(labelStart, labelEnd);
                 const url = part.substring(labelEnd + 2, part.length - 1);
 
+                if (
+                    url.startsWith("lesson:") ||
+                    url.startsWith("node:") ||
+                    url.startsWith("grade:") ||
+                    url.startsWith("http://") ||
+                    url.startsWith("https://")
+                ) {
+                    return (
+                        <Text
+                            key={`link-${index}`}
+                            style={styles.linkText}
+                            onPress={() => handleLinkPress(url)}
+                        >
+                            {renderInlineText(label, styles.linkText)}
+                        </Text>
+                    );
+                }
+
+                // Unsupported or pseudo link (e.g. search:..., find:...) -> render label text cleanly
                 return (
-                    <Text
-                        key={`link-${index}`}
-                        style={styles.linkText}
-                        onPress={() => handleLinkPress(url)}
-                    >
-                        {renderInlineText(label, styles.linkText)}
+                    <Text key={`clean-link-${index}`} style={baseStyle}>
+                        {renderInlineText(label, baseStyle)}
                     </Text>
                 );
             }
@@ -109,8 +128,25 @@ export const AiMarkdownMessage: React.FC<AiMarkdownMessageProps> = ({
         });
     };
 
+    // Sanitize any raw pseudo search links and remove duplicate titles / link prefixes
+    const sanitizedContent = React.useMemo(() => {
+        if (!content) return "";
+        let res = content;
+        // 1. Remove pseudo search / query links like (search:...) or (find:...)
+        res = res.replace(/\((?:search|find|query):([^)]+)\)/gi, (_match, p1) => p1.trim());
+        // 2. Remove duplicate 'Bài [Bài X: ...]' or 'Bài học [Bài X: ...]'
+        res = res.replace(/\b(?:bài\s+học|Bài\s+học|bài|Bài)\s+(\[Bài\s+\d+:[^\]]+\]\(lesson:\d+\))/g, "$1");
+        // 3. Remove redundant 'Title: [Title](link)' or '**Title**: [Title](link)'
+        res = res.replace(/(?:^|\n|\s)(?:\*\*([^*\n\r:]+)\*\*|([^:\n\r]+?)):\s*\[\s*(\1|\2)\s*\]\((lesson:\d+|node:\d+|grade:\d+)\)/gi, (match, p1, p2, _p3, p4) => {
+            const title = (p1 || p2).trim();
+            const prefix = match.startsWith("\n") ? "\n" : (match.startsWith(" ") ? " " : "");
+            return `${prefix}[${title}](${p4})`;
+        });
+        return res;
+    }, [content]);
+
     // Parse block elements line-by-line
-    const lines = content.split("\n");
+    const lines = sanitizedContent.split("\n");
 
     return (
         <View style={styles.container}>

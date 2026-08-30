@@ -9,6 +9,7 @@ import {
     getAttemptDetail,
     getTestInfo,
     getNationalTests,
+    getCuratedTests,
     getPracticeStats,
 } from "../controllers/testControllerV2";
 import { requireStudent, optionalAuth } from "../middlewares/authMiddleware";
@@ -20,6 +21,9 @@ router.get("/resumable", requireStudent, checkResumable);
 
 // GET /api/tests-v2/national
 router.get("/national", optionalAuth, getNationalTests);
+
+// GET /api/tests-v2/curated
+router.get("/curated", optionalAuth, getCuratedTests);
 
 // GET /api/tests-v2/practice-stats
 router.get("/practice-stats", requireStudent, getPracticeStats);

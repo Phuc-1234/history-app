@@ -125,6 +125,26 @@ export const getNationalTests = async (req: Request, res: Response) => {
     }
 };
 
+export const getCuratedTests = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        const { scopeType, scopeId } = req.query as any;
+        const parsedScopeId = scopeId ? Number(scopeId) : undefined;
+        if (!scopeType || !parsedScopeId || isNaN(parsedScopeId)) {
+            return res.status(400).json({ error: "scopeType and valid scopeId are required" });
+        }
+        const resp = await testServiceV2.getCuratedTestsByScope(
+            userId,
+            scopeType,
+            parsedScopeId,
+        );
+        return res.status(200).json(resp);
+    } catch (err: any) {
+        console.error("getCuratedTests error:", err?.message ?? err);
+        return res.status(500).json({ error: "Failed to get curated tests" });
+    }
+};
+
 export const getPracticeStats = async (req: Request, res: Response) => {
     try {
         if (!req.user) return res.status(401).json({ error: "Unauthorized" });

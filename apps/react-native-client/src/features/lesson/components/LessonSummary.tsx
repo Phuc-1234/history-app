@@ -18,6 +18,7 @@ import VideoPlayer from "../../videostream/components/VideoPlayer";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import FeedbackModal from "../../../components/FeedbackModal";
+import { CuratedTestsSection } from "../../test_v2";
 
 interface LessonSummaryProps {
     data: LessonSummaryData;
@@ -210,6 +211,16 @@ export function LessonSummary({
                     <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
                 )}
             </TouchableOpacity>
+
+            {/* Curated Tests for Lesson Scope */}
+            <CuratedTestsSection
+                scopeType="LESSON"
+                scopeId={data.lessonId}
+                title="Một số đề luyện tập"
+                variant="plain"
+                defaultExpanded={true}
+            />
+
             {/* Context Feedback Modal */}
             <FeedbackModal
                 visible={feedbackModalVisible}

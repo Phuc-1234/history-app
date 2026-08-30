@@ -148,7 +148,8 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
     };
 
     const handleCopy = (content: string, id: string) => {
-        Clipboard.setString(content);
+        const plainText = stripMarkdown(content);
+        Clipboard.setString(plainText);
         setCopiedId(id);
         setTimeout(() => {
             setCopiedId((prev) => (prev === id ? null : prev));
@@ -208,7 +209,6 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                                     content={item.content}
                                     textColor={colors.textPrimary}
                                     onCloseOverlay={onClose}
-                                    selectable
                                 />
                             )}
                         </View>

@@ -172,6 +172,7 @@ model AiChatMessage {
 | 2.6 | 2026-08-03 | Added Easter Egg (`eng on` / `eng off`) feature via `CourseMenuScreen` search bar to toggle `ai-chat` UI text translation, and updated Gemini system prompt to automatically respond in English when user message is in English. |
 | 3.0 | 2026-08-12 | Introduced High Model Tier (`AiModelTier`: `MEDIUM` / `HIGH`), Gemini Native Function Calling (`tools: [{ functionDeclarations }]`), modular AI Tool directory (`ai-tools/`), app domain overview (`appInfo.ts`), and automatic fallback to Medium RAG mode. |
 | 3.1 | 2026-08-22 | Nâng cấp hệ thống Model Tier lên 3 cấp độ (`LOW` / `MEDIUM` / `HIGH` tương ứng Thấp / Trung bình / Cao). Đồng nhất cơ chế RAG cho cả 3 tiers sang Gemini Native Function Calling với giới hạn roundtrips khác nhau (LOW: tối đa 1 roundtrip, MEDIUM: tối đa 3 roundtrips, HIGH: tối đa 5 roundtrips). |
+| 3.2 | 2026-08-30 | Sửa lỗi tra cứu bài học theo số thứ tự khối lớp (ví dụ "bài 2 lớp 10") thông qua hỗ trợ `gradeNumber` & `lessonPosition` trực tiếp trong `get_lesson_detail` và `contentSearchService`; loại bỏ hoàn toàn việc nhắc đến mã ID/thuật ngữ kỹ thuật CSDL trong câu trả lời AI; xử lý làm sạch các liên kết markdown giả lập như `(search:...)` và áp dụng `usePreventDoubleTap` khi click link điều hướng trên client. |
 
 ---
 

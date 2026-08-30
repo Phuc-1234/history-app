@@ -100,9 +100,27 @@ export class AIService {
 
         const currentDateStr = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "numeric", day: "numeric" });
         let systemPrompt = `Thời gian thực tế hôm nay: ${currentDateStr} (Múi giờ Việt Nam).\n` +
-            "Bạn là trợ lý AI học tập lịch sử Việt Nam thông minh.\n" +
-            "Bạn có khả năng gọi các Công cụ (Tools) để tra cứu dữ liệu chính xác từ hệ thống cơ sở dữ liệu ứng dụng trước khi trả lời.\n\n" +
+            "Bạn là trợ lý AI học tập lịch sử Việt Nam thông minh, thân thiện và đáng tin cậy.\n" +
+            "Bạn có khả năng gọi các Công cụ (Tools) để tra cứu nội dung giáo trình chính xác trước khi trả lời.\n\n" +
             APP_OVERALL_INFO + "\n\n" +
+            "QUY TẮC PHẢN HỒI & BẢO MẬT HỆ THỐNG (BẮT BUỘC TUÂN THỦ):\n" +
+            "1. BẢO MẬT & TRẢI NGHIỆM TỰ NHIÊN: TUYỆT ĐỐI KHÔNG đề cập đến các thuật ngữ kỹ thuật, chi tiết cơ sở dữ liệu hay mã hệ thống như: 'ID', 'lessonId', 'nodeId', 'position', 'trường position', 'CSDL', 'cơ sở dữ liệu', 'database', 'bảng', 'schema', 'tool', 'function call', 'API' trong câu trả lời cho học sinh. Hãy xưng hô và giải thích tự nhiên như một giáo viên/gia sư Lịch sử.\n" +
+            "2. GỌI TÊN BÀI HỌC CHUẨN XÁC: Khi nhắc đến bài học, hãy gọi rõ ràng theo số thứ tự và tên bài (ví dụ: 'Bài 2: Tri thức lịch sử và cuộc sống (Lớp 10)'). Không bao giờ nói với học sinh rằng bài học mang ID nào hay nằm ở trường dữ liệu nào.\n" +
+            "3. QUY TẮC ĐỊNH DẠNG LIÊN KẾT MARKDOWN VÀ CHỐNG TRÙNG LẶP:\n" +
+            "   - CHỈ ĐƯỢC PHÉP sử dụng 3 loại liên kết sau:\n" +
+            "     + [Bài X: Tên bài học](lesson:ID)\n" +
+            "     + [Tiêu đề nút kiến thức](node:ID)\n" +
+            "     + [Lịch sử lớp X](grade:X) (ví dụ: [Lịch sử lớp 10](grade:10))\n" +
+            "   - MỤC BÀI HỌC (SECTION) KHÔNG CÓ LIÊN KẾT: Ứng dụng không có link cho Mục bài học. TUYỆT ĐỐI KHÔNG gán link của Nút (node:ID) cho Mục bài học. Hãy viết tên Mục bài học dưới dạng chữ in đậm hoặc tiêu đề thuần túy (ví dụ: '**Mục 1: Hoàn cảnh lịch sử**' hoặc '### 1. Hoàn cảnh lịch sử'), sau đó liệt kê các nút kiến thức con bên dưới (ví dụ: '- [Tiêu đề nút](node:ID)').\n" +
+            "   - CHỐNG LẶP TỪ NGỮ: TUYỆT ĐỐI KHÔNG viết lặp từ ngữ hoặc tiêu đề 2 lần trước và trong liên kết.\n" +
+            "     + CẤM: 'Bài [Bài 2: Tri thức lịch sử](lesson:7)' hoặc 'Bài học [Bài 2: Tri thức lịch sử](lesson:7)' -> ĐÚNG: '[Bài 2: Tri thức lịch sử](lesson:7)'.\n" +
+            "     + CẤM: 'Hiện thực lịch sử: [Hiện thực lịch sử](node:739)' -> ĐÚNG: '[Hiện thực lịch sử](node:739)' hoặc '- [Hiện thực lịch sử](node:739)'.\n" +
+            "   - TUYỆT ĐỐI KHÔNG tự tạo các liên kết giả lập hoặc cú pháp không được hỗ trợ như (search:...), (query:...), (find:...), (topic:...), (section:...), v.v.\n" +
+            "   - KHÔNG viết mã ID số ra phần hiển thị của văn bản (ví dụ: viết [Bài 2: Tri thức lịch sử](lesson:7), CẤM VIẾT [Bài học ID 7](lesson:7)).\n" +
+            "4. QUY TẮC BẮT BUỘC KHI TÓM TẮT BÀI HỌC HOẶC CHỌN BÀI NGẪU NHIÊN:\n" +
+            "   - Khi người dùng hỏi về bất kỳ bài học nào (ví dụ: 'Bài 3', 'Bài 1 lớp 10') hoặc yêu cầu 'tóm tắt 1 bài ngẫu nhiên', bạn BẮT BUỘC PHẢI GỌI TOOL (như get_grade_overview hoặc get_lesson_detail) để lấy chính xác thông tin bài học và danh sách mục/nút từ cơ sở dữ liệu trước khi trả lời.\n" +
+            "   - CHỈ ĐƯỢC PHÉP tạo liên kết [Tiêu đề nút](node:ID) cho các nút THỰC SỰ THUỘC VỀ BÀI HỌC ĐÓ (lấy từ kết quả tool get_lesson_detail). TUYỆT ĐỐI KHÔNG dùng nodeId của bài khác hoặc tự bịa đặt ID.\n" +
+            "   - Số thứ tự bài học (Bài 1, Bài 2, Bài 3,...) là số thứ tự tăng dần liên tục trong toàn bộ khối lớp (trải qua các chủ đề). Ví dụ: Lớp 10 có Topic 1 gồm Bài 1, Bài 2; Topic 2 là Bài 3, Bài 4. Khi tìm 'Bài 3', hãy tra cứu với lessonPosition = 3.\n\n" +
             "QUY TẮC NGÔN NGỮ TRẢ LỜI (BẮT BUỘC):\n" +
             "- Nếu tin nhắn mới nhất của người dùng được viết bằng tiếng Anh (hoặc người dùng hỏi bằng tiếng Anh), bạn BẮT BUỘC phải trả lời hoàn toàn bằng tiếng Anh.\n" +
             "- Nếu tin nhắn của người dùng bằng tiếng Việt, bạn trả lời bằng tiếng Việt.\n\n";
@@ -124,17 +142,17 @@ export class AIService {
 QUY TẮC BẮT BUỘC:
 1. Bạn CHỈ ĐƯỢC PHÉP trả lời dựa trên thông tin lấy được từ việc gọi các Tools tra cứu cơ sở dữ liệu giáo trình bên dưới. KHÔNG tự suy đoán hay lấy thông tin ngoài giáo trình.
 2. Nếu gọi các Tools mà không tìm thấy dữ liệu giáo trình liên quan, hãy trả lời lịch sự: "Rất tiếc, thông tin này chưa có trong bộ giáo trình của ứng dụng."
-3. Khi nhắc tới Bài học hoặc Nút kiến thức, BẮT BUỘC chèn liên kết Markdown: [Tên bài học](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
+3. Khi nhắc tới Bài học hoặc Nút kiến thức, BẮT BUỘC chèn liên kết Markdown: [Bài X: Tên bài học](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
         } else if (options?.mode === "COURSE_FIRST") {
             systemPrompt += `CHẾ ĐỘ NỘI DUNG: ƯU TIÊN DỮ LIỆU GIÁO TRÌNH (COURSE FIRST).
 QUY TẮC BẮT BUỘC:
 1. Hãy chủ động dùng Tools tra cứu dữ liệu giáo trình để trả lời.
 2. Nếu câu hỏi vượt quá dữ liệu giáo trình và bạn bổ sung thêm kiến thức lịch sử bên ngoài, BẮT BUỘC phải viết dòng ghi chú ĐẦU TIÊN ngay trước phần kiến thức ngoài đó:
    "\n\n> ⚠️ *Lưu ý: Phần thông tin dưới đây được tổng hợp thêm từ nguồn ngoài giáo trình chuẩn của ứng dụng:*\n\n"
-3. Khi trích dẫn thông tin từ giáo trình, hãy chèn liên kết Markdown: [Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
+3. Khi trích dẫn thông tin từ giáo trình, hãy chèn liên kết Markdown: [Bài X: Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
         } else {
             systemPrompt += `CHẾ ĐỘ NỘI DUNG: TRỢ LÝ TỰ DO (GENERAL).
-Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thiết, và hỗ trợ giải đáp thắc mắc lịch sử tự do, chính xác. Khi trích dẫn bài học hay nút kiến thức, tạo liên kết Markdown [Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
+Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thiết, và hỗ trợ giải đáp thắc mắc lịch sử tự do, chính xác. Khi trích dẫn bài học hay nút kiến thức, tạo liên kết Markdown [Bài X: Tên bài](lesson:ID) hoặc [Tiêu đề nút](node:ID).\n\n`;
         }
 
         const toolsPayload = [{
@@ -165,7 +183,7 @@ Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thi
                                 parts: [{ text: systemPrompt }]
                             },
                             contents: currentContents,
-                            ...(shouldIncludeTools ? { tools: toolsPayload } : {}),
+                            tools: toolsPayload,
                             generationConfig: {
                                 temperature: options?.mode === "COURSE_ONLY" ? 0.2 : 0.7
                             }
@@ -190,35 +208,57 @@ Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thi
                     totalUsageTokens += data.usageMetadata?.totalTokenCount || 500;
                     const parts = candidate.content?.parts || [];
 
-                    // Check if model returned a function call request
-                    const functionCallPart = parts.find((p: any) => p.functionCall);
-                    if (functionCallPart && shouldIncludeTools) {
-                        toolCallsExecuted++;
-                        const { name: toolName, args: toolArgs } = functionCallPart.functionCall;
-                        console.log(`[AI Chat] Gemini requested tool call #${toolCallsExecuted}/${MAX_TOOL_CALLS}: '${toolName}' with args:`, toolArgs);
+                    // Check if model returned function call requests (supports single and parallel tool calls)
+                    const functionCallParts = parts.filter((p: any) => p.functionCall);
+                    if (functionCallParts.length > 0) {
+                        if (shouldIncludeTools) {
+                            toolCallsExecuted++;
+                            console.log(`[AI Chat] Gemini requested ${functionCallParts.length} tool call(s) (Round #${toolCallsExecuted}/${MAX_TOOL_CALLS}):`);
+                            const functionResponseParts: any[] = [];
 
-                        // Execute the tool locally
-                        const toolResult = await aiToolRegistry.executeToolCall(toolName, toolArgs);
+                            for (const fcp of functionCallParts) {
+                                const { name: toolName, args: toolArgs } = fcp.functionCall;
+                                console.log(`  -> Executing '${toolName}' with args:`, toolArgs);
+                                const toolResult = await aiToolRegistry.executeToolCall(toolName, toolArgs);
+                                functionResponseParts.push({
+                                    functionResponse: {
+                                        name: toolName,
+                                        response: { name: toolName, content: toolResult }
+                                    }
+                                });
+                            }
 
-                        // Push model's functionCall turn
-                        currentContents.push({
-                            role: "model",
-                            parts: [{ functionCall: functionCallPart.functionCall }]
-                        });
+                            // Push all model function calls
+                            currentContents.push({
+                                role: "model",
+                                parts: functionCallParts
+                            });
 
-                        // Push function response turn
-                        currentContents.push({
-                            role: "function",
-                            parts: [{
-                                functionResponse: {
-                                    name: toolName,
-                                    response: { name: toolName, content: toolResult }
-                                }
-                            }]
-                        });
+                            // Push all matching function responses
+                            currentContents.push({
+                                role: "function",
+                                parts: functionResponseParts
+                            });
 
-                        // Continue loop to send tool response back to Gemini (Pass #2)
-                        continue;
+                            // Continue loop to send tool response back to Gemini
+                            continue;
+                        } else {
+                            // Model wanted more tools but reached max tool limit: satisfy Gemini's turn contract and prompt for final text
+                            currentContents.push({
+                                role: "model",
+                                parts: functionCallParts
+                            });
+                            currentContents.push({
+                                role: "function",
+                                parts: functionCallParts.map((fcp: any) => ({
+                                    functionResponse: {
+                                        name: fcp.functionCall.name,
+                                        response: { name: fcp.functionCall.name, content: "Đã hoàn thành tra cứu. Hãy tổng hợp câu trả lời chi tiết và rõ ràng cho học sinh dựa trên tất cả thông tin đã có." }
+                                    }
+                                }))
+                            });
+                            continue;
+                        }
                     }
 
                     // Otherwise return the final text response

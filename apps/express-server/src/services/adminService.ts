@@ -1441,10 +1441,6 @@ export class AdminService {
                     xpReward: data.xpReward ?? 0,
                     goldReward: data.goldReward ?? 0,
                     passThreshold: data.passThreshold ?? 70,
-                    gradeId: data.gradeId ?? null,
-                    topicId: data.topicId ?? null,
-                    lessonId: data.lessonId ?? null,
-                    sectionId: data.sectionId ?? null,
                 },
             });
 
@@ -1512,10 +1508,6 @@ export class AdminService {
                     ...(data.xpReward !== undefined && { xpReward: data.xpReward }),
                     ...(data.goldReward !== undefined && { goldReward: data.goldReward }),
                     ...(data.passThreshold !== undefined && { passThreshold: data.passThreshold }),
-                    ...(data.gradeId !== undefined && { gradeId: data.gradeId }),
-                    ...(data.topicId !== undefined && { topicId: data.topicId }),
-                    ...(data.lessonId !== undefined && { lessonId: data.lessonId }),
-                    ...(data.sectionId !== undefined && { sectionId: data.sectionId }),
                 },
             });
 
