@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, ScrollView, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -27,7 +27,9 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
     const {
         data: lessonCards,
         isLoading: isLessonLoading,
+        isFetching: isLessonFetching,
         isError: isLessonError,
+        refetch: refetchLesson,
     } = useGetFlashcardsByLessonQuery(lessonId!, {
         skip: !lessonId,
     });
@@ -35,7 +37,9 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
     const {
         data: sectionCards,
         isLoading: isSectionLoading,
+        isFetching: isSectionFetching,
         isError: isSectionError,
+        refetch: refetchSection,
     } = useGetFlashcardsBySectionQuery(sectionId!, {
         skip: !sectionId,
     });
@@ -43,44 +47,50 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
     const {
         data: nodeCards,
         isLoading: isNodeLoading,
+        isFetching: isNodeFetching,
         isError: isNodeError,
+        refetch: refetchNode,
     } = useGetFlashcardsByNodeQuery(nodeId!, {
         skip: !nodeId,
     });
 
     const cards = lessonId ? lessonCards : (sectionId ? sectionCards : nodeCards);
     const isLoading = lessonId ? isLessonLoading : (sectionId ? isSectionLoading : isNodeLoading);
+    const isFetching = lessonId ? isLessonFetching : (sectionId ? isSectionFetching : isNodeFetching);
     const isError = lessonId ? isLessonError : (sectionId ? isSectionError : isNodeError);
+    const refetch = lessonId ? refetchLesson : (sectionId ? refetchSection : refetchNode);
+
+    const onRefresh = async () => {
+        if (refetch) {
+            await refetch();
+        }
+    };
 
     const totalCount = cards?.length ?? 0;
-    const currentCard = cards?.[currentIndex] ?? null;
+    const safeCurrentIndex = totalCount > 0 ? Math.max(0, Math.min(currentIndex, totalCount - 1)) : 0;
+    const currentCard = cards?.[safeCurrentIndex] ?? null;
 
     const handleFlip = () => {
-        setIsFlipped(!isFlipped);
+        setIsFlipped((prev) => !prev);
     };
 
     const handlePrev = () => {
-        if (currentIndex <= 0) return;
+        if (safeCurrentIndex <= 0) return;
         setIsFlipped(false);
-        setTimeout(() => {
-            setCurrentIndex((prev) => prev - 1);
-        }, 150);
+        setCurrentIndex((prev) => Math.max(0, prev - 1));
     };
 
     const handleNext = () => {
-        if (currentIndex >= totalCount - 1) return;
+        if (safeCurrentIndex >= totalCount - 1) return;
         setIsFlipped(false);
-        setTimeout(() => {
-            setCurrentIndex((prev) => prev + 1);
-        }, 150);
+        setCurrentIndex((prev) => Math.min(Math.max(0, totalCount - 1), prev + 1));
     };
 
     const handleJumpTo = (index: number) => {
-        if (index === currentIndex) return;
+        const clamped = Math.max(0, Math.min(index, Math.max(0, totalCount - 1)));
+        if (clamped === safeCurrentIndex) return;
         setIsFlipped(false);
-        setTimeout(() => {
-            setCurrentIndex(index);
-        }, 150);
+        setCurrentIndex(clamped);
     };
 
     const handleMarkMemorized = () => {
@@ -133,36 +143,71 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
     // --- Error state ---
     if (isError) {
         return (
-            <View style={styles.centerContainer}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.centerContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={Boolean(isFetching)}
+                        onRefresh={onRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
                 <Ionicons name="warning-outline" size={48} color="#FF9800" style={{ marginBottom: 16 }} />
                 <Text style={styles.errorTitle}>Không thể tải dữ liệu</Text>
                 <Text style={styles.errorText}>
-                    Vui lòng kiểm tra kết nối mạng và thử lại.
+                    Vui lòng kiểm tra kết nối mạng và vuốt xuống để thử lại.
                 </Text>
-            </View>
+            </ScrollView>
         );
     }
 
     // --- Empty state (API returns []) ---
     if (!cards || cards.length === 0) {
         return (
-            <View style={styles.centerContainer}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.centerContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={Boolean(isFetching)}
+                        onRefresh={onRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
                 <Ionicons name="mail-open-outline" size={48} color="#9C94A6" style={{ marginBottom: 16 }} />
                 <Text style={styles.emptyTitle}>Chưa có thẻ lật</Text>
                 <Text style={styles.emptyText}>
-                    Bài học này chưa có thẻ lật nào. Hãy thử bài học khác nhé!
+                    Bài học này chưa có thẻ lật nào. Hãy vuốt xuống để làm mới nhé!
                 </Text>
-            </View>
+            </ScrollView>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.scrollContentContainer}
+            refreshControl={
+                <RefreshControl
+                    refreshing={Boolean(isFetching && !isLoading)}
+                    onRefresh={onRefresh}
+                    colors={[colors.primary]}
+                    tintColor={colors.primary}
+                />
+            }
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+        >
             {/* --- Complete Button (top right) --- */}
             <View style={styles.topBar}>
                 <View style={styles.topBarSpacer} />
                 <Text style={styles.cardCounterTopText}>
-                    {currentIndex + 1} / {totalCount}
+                    {totalCount > 0 ? safeCurrentIndex + 1 : 0} / {totalCount}
                 </Text>
                 <TouchableOpacity
                     style={styles.completeButton}
@@ -184,8 +229,11 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
                     />
                 </View>
             ) : (
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Đang tải dữ liệu...</Text>
+                <View style={styles.cardArea}>
+                    <View style={styles.cardPlaceholder}>
+                        <ActivityIndicator size="small" color={colors.primary} />
+                        <Text style={styles.loadingCardText}>Đang tải thẻ...</Text>
+                    </View>
                 </View>
             )}
 
@@ -198,15 +246,15 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
                     onMarkMemorized={handleMarkMemorized}
                     onMarkNotMemorized={handleMarkNotMemorized}
                     isFlipped={isFlipped}
-                    hasPrev={currentIndex > 0}
-                    hasNext={currentIndex < totalCount - 1}
+                    hasPrev={safeCurrentIndex > 0}
+                    hasNext={safeCurrentIndex < totalCount - 1}
                     isMemorized={isCurrentMemorized}
                 />
 
                 {/* --- Dot indicators --- */}
                 <View style={styles.dotsContainer}>
                     {cards.map((card, index) => {
-                        const isActive = index === currentIndex;
+                        const isActive = index === safeCurrentIndex;
                         const isCardMemorized = memorizedSet.has(card.id);
 
                         return (
@@ -241,7 +289,7 @@ export default function FlashcardFreePlayScreen({ lessonId, sectionId, nodeId }:
                 }}
                 onCancel={() => setShowExitConfirm(false)}
             />
-        </View>
+        </ScrollView>
     );
 }
 
@@ -249,9 +297,12 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+    },
+    scrollContentContainer: {
+        flexGrow: 1,
         justifyContent: "space-between",
         alignItems: "center",
-        paddingBottom: 24,
+        paddingBottom: 14,
     },
     topBar: {
         flexDirection: "row",
@@ -259,8 +310,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         width: "100%",
         paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 4,
+        paddingTop: 6,
+        paddingBottom: 2,
     },
     topBarSpacer: {
         flex: 1,
@@ -295,7 +346,7 @@ const styles = StyleSheet.create({
     footerContainer: {
         width: "100%",
         alignItems: "center",
-        gap: 8,
+        gap: 4,
     },
     dotsContainer: {
         flexDirection: "row",
@@ -303,7 +354,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 6,
         paddingHorizontal: 20,
-        marginBottom: 8,
+        marginBottom: 4,
         flexWrap: "wrap",
     },
     dot: {
@@ -369,5 +420,20 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+    },
+    cardPlaceholder: {
+        width: "75%",
+        aspectRatio: 0.8,
+        borderRadius: 12,
+        backgroundColor: colors.surfaceVariant,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        justifyContent: "center",
+        alignItems: "center",
+        gap: 12,
+    },
+    loadingCardText: {
+        ...typography.bodySmallMedium,
+        color: colors.textMuted,
     },
 });

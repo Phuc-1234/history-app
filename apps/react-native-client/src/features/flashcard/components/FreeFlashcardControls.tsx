@@ -128,14 +128,15 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingHorizontal: 24,
         alignItems: "center",
-        gap: 16,
-        marginVertical: 12,
+        gap: 8,
+        marginVertical: 4,
     },
     memorizeRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         width: "100%",
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
+        marginTop: 8,
     },
     navRow: {
         flexDirection: "row",

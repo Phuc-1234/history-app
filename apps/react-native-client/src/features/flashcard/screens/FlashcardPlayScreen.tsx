@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Text, ActivityIndicator, ScrollView, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -24,8 +24,10 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
     const {
         data: lessonFlashcards,
         isLoading: isLessonLoading,
+        isFetching: isLessonFetching,
         isError: isLessonError,
         error: lessonError,
+        refetch: refetchLesson,
     } = useGetFlashcardsByLessonQuery(lessonId!, {
         skip: !lessonId,
     });
@@ -33,8 +35,10 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
     const {
         data: sectionFlashcards,
         isLoading: isSectionLoading,
+        isFetching: isSectionFetching,
         isError: isSectionError,
         error: sectionError,
+        refetch: refetchSection,
     } = useGetFlashcardsBySectionQuery(sectionId!, {
         skip: !sectionId,
     });
@@ -42,16 +46,26 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
     const {
         data: nodeFlashcards,
         isLoading: isNodeLoading,
+        isFetching: isNodeFetching,
         isError: isNodeError,
         error: nodeError,
+        refetch: refetchNode,
     } = useGetFlashcardsByNodeQuery(nodeId!, {
         skip: !nodeId,
     });
 
     const flashcards = lessonId ? lessonFlashcards : (sectionId ? sectionFlashcards : nodeFlashcards);
     const isLoading = lessonId ? isLessonLoading : (sectionId ? isSectionLoading : isNodeLoading);
+    const isFetching = lessonId ? isLessonFetching : (sectionId ? isSectionFetching : isNodeFetching);
     const isError = lessonId ? isLessonError : (sectionId ? isSectionError : isNodeError);
     const error = lessonId ? lessonError : (sectionId ? sectionError : nodeError);
+    const refetch = lessonId ? refetchLesson : (sectionId ? refetchSection : refetchNode);
+
+    const onRefresh = async () => {
+        if (refetch) {
+            await refetch();
+        }
+    };
 
     // Initialize 20 cards with 0 memorized count
     const [deck, setDeck] = useState<CardState[]>([]);
@@ -76,23 +90,20 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
     const completedCount = deck.filter((item) => item.memorizedCount >= 2).length;
     const totalCount = deck.length;
 
-    const currentCardState = incompleteCards[currentIndex] || null;
+    const safeIndex = incompleteCards.length > 0 ? Math.max(0, Math.min(currentIndex, incompleteCards.length - 1)) : 0;
+    const currentCardState = incompleteCards[safeIndex] || null;
 
     const handleFlip = () => {
-        setIsFlipped(!isFlipped);
+        setIsFlipped((prev) => !prev);
     };
 
     const handleNotMemorized = () => {
         if (!currentCardState) return;
 
         setIsFlipped(false);
-
-        // Wait brief delay for flip animation to finish before changing card
-        setTimeout(() => {
-            if (incompleteCards.length > 1) {
-                setCurrentIndex((prev) => (prev + 1) % incompleteCards.length);
-            }
-        }, 150);
+        if (incompleteCards.length > 1) {
+            setCurrentIndex((prev) => (prev + 1) % incompleteCards.length);
+        }
     };
 
     const handleMemorized = () => {
@@ -122,22 +133,14 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
         }
 
         setIsFlipped(false);
+        setDeck(updatedDeck);
 
-        // Update active index and deck state
-        setTimeout(() => {
-            setDeck(updatedDeck);
-            
-            const wasCompleted = newMemorizedCount >= 2;
-            if (wasCompleted) {
-                // Current card is removed from incomplete list.
-                // Next card shifts to current index. Clamp it.
-                setCurrentIndex(currentIndex % nextIncomplete.length);
-            } else {
-                // Card is not completed yet (only 1 check).
-                // Rotate to show another card next.
-                setCurrentIndex((currentIndex + 1) % nextIncomplete.length);
-            }
-        }, 150);
+        const wasCompleted = newMemorizedCount >= 2;
+        if (wasCompleted) {
+            setCurrentIndex((prev) => prev % nextIncomplete.length);
+        } else {
+            setCurrentIndex((prev) => (prev + 1) % nextIncomplete.length);
+        }
     };
 
     // --- Loading state ---
@@ -153,68 +156,103 @@ export default function FlashcardPlayScreen({ lessonId, sectionId, nodeId }: Fla
     // --- Error state ---
     if (isError) {
         return (
-            <View style={styles.centerContainer}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.centerContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={Boolean(isFetching)}
+                        onRefresh={onRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
                 <Ionicons name="warning-outline" size={48} color="#FF9800" style={{ marginBottom: 16 }} />
                 <Text style={styles.errorTitle}>Không thể tải dữ liệu</Text>
                 <Text style={styles.errorText}>
-                    Vui lòng kiểm tra kết nối mạng và thử lại.
+                    Vui lòng kiểm tra kết nối mạng và vuốt xuống để thử lại.
                 </Text>
-            </View>
+            </ScrollView>
         );
     }
 
     // --- Empty state (API returns []) ---
     if (!flashcards || flashcards.length === 0) {
         return (
-            <View style={styles.centerContainer}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.centerContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={Boolean(isFetching)}
+                        onRefresh={onRefresh}
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
                 <Ionicons name="mail-open-outline" size={48} color="#9C94A6" style={{ marginBottom: 16 }} />
                 <Text style={styles.emptyTitle}>Chưa có thẻ lật</Text>
                 <Text style={styles.emptyText}>
-                    Bài học này chưa có thẻ lật nào. Hãy thử bài học khác nhé!
+                    Bài học này chưa có thẻ lật nào. Hãy vuốt xuống để làm mới nhé!
                 </Text>
-            </View>
+            </ScrollView>
         );
     }
 
     return (
-        <View style={styles.container}>
-                {/* --- Flashcard Play Area --- */}
-                {currentCardState ? (
-                    <View style={styles.cardArea}>
-                        <FlashcardCard
-                            card={currentCardState.card}
-                            isFlipped={isFlipped}
-                            onFlip={handleFlip}
-                        />
-
-                        {/* Shows micro-indicator of memorized count for active card */}
-                        <Text style={styles.cardHintText}>
-                            {currentCardState.memorizedCount === 1
-                                                ? "Đã thuộc 1 lần (Cần thuộc thêm 1 lần)"
-                                                : "Chưa thuộc lần nào"}
-                        </Text>
-                    </View>
-                ) : (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>Đang tải dữ liệu...</Text>
-                    </View>
-                )}
-
-                {/* --- Bottom controls and progress --- */}
-                <View style={styles.footerContainer}>
-                    <FlashcardControls
-                        onNotMemorized={handleNotMemorized}
-                        onMemorized={handleMemorized}
-                        onFlip={handleFlip}
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.scrollContentContainer}
+            refreshControl={
+                <RefreshControl
+                    refreshing={Boolean(isFetching && !isLoading)}
+                    onRefresh={onRefresh}
+                    colors={[colors.primary]}
+                    tintColor={colors.primary}
+                />
+            }
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+        >
+            {/* --- Flashcard Play Area --- */}
+            {currentCardState ? (
+                <View style={styles.cardArea}>
+                    <FlashcardCard
+                        card={currentCardState.card}
                         isFlipped={isFlipped}
+                        onFlip={handleFlip}
                     />
 
-                    <FlashcardProgress
-                        total={totalCount || 20}
-                        completed={completedCount}
-                    />
+                    {/* Shows micro-indicator of memorized count for active card */}
+                    <Text style={styles.cardHintText}>
+                        {currentCardState.memorizedCount === 1
+                            ? "Đã thuộc 1 lần (Cần thuộc thêm 1 lần)"
+                            : "Chưa thuộc lần nào"}
+                    </Text>
                 </View>
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Đang tải dữ liệu...</Text>
+                </View>
+            )}
+
+            {/* --- Bottom controls and progress --- */}
+            <View style={styles.footerContainer}>
+                <FlashcardControls
+                    onNotMemorized={handleNotMemorized}
+                    onMemorized={handleMemorized}
+                    onFlip={handleFlip}
+                    isFlipped={isFlipped}
+                />
+
+                <FlashcardProgress
+                    total={totalCount || 20}
+                    completed={completedCount}
+                />
             </View>
+        </ScrollView>
     );
 }
 
@@ -222,9 +260,12 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+    },
+    scrollContentContainer: {
+        flexGrow: 1,
         justifyContent: "space-between",
         alignItems: "center",
-        paddingBottom: 24,
+        paddingBottom: 14,
     },
     cardArea: {
         flex: 1,
