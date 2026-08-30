@@ -110,6 +110,7 @@ export interface StartTestV2Request {
     passThreshold?: number;
     timeLimit?: number | null;
     difficultyRatioJson?: any;
+    questionIds?: number[];
 }
 
 export interface StartTestV2Response {
@@ -168,4 +169,14 @@ export interface QuestionEvalResult {
     scoreAwarded: number;
     maxScore: number;
     isCorrect: boolean;
+}
+
+export interface CuratedTestDto {
+    id: string;
+    title: string;
+    summary: string | null;
+    isPro: boolean;
+    imgUrl?: string | null;
+    passCount?: number;
+    masteryPercentage?: number;
 }

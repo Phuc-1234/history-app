@@ -36,7 +36,7 @@ export const getNodeDetailTool: AITool = {
             });
 
             if (!node) {
-                return { status: "not_found", message: `Không tìm thấy nút kiến thức với ID ${args.nodeId}` };
+                return { status: "not_found", message: "Không tìm thấy nút kiến thức phù hợp trong giáo trình." };
             }
 
             return {
@@ -47,10 +47,10 @@ export const getNodeDetailTool: AITool = {
                     body: node.body,
                     sectionName: node.section.name,
                     lessonId: node.section.lesson.id,
-                    lessonName: node.section.lesson.name,
+                    lessonName: `Bài ${node.section.lesson.position}: ${node.section.lesson.name}`,
                     grade: node.section.lesson.topic?.grade ? `Lịch sử lớp ${node.section.lesson.topic.grade.id}` : `Lớp ${node.section.lesson.topic?.gradeId}`,
-                    markdownLink: `[${node.header}](node:${node.id})`,
-                    parentLessonMarkdownLink: `[${node.section.lesson.name}](lesson:${node.section.lesson.id})`
+                    markdownLink: `[${node.header || "Chi tiết"}](node:${node.id})`,
+                    parentLessonMarkdownLink: `[Bài ${node.section.lesson.position}: ${node.section.lesson.name}](lesson:${node.section.lesson.id})`
                 }
             };
         } catch (error: any) {

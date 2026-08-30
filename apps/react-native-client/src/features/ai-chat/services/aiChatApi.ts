@@ -67,6 +67,9 @@ export const aiChatApi = apiSlice.injectEndpoints({
                                 }
                             })
                         );
+                        dispatch(
+                            aiChatApi.util.upsertQueryData("getSessionMessages", data.session.id, { messages: [] })
+                        );
                     }
                 } catch {}
             },

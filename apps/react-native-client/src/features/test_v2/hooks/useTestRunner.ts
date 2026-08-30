@@ -98,6 +98,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
     const sessionRef = useRef(session);
     const draftRef = useRef(draftAnswers);
     const seenRef = useRef(seenQuestionIds);
+    const lastQuestionIdsRef = useRef<number[]>([]);
 
     const purposeType = (params.purposeType ?? session?.purposeType ?? "PRACTICE") as "PRACTICE" | "EXAM";
     const currentQuestion = questions[currentIndex] ?? null;
@@ -159,6 +160,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
             setError(null);
             showLoading();
             const resp = await startTestMut(params).unwrap();
+            lastQuestionIdsRef.current = resp.questions.map((q) => q.id);
             setSession(resp.userTestLog);
             setQuestions(resp.questions);
             setCurrentIndex(0);
@@ -185,6 +187,7 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
 
     // ── Resume from existing session ─────────────────────────────────
     const resumeSession = useCallback((log: UserTestLogV2, qs: QuestionV2[]) => {
+        lastQuestionIdsRef.current = qs.map((q) => q.id);
         setSession(log);
         setQuestions(qs);
         setCurrentIndex(log.currentQuestionIndex);
@@ -305,6 +308,10 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
 
     // ── Restart ──────────────────────────────────────────────────────
     const handleRestart = useCallback(async () => {
+        const questionIdsToReuse = lastQuestionIdsRef.current.length > 0
+            ? lastQuestionIdsRef.current
+            : (sessionRef.current?.questionSequenceJson?.length ? sessionRef.current.questionSequenceJson : questions.map((q) => q.id));
+
         setSession(null);
         setQuestions([]);
         setCurrentIndex(0);
@@ -315,8 +322,39 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         setResult(null);
         setTimeLeft(0);
         setError(null);
-        await handleStart();
-    }, [handleStart]);
+
+        try {
+            setStatus("loading");
+            setError(null);
+            showLoading();
+            const resp = await startTestMut({
+                ...params,
+                questionIds: questionIdsToReuse.length > 0 ? questionIdsToReuse : undefined,
+            }).unwrap();
+            lastQuestionIdsRef.current = resp.questions.map((q) => q.id);
+            setSession(resp.userTestLog);
+            setQuestions(resp.questions);
+            setCurrentIndex(0);
+            setDraftAnswers(resp.userTestLog.draftAnswerJson ?? []);
+            setSeenQuestionIds(resp.userTestLog.draftAnswerJson?.map((d) => d.questionId) ?? []);
+            setEvaluations({});
+            setRedoQueue([]);
+            setResult(null);
+
+            if (resp.userTestLog.expiresAt) {
+                const remaining = Math.max(0, Math.floor((new Date(resp.userTestLog.expiresAt).getTime() - Date.now()) / 1000));
+                setTimeLeft(remaining);
+            }
+
+            setStatus("running");
+        } catch (err: any) {
+            console.error("Failed to restart test:", err);
+            setError(err?.data?.error ?? err?.message ?? "Không thể bắt đầu lại bài kiểm tra");
+            setStatus("idle");
+        } finally {
+            hideLoading();
+        }
+    }, [params, questions, startTestMut, showLoading, hideLoading]);
 
     // ── Confirm Answer (practice mode) ───────────────────────────────
     const confirmAnswer = useCallback(() => {

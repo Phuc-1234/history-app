@@ -5,6 +5,7 @@ export { default as FillQuestion } from "./components/FillQuestion";
 export { default as MatchQuestion } from "./components/MatchQuestion";
 export { default as TestHistoryScreen } from "./screens/TestHistoryScreen";
 export { default as TestDetailScreen } from "./screens/TestDetailScreen";
+export { CuratedTestsSection } from "./components/CuratedTestsSection";
 export { useTestRunnerV2 } from "./hooks/useTestRunner";
 export * from "./services/testApi";
 export * from "./services/scoreEngine";

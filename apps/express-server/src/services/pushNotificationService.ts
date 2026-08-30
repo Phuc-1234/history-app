@@ -8,10 +8,45 @@ const db = prisma as any;
 
 let firebaseInitialized = false;
 
+function getServiceAccountCredentials(): any | null {
+  const candidatePaths = [
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
+    '/etc/secrets/service-account.json',
+    path.resolve(process.cwd(), 'service-account.json'),
+    path.resolve(process.cwd(), 'apps/express-server/service-account.json'),
+    path.resolve(__dirname, '../../service-account.json'),
+    path.resolve(__dirname, '../../../service-account.json'),
+  ].filter((p): p is string => Boolean(p));
+
+  for (const filePath of candidatePaths) {
+    if (fs.existsSync(filePath)) {
+      try {
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      } catch (err) {
+        console.error(`[PushNotification Error] Failed to parse service-account.json at ${filePath}:`, err);
+      }
+    }
+  }
+
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } catch {
+      try {
+        const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8');
+        return JSON.parse(decoded);
+      } catch (err) {
+        console.error('[PushNotification Error] Failed to parse FIREBASE_SERVICE_ACCOUNT env var:', err);
+      }
+    }
+  }
+
+  return null;
+}
+
 try {
-  const serviceAccountPath = path.resolve(__dirname, '../../service-account.json');
-  if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+  const serviceAccount = getServiceAccountCredentials();
+  if (serviceAccount) {
     if (getApps().length === 0) {
       initializeApp({
         credential: cert(serviceAccount),
@@ -20,7 +55,7 @@ try {
     firebaseInitialized = true;
     console.log('[PushNotification] Firebase Admin SDK initialized.');
   } else {
-    console.warn('[PushNotification Warning] service-account.json not found at ' + serviceAccountPath);
+    console.warn('[PushNotification Warning] service-account.json not found in candidate paths (/etc/secrets, cwd, apps/express-server).');
   }
 } catch (error) {
   console.error('[PushNotification Error] Failed to initialize Firebase Admin SDK:', error);
@@ -81,6 +116,24 @@ export class PushNotificationService {
       const message = {
         notification: { title, body },
         data: data || {},
+        android: {
+          priority: 'high' as const,
+          notification: {
+            sound: 'default',
+            priority: 'high' as const,
+            channelId: 'default',
+            defaultSound: true,
+            defaultVibrateTimings: true,
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+              contentAvailable: true,
+            },
+          },
+        },
         tokens,
       };
 

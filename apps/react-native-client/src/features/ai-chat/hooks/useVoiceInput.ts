@@ -16,6 +16,8 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
     const latestTranscriptRef = useRef("");
     const onTranscriptCompleteRef = useRef(options?.onTranscriptComplete);
     onTranscriptCompleteRef.current = options?.onTranscriptComplete;
+    const fallbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const isFinishedRef = useRef(false);
 
     useSpeechRecognitionEvent("result", (event) => {
         const text = event.results?.[0]?.transcript || "";
@@ -26,32 +28,47 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
     });
 
     const finishTranscribing = useCallback(() => {
+        if (fallbackTimeoutRef.current) {
+            clearTimeout(fallbackTimeoutRef.current);
+            fallbackTimeoutRef.current = null;
+        }
+        if (isFinishedRef.current) return;
+        isFinishedRef.current = true;
+
         setIsListening(false);
         setIsTranscribing(false);
         const finalContent = latestTranscriptRef.current;
-        if (onTranscriptCompleteRef.current) {
+        if (finalContent && onTranscriptCompleteRef.current) {
             onTranscriptCompleteRef.current(finalContent);
         }
     }, []);
 
     useSpeechRecognitionEvent("end", () => {
-        if (isTranscribing || isListening) {
-            finishTranscribing();
-        }
+        finishTranscribing();
     });
 
     useSpeechRecognitionEvent("error", () => {
+        if (fallbackTimeoutRef.current) {
+            clearTimeout(fallbackTimeoutRef.current);
+            fallbackTimeoutRef.current = null;
+        }
+        isFinishedRef.current = true;
         setIsListening(false);
         setIsTranscribing(false);
     });
 
     const startListening = useCallback(async () => {
         try {
+            if (fallbackTimeoutRef.current) {
+                clearTimeout(fallbackTimeoutRef.current);
+                fallbackTimeoutRef.current = null;
+            }
             const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
             if (!perm.granted) return false;
 
             setTranscript("");
             latestTranscriptRef.current = "";
+            isFinishedRef.current = false;
             setIsListening(true);
             setIsTranscribing(false);
             const lang = options?.lang || "vi-VN";
@@ -68,8 +85,11 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
         try {
             setIsTranscribing(true);
             ExpoSpeechRecognitionModule.stop();
+            if (fallbackTimeoutRef.current) {
+                clearTimeout(fallbackTimeoutRef.current);
+            }
             // Fallback safety timeout if 'end' event takes too long
-            setTimeout(() => {
+            fallbackTimeoutRef.current = setTimeout(() => {
                 finishTranscribing();
             }, 600);
         } catch (error) {
@@ -80,6 +100,11 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
     }, [finishTranscribing]);
 
     const forceStopImmediate = useCallback(() => {
+        if (fallbackTimeoutRef.current) {
+            clearTimeout(fallbackTimeoutRef.current);
+            fallbackTimeoutRef.current = null;
+        }
+        isFinishedRef.current = true;
         try {
             ExpoSpeechRecognitionModule.stop();
         } catch {

@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, FlatList, Clipboard } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors, radii, spacing, typography } from "@/theme";
 import { AvatarWithFrame } from "@/components/ui";
 import { toastService } from "@/services/toastService";
@@ -7,6 +8,7 @@ import { API_BASE_URL } from "@/services/config";
 import type { PvpParticipant, PvpRoom } from "../types";
 import { useStartPvpRoomMutation } from "../services/pvpApi";
 import { Swords, Link2 } from "lucide-react-native";
+import { InviteFriendsModal } from "./InviteFriendsModal";
 
 const SWORD_BACKGROUNDS = [
     { size: 40, top: "10%", left: "5%", rotate: "15deg" },
@@ -29,6 +31,7 @@ interface PvpLobbyViewProps {
 
 export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }: PvpLobbyViewProps) {
     const isHost = room.hostUserId === currentUserId;
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [startRoomMut, { isLoading: isStarting }] = useStartPvpRoomMutation();
 
     const handleStart = async () => {
@@ -72,14 +75,27 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
                 <Text style={styles.configSubtitle}>
                     {room.questionCount} câu hỏi • {room.timePerQuestion}s / câu
                 </Text>
-                <TouchableOpacity
-                    style={styles.copyLinkButton}
-                    onPress={handleCopyLink}
-                    activeOpacity={0.8}
-                >
-                    <Link2 size={16} color="#FFFFFF" />
-                    <Text style={styles.copyLinkText}>Sao chép liên kết</Text>
-                </TouchableOpacity>
+                <View style={styles.actionButtonsRow}>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={handleCopyLink}
+                        activeOpacity={0.8}
+                    >
+                        <Link2 size={14} color="#FFFFFF" />
+                        <Text style={styles.actionButtonText}>Sao chép liên kết</Text>
+                    </TouchableOpacity>
+
+                    {participants.length < 8 && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.inviteActionButton]}
+                            onPress={() => setIsInviteModalOpen(true)}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="person-add" size={14} color="#FFFFFF" />
+                            <Text style={styles.actionButtonText}>Mời bạn</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {/* Participants list */}
@@ -117,6 +133,14 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
                         </View>
                     );
                 }}
+            />
+
+            {/* Invite Friends Modal */}
+            <InviteFriendsModal
+                visible={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                roomCode={room.code}
+                participants={participants}
             />
 
             {/* Bottom action controls */}
@@ -184,21 +208,30 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.regular,
         color: colors.primary100,
     },
-    copyLinkButton: {
+    actionButtonsRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: spacing.xs,
+        gap: spacing.xs + 2,
         marginTop: spacing.md,
+    },
+    actionButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
         backgroundColor: "rgba(255, 255, 255, 0.2)",
-        paddingVertical: spacing.xs + 2,
-        paddingHorizontal: spacing.md,
+        paddingVertical: 7,
+        paddingHorizontal: 12,
         borderRadius: radii.pill,
         borderWidth: 1,
         borderColor: "rgba(255, 255, 255, 0.35)",
     },
-    copyLinkText: {
-        fontSize: 13,
+    inviteActionButton: {
+        backgroundColor: "rgba(255, 255, 255, 0.28)",
+    },
+    actionButtonText: {
+        fontSize: 12,
         fontFamily: typography.fonts.bold,
         color: "#FFFFFF",
     },

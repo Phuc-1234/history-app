@@ -43,6 +43,10 @@ export class ContentSearchService {
         // Grade specified explicitly in query (e.g., "Lớp 10")
         const searchGradeFilter = queryGrade ? queryGrade : undefined;
 
+        // Detect lesson position from prompt query (e.g., "bài 2", "bài số 2", "lesson 2")
+        const lessonPosMatch = query.match(/\b(?:bài|bài số|lesson)\s*(\d+)\b/i);
+        const queryLessonPos = lessonPosMatch ? parseInt(lessonPosMatch[1], 10) : undefined;
+
         const keywords = query
             .trim()
             .toLowerCase()
@@ -53,8 +57,54 @@ export class ContentSearchService {
         const references: SearchResultItem[] = [];
         const contextBlocks: string[] = [];
 
-        // 1. If active context grade or query grade is present, fetch curriculum list as baseline context
+        // 1. Direct match: If both grade and lesson position are detected in query, fetch that specific lesson directly
         const listGrade = queryGrade || options?.contextGrade;
+        if (listGrade && queryLessonPos) {
+            const exactLesson = await prisma.lesson.findFirst({
+                where: {
+                    position: queryLessonPos,
+                    topic: { gradeId: listGrade }
+                },
+                include: {
+                    topic: true,
+                    sections: {
+                        orderBy: { position: "asc" },
+                        include: {
+                            nodes: {
+                                orderBy: { position: "asc" }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (exactLesson) {
+                let exactText = `[BÀI HỌC KHỚP VỚI TRUY VẤN: Bài ${exactLesson.position}: ${exactLesson.name} (Lớp ${exactLesson.topic.gradeId})]\nLiên kết: [Bài ${exactLesson.position}: ${exactLesson.name}](lesson:${exactLesson.id})\nTóm tắt: ${exactLesson.summary || "Không có tóm tắt"}\nNội dung các mục kiến thức:`;
+                for (const sec of exactLesson.sections) {
+                    exactText += `\n- Mục: ${sec.name}`;
+                    for (const nd of sec.nodes) {
+                        const ndTitle = getNodeTitle(nd);
+                        exactText += `\n  + [${ndTitle}](node:${nd.id}): ${nd.body.slice(0, 200)}`;
+                        references.push({
+                            type: "node",
+                            id: nd.id,
+                            title: ndTitle,
+                            snippet: nd.body.slice(0, 100),
+                            lessonId: exactLesson.id
+                        });
+                    }
+                }
+                contextBlocks.push(exactText);
+                references.push({
+                    type: "lesson",
+                    id: exactLesson.id,
+                    title: `Bài ${exactLesson.position}: ${exactLesson.name}`,
+                    snippet: exactLesson.summary || exactLesson.name
+                });
+            }
+        }
+
+        // 2. If active context grade or query grade is present, fetch curriculum list as baseline context
         if (listGrade && [10, 11, 12].includes(listGrade)) {
             const gradeTopics = await prisma.topic.findMany({
                 where: { gradeId: listGrade },
@@ -123,7 +173,7 @@ export class ContentSearchService {
                 }
             });
             if (activeLesson) {
-                let text = `[GỢI Ý BỐI CẢNH MÀN HÌNH - BÀI HỌC DÙNG KHI NGƯỜI DÙNG NÓI "bài này", "bài học này", "ở đây": "${activeLesson.name}"]\nLiên kết: [${activeLesson.name}](lesson:${activeLesson.id}) (Lớp ${activeLesson.topic.gradeId})\nTóm tắt: ${activeLesson.summary || "Không có tóm tắt"}\nCấu trúc bài học:`;
+                let text = `[GỢI Ý BỐI CẢNH MÀN HÌNH - BÀI HỌC DÙNG KHI NGƯỜI DÙNG NÓI "bài này", "bài học này", "ở đây": "Bài ${activeLesson.position}: ${activeLesson.name}"]\nLiên kết: [Bài ${activeLesson.position}: ${activeLesson.name}](lesson:${activeLesson.id}) (Lớp ${activeLesson.topic.gradeId})\nTóm tắt: ${activeLesson.summary || "Không có tóm tắt"}\nCấu trúc bài học:`;
                 for (const sec of activeLesson.sections) {
                     text += `\n- Mục: ${sec.name}`;
                     for (const nd of sec.nodes) {
@@ -135,7 +185,7 @@ export class ContentSearchService {
                 references.push({
                     type: "lesson",
                     id: activeLesson.id,
-                    title: activeLesson.name,
+                    title: `Bài ${activeLesson.position}: ${activeLesson.name}`,
                     snippet: activeLesson.summary || activeLesson.name
                 });
             }
@@ -253,12 +303,12 @@ export class ContentSearchService {
                 for (const les of matchingLessons) {
                     if (!references.some((r) => r.type === "lesson" && r.id === les.id)) {
                         contextBlocks.push(
-                            `[BÀI HỌC KẾT QUẢ TÌM KIẾM ID: ${les.id}]\nTên bài học: ${les.name}\nTóm tắt nội dung: ${les.summary || "Không có tóm tắt"}`
+                            `[BÀI HỌC KẾT QUẢ TÌM KIẾM: Bài ${les.position}: ${les.name}]\nLiên kết: [Bài ${les.position}: ${les.name}](lesson:${les.id})\nTóm tắt nội dung: ${les.summary || "Không có tóm tắt"}`
                         );
                         references.push({
                             type: "lesson",
                             id: les.id,
-                            title: les.name,
+                            title: `Bài ${les.position}: ${les.name}`,
                             snippet: les.summary || les.name
                         });
                     }

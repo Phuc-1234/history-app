@@ -113,6 +113,26 @@ export const nextState = async (req: Request, res: Response) => {
     }
 };
 
+export const inviteFriend = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+        const { roomCode, targetUserId } = req.body;
+        if (!roomCode || !targetUserId) {
+            return res.status(400).json({ error: "roomCode and targetUserId are required" });
+        }
+
+        const result = await pvpService.inviteFriend(req.user.id, roomCode, targetUserId);
+        return res.status(200).json(result);
+    } catch (err: any) {
+        console.error("inviteFriend error:", err?.message ?? err);
+        if (err?.code === "ROOM_NOT_FOUND") return res.status(404).json({ error: err.message });
+        if (err?.code === "ROOM_NOT_LOBBY" || err?.code === "ROOM_FULL" || err?.code === "ALREADY_IN_ROOM" || err?.code === "NOT_IN_ROOM" || err?.code === "CANNOT_INVITE_SELF") {
+            return res.status(400).json({ error: err.message, code: err.code });
+        }
+        return res.status(500).json({ error: "Failed to invite friend" });
+    }
+};
+
 export const getCuratedTests = async (req: Request, res: Response) => {
     try {
         if (!req.user) return res.status(401).json({ error: "Unauthorized" });

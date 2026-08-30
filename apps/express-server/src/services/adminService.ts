@@ -1441,10 +1441,6 @@ export class AdminService {
                     xpReward: data.xpReward ?? 0,
                     goldReward: data.goldReward ?? 0,
                     passThreshold: data.passThreshold ?? 70,
-                    gradeId: data.gradeId ?? null,
-                    topicId: data.topicId ?? null,
-                    lessonId: data.lessonId ?? null,
-                    sectionId: data.sectionId ?? null,
                 },
             });
 
@@ -1512,10 +1508,6 @@ export class AdminService {
                     ...(data.xpReward !== undefined && { xpReward: data.xpReward }),
                     ...(data.goldReward !== undefined && { goldReward: data.goldReward }),
                     ...(data.passThreshold !== undefined && { passThreshold: data.passThreshold }),
-                    ...(data.gradeId !== undefined && { gradeId: data.gradeId }),
-                    ...(data.topicId !== undefined && { topicId: data.topicId }),
-                    ...(data.lessonId !== undefined && { lessonId: data.lessonId }),
-                    ...(data.sectionId !== undefined && { sectionId: data.sectionId }),
                 },
             });
 
@@ -2244,6 +2236,11 @@ export class AdminService {
     async deleteTier(index: number): Promise<boolean> {
         const existing = await prisma.tier.findUnique({ where: { index } });
         if (!existing) return false;
+
+        const usersCount = await prisma.user.count({ where: { currentTierIndex: index } });
+        if (usersCount > 0) {
+            throw new Error(`Không thể xóa danh hiệu này vì đang có ${usersCount} người dùng đang ở danh hiệu này.`);
+        }
 
         await prisma.$transaction(async (tx) => {
             const targetIdStr = String(index);

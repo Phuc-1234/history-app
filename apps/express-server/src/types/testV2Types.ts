@@ -70,6 +70,7 @@ export interface StartTestV2Request {
     passThreshold?: number;
     timeLimit?: number | null;
     difficultyRatioJson?: any;
+    questionIds?: number[];
 }
 
 export interface UpdateDraftRequest {

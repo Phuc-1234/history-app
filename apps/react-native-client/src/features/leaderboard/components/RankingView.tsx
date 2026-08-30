@@ -9,6 +9,7 @@ import {
     RefreshControl,
     TouchableWithoutFeedback,
     Image,
+    Dimensions,
 } from "react-native";
 import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
@@ -63,19 +64,19 @@ export const RankingView: React.FC = () => {
             return;
         }
 
-        // Ước tính vị trí Y thực tế của người dùng:
-        // PodiumSection: paddingTop(10) + marginTop(18) + height(topUsers ~240px) => ~268px.
-        // RankingList: marginTop(34).
-        // Hàng Card: height 68px + marginBottom 14px = 82px / hàng.
+        const { width: screenWidth } = Dimensions.get("window");
+        const rowWidth = isSmallDevice ? Math.min(screenWidth - 44, 300) : (screenWidth - 44);
+        const estimatedPodiumHeight = Math.round((rowWidth / 2) * 1.15) + (isSmallDevice ? 85 : 95);
+
         let meTop = 0;
         let meBottom = 0;
 
         if (meInList.rank <= 3) {
             meTop = 10;
-            meBottom = 260;
+            meBottom = estimatedPodiumHeight;
         } else {
             const indexInList = meInList.rank - 4;
-            meTop = 268 + 34 + indexInList * 82;
+            meTop = estimatedPodiumHeight + 34 + indexInList * 82;
             meBottom = meTop + 68;
         }
 

@@ -52,7 +52,8 @@ export const getTiers = async (
     res: Response<GetTiersResponse>,
 ) => {
     try {
-        const tiers = await gamificationService.getTiers();
+        const userId = req.user?.id;
+        const tiers = await gamificationService.getTiers(userId);
         return res.status(200).json({ tiers });
     } catch (err) {
         console.error("Fetch tiers error:", err);

@@ -96,7 +96,7 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
     const [deleteSession] = useDeleteSessionMutation();
     const [updateSession, { isLoading: isUpdatingSession }] = useUpdateSessionMutation();
 
-    const { data: messagesData, isLoading: isLoadingMessages } = useGetSessionMessagesQuery(
+    const { data: messagesData, currentData: currentMessagesData, isLoading: isLoadingMessages } = useGetSessionMessagesQuery(
         selectedSessionId!,
         { skip: !selectedSessionId || !visible }
     );
@@ -105,7 +105,11 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
 
     const sessions = sessionsData?.sessions || [];
     const activeSession = sessions.find((s) => s.id === selectedSessionId);
-    const messages = selectedSessionId ? messagesData?.messages || [] : [];
+
+    // Use currentData (resets to undefined on arg change) to avoid old session messages
+    // bleeding into the new session view during the brief re-fetch window.
+    // messagesData is still available as fallback for the seeded empty cache via upsertQueryData.
+    const messages = selectedSessionId ? currentMessagesData?.messages || [] : [];
 
     // Sync selectedMode and selectedModelTier with activeSession when session changes
     useEffect(() => {
@@ -116,16 +120,6 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
             setSelectedModelTier(activeSession.modelTier);
         }
     }, [activeSession?.mode, activeSession?.modelTier, selectedSessionId]);
-
-    // Reset selectedSessionId if active session is deleted or session list becomes empty
-    useEffect(() => {
-        if (isLoadingSessions || isFetchingSessions || isSending || isCreatingSession) return;
-        if (selectedSessionId && sessions.length > 0 && !activeSession && !pendingMessage) {
-            setSelectedSessionId(sessions[0].id);
-        } else if (sessions.length === 0 && selectedSessionId && !pendingMessage) {
-            setSelectedSessionId(null);
-        }
-    }, [sessions, selectedSessionId, activeSession, isLoadingSessions, isFetchingSessions, isSending, pendingMessage, isCreatingSession]);
 
     const displayMessages: DisplayChatMessage[] = [
         ...messages,
@@ -154,13 +148,18 @@ export function useAiChatOverlay({ visible }: UseAiChatOverlayOptions) {
 
     // Auto-select latest session when opened for the first time
     useEffect(() => {
-        if (visible && !hasInitializedSessionRef.current && sessions.length > 0 && !selectedSessionId) {
-            setSelectedSessionId(sessions[0].id);
-            hasInitializedSessionRef.current = true;
+        if (visible && !hasInitializedSessionRef.current) {
+            if (sessions.length > 0 && !selectedSessionId) {
+                setSelectedSessionId(sessions[0].id);
+                hasInitializedSessionRef.current = true;
+            } else if (!isLoadingSessions && sessions.length === 0) {
+                hasInitializedSessionRef.current = true;
+            }
         }
-    }, [visible, sessions, selectedSessionId]);
+    }, [visible, sessions, selectedSessionId, isLoadingSessions]);
 
     const handleCreateNewSession = useCallback((mode?: AiChatModeType, modelTier?: AiModelTierType) => {
+        hasInitializedSessionRef.current = true;
         setSelectedSessionId(null);
         setSelectedMode(mode || "GENERAL");
         setSelectedModelTier(modelTier || "MEDIUM");

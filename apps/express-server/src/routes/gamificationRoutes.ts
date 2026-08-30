@@ -14,7 +14,7 @@ const router = Router();
 router.get("/leaderboard", optionalAuth, getLeaderboard);
 
 // GET /api/gamification/tiers
-router.get("/tiers", getTiers);
+router.get("/tiers", optionalAuth, getTiers);
 
 // GET /api/gamification/streak
 router.get("/streak", optionalAuth, getStreakDetails);

@@ -34,6 +34,7 @@ import { useGetTestInfoQuery } from "../../test_v2/services/testApi";
 import { PremiumModal } from "../../../components/PremiumModal";
 import { SlidingTabBar } from "../../../components/SlidingTabBar";
 import { PracticeSection } from "../../practice";
+import { CuratedTestsSection } from "../../test_v2";
 
 interface LessonMenuProps {
     selectedGrade: number;
@@ -693,6 +694,16 @@ export function LessonMenu({
                                 </View>
                             ) : (
                                 <View style={styles.practiceContainer}>
+                                    {/* Curated Tests for Grade Scope */}
+                                    <CuratedTestsSection
+                                        scopeType="GRADE"
+                                        scopeId={selectedGrade}
+                                        title={`Một số đề luyện tập`}
+                                        themeColor={themeColor}
+                                        variant="card"
+                                        defaultExpanded={true}
+                                    />
+
                                     {/* Độ thành thạo Card (Expandable) */}
                                     <Card variant="bordered" style={[styles.practiceCard, { marginBottom: 16 }]}>
                                         <TouchableOpacity

@@ -39,7 +39,7 @@ export const getGradeOverviewTool: AITool = {
             });
 
             if (!grade) {
-                return { status: "not_found", message: `Không tìm thấy chương trình Lớp ${args.gradeNumber}` };
+                return { status: "not_found", message: `Không tìm thấy chương trình Lịch sử lớp ${args.gradeNumber}` };
             }
 
             return {
@@ -52,8 +52,8 @@ export const getGradeOverviewTool: AITool = {
                     lessons: t.lessons.map(l => ({
                         lessonId: l.id,
                         position: l.position,
-                        name: l.name,
-                        markdownLink: `[${l.name}](lesson:${l.id})`
+                        name: `Bài ${l.position}: ${l.name}`,
+                        markdownLink: `[Bài ${l.position}: ${l.name}](lesson:${l.id})`
                     }))
                 }))
             };

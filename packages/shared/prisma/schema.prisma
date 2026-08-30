@@ -261,12 +261,14 @@ model User {
   rewardLogs             UserRewardLog[]
   xpLogs                 UserXpLog[]
   testLogs               UserTestLog[]
-  notifications          Notification[]
+  notifications          Notification[]        @relation("NotificationRecipient")
+  sentNotifications      Notification[]        @relation("NotificationSender")
   fcmTokens              FcmToken[]
   aiChatSessions         AiChatSession[]
   aiQuotas               UserAiQuota[]
   hostPvpRooms           PvpRoom[]             @relation("HostPvpRooms")
   pvpParticipants        PvpParticipant[]
+  studyReminder          UserStudyReminder?
   tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
 
   @@map("users")
@@ -734,15 +736,22 @@ enum SubscriptionStatus {
 model Notification {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
+  senderId  String?  @map("sender_id")
+  targetId  String?  @map("target_id")
   type      String   // e.g., "FRIEND_REQUEST", "FRIEND_ACCEPT", "SYSTEM"
   title     String
   body      String
   isRead    Boolean  @default(false) @map("is_read")
+  isHidden  Boolean  @default(false) @map("is_hidden")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user      User     @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Restrict)
+  sender    User?    @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Restrict)
 
+  @@index([userId])
+  @@index([userId, isHidden])
+  @@index([senderId])
   @@map("notifications")
 }
 
@@ -865,5 +874,17 @@ enum FeedbackStatus {
   IGNORED
 }
 
+model UserStudyReminder {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  isEnabled    Boolean  @default(true) @map("is_enabled")
+  times        Json     @default("[\"20:00\"]")
+  lastSentSlot String?  @map("last_sent_slot")
+  lastCategory String?  @map("last_category")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
+  @@map("user_study_reminders")
+}

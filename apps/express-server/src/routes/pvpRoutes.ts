@@ -12,6 +12,7 @@ import {
     leaveRoom,
     getPublicRooms,
     redirectToPvpRoom,
+    inviteFriend,
 } from "../controllers/pvpController";
 import { requireStudent } from "../middlewares/authMiddleware";
 
@@ -38,6 +39,9 @@ router.post("/create", requireStudent, createRoom);
 
 // POST /api/pvp/join
 router.post("/join", requireStudent, joinRoom);
+
+// POST /api/pvp/invite
+router.post("/invite", requireStudent, inviteFriend);
 
 // POST /api/pvp/leave
 router.post("/leave", requireStudent, leaveRoom);

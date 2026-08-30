@@ -83,6 +83,15 @@ export const testApiV2 = apiSlice.injectEndpoints({
             query: () => "/api/tests-v2/national",
         }),
 
+        // GET /api/tests-v2/curated
+        getCuratedTests: builder.query<{ id: string; title: string; summary: string | null; isPro: boolean; imgUrl?: string | null; passCount?: number; masteryPercentage?: number }[], { scopeType: string; scopeId: number }>({
+            query: (params) => ({
+                url: "/api/tests-v2/curated",
+                params,
+            }),
+            providesTags: ["User"],
+        }),
+
         // GET /api/tests-v2/practice-stats
         getPracticeStats: builder.query<{ wrongQuestionCount: number; answeredQuestionCount: number }, { scopeType?: string; scopeId?: number }>({
             query: (params) => ({
@@ -110,6 +119,8 @@ export const {
     useLazyGetAttemptDetailQuery,
     useGetNationalTestsQuery,
     useLazyGetNationalTestsQuery,
+    useGetCuratedTestsQuery,
+    useLazyGetCuratedTestsQuery,
     useGetPracticeStatsQuery,
     useLazyGetPracticeStatsQuery,
 } = testApiV2;

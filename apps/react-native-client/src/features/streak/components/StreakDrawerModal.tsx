@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     Modal,
     View,
@@ -10,14 +10,17 @@ import {
     Image,
     ActivityIndicator,
     Pressable,
+    RefreshControl,
 } from "react-native";
-import { X, Flame, CheckCircle2, Lock, Gift, Sparkles, Trophy, Calendar, ChevronRight, Zap, Coins } from "lucide-react-native";
+import { X, Flame, CheckCircle2, Lock, Gift, Sparkles, Trophy, Calendar, ChevronRight, Zap, Coins, AlarmClock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "../../../theme/colors";
 import { typography } from "../../../theme/typography";
 import { useGetStreakInfoQuery, StreakMilestone } from "../services/streakApi";
+import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { useAppSelector } from "../../../store/storeHook";
 import { MonthlyStreakModal } from "./MonthlyStreakModal";
+import { StudyReminderModal } from "../../notification";
 
 interface StreakDrawerModalProps {
     visible: boolean;
@@ -50,8 +53,19 @@ export default function StreakDrawerModal({
 }: StreakDrawerModalProps) {
     const profile = useAppSelector((state) => state.auth.profile);
     const [monthlyModalVisible, setMonthlyModalVisible] = useState(false);
+    const [reminderModalVisible, setReminderModalVisible] = useState(false);
     const [activeReward, setActiveReward] = useState<{ name: string; quantity: number } | null>(null);
-    const { data: streakData, isLoading, isError } = useGetStreakInfoQuery(undefined, { skip: !profile });
+    const { data: streakData, isLoading, isError, refetch: refetchStreak, isFetching: isFetchingStreak } = useGetStreakInfoQuery(undefined, { skip: !profile || !visible });
+    const { refetch: refetchProfile, isFetching: isFetchingProfile } = useGetProfileQuery(undefined, { skip: !profile || !visible });
+
+    const handleRefresh = useCallback(async () => {
+        await Promise.all([
+            refetchStreak(),
+            refetchProfile(),
+        ]);
+    }, [refetchStreak, refetchProfile]);
+
+    const isRefreshing = isFetchingStreak || isFetchingProfile;
 
     const activeStreak = streakData?.currentStreak ?? currentStreak;
     const highestStreak = streakData?.highestStreak ?? activeStreak;
@@ -97,10 +111,28 @@ export default function StreakDrawerModal({
                         <ScrollView
                             showsVerticalScrollIndicator={false}
                             contentContainerStyle={styles.scrollContent}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={isRefreshing}
+                                    onRefresh={handleRefresh}
+                                    colors={[colors.primary]}
+                                    tintColor={colors.primary}
+                                />
+                            }
                         >
                             {/* Current Streak Info */}
                             <View style={styles.heroSection}>
                                 <View style={styles.heroMainRowWrapper}>
+                                    {/* Reminder icon button placed top-right to the biggest flame box, below X */}
+                                    <TouchableOpacity
+                                        style={styles.reminderHeroButton}
+                                        onPress={() => setReminderModalVisible(true)}
+                                        activeOpacity={0.7}
+                                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    >
+                                        <AlarmClock size={18} color={colors.primary} />
+                                    </TouchableOpacity>
+
                                     <View style={styles.heroHeader}>
                                         <View style={styles.heroBadgeBox}>
                                             <Flame size={64} color="#FF9500" />
@@ -342,6 +374,10 @@ export default function StreakDrawerModal({
             </View>
         </Modal>
 
+        <StudyReminderModal
+            visible={reminderModalVisible}
+            onClose={() => setReminderModalVisible(false)}
+        />
         <MonthlyStreakModal
             visible={monthlyModalVisible}
             onClose={() => setMonthlyModalVisible(false)}
@@ -424,9 +460,24 @@ const styles = StyleSheet.create({
         gap: 14,
     },
     heroMainRowWrapper: {
+        position: "relative",
         paddingVertical: 16,
         alignItems: "center",
         justifyContent: "center",
+    },
+    reminderHeroButton: {
+        position: "absolute",
+        top: 0,
+        right: 4,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.surfaceVariant,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        zIndex: 10,
     },
     heroHeader: {
         flexDirection: "column",

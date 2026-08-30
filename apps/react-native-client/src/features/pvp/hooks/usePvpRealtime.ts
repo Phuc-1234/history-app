@@ -62,6 +62,10 @@ export function usePvpRealtime(
     const prevRanksRef = useRef<Record<string, number>>({});
 
     const resetState = useCallback(() => {
+        if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+        }
         setParticipants([]);
         setIsGameStarted(false);
         setCurrentQuestionIndex(0);
@@ -130,9 +134,19 @@ export function usePvpRealtime(
     useEffect(() => {
         if (!roomCode) return;
 
+        const channelTopic = `pvp_${roomCode}`;
+
+        // Remove any stale/existing channel with the same topic to avoid duplicate callbacks and presence registration errors
+        const existingChannels = supabase.getChannels();
+        for (const ch of existingChannels) {
+            if (ch.topic === `realtime:${channelTopic}` || ch.topic === channelTopic) {
+                supabase.removeChannel(ch);
+            }
+        }
+
         const presenceKey = currentUserId || "user_" + Math.random().toString(36).substring(2, 7);
 
-        const channel = supabase.channel(`pvp_${roomCode}`, {
+        const channel = supabase.channel(channelTopic, {
             config: { broadcast: { self: true }, presence: { key: presenceKey } },
         });
 
@@ -223,6 +237,7 @@ export function usePvpRealtime(
         return () => {
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
+                channelRef.current = null;
             }
         };
     }, [roomCode, currentUserId]);

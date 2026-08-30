@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import typography from "../theme/typography";
+import { stripHtml } from "@/utils/htmlUtils";
 
 // Ngữ cảnh góp ý (grade/lesson/node/question) có thể dài —
 // thu gọn còn 2 dòng, bấm để mở rộng/thu gọn xem hết nội dung
@@ -14,8 +15,11 @@ interface FeedbackTargetRowProps {
 }
 
 export function FeedbackTargetRow({ targetName }: FeedbackTargetRowProps) {
+    const cleanTargetName = stripHtml(targetName);
     const [expanded, setExpanded] = useState(false);
-    const canToggle = targetName.length > TOGGLE_CHAR_THRESHOLD;
+    const canToggle = cleanTargetName.length > TOGGLE_CHAR_THRESHOLD;
+
+    if (!cleanTargetName) return null;
 
     return (
         <TouchableOpacity
@@ -29,7 +33,7 @@ export function FeedbackTargetRow({ targetName }: FeedbackTargetRowProps) {
                 style={styles.text}
                 numberOfLines={expanded ? undefined : COLLAPSED_LINES}
             >
-                {targetName}
+                {cleanTargetName}
             </Text>
             {canToggle && (
                 <Ionicons
