@@ -268,6 +268,7 @@ model User {
   aiQuotas               UserAiQuota[]
   hostPvpRooms           PvpRoom[]             @relation("HostPvpRooms")
   pvpParticipants        PvpParticipant[]
+  studyReminder          UserStudyReminder?
   tier                   Tier                  @relation(fields: [currentTierIndex], references: [index])
 
   @@map("users")
@@ -873,5 +874,17 @@ enum FeedbackStatus {
   IGNORED
 }
 
+model UserStudyReminder {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  isEnabled    Boolean  @default(true) @map("is_enabled")
+  times        Json     @default("[\"20:00\"]")
+  lastSentSlot String?  @map("last_sent_slot")
+  lastCategory String?  @map("last_category")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
+  @@map("user_study_reminders")
+}

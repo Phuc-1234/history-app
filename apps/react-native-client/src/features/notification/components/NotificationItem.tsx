@@ -124,7 +124,11 @@ export function NotificationItem({
         let iconBgColor = colors.primaryContainer;
         let iconColor = colors.primary;
 
-        if (notification.type === "reward") {
+        if (notification.type.startsWith("STUDY_REMINDER") || notification.type.startsWith("REMINDER")) {
+            iconName = "alarm-outline";
+            iconBgColor = colors.primaryContainer;
+            iconColor = colors.primary;
+        } else if (notification.type === "reward") {
             iconName = "gift-outline";
             iconBgColor = "#FFF9EE";
             iconColor = colors.secondary;

@@ -24,6 +24,7 @@ import { PodiumSection } from "../../leaderboard/components/PodiumSection";
 import { AvatarWithFrame, FaintStarsOverlay } from "../../../components/ui";
 import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
 import { CustomModal } from "../../../components/Modal";
+import { StudyReminderModal, useGetReminderSettingsQuery } from "@/features/notification";
 
 // ─── Component: Thẻ bài học ───────────────────────────────────────────────────
 function LessonCard({
@@ -160,6 +161,19 @@ export default function HomeScreen() {
     }, [data?.leaderboard]);
 
     const [guestModalVisible, setGuestModalVisible] = React.useState(false);
+    const [hasCheckedAutoSuggest, setHasCheckedAutoSuggest] = React.useState(false);
+    const [autoReminderModalVisible, setAutoReminderModalVisible] = React.useState(false);
+    const { data: reminderSettings } = useGetReminderSettingsQuery(undefined, { skip: !profile });
+
+    React.useEffect(() => {
+        if (!hasCheckedAutoSuggest && reminderSettings) {
+            setHasCheckedAutoSuggest(true);
+            // 20% chance on app start if reminders are turned off
+            if (!reminderSettings.isEnabled && Math.random() < 0.2) {
+                setAutoReminderModalVisible(true);
+            }
+        }
+    }, [reminderSettings, hasCheckedAutoSuggest]);
 
     const handleGoToLeaderboard = () =>
         router.push("/(tabs)/9_1_leaderboard" as never);
@@ -613,6 +627,10 @@ export default function HomeScreen() {
                 onCancel={() => setGuestModalVisible(false)}
                 showMascot={true}
                 mascotExpression="thinking"
+            />
+            <StudyReminderModal
+                visible={autoReminderModalVisible}
+                onClose={() => setAutoReminderModalVisible(false)}
             />
         </>
     );

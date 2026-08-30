@@ -57,13 +57,50 @@ export function useNotification() {
         );
       });
 
+      const handleNotificationNavigation = (remoteMessage: any) => {
+        const data = remoteMessage?.data;
+        if (!data) {
+          router.push('/notifications' as never);
+          return;
+        }
+
+        if (data.route) {
+          router.push(data.route as never);
+          return;
+        }
+
+        if (data.type === 'STUDY_REMINDER') {
+          const category = data.category;
+          const targetId = data.targetId;
+          if (category === 'LESSON' && targetId) {
+            router.push(`/(3_4_lessons)/lesson/${targetId}` as never);
+          } else if (category === 'STREAK') {
+            router.push('/(tabs)/home' as never);
+          } else if (category === 'TIER') {
+            router.push('/(tabs)/9_1_leaderboard' as never);
+          } else if (category === 'TEST' && targetId) {
+            router.push(`/(6_tests)/6_2_ques_choose?testId=${targetId}` as never);
+          } else {
+            router.push('/notifications' as never);
+          }
+          return;
+        }
+
+        if (data.type === 'PVP_INVITE' && data.targetId) {
+          router.push(`/pvp?roomCode=${data.targetId}` as never);
+          return;
+        }
+
+        router.push('/notifications' as never);
+      };
+
       // 3. Listen to background actions (User clicks notification when app is in background)
       unsubscribeNotificationOpened = messaging().onNotificationOpenedApp((remoteMessage) => {
         console.log('User clicked notification (Background state):', remoteMessage);
         try {
-          router.push('/notifications' as never);
+          handleNotificationNavigation(remoteMessage);
         } catch (err) {
-          console.warn('[Notification] Failed to navigate to /notifications from background:', err);
+          console.warn('[Notification] Failed to navigate from background:', err);
         }
       });
 
@@ -75,9 +112,9 @@ export function useNotification() {
             console.log('App opened from notification (Killed state):', remoteMessage);
             setTimeout(() => {
               try {
-                router.push('/notifications' as never);
+                handleNotificationNavigation(remoteMessage);
               } catch (err) {
-                console.warn('[Notification] Failed to navigate to /notifications from killed state:', err);
+                console.warn('[Notification] Failed to navigate from killed state:', err);
               }
             }, 300);
           }

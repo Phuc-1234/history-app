@@ -166,6 +166,22 @@ export function NotificationsScreen() {
             return;
         }
 
+        // If Study Reminder, deep link to relevant content
+        if (notification.type.startsWith("STUDY_REMINDER") || notification.type.startsWith("REMINDER")) {
+            if ((notification.type === "STUDY_REMINDER_LESSON" || notification.type === "REMINDER_LESSON") && notification.targetId) {
+                router.push(`/(3_4_lessons)/lesson/${notification.targetId}` as never);
+            } else if (notification.type === "STUDY_REMINDER_STREAK" || notification.type === "REMINDER_STREAK") {
+                router.push("/(tabs)/home" as never);
+            } else if (notification.type === "STUDY_REMINDER_TIER" || notification.type === "REMINDER_TIER") {
+                router.push("/(tabs)/9_1_leaderboard" as never);
+            } else if ((notification.type === "STUDY_REMINDER_TEST" || notification.type === "REMINDER_TEST") && notification.targetId) {
+                router.push(`/(6_tests)/6_2_ques_choose?testId=${notification.targetId}` as never);
+            } else {
+                router.push("/(tabs)/home" as never);
+            }
+            return;
+        }
+
         // If PVP invite, if still joinable, attempt to join
         if (notification.type === "PVP_INVITE") {
             const isRejected =

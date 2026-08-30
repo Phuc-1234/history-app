@@ -349,4 +349,59 @@ router.put('/:id/toggle-hide', requireStudent, async (req: Request, res: Respons
   }
 });
 
+import { studyReminderService } from '../services/studyReminderService';
+
+/**
+ * API: GET /api/notifications/reminders
+ * Fetch study reminder settings for the current user
+ */
+router.get('/reminders', requireStudent, async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  try {
+    const settings = await studyReminderService.getReminderSettings(userId);
+    return res.status(200).json(settings);
+  } catch (error: any) {
+    console.error('[Notification] Error getting reminder settings:', error);
+    return res.status(500).json({ error: 'Failed to fetch reminder settings', details: error.message });
+  }
+});
+
+/**
+ * API: PUT /api/notifications/reminders
+ * Update study reminder settings for the current user
+ */
+router.put('/reminders', requireStudent, async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { isEnabled, times } = req.body;
+  try {
+    const settings = await studyReminderService.updateReminderSettings(
+      userId,
+      Boolean(isEnabled),
+      Array.isArray(times) ? times : []
+    );
+    return res.status(200).json(settings);
+  } catch (error: any) {
+    console.error('[Notification] Error updating reminder settings:', error);
+    return res.status(500).json({ error: 'Failed to update reminder settings', details: error.message });
+  }
+});
+
+/**
+ * API: POST /api/notifications/reminders/test-trigger
+ * Send an immediate test study reminder for the current user
+ */
+router.post('/reminders/test-trigger', requireStudent, async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  try {
+    const payload = await studyReminderService.sendReminder(userId);
+    return res.status(200).json({
+      message: 'Test study reminder sent successfully',
+      payload,
+    });
+  } catch (error: any) {
+    console.error('[Notification] Error sending test reminder:', error);
+    return res.status(500).json({ error: 'Failed to send test reminder', details: error.message });
+  }
+});
+
 export default router;

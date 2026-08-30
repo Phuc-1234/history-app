@@ -81,6 +81,24 @@ export class PushNotificationService {
       const message = {
         notification: { title, body },
         data: data || {},
+        android: {
+          priority: 'high' as const,
+          notification: {
+            sound: 'default',
+            priority: 'high' as const,
+            channelId: 'default',
+            defaultSound: true,
+            defaultVibrateTimings: true,
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+              contentAvailable: true,
+            },
+          },
+        },
         tokens,
       };
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     StyleSheet,
     Text,
@@ -6,11 +6,12 @@ import {
     View,
     ActivityIndicator,
 } from "react-native";
-import { Flame, CheckCircle2, Trophy, Calendar, ChevronRight } from "lucide-react-native";
+import { Flame, CheckCircle2, Trophy, Calendar, ChevronRight, AlarmClock } from "lucide-react-native";
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import { useGetStreakInfoQuery } from "../services/streakApi";
 import { useAppSelector } from "../../../store/storeHook";
+import { StudyReminderModal } from "../../notification";
 
 interface HomeStreakSectionProps {
     currentStreak?: number;
@@ -37,6 +38,7 @@ function getWeeklyFlameColors(xp: number, isToday: boolean, isCompleted: boolean
 
 export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSectionProps) {
     const profile = useAppSelector((state) => state.auth.profile);
+    const [reminderModalVisible, setReminderModalVisible] = useState(false);
     const { data: streakData, isLoading } = useGetStreakInfoQuery(undefined, { skip: !profile });
 
     const activeStreak = streakData?.currentStreak ?? currentStreak;
@@ -53,6 +55,19 @@ export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSect
             onPress={onPress}
             style={styles.cardContainer}
         >
+            {/* Reminder button positioned absolutely at top-right of streak section */}
+            <TouchableOpacity
+                style={styles.reminderBtn}
+                onPress={(e) => {
+                    e.stopPropagation();
+                    setReminderModalVisible(true);
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+                <AlarmClock size={16} color={colors.primary} />
+            </TouchableOpacity>
+
             {/* Header / Main Stats Row */}
             <View style={styles.topRow}>
                 <View style={styles.streakInfoLeft}>
@@ -137,12 +152,18 @@ export function HomeStreakSection({ currentStreak = 0, onPress }: HomeStreakSect
                     })}
                 </View>
             </View>
+
+            <StudyReminderModal
+                visible={reminderModalVisible}
+                onClose={() => setReminderModalVisible(false)}
+            />
         </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
     cardContainer: {
+        position: "relative",
         backgroundColor: colors.surface,
         borderRadius: 12,
         borderWidth: 1.5,
@@ -155,6 +176,20 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+    },
+    reminderBtn: {
+        position: "absolute",
+        top: 12,
+        right: 12,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.surfaceVariant,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        zIndex: 10,
     },
     streakInfoLeft: {
         flexDirection: "row",

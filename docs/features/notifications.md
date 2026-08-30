@@ -116,11 +116,36 @@ model FcmToken {
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `FRIEND_REQUEST` | [socialService.sendFriendRequest](file:///e:/history-app/apps/express-server/src/services/socialService.ts#L380-L401) | Receiver | Yes (`db.notification.create`) | Yes (`pushNotificationService.sendToUser`) | Title: `"Lời mời kết bạn mới"`<br>Body: `"${senderName} đã gửi cho bạn một lời mời kết bạn."`<br>Data: `{ type: "FRIEND_REQUEST" }` |
 | `FRIEND_ACCEPT` | [socialService.acceptFriendRequest](file:///e:/history-app/apps/express-server/src/services/socialService.ts#L428-L453) | Original Sender | Yes (`db.notification.create`) | Yes (`pushNotificationService.sendToUser`) | Title: `"Chấp nhận lời mời kết bạn"`<br>Body: `"${receiverName} đã chấp nhận lời mời kết bạn của bạn."`<br>Data: `{ type: "FRIEND_ACCEPT" }` |
+| `STUDY_REMINDER` / `Nhắc hẹn` | [studyReminderCron.ts](file:///e:/history-app/apps/express-server/src/services/studyReminderCron.ts), [studyReminderService.ts](file:///e:/history-app/apps/express-server/src/services/studyReminderService.ts) | User | Yes (`db.notification.create`) | Yes (`pushNotificationService.sendToUser`) | Generic Title: `"Nhắc nhở học tập"`<br>Dynamic Body & Side Icon based on 4 rotating categories<br>Data: `{ type: "STUDY_REMINDER", category, targetId, route }` |
 | `test_notification` | [notificationRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/notificationRoutes.ts#L67-L139) (`POST /api/notifications/send-test`) | In-memory registered tokens | No | Yes (`sendEachForMulticast`) | Custom title & body payload for dev testing |
 
-### B. Frontend UI Type Handlers (Scaffolded in [NotificationItem.tsx](file:///e:/history-app/apps/react-native-client/src/features/notification/components/NotificationItem.tsx))
+### B. Study Reminder ('Nhắc hẹn') Feature Details
+
+The Study Reminder system sends dynamic smart push & DB notifications based on user schedule (frequency and specific times of the day) and user progress:
+
+#### 1. Dynamic Variations & Skip Rules (Sequentially Cycled)
+- **Tiếp tục học (`LESSON`):** Identifies the lesson with the highest incomplete progress percentage (`0% < pct < 100%`). Title: `"Nhắc nhở học tập"`, Body: `Tiếp tục bài học "[Tên bài]" ([XX]% hoàn thành) ngay hôm nay nhé!`, Icon: `book-outline`, Deeplink: `/(3_4_lessons)/lesson/[id]`.
+- **Chuỗi Streak (`STREAK`):** Encourages continuing or starting streak. Title: `"Nhắc nhở học tập"`, Body: `Duy trì chuỗi [N] ngày liên tục! Vào học ngay hôm nay...`, Icon: `flame-outline`, Deeplink: `/(tabs)/home`.  
+  *Skip Rule:* **Skipped if user already gained XP / lit streak flame today** (`lastXpGainedAt` is today in UTC+7).
+- **Hạng & XP (`TIER`):** Reminds user of remaining XP to reach the next tier. Title: `"Nhắc nhở học tập"`, Body: `Chỉ còn [N] XP nữa là đạt danh hiệu [Tên hạng]! Cố gắng học tập hôm nay nhé!`, Icon: `trophy-outline`, Deeplink: `/(tabs)/9_1_leaderboard`.  
+  *Skip Rule:* **Skipped if user is at the maximum available tier**.
+- **Luyện đề (`TEST`):** Identifies a test with low mastery level (< 60% or lowest mastery percentage). Title: `"Nhắc nhở học tập"`, Body: `Ôn luyện lại đề "[Tên đề]" (mức độ thành thạo [XX]%) để cải thiện điểm số nhé!`, Icon: `clipboard-outline`, Deeplink: `/(6_tests)/6_2_ques_choose?testId=[id]`.
+
+#### 2. Three Modal Entry Points
+- **Streak Drawer Modal** ([StreakDrawerModal.tsx](file:///e:/history-app/apps/react-native-client/src/features/streak/components/StreakDrawerModal.tsx)): Bell button positioned in the hero card top-right (top-right of biggest flame box, below header `X`).
+- **Home Screen Streak Card** ([HomeStreakSection.tsx](file:///e:/history-app/apps/react-native-client/src/features/streak/components/HomeStreakSection.tsx)): Bell button in the top-right corner of the streak banner.
+- **Side Navigation Drawer** ([SideDrawerContext.tsx](file:///e:/history-app/apps/react-native-client/src/components/layout/SideDrawerContext.tsx)): Dedicated `"Nhắc hẹn học tập"` drawer menu item.
+
+#### 3. Deep-Linking
+Tapping the push notification banner from background/killed state or tapping the notification card inside [NotificationsScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/notification/screens/NotificationsScreen.tsx) automatically navigates directly to the target lesson, test, streak, or tier screen.
+
+---
+
+### C. Frontend UI Type Handlers (Scaffolded in [NotificationItem.tsx](file:///e:/history-app/apps/react-native-client/src/features/notification/components/NotificationItem.tsx))
 
 The mobile UI supports visual categorization via `notification.type`:
+- `"STUDY_REMINDER_*"`: Unified Icon `alarm-outline`, Primary container background (`colors.primaryContainer`) in the in-app notification feed.
+- Device System Tray / Push Notifications: Varied side icons per category (`book-outline`, `flame-outline`, `trophy-outline`, `clipboard-outline`).
 - `"push"` / `"FRIEND_REQUEST"` / `"FRIEND_ACCEPT"`: Icon `notifications-circle-outline`, Primary container background (`colors.primaryContainer`).
 - `"reward"`: Icon `gift-outline`, Background `#FFF9EE`, Icon color `colors.secondary` (Gold/Orange).
 - `"achievement"`: Icon `trophy-outline`, Background `#F4F0FA`, Icon color `#8C6BAF` (Purple).
@@ -130,17 +155,18 @@ The mobile UI supports visual categorization via `notification.type`:
 
 ## 5. Backend Service & API Specification
 
-### A. PushNotificationService ([pushNotificationService.ts](file:///e:/history-app/apps/express-server/src/services/pushNotificationService.ts))
+### A. PushNotificationService ([pushNotificationService.ts](file:///e:/history-app/apps/express-server/src/services/pushNotificationService.ts)) & StudyReminderService ([studyReminderService.ts](file:///e:/history-app/apps/express-server/src/services/studyReminderService.ts))
 
-- **Initialization:** Loads `service-account.json` from `apps/express-server/service-account.json`. If missing, warns on console and safely skips push dispatches without failing parent transactions.
-- **Methods:**
-  - `registerToken(userId: string, token: string): Promise<void>`: Upserts token in `fcm_tokens` table.
-  - `removeToken(token: string): Promise<void>`: Deletes token from `fcm_tokens` table.
-  - `sendToUser(userId: string, title: string, body: string, data?: Record<string, string>): Promise<void>`:
-    1. Fetches all tokens for `userId` from `db.fcmToken`.
-    2. Sends multicast message using Firebase Admin `getMessaging().sendEachForMulticast(message)`.
-    3. Detects invalid / expired tokens (`messaging/invalid-registration-token`, `messaging/registration-token-not-registered`).
-    4. Automatically purges dead tokens from `fcm_tokens` via `db.fcmToken.deleteMany`.
+- **PushNotificationService:**
+  - `registerToken(userId: string, token: string)`: Upserts token in `fcm_tokens` table.
+  - `removeToken(token: string)`: Deletes token from `fcm_tokens` table.
+  - `sendToUser(userId: string, title: string, body: string, data?: Record<string, string>)`: Sends multicast push via Firebase Admin SDK.
+- **StudyReminderService:**
+  - `getReminderSettings(userId: string)`: Fetches user's `UserStudyReminder` config.
+  - `updateReminderSettings(userId: string, isEnabled: boolean, times: string[])`: Updates frequency & reminder times.
+  - `generateReminderPayload(userId: string)`: Evaluates the 4 categories sequentially with skip rules.
+  - `sendReminder(userId: string)`: Creates DB `Notification` and sends FCM push with deep-link data.
+  - `checkAndSendDueReminders()`: 1-minute interval scanner checking matching `HH:mm` slots in UTC+7.
 
 ### B. REST Endpoints ([notificationRoutes.ts](file:///e:/history-app/apps/express-server/src/routes/notificationRoutes.ts))
 
@@ -153,6 +179,9 @@ All user endpoints require JWT authentication via `requireStudent` middleware:
 | `GET` | `/api/notifications` | `requireStudent` | None | `{ notifications: Notification[] }` | Returns user notification list ordered by `createdAt: desc`. |
 | `PUT` | `/api/notifications/read-all` | `requireStudent` | None | `{ message: "All notifications marked as read" }` | Sets `isRead: true` for all unread notifications of the user. |
 | `PUT` | `/api/notifications/:id/read` | `requireStudent` | Param: `id` | `{ message: "Notification marked as read" }` | Validates ownership and sets `isRead: true` for a single notification. |
+| `GET` | `/api/notifications/reminders` | `requireStudent` | None | `{ isEnabled: boolean, times: string[] }` | Fetches study reminder configuration for user. |
+| `PUT` | `/api/notifications/reminders` | `requireStudent` | `{ isEnabled, times }` | `{ isEnabled: boolean, times: string[] }` | Updates study reminder configuration for user. |
+| `POST` | `/api/notifications/reminders/test-trigger` | `requireStudent` | None | `{ message, payload }` | Sends immediate dynamic test study reminder to user. |
 
 ---
 
@@ -173,14 +202,15 @@ Mounted once at root layout [_layout.tsx](file:///e:/history-app/apps/react-nati
   │      └── Display slide-down in-app toast: toastService.show("${title}: ${body}", "info")
   │
   ├── 3. Listen to Background Click: messaging().onNotificationOpenedApp(remoteMessage)
-  │      └── Logs remoteMessage (TODO: route navigation handler)
+  │      └── Deep-links to specific route / lesson / test / leaderboard / streak
   │
   ├── 4. Listen to Cold-Start / Killed Click: messaging().getInitialNotification()
-  │      └── Logs remoteMessage (TODO: route navigation handler)
+  │      └── Deep-links to specific route / lesson / test / leaderboard / streak
   │
   └── 5. Listen to Token Refresh: messaging().onTokenRefresh(newToken)
          └── Re-register newToken with backend: POST /api/notifications/register-token
 ```
+
 
 ### B. Notification Screen & Filter Architecture ([NotificationsScreen.tsx](file:///e:/history-app/apps/react-native-client/src/features/notification/screens/NotificationsScreen.tsx))
 

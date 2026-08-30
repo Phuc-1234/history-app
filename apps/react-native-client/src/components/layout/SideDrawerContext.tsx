@@ -22,6 +22,7 @@ import { useTopBarData } from "../../features/top_bar/hooks/useTopBarData";
 import { AvatarWithFrame } from "../ui";
 import { StreakDrawerModal } from "../../features/streak";
 import { TierDrawerModal } from "../../features/tier";
+import { StudyReminderModal } from "../../features/notification";
 import { AiChatFab } from "../../features/ai-chat/components/AiChatFab";
 import { AiChatOverlay } from "../../features/ai-chat/components/AiChatOverlay";
 import { CustomModal } from "../Modal";
@@ -50,6 +51,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     const [renderDrawer, setRenderDrawer] = useState(false);
     const [aiChatVisible, setAiChatVisible] = useState(false);
     const [guestModalVisible, setGuestModalVisible] = useState(false);
+    const [reminderModalVisible, setReminderModalVisible] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const segments = useSegments() as string[];
@@ -156,6 +158,11 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     })();
 
     const handleTabPress = (tabId: string, route: string) => {
+        if (tabId === "reminders") {
+            closeDrawer();
+            setReminderModalVisible(true);
+            return;
+        }
         if (!data.isLoggedIn && !GUEST_ALLOWED_TAB_IDS.has(tabId)) {
             setGuestModalVisible(true);
             return;
@@ -184,6 +191,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
         { id: "items", label: "Vật phẩm", icon: "cart-outline", activeIcon: "gift", route: "/(tabs)/7_1_item" },
         { id: "buy_gold", label: "Nạp vàng", icon: "cash-outline", activeIcon: "cash", route: "/(tabs)/8_2_buy_gold" },
         { id: "notifications", label: "Thông báo", icon: "notifications-outline", activeIcon: "notifications", route: "/notifications" },
+        { id: "reminders", label: "Nhắc hẹn học tập", icon: "alarm-outline", activeIcon: "alarm", route: "" },
         { id: "friends", label: "Bạn bè", icon: "people-outline", activeIcon: "people", route: "/(social)/friends" },
         { id: "test_history", label: "Lịch sử làm bài", icon: "time-outline", activeIcon: "time", route: "/(10_proflie)/10_4_test_history" },
         { id: "feedback", label: "Gửi góp ý", icon: "chatbubble-ellipses-outline", activeIcon: "chatbubble-ellipses", route: "/(10_proflie)/10_6_feedback" },
@@ -391,6 +399,10 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                  showMascot={true}
                  mascotExpression="thinking"
              />
+            <StudyReminderModal
+                visible={reminderModalVisible}
+                onClose={() => setReminderModalVisible(false)}
+            />
         </SideDrawerContext.Provider>
     );
 }

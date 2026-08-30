@@ -25,6 +25,7 @@ import subscriptionRoutes from "./routes/subscriptionRoutes";
 import shopRoutes from "./routes/shopRoutes";
 import inventoryRoutes from "./routes/inventoryRoutes";
 import { startDailySubscriptionCron } from "./services/subscriptionCron";
+import { startStudyReminderCron } from "./services/studyReminderCron";
 
 
 
@@ -111,4 +112,6 @@ app.listen(PORT, () => {
     );
     // Start the daily cron checker for Pro subscriptions
     startDailySubscriptionCron();
+    // Start the study reminder background checker
+    startStudyReminderCron();
 });
