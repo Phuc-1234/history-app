@@ -17,7 +17,7 @@ import { colors, radii, spacing, typography } from "@/theme";
 import { toastService } from "@/services/toastService";
 import {
     useCreatePvpRoomMutation,
-    useGetCuratedTestsQuery,
+    useGetPvpCuratedTestsQuery,
     useGetAvailableQuestionsCountQuery,
 } from "../services/pvpApi";
 import {
@@ -120,7 +120,7 @@ export function CreateRoomTab({
     const [createRoomMut, { isLoading: isCreating }] = useCreatePvpRoomMutation();
 
     // Curated tests query
-    const { data: curatedTests, isLoading: loadingTests } = useGetCuratedTestsQuery(undefined, {
+    const { data: curatedTests, isLoading: loadingTests } = useGetPvpCuratedTestsQuery(undefined, {
         skip: mode !== "CURATED",
     });
 

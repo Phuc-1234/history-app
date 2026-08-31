@@ -77,7 +77,7 @@ export const pvpApi = apiSlice.injectEndpoints({
             }),
         }),
 
-        getCuratedTests: builder.query<Array<{ id: string; title: string; summary: string | null; questionCount: number }>, void>({
+        getPvpCuratedTests: builder.query<Array<{ id: string; title: string; summary: string | null; questionCount: number }>, void>({
             query: () => "/api/pvp/curated-tests",
         }),
 
@@ -118,8 +118,9 @@ export const {
     useLeavePvpRoomMutation,
     useSubmitPvpAnswerMutation,
     useNextPvpStateMutation,
-    useGetCuratedTestsQuery,
+    useGetPvpCuratedTestsQuery,
     useGetAvailableQuestionsCountQuery,
     useInviteFriendToPvpRoomMutation,
 } = pvpApi;
+
 
