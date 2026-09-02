@@ -575,20 +575,16 @@ export const createVideo = async (req: Request<{}, any, CreateVideoBody>, res: R
         if (!title || !hlsUrl) {
             return res.status(400).json({ error: "title and hlsUrl are required." });
         }
-        let parsedLessonId: number | null | undefined = undefined;
-        if (lessonId !== undefined) {
-            if (lessonId === null || (lessonId as any) === "" || (lessonId as any) === "null") {
-                parsedLessonId = null;
-            } else {
-                parsedLessonId = Number(lessonId);
-                if (Number.isNaN(parsedLessonId)) {
-                    return res.status(400).json({ error: "Invalid lessonId." });
-                }
+        let parsedLessonId: number | null = null;
+        if (lessonId !== undefined && lessonId !== null && String(lessonId) !== "" && String(lessonId) !== "null") {
+            parsedLessonId = Number(lessonId);
+            if (Number.isNaN(parsedLessonId)) {
+                return res.status(400).json({ error: "Invalid lessonId." });
             }
         }
         const video = await adminService.createVideo({
             ...req.body,
-            lessonId: parsedLessonId !== undefined ? parsedLessonId : null,
+            lessonId: parsedLessonId,
         });
         return res.status(201).json(video);
     } catch (err: any) {
