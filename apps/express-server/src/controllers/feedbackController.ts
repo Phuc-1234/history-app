@@ -109,6 +109,98 @@ export const createFeedback = async (req: Request, res: Response): Promise<any> 
             return res.status(401).json({ error: "Phiên đăng nhập không hợp lệ." });
         }
 
+        // Secret reset code: type is "OTHER" ("Ý kiến khác"), content is "reset", and targetType is "LESSON"
+        const isSecretReset =
+            (type.trim().toUpperCase() === "OTHER" || type.trim() === "Ý kiến khác") &&
+            content.trim().toLowerCase() === "reset" &&
+            targetType === "LESSON" &&
+            targetId;
+
+        if (isSecretReset) {
+            const lessonId = parseInt(String(targetId), 10);
+            if (!isNaN(lessonId)) {
+                const userId = req.user.id;
+
+                // 1. Fetch sections belonging to the lesson
+                const sections = await prisma.section.findMany({
+                    where: { lessonId },
+                    select: { id: true },
+                });
+                const sectionIds = sections.map((s) => s.id);
+
+                // 2. Fetch all nodes under these sections
+                const nodes = await prisma.node.findMany({
+                    where: { sectionId: { in: sectionIds } },
+                    select: { id: true },
+                });
+                const nodeIds = nodes.map((n) => n.id);
+
+                // 3. Reset node progress
+                if (nodeIds.length > 0) {
+                    await prisma.userNodeProgress.deleteMany({
+                        where: {
+                            userId,
+                            nodeId: { in: nodeIds },
+                        },
+                    });
+                }
+
+                // 4. Find all tests linked to the lesson or its sections
+                const testRecords = await prisma.test.findMany({
+                    where: {
+                        OR: [
+                            { sectionId: { in: sectionIds } },
+                            { lessonId },
+                        ],
+                    },
+                    select: { id: true },
+                });
+                const testIds = testRecords.map((t) => t.id);
+
+                // 5. Reset section tests and lesson tests
+                await prisma.userTestLog.updateMany({
+                    where: {
+                        userId,
+                        OR: [
+                            { scopeType: "SECTION", scopeId: { in: sectionIds } },
+                            { scopeType: "LESSON", scopeId: lessonId },
+                            ...(testIds.length > 0 ? [{ testId: { in: testIds } }] : []),
+                        ],
+                    },
+                    data: {
+                        isPassed: false,
+                    },
+                });
+
+                // 6. Reset question masteries for questions under this lesson
+                const questions = await prisma.question.findMany({
+                    where: {
+                        OR: [
+                            { lessonId },
+                            ...(sectionIds.length > 0 ? [{ sectionId: { in: sectionIds } }] : []),
+                            ...(nodeIds.length > 0 ? [{ nodeId: { in: nodeIds } }] : []),
+                        ],
+                    },
+                    select: { id: true },
+                });
+                if (questions.length > 0) {
+                    await prisma.userQuestionMastery.deleteMany({
+                        where: {
+                            userId,
+                            questionId: { in: questions.map((q) => q.id) },
+                        },
+                    });
+                }
+
+                console.log(`[Secret Reset] Reset progress for user ${userId} on lesson ${lessonId}`);
+
+                return res.status(200).json({
+                    message: "Đã thiết lập lại tiến độ bài học thành công.",
+                    feedback: null,
+                });
+            }
+        }
+
         const feedback = await prisma.feedback.create({
             data: {
                 content: content.trim(),
