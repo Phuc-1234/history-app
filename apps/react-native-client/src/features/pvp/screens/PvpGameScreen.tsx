@@ -459,6 +459,11 @@ export function PvpGameScreen({
                                 </View>
                             ) : null}
 
+                            {/* Document (collapsible) */}
+                            {question.document ? (
+                                <CollapsibleDocument text={question.document} />
+                            ) : null}
+
                             {/* Render question interaction */}
                             {questionWithAnswers?.type === "CHOOSE" ? (
                                 <ChooseQuestion
@@ -714,6 +719,38 @@ export function PvpGameScreen({
                 </Modal>
             </View>
         </ScreenWrapper>
+    );
+}
+
+// ── Collapsible document component ──────────────────────────────────
+function CollapsibleDocument({ text }: { text: string }) {
+    const [expanded, setExpanded] = useState(true);
+    const { width } = useWindowDimensions();
+    return (
+        <View style={styles.docContainer}>
+            <TouchableOpacity
+                onPress={() => setExpanded(!expanded)}
+                style={styles.docToggle}
+            >
+                <Text style={styles.docToggleText}>
+                    {expanded ? "▼ Tư liệu" : "▶ Tư liệu"}
+                </Text>
+            </TouchableOpacity>
+            {expanded && (
+                <View style={styles.docContent}>
+                    <AppHtmlRenderer
+                        contentWidth={width - 64}
+                        html={text || ""}
+                        baseStyle={{
+                            color: colors.neutral700,
+                            fontSize: 14,
+                            fontFamily: typography.fonts.regular,
+                            lineHeight: 22,
+                        }}
+                    />
+                </View>
+            )}
+        </View>
     );
 }
 
@@ -1219,5 +1256,28 @@ const styles = StyleSheet.create({
     },
     feedbackDrawerScrollContent: {
         paddingBottom: spacing.xxs,
+    },
+    docContainer: {
+        marginBottom: spacing.md,
+        backgroundColor: "#FFFFFF",
+        borderRadius: radii.container,
+        borderWidth: 1,
+        borderColor: colors.neutral200,
+        overflow: "hidden",
+    },
+    docToggle: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: spacing.md,
+        backgroundColor: colors.neutral50,
+    },
+    docToggleText: {
+        fontSize: 13,
+        fontFamily: typography.fonts.bold,
+        color: colors.primary600,
+    },
+    docContent: {
+        padding: spacing.md,
+        paddingTop: 0,
     },
 });

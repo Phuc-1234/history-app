@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
     View,
     Text,
@@ -14,7 +14,7 @@ import {
     Image,
     Platform,
 } from "react-native";
-import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package } from "lucide-react-native";
+import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package, RotateCcw } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { AppHtmlRenderer } from "../../../components/AppHtmlRenderer";
@@ -27,6 +27,7 @@ import Animated, {
     withTiming,
     Easing,
     withRepeat,
+    withSequence,
 } from "react-native-reanimated";
 import { useAppSelector } from "@/store/storeHook";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
@@ -50,7 +51,7 @@ import {
 } from "../services/scoreEngine";
 import FeedbackModal from "@/components/FeedbackModal";
 import PracticeFeedbackMascot from "./PracticeFeedbackMascot";
-import { playTestPassSound, playTestFailSound } from "@/services/soundService";
+import { playTestPassSound, playTestFailSound, playPracticeCorrectSound, playPracticeWrongSound } from "@/services/soundService";
 import { hapticSuccess, hapticError } from "@/services/hapticsService";
 import { stripHtml } from "@/utils/htmlUtils";
 
@@ -63,6 +64,9 @@ import type {
     ChooseAnswerData,
     FillAnswerData,
     MatchAnswerData,
+    DraftAnswerEntry,
+    UserAnswer,
+    QuestionEvalResult,
 } from "../types";
 
 // Animated Progress Bar component
@@ -143,6 +147,147 @@ function AnimatedTimerBadge({
                 ⏱ {formattedTime}
             </Text>
         </Animated.View>
+    );
+}
+
+// Animated Ripple Pill Button for Redo actions
+function RipplePillButton({
+    onPress,
+    icon,
+    text,
+    style,
+    textStyle,
+    rippleColor = colors.warning,
+}: {
+    onPress: () => void;
+    icon?: React.ReactNode;
+    text: string;
+    style?: any;
+    textStyle?: any;
+    rippleColor?: string;
+}) {
+    const scale = useSharedValue(1);
+    const waveScale1 = useSharedValue(1);
+    const waveOpacity1 = useSharedValue(0.7);
+    const waveScale2 = useSharedValue(1);
+    const waveOpacity2 = useSharedValue(0.7);
+
+    useEffect(() => {
+        // Shrinking and expanding button pulse
+        scale.value = withRepeat(
+            withSequence(
+                withTiming(1.03, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+                withTiming(0.97, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+            ),
+            -1,
+            true,
+        );
+
+        // Infinite growing and disappearing outer ripple waves
+        waveScale1.value = withRepeat(
+            withTiming(1.28, { duration: 1600, easing: Easing.out(Easing.quad) }),
+            -1,
+            false,
+        );
+        waveOpacity1.value = withRepeat(
+            withTiming(0, { duration: 1600, easing: Easing.out(Easing.quad) }),
+            -1,
+            false,
+        );
+
+        const timeout = setTimeout(() => {
+            waveScale2.value = withRepeat(
+                withTiming(1.28, { duration: 1600, easing: Easing.out(Easing.quad) }),
+                -1,
+                false,
+            );
+            waveOpacity2.value = withRepeat(
+                withTiming(0, { duration: 1600, easing: Easing.out(Easing.quad) }),
+                -1,
+                false,
+            );
+        }, 800);
+
+        return () => clearTimeout(timeout);
+    }, []);
+
+    const animatedBtnStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    const animatedWaveStyle1 = useAnimatedStyle(() => ({
+        transform: [{ scale: waveScale1.value }],
+        opacity: waveOpacity1.value,
+    }));
+
+    const animatedWaveStyle2 = useAnimatedStyle(() => ({
+        transform: [{ scale: waveScale2.value }],
+        opacity: waveOpacity2.value,
+    }));
+
+    return (
+        <View style={{ alignItems: "center", justifyContent: "center", position: "relative", width: "100%", marginVertical: 4 }}>
+            {/* Ripple Wave 1 */}
+            <Animated.View
+                pointerEvents="none"
+                style={[
+                    StyleSheet.absoluteFill,
+                    {
+                        borderRadius: 30,
+                        borderWidth: 2,
+                        borderColor: rippleColor,
+                    },
+                    animatedWaveStyle1,
+                ]}
+            />
+            {/* Ripple Wave 2 */}
+            <Animated.View
+                pointerEvents="none"
+                style={[
+                    StyleSheet.absoluteFill,
+                    {
+                        borderRadius: 30,
+                        borderWidth: 1.5,
+                        borderColor: rippleColor,
+                    },
+                    animatedWaveStyle2,
+                ]}
+            />
+            {/* Main Pulsing Button */}
+            <Animated.View style={[{ width: "100%" }, animatedBtnStyle]}>
+                <TouchableOpacity
+                    style={[
+                        {
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            paddingVertical: 14,
+                            paddingHorizontal: 20,
+                            borderRadius: 30,
+                            backgroundColor: colors.warning,
+                        },
+                        style,
+                    ]}
+                    onPress={onPress}
+                    activeOpacity={0.85}
+                >
+                    {icon}
+                    <Text
+                        style={[
+                            {
+                                fontSize: 14,
+                                fontFamily: typography.fonts.bold,
+                                color: colors.textLight,
+                            },
+                            textStyle,
+                        ]}
+                    >
+                        {text}
+                    </Text>
+                </TouchableOpacity>
+            </Animated.View>
+        </View>
     );
 }
 
@@ -286,6 +431,126 @@ export default function TestContainerV2({
     const [showExplanationTooltip, setShowExplanationTooltip] = useState(false);
     const [milestoneQueue, setMilestoneQueue] = useState<any[]>([]);
     const [activeMilestone, setActiveMilestone] = useState<any | null>(null);
+
+    // ─── Immediate Redo Wrong Local State ───
+    const [isRedoWrongMode, setIsRedoWrongMode] = useState(false);
+    const [initialRedoWrongQuestions, setInitialRedoWrongQuestions] = useState<QuestionV2[]>([]);
+    const [redoWrongQuestions, setRedoWrongQuestions] = useState<QuestionV2[]>([]);
+    const [redoWrongIndex, setRedoWrongIndex] = useState(0);
+    const [redoWrongAnswers, setRedoWrongAnswers] = useState<DraftAnswerEntry[]>([]);
+    const [redoWrongEvaluations, setRedoWrongEvaluations] = useState<Record<number, QuestionEvalResult>>({});
+    const [isRedoWrongCompleted, setIsRedoWrongCompleted] = useState(false);
+    const [showExitRedoConfirm, setShowExitRedoConfirm] = useState(false);
+
+    const startImmediateRedoWrong = useCallback(() => {
+        if (!result) return;
+        const wrongQs = questions.filter((q) => {
+            const log = result.answerLogs?.find((a) => a.questionId === q.id);
+            if (log) {
+                return log.scoreAwarded < log.maxScore;
+            }
+            const ev = evaluations[q.id];
+            return ev ? !ev.isCorrect : false;
+        });
+
+        if (wrongQs.length === 0) return;
+
+        setInitialRedoWrongQuestions(wrongQs);
+        setRedoWrongQuestions(wrongQs);
+        setRedoWrongIndex(0);
+        setRedoWrongAnswers([]);
+        setRedoWrongEvaluations({});
+        setIsRedoWrongCompleted(false);
+        setIsRedoWrongMode(true);
+    }, [result, questions, evaluations]);
+
+    const handleRedoSetAnswer = useCallback((questionId: number, type: string, answerData: UserAnswer) => {
+        const entry: DraftAnswerEntry = {
+            questionId,
+            type: type as any,
+            answerData,
+            answeredAt: new Date().toISOString(),
+        };
+        setRedoWrongAnswers((prev) => {
+            const filtered = prev.filter((d) => d.questionId !== questionId);
+            return [...filtered, entry];
+        });
+
+        const currentQ = redoWrongQuestions[redoWrongIndex];
+        if (currentQ && currentQ.id === questionId && currentQ.type === "CHOOSE" && isSingleChoice(currentQ)) {
+            const evalRes = evaluateQuestion(currentQ, answerData);
+            setRedoWrongEvaluations((prev) => ({ ...prev, [questionId]: evalRes }));
+            if (evalRes.isCorrect) {
+                playPracticeCorrectSound();
+                hapticSuccess();
+            } else {
+                playPracticeWrongSound();
+                hapticError();
+            }
+        }
+    }, [redoWrongQuestions, redoWrongIndex]);
+
+    const handleRedoAnswerChoose = useCallback((questionId: number, selectedOptions: number[]) => {
+        handleRedoSetAnswer(questionId, "CHOOSE", { selectedOptions } as UserChooseAnswer);
+    }, [handleRedoSetAnswer]);
+
+    const handleRedoAnswerFill = useCallback((questionId: number, typedAnswer: string) => {
+        handleRedoSetAnswer(questionId, "FILL", { typedAnswer } as UserFillAnswer);
+    }, [handleRedoSetAnswer]);
+
+    const handleRedoAnswerMatch = useCallback((questionId: number, pairs: { left: string; right: string }[]) => {
+        handleRedoSetAnswer(questionId, "MATCH", { pairs } as UserMatchAnswer);
+    }, [handleRedoSetAnswer]);
+
+    const handleRedoConfirm = useCallback(() => {
+        const currentQ = redoWrongQuestions[redoWrongIndex];
+        if (!currentQ) return;
+        const questionId = currentQ.id;
+        const draft = redoWrongAnswers.find((d) => d.questionId === questionId);
+        const userAnswer = draft?.answerData ?? null;
+        const evalRes = evaluateQuestion(currentQ, userAnswer);
+        setRedoWrongEvaluations((prev) => ({ ...prev, [questionId]: evalRes }));
+
+        if (evalRes.isCorrect) {
+            playPracticeCorrectSound();
+            hapticSuccess();
+        } else {
+            playPracticeWrongSound();
+            hapticError();
+        }
+    }, [redoWrongQuestions, redoWrongIndex, redoWrongAnswers]);
+
+    const handleRedoNext = useCallback(() => {
+        if (redoWrongIndex < redoWrongQuestions.length - 1) {
+            setRedoWrongIndex((prev) => prev + 1);
+        } else {
+            setIsRedoWrongCompleted(true);
+        }
+    }, [redoWrongIndex, redoWrongQuestions.length]);
+
+    const handleRedoStillWrong = useCallback((stillWrongQuestions: QuestionV2[]) => {
+        setRedoWrongQuestions(stillWrongQuestions);
+        setRedoWrongIndex(0);
+        setRedoWrongAnswers([]);
+        setRedoWrongEvaluations({});
+        setIsRedoWrongCompleted(false);
+    }, []);
+
+    const handleRedoAllInitialWrong = useCallback(() => {
+        setRedoWrongQuestions(initialRedoWrongQuestions);
+        setRedoWrongIndex(0);
+        setRedoWrongAnswers([]);
+        setRedoWrongEvaluations({});
+        setIsRedoWrongCompleted(false);
+    }, [initialRedoWrongQuestions]);
+
+    const handleRedoRestartAll = useCallback(() => {
+        setIsRedoWrongMode(false);
+        setIsRedoWrongCompleted(false);
+        setInitialRedoWrongQuestions([]);
+        setRedoWrongQuestions([]);
+        actions.restart();
+    }, [actions]);
 
     useEffect(() => {
         if (status === "completed" && result?.consequences) {
@@ -436,6 +701,355 @@ export default function TestContainerV2({
         return null;
     }
 
+    // ─── Immediate Redo Wrong Flow ──────────────────────────────────
+    if (isRedoWrongMode) {
+        if (isRedoWrongCompleted) {
+            const correctCount = Object.values(redoWrongEvaluations).filter((e) => e.isCorrect).length;
+            const totalRedoCount = redoWrongQuestions.length;
+            const stillWrongQuestions = redoWrongQuestions.filter((q) => {
+                const ev = redoWrongEvaluations[q.id];
+                return !ev || !ev.isCorrect;
+            });
+            const stillWrongCount = stillWrongQuestions.length;
+            const initialTotalWrongCount = initialRedoWrongQuestions.length;
+            const isAllCorrect = stillWrongCount === 0;
+
+            const redoBranchConfig = {
+                hierarchy: "LÀM LẠI CÂU SAI",
+                title: "Kết quả làm lại",
+                onBackPress: preventDoubleTap(onExit || (() => router.back())),
+            };
+
+            return (
+                <ScreenWrapper branchConfig={redoBranchConfig} showTopBar={false} showHistoricalBackground={false}>
+                    <ScrollView
+                        style={styles.container}
+                        contentContainerStyle={styles.scrollContent}
+                    >
+                        <Animated.View
+                            entering={ZoomIn.duration(400)}
+                            style={styles.resultCard}
+                        >
+                            <Mascot
+                                expression={isAllCorrect ? "happy" : "sad"}
+                                event={{
+                                    type: "finish-test",
+                                    score: totalRedoCount > 0 ? (correctCount / totalRedoCount) * 10 : 0,
+                                }}
+                                width={150}
+                                height={150}
+                                style={{ marginBottom: 16 }}
+                            />
+                            <Text style={styles.resultTitle}>
+                                {isAllCorrect ? "Hoàn thành xuất sắc!" : "Vẫn chưa đúng hết!"}
+                            </Text>
+                            <View style={styles.scoreRow}>
+                                <Text style={styles.scoreValue}>
+                                    {correctCount}
+                                </Text>
+                                <Text style={styles.scoreMax}>/{totalRedoCount} câu đúng</Text>
+                            </View>
+                            <Text style={styles.resultSubtext}>
+                                Luyện tập lại các câu sai của bài kiểm tra
+                            </Text>
+                        </Animated.View>
+
+                        {/* Action buttons */}
+                        <Animated.View
+                            entering={FadeInDown.delay(150).duration(450)}
+                            style={styles.resultActions}
+                        >
+                            {stillWrongCount > 0 && stillWrongCount < initialTotalWrongCount && (
+                                <RipplePillButton
+                                    icon={<RotateCcw size={16} color={colors.textLight} />}
+                                    text={`Làm lại ${stillWrongCount} câu còn sai`}
+                                    onPress={() => handleRedoStillWrong(stillWrongQuestions)}
+                                />
+                            )}
+
+                            {stillWrongCount > 0 && stillWrongCount < initialTotalWrongCount ? (
+                                <TouchableOpacity
+                                    style={styles.redoBtn}
+                                    onPress={handleRedoAllInitialWrong}
+                                    activeOpacity={0.8}
+                                >
+                                    <RotateCcw size={16} color={colors.textLight} />
+                                    <Text style={styles.redoBtnText}>
+                                        {`Làm lại tất cả ${initialTotalWrongCount} câu sai`}
+                                    </Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <RipplePillButton
+                                    icon={<RotateCcw size={16} color={colors.textLight} />}
+                                    text={initialTotalWrongCount > 1 ? `Làm lại tất cả ${initialTotalWrongCount} câu sai` : "Làm lại câu sai"}
+                                    onPress={handleRedoAllInitialWrong}
+                                />
+                            )}
+
+                            <TouchableOpacity
+                                style={styles.viewDetailsBtn}
+                                onPress={handleRedoRestartAll}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.viewDetailsBtnText}>
+                                    Làm lại tất cả
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.exitBtn}
+                                onPress={preventDoubleTap(onExit || (() => router.back()))}
+                                activeOpacity={0.8}
+                            >
+                                <ArrowLeft size={16} color={colors.primary} />
+                                <Text style={styles.exitBtnText}>Thoát</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </ScrollView>
+                </ScreenWrapper>
+            );
+        }
+
+        const currentRedoQuestion = redoWrongQuestions[redoWrongIndex];
+        const redoTotalCount = redoWrongQuestions.length;
+        const redoEvalResult = currentRedoQuestion
+            ? redoWrongEvaluations[currentRedoQuestion.id] ?? null
+            : null;
+        const redoAnswerEntry = currentRedoQuestion
+            ? redoWrongAnswers.find((d) => d.questionId === currentRedoQuestion.id)
+            : null;
+        const redoAnswered = !!redoAnswerEntry;
+        const redoShowFeedback = !!redoEvalResult;
+
+        const redoRunnerBranchConfig = {
+            hierarchy: "LÀM LẠI CÂU SAI",
+            title: displayTitle,
+            hideBack: true,
+            hideHome: true,
+            rightElement: (
+                <TouchableOpacity
+                    style={{
+                        backgroundColor: "rgba(255, 255, 255, 0.2)",
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 30,
+                    }}
+                    onPress={() => setShowExitRedoConfirm(true)}
+                >
+                    <Text style={{ color: "#FFFFFF", fontFamily: typography.fonts.bold, fontSize: 13 }}>
+                        Thoát
+                    </Text>
+                </TouchableOpacity>
+            ),
+        };
+
+        return (
+            <ScreenWrapper branchConfig={redoRunnerBranchConfig} showTopBar={false} showHistoricalBackground={false}>
+                <View style={styles.container}>
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <View style={styles.headerLeft}>
+                            <Text style={styles.headerProgress}>
+                                {redoWrongIndex + 1}/{redoTotalCount}
+                            </Text>
+                            <AnimatedProgressBar
+                                currentIndex={redoWrongIndex}
+                                totalCount={redoTotalCount}
+                            />
+                        </View>
+                        <View style={styles.scoreBadge}>
+                            <Text style={styles.scoreBadgeText}>
+                                Làm lại câu sai
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Question content */}
+                    <ScrollView
+                        style={styles.questionScroll}
+                        contentContainerStyle={[
+                            styles.questionContent,
+                            redoShowFeedback && { paddingBottom: 220 },
+                        ]}
+                    >
+                        {currentRedoQuestion && (
+                            <Animated.View
+                                key={`redo-${redoWrongIndex}`}
+                                entering={FadeIn.duration(250)}
+                            >
+                                <View style={styles.promptHeader}>
+                                    <View style={{ flex: 1 }}>
+                                        <AppHtmlRenderer
+                                            contentWidth={width - 100}
+                                            html={currentRedoQuestion.promptText || ""}
+                                            baseStyle={{
+                                                color: colors.textPrimary,
+                                                fontSize: 16,
+                                                fontFamily: typography.fonts.bold,
+                                                lineHeight: 24,
+                                            }}
+                                        />
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={() => setFeedbackModalVisible(true)}
+                                        style={{ padding: 4 }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Flag size={18} color={colors.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {currentRedoQuestion.document && (
+                                    <CollapsibleDocument
+                                        text={currentRedoQuestion.document}
+                                    />
+                                )}
+
+                                {currentRedoQuestion.type === "CHOOSE" && (
+                                    <ChooseQuestion
+                                        key={`redo-${currentRedoQuestion.id}`}
+                                        question={currentRedoQuestion}
+                                        userAnswer={
+                                            redoAnswerEntry?.answerData as UserChooseAnswer | null
+                                        }
+                                        onAnswer={handleRedoAnswerChoose}
+                                        showFeedback={redoShowFeedback}
+                                        evalResult={redoEvalResult}
+                                        disabled={false}
+                                    />
+                                )}
+                                {currentRedoQuestion.type === "FILL" && (
+                                    <FillQuestion
+                                        key={`redo-${currentRedoQuestion.id}`}
+                                        question={currentRedoQuestion}
+                                        userAnswer={
+                                            redoAnswerEntry?.answerData as UserFillAnswer | null
+                                        }
+                                        onAnswer={handleRedoAnswerFill}
+                                        showFeedback={redoShowFeedback}
+                                        evalResult={redoEvalResult}
+                                        disabled={false}
+                                    />
+                                )}
+                                {currentRedoQuestion.type === "MATCH" && (
+                                    <MatchQuestion
+                                        key={`redo-${currentRedoQuestion.id}`}
+                                        question={currentRedoQuestion}
+                                        userAnswer={
+                                            redoAnswerEntry?.answerData as UserMatchAnswer | null
+                                        }
+                                        onAnswer={handleRedoAnswerMatch}
+                                        showFeedback={redoShowFeedback}
+                                        evalResult={redoEvalResult}
+                                        disabled={false}
+                                    />
+                                )}
+                            </Animated.View>
+                        )}
+                    </ScrollView>
+
+                    {/* Feedback Drawer */}
+                    {redoShowFeedback && redoEvalResult && (
+                        <Animated.View
+                            entering={FadeInDown.duration(250)}
+                            style={[
+                                styles.feedbackDrawer,
+                                redoEvalResult.isCorrect
+                                    ? styles.feedbackDrawerCorrect
+                                    : styles.feedbackDrawerWrong,
+                            ]}
+                        >
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                                <PracticeFeedbackMascot isCorrect={redoEvalResult.isCorrect} size={42} />
+                                <Text
+                                    style={[
+                                        styles.feedbackDrawerTitle,
+                                        redoEvalResult.isCorrect
+                                            ? styles.feedbackDrawerTitleCorrect
+                                            : styles.feedbackDrawerTitleWrong,
+                                    ]}
+                                >
+                                    {redoEvalResult.isCorrect ? "Chính xác!" : "Chưa đúng!"}
+                                </Text>
+                            </View>
+                            {currentRedoQuestion?.explanation ? (
+                                <ScrollView
+                                    style={styles.feedbackDrawerScroll}
+                                    contentContainerStyle={styles.feedbackDrawerScrollContent}
+                                    showsVerticalScrollIndicator={true}
+                                >
+                                    <AppHtmlRenderer
+                                        contentWidth={width - 64}
+                                        html={currentRedoQuestion.explanation || ""}
+                                        baseStyle={{
+                                            color: redoEvalResult.isCorrect ? colors.textSuccess : colors.textError,
+                                            fontSize: 14,
+                                            lineHeight: 20,
+                                        }}
+                                    />
+                                </ScrollView>
+                            ) : null}
+                        </Animated.View>
+                    )}
+
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.nextBtn,
+                                !redoShowFeedback &&
+                                    !redoAnswered &&
+                                    styles.nextBtnDisabled,
+                            ]}
+                            onPress={() => {
+                                if (!redoShowFeedback) {
+                                    handleRedoConfirm();
+                                } else {
+                                    handleRedoNext();
+                                }
+                            }}
+                            disabled={!redoShowFeedback && !redoAnswered}
+                        >
+                            <Text style={styles.nextBtnText}>
+                                {!redoShowFeedback
+                                    ? "Xác nhận"
+                                    : redoWrongIndex < redoTotalCount - 1
+                                      ? "Tiếp theo →"
+                                      : "Hoàn thành"}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Exit confirmation */}
+                    <CustomModal
+                        visible={showExitRedoConfirm}
+                        title="Thoát làm lại"
+                        message="Bạn có chắc chắn muốn thoát khỏi phần làm lại câu sai?"
+                        confirmText="Thoát"
+                        cancelText="Ở lại"
+                        onConfirm={() => {
+                            setShowExitRedoConfirm(false);
+                            setIsRedoWrongMode(false);
+                            setIsRedoWrongCompleted(false);
+                        }}
+                        onCancel={() => setShowExitRedoConfirm(false)}
+                    />
+
+                    {/* Context Feedback Modal */}
+                    {currentRedoQuestion && (
+                        <FeedbackModal
+                            visible={feedbackModalVisible}
+                            onClose={() => setFeedbackModalVisible(false)}
+                            targetType="QUESTION"
+                            targetId={currentRedoQuestion.id}
+                            targetTitle={`Câu hỏi: ${stripHtml(currentRedoQuestion.promptText).substring(0, 55)}...`}
+                        />
+                    )}
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
     // ── Completed state ──────────────────────────────────────────────
     if (status === "completed" && result) {
         const { userTestLog, answerLogs, consequences } = result;
@@ -568,6 +1182,14 @@ export default function TestContainerV2({
                         entering={FadeInDown.delay(150).duration(450)}
                         style={styles.resultActions}
                     >
+                        {hasWrongAnswers && (
+                            <RipplePillButton
+                                icon={<RotateCcw size={16} color={colors.textLight} />}
+                                text="Làm lại câu sai"
+                                onPress={startImmediateRedoWrong}
+                            />
+                        )}
+
                         <TouchableOpacity
                             style={styles.restartBtn}
                             onPress={actions.restart}
@@ -1281,7 +1903,7 @@ export default function TestContainerV2({
 
 // ── Collapsible document component ──────────────────────────────────
 function CollapsibleDocument({ text }: { text: string }) {
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(true);
     const { width } = useWindowDimensions();
     return (
         <View style={styles.docContainer}>
@@ -1290,7 +1912,7 @@ function CollapsibleDocument({ text }: { text: string }) {
                 style={styles.docToggle}
             >
                 <Text style={styles.docToggleText}>
-                    {expanded ? "▼ Ẩn tài liệu" : "▶ Xem tài liệu"}
+                    {expanded ? "▼ Tư liệu" : "▶ Tư liệu"}
                 </Text>
             </TouchableOpacity>
             {expanded && (
@@ -1684,7 +2306,11 @@ const styles = StyleSheet.create({
         backgroundColor: colors.warning,
         borderRadius: 30,
         paddingVertical: 14,
+        paddingHorizontal: 20,
         alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        gap: 8,
     },
     redoBtnText: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textLight },
     restartBtn: {
