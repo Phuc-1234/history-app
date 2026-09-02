@@ -82,7 +82,7 @@ export function PremiumModal({
                             <Text style={styles.benefitText}>Mở khoá toàn bộ đề thpt</Text>
                         </View>
                         <View style={styles.benefitItem}>
-                            <Ionicons name="albums-outline" size={16} color={colors.warning} />
+                            <Ionicons name="layers-outline" size={16} color={colors.warning} />
                             <Text style={styles.benefitText}>Mở khoá thẻ lật</Text>
                         </View>
                         <View style={styles.benefitItem}>

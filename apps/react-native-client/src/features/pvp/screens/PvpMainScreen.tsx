@@ -75,6 +75,9 @@ export function PvpMainScreen({
         }
         if (currentRoom?.code === normalizedCode) {
             setIsAutoJoining(false);
+            if (currentRoom.hostUserId === currentUserId) {
+                toastService.show(`Bạn đang ở trong phòng #${currentRoom.code}!`, "info");
+            }
             return;
         }
 
@@ -93,7 +96,11 @@ export function PvpMainScreen({
                 const room = await joinPvpRoomMut({ roomCode: normalizedCode }).unwrap();
                 justLeftRoomCodeRef.current = null;
                 setCurrentRoom(room);
-                toastService.show(`Đã tham gia phòng #${room.code}!`, "success");
+                if (room.hostUserId === currentUserId) {
+                    toastService.show(`Bạn là chủ phòng #${room.code}!`, "info");
+                } else {
+                    toastService.show(`Đã tham gia phòng #${room.code}!`, "success");
+                }
             } catch (err: any) {
                 console.error("Failed to auto-join PVP room from link:", err);
                 const msg = err?.data?.error ?? err?.message ?? "Không thể vào phòng bằng liên kết";
@@ -104,7 +111,7 @@ export function PvpMainScreen({
         };
 
         autoJoin();
-    }, [initialRoomCode, currentRoom?.code, joinPvpRoomMut, leavePvpRoomMut]);
+    }, [initialRoomCode, currentRoom?.code, currentUserId, joinPvpRoomMut, leavePvpRoomMut]);
 
     useFocusEffect(
         React.useCallback(() => {

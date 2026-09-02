@@ -13,11 +13,14 @@ import type {
     UserFillAnswer,
     UserMatchAnswer,
     QuestionEvalResult,
+    ResumableTestV2Response,
 } from "../types";
 import {
     useStartTestV2Mutation,
     useUpdateDraftMutation,
     useFinishTestV2Mutation,
+    useLazyCheckResumableQuery,
+    useAbandonTestMutation,
 } from "../services/testApi";
 import { evaluateQuestion, isSingleChoice } from "../services/scoreEngine";
 import { useLoading } from "../../loading";
@@ -53,6 +56,12 @@ export interface TestRunnerV2State {
     // Practice redo queue
     redoQueue: number[]; // questionIds to redo
 
+    // Conflict resolution
+    conflictResumable: ResumableTestV2Response | null;
+    isAbandoningConflict: boolean;
+    resolveConflictResume: () => void;
+    resolveConflictAbandon: () => Promise<void>;
+
     // Actions
     actions: {
         start: () => Promise<void>;
@@ -80,7 +89,10 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
     const [startTestMut] = useStartTestV2Mutation();
     const [updateDraftMut] = useUpdateDraftMutation();
     const [finishTestMut] = useFinishTestV2Mutation();
+    const [triggerCheckResumable] = useLazyCheckResumableQuery();
+    const [abandonTestMut, { isLoading: isAbandoningConflict }] = useAbandonTestMutation();
 
+    const [conflictResumable, setConflictResumable] = useState<ResumableTestV2Response | null>(null);
     const [session, setSession] = useState<UserTestLogV2 | null>(null);
     const [questions, setQuestions] = useState<QuestionV2[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -153,37 +165,79 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         }
     }, [currentQuestion]);
 
+    // ── Helper to start new test ─────────────────────────────────────
+    const startNewSession = useCallback(async () => {
+        const resp = await startTestMut(params).unwrap();
+        lastQuestionIdsRef.current = resp.questions.map((q) => q.id);
+        setSession(resp.userTestLog);
+        setQuestions(resp.questions);
+        setCurrentIndex(0);
+        setDraftAnswers(resp.userTestLog.draftAnswerJson ?? []);
+        setSeenQuestionIds(resp.userTestLog.draftAnswerJson?.map((d) => d.questionId) ?? []);
+        setEvaluations({});
+        setRedoQueue([]);
+        setResult(null);
+
+        if (resp.userTestLog.expiresAt) {
+            const remaining = Math.max(0, Math.floor((new Date(resp.userTestLog.expiresAt).getTime() - Date.now()) / 1000));
+            setTimeLeft(remaining);
+        }
+
+        setStatus("running");
+    }, [params, startTestMut]);
+
     // ── Start test ───────────────────────────────────────────────────
     const handleStart = useCallback(async () => {
         try {
             setStatus("loading");
             setError(null);
             showLoading();
-            const resp = await startTestMut(params).unwrap();
-            lastQuestionIdsRef.current = resp.questions.map((q) => q.id);
-            setSession(resp.userTestLog);
-            setQuestions(resp.questions);
-            setCurrentIndex(0);
-            setDraftAnswers(resp.userTestLog.draftAnswerJson ?? []);
-            setSeenQuestionIds(resp.userTestLog.draftAnswerJson?.map((d) => d.questionId) ?? []);
-            setEvaluations({});
-            setRedoQueue([]);
-            setResult(null);
 
-            if (resp.userTestLog.expiresAt) {
-                const remaining = Math.max(0, Math.floor((new Date(resp.userTestLog.expiresAt).getTime() - Date.now()) / 1000));
-                setTimeLeft(remaining);
+            if (params.isResume) {
+                const resp = await triggerCheckResumable().unwrap();
+                if (!resp.resumable || !resp.questions || resp.questions.length === 0) {
+                    throw new Error("Bài kiểm tra đã hết hạn hoặc không còn khả dụng");
+                }
+                lastQuestionIdsRef.current = resp.questions.map((q) => q.id);
+                setSession(resp.resumable);
+                setQuestions(resp.questions);
+                setCurrentIndex(resp.resumable.currentQuestionIndex || 0);
+                setDraftAnswers(resp.resumable.draftAnswerJson ?? []);
+                setSeenQuestionIds(resp.resumable.draftAnswerJson?.map((d) => d.questionId) ?? []);
+                setEvaluations({});
+                setRedoQueue([]);
+                setResult(null);
+
+                if (resp.resumable.expiresAt) {
+                    const remaining = Math.max(0, Math.floor((new Date(resp.resumable.expiresAt).getTime() - Date.now()) / 1000));
+                    setTimeLeft(remaining);
+                }
+
+                setStatus("running");
+                return;
             }
 
-            setStatus("running");
+            // Check if there is an active resumable session before overwriting
+            try {
+                const check = await triggerCheckResumable().unwrap();
+                if (check?.resumable && check.questions && check.questions.length > 0) {
+                    setConflictResumable(check);
+                    setStatus("idle");
+                    return;
+                }
+            } catch {
+                // ignore and proceed
+            }
+
+            await startNewSession();
         } catch (err: any) {
-            console.error("Failed to start test:", err);
+            console.error("Failed to start/resume test:", err);
             setError(err?.data?.error ?? err?.message ?? "Không thể bắt đầu bài kiểm tra");
             setStatus("idle");
         } finally {
             hideLoading();
         }
-    }, [params, startTestMut, showLoading, hideLoading]);
+    }, [params, startNewSession, triggerCheckResumable, showLoading, hideLoading]);
 
     // ── Resume from existing session ─────────────────────────────────
     const resumeSession = useCallback((log: UserTestLogV2, qs: QuestionV2[]) => {
@@ -201,6 +255,30 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         }
         setStatus("running");
     }, []);
+
+    const resolveConflictResume = useCallback(() => {
+        if (conflictResumable?.resumable && conflictResumable.questions) {
+            resumeSession(conflictResumable.resumable, conflictResumable.questions);
+            setConflictResumable(null);
+        }
+    }, [conflictResumable, resumeSession]);
+
+    const resolveConflictAbandon = useCallback(async () => {
+        if (conflictResumable?.resumable) {
+            try {
+                showLoading();
+                await abandonTestMut({ logId: conflictResumable.resumable.id }).unwrap();
+                setConflictResumable(null);
+                await startNewSession();
+            } catch (err: any) {
+                console.error("Failed to abandon previous test:", err);
+                setError(err?.data?.error ?? err?.message ?? "Không thể hủy bài kiểm tra cũ");
+                setStatus("idle");
+            } finally {
+                hideLoading();
+            }
+        }
+    }, [conflictResumable, abandonTestMut, startNewSession, showLoading, hideLoading]);
 
     // ── Answer handlers ──────────────────────────────────────────────
     const setAnswer = useCallback((questionId: number, type: string, answerData: UserAnswer) => {
@@ -468,6 +546,10 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         formattedTime: formatTime(timeLeft),
         result,
         redoQueue,
+        conflictResumable,
+        isAbandoningConflict,
+        resolveConflictResume,
+        resolveConflictAbandon,
         actions,
         isQuestionAnswered,
         getAnswerForQuestion,

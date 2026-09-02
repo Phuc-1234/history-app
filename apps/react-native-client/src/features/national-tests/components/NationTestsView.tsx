@@ -123,7 +123,7 @@ export const NationalTestsView: React.FC = () => {
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          {activeTab === "LUYEN_TAP" ? "Luyện tập đề THPT" : "Đề thi Quốc gia"}
+          {activeTab === "LUYEN_TAP" ? "Luyện tập đề THPT" : "Đề thi THPT Quốc gia"}
         </Text>
       </View>
 

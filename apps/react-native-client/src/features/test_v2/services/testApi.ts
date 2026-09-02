@@ -15,6 +15,7 @@ export const testApiV2 = apiSlice.injectEndpoints({
         // GET /api/tests-v2/resumable
         checkResumable: builder.query<ResumableTestV2Response, void>({
             query: () => "/api/tests-v2/resumable",
+            providesTags: ["User"],
         }),
 
         // POST /api/tests-v2/info

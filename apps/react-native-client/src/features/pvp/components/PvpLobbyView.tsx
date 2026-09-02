@@ -7,8 +7,9 @@ import { toastService } from "@/services/toastService";
 import { API_BASE_URL } from "@/services/config";
 import type { PvpParticipant, PvpRoom } from "../types";
 import { useStartPvpRoomMutation } from "../services/pvpApi";
-import { Swords, Link2 } from "lucide-react-native";
+import { Swords, Link2, QrCode } from "lucide-react-native";
 import { InviteFriendsModal } from "./InviteFriendsModal";
+import { PvpQrModal } from "./PvpQrModal";
 
 const SWORD_BACKGROUNDS = [
     { size: 40, top: "10%", left: "5%", rotate: "15deg" },
@@ -32,6 +33,7 @@ interface PvpLobbyViewProps {
 export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }: PvpLobbyViewProps) {
     const isHost = room.hostUserId === currentUserId;
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [isQrModalOpen, setIsQrModalOpen] = useState(false);
     const [startRoomMut, { isLoading: isStarting }] = useStartPvpRoomMutation();
 
     const handleStart = async () => {
@@ -75,24 +77,32 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
                 <Text style={styles.configSubtitle}>
                     {room.questionCount} câu hỏi • {room.timePerQuestion}s / câu
                 </Text>
-                <View style={styles.actionButtonsRow}>
+
+                {/* Right side floating action buttons */}
+                <View style={styles.floatingActionColumn}>
                     <TouchableOpacity
-                        style={styles.actionButton}
+                        style={styles.iconActionButton}
                         onPress={handleCopyLink}
                         activeOpacity={0.8}
                     >
-                        <Link2 size={14} color="#FFFFFF" />
-                        <Text style={styles.actionButtonText}>Sao chép liên kết</Text>
+                        <Link2 size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.iconActionButton}
+                        onPress={() => setIsQrModalOpen(true)}
+                        activeOpacity={0.8}
+                    >
+                        <QrCode size={16} color="#FFFFFF" />
                     </TouchableOpacity>
 
                     {participants.length < 8 && (
                         <TouchableOpacity
-                            style={[styles.actionButton, styles.inviteActionButton]}
+                            style={styles.iconActionButton}
                             onPress={() => setIsInviteModalOpen(true)}
                             activeOpacity={0.8}
                         >
-                            <Ionicons name="person-add" size={14} color="#FFFFFF" />
-                            <Text style={styles.actionButtonText}>Mời bạn</Text>
+                            <Ionicons name="person-add" size={16} color="#FFFFFF" />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -143,6 +153,13 @@ export function PvpLobbyView({ room, participants, currentUserId, onLeaveRoom }:
                 participants={participants}
             />
 
+            {/* QR Code Modal */}
+            <PvpQrModal
+                visible={isQrModalOpen}
+                onClose={() => setIsQrModalOpen(false)}
+                roomCode={room.code}
+            />
+
             {/* Bottom action controls */}
             <View style={styles.footer}>
                 {isHost ? (
@@ -188,7 +205,9 @@ const styles = StyleSheet.create({
         borderRadius: radii.container,
         padding: spacing.lg,
         alignItems: "center",
+        justifyContent: "center",
         marginBottom: spacing.lg,
+        position: "relative",
     },
     codeLabel: {
         fontSize: 14,
@@ -208,32 +227,24 @@ const styles = StyleSheet.create({
         fontFamily: typography.fonts.regular,
         color: colors.primary100,
     },
-    actionButtonsRow: {
-        flexDirection: "row",
-        alignItems: "center",
+    floatingActionColumn: {
+        position: "absolute",
+        right: spacing.md,
+        top: 0,
+        bottom: 0,
         justifyContent: "center",
+        alignItems: "center",
         gap: spacing.xs + 2,
-        marginTop: spacing.md,
     },
-    actionButton: {
-        flexDirection: "row",
+    iconActionButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
-        paddingVertical: 7,
-        paddingHorizontal: 12,
-        borderRadius: radii.pill,
         borderWidth: 1,
         borderColor: "rgba(255, 255, 255, 0.35)",
-    },
-    inviteActionButton: {
-        backgroundColor: "rgba(255, 255, 255, 0.28)",
-    },
-    actionButtonText: {
-        fontSize: 12,
-        fontFamily: typography.fonts.bold,
-        color: "#FFFFFF",
     },
     sectionTitle: {
         fontSize: 18,

@@ -29,6 +29,7 @@ try {
 }
 
 import { PvpActiveRoomPromptModal } from "../features/pvp";
+import { GlobalTestResumePromptModal } from "../features/test_v2";
 
 // Prevent the native splash screen from auto-hiding until assets/auth are loaded
 SplashScreen.preventAutoHideAsync();
@@ -96,6 +97,7 @@ export default function RootLayout() {
                             </Stack>
                             <GlobalSessionModal />
                             <PvpActiveRoomPromptModal />
+                            <GlobalTestResumePromptModal />
                             <GlobalToastContainer />
                         </SideDrawerProvider>
                     </LoadingProvider>

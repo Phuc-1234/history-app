@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
@@ -105,10 +105,10 @@ export function ExpandableSection({
                             router.push(`/(3_4_lessons)/4_4_fcard?sectionId=${section.id}`);
                         })}
                     >
-                        <Image
-                            source={require("../../../../assets/images/flashcard_ic.png")}
-                            style={{ width: 16, height: 16 }}
-                            resizeMode="contain"
+                        <Ionicons
+                            name="layers-outline"
+                            size={18}
+                            color={isTopLevel ? colors.textPrimary : colors.primary}
                         />
                     </TouchableOpacity>
                     <Ionicons

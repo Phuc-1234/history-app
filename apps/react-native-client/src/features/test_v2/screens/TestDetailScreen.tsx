@@ -552,7 +552,7 @@ function MatchReview({
 }
 
 function CollapsibleDocument({ text }: { text: string }) {
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(true);
     const { width } = useWindowDimensions();
     return (
         <View style={styles.docContainer}>
@@ -561,7 +561,7 @@ function CollapsibleDocument({ text }: { text: string }) {
                 style={styles.docToggle}
             >
                 <Text style={styles.docToggleText}>
-                    {expanded ? "▼ Ẩn tài liệu" : "▶ Xem tài liệu"}
+                    {expanded ? "▼ Tư liệu" : "▶ Tư liệu"}
                 </Text>
             </TouchableOpacity>
             {expanded && (

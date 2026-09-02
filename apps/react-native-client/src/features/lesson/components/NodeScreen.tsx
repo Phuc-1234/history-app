@@ -7,14 +7,15 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
     useWindowDimensions,
-    Image,
     Platform,
     RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as Speech from "expo-speech";
 import VideoPlayer from "../../videostream/components/VideoPlayer";
 import { Toast } from "../../../components/Toast";
 import { AppHtmlRenderer } from "../../../components/AppHtmlRenderer";
@@ -26,6 +27,31 @@ import {
 import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import FeedbackModal from "../../../components/FeedbackModal";
+import { stripHtml } from "@/utils/htmlUtils";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
+
+function isEnglishText(text: string): boolean {
+    const vietnameseCharRegex = /[àáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i;
+    if (vietnameseCharRegex.test(text)) {
+        return false;
+    }
+    const englishCharRegex = /[a-zA-Z]/;
+    return englishCharRegex.test(text);
+}
+
+const stripMarkdown = (text: string): string => {
+    return text
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1")
+        .replace(/^#{1,6}\s+/gm, "")
+        .replace(/^>\s*/gm, "")
+        .replace(/^-\s*\[[ xX]\]\s*/gm, "")
+        .replace(/^[\*\-]\s+/gm, "")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/_([^_]+)_/g, "$1")
+        .replace(/\[([^\]]+)\]/g, "$1")
+        .trim();
+};
 
 interface NodeScreenProps {
     nodeId: number;
@@ -42,16 +68,67 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
     const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
     const { data: node, isLoading, isFetching, error, refetch } = useGetNodeDetailQuery(nodeId);
     const [finishStudy] = useFinishStudyNodeMutation();
+    const preventDoubleTap = usePreventDoubleTap();
 
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
     const [studyDone, setStudyDone] = useState(false);
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const isSpeakingRef = useRef(false);
     const progressTriggered = useRef(false);
+
+    const updateSpeakingState = (speaking: boolean) => {
+        isSpeakingRef.current = speaking;
+        setIsSpeaking(speaking);
+    };
 
     useEffect(() => {
         progressTriggered.current = false;
+        Speech.stop();
+        updateSpeakingState(false);
+        setShowMenu(false);
+        return () => {
+            Speech.stop();
+            updateSpeakingState(false);
+        };
     }, [nodeId]);
+
+    const handleToggleSpeak = () => {
+        setShowMenu(false);
+        if (isSpeakingRef.current) {
+            Speech.stop();
+            updateSpeakingState(false);
+        } else {
+            const headerText = node?.header ? stripMarkdown(stripHtml(node.header)) : "";
+            const bodyText = node?.body ? stripMarkdown(stripHtml(node.body)) : "";
+            const plainText = [headerText, bodyText].filter(Boolean).join(". ");
+            if (!plainText.trim()) return;
+
+            Speech.stop();
+            updateSpeakingState(true);
+            Speech.speak(plainText, {
+                language: isEnglishText(plainText) ? "en-US" : "vi-VN",
+                onDone: () => {
+                    updateSpeakingState(false);
+                },
+                onError: () => {
+                    updateSpeakingState(false);
+                },
+                onStopped: () => {
+                    updateSpeakingState(false);
+                },
+            });
+        }
+    };
+
+    const handleFlashcardPress = preventDoubleTap(() => {
+        setShowMenu(false);
+        if (node) {
+            router.push(`/(3_4_lessons)/4_4_fcard?nodeId=${node.id}`);
+        }
+    });
 
     const parentSectionsString = useAppSelector((state: any) => {
         const queries = state.api?.queries || {};
@@ -158,7 +235,7 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                     />
                 }
             >
-                {/* Node Title & Completion Tick */}
+                {/* Node Title & Completion Tick + 3-dot dropdown */}
                 <View style={styles.nodeTitleContainer}>
                     <Text style={styles.nodeTitleText}>
                         {node.header || ""}
@@ -167,13 +244,75 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                         {studyDone && isLoggedIn && (
                             <Ionicons name="checkmark-circle" size={24} color={colors.success} style={styles.completedTickIcon} />
                         )}
-                        <TouchableOpacity
-                            onPress={() => setFeedbackModalVisible(true)}
-                            style={styles.flagButton}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
-                        </TouchableOpacity>
+                        <View style={styles.menuAnchor}>
+                            <TouchableOpacity
+                                onPress={() => setShowMenu((prev) => !prev)}
+                                style={styles.moreButton}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
+                            </TouchableOpacity>
+
+                            {showMenu && (
+                                <>
+                                    <TouchableWithoutFeedback onPress={() => setShowMenu(false)}>
+                                        <View style={styles.dropdownBackdrop} />
+                                    </TouchableWithoutFeedback>
+                                    <View style={styles.dropdownMenu}>
+                                        <TouchableOpacity
+                                            style={styles.dropdownItem}
+                                            onPress={handleToggleSpeak}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons
+                                                name={isSpeaking ? "stop-circle-outline" : "volume-high-outline"}
+                                                size={18}
+                                                color={isSpeaking ? colors.error : colors.textPrimary}
+                                                style={styles.dropdownItemIcon}
+                                            />
+                                            <Text style={[styles.dropdownItemText, isSpeaking && { color: colors.error }]}>
+                                                {isSpeaking ? "Dừng đọc" : "Đọc"}
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        <View style={styles.dropdownDivider} />
+
+                                        <TouchableOpacity
+                                            style={styles.dropdownItem}
+                                            onPress={handleFlashcardPress}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons
+                                                name="layers-outline"
+                                                size={18}
+                                                color={colors.textPrimary}
+                                                style={styles.dropdownItemIcon}
+                                            />
+                                            <Text style={styles.dropdownItemText}>Flashcard của nút này</Text>
+                                        </TouchableOpacity>
+
+                                        <View style={styles.dropdownDivider} />
+
+                                        <TouchableOpacity
+                                            style={styles.dropdownItem}
+                                            onPress={() => {
+                                                setShowMenu(false);
+                                                setFeedbackModalVisible(true);
+                                            }}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons
+                                                name="chatbubble-ellipses-outline"
+                                                size={18}
+                                                color={colors.textPrimary}
+                                                style={styles.dropdownItemIcon}
+                                            />
+                                            <Text style={styles.dropdownItemText}>Góp ý</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </>
+                            )}
+                        </View>
                     </View>
                 </View>
 
@@ -188,7 +327,6 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 {/* Video player */}
                 {node.video && (
                     <View style={styles.videoContainer}>
-                        
                         <VideoPlayer
                             videoId={node.video.id}
                             videoUrl={node.video.hlsUrl}
@@ -263,20 +401,6 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                 </View>
             )}
 
-            {/* Floating Flashcard Button */}
-            <TouchableOpacity
-                style={styles.floatingFcardBtn}
-                onPress={() => {
-                    router.push(`/(3_4_lessons)/4_4_fcard?nodeId=${node.id}`);
-                }}
-            >
-                <Image
-                    source={require("../../../../assets/images/flashcard_ic.png")}
-                    style={{ width: 24, height: 24 }}
-                    resizeMode="contain"
-                />
-            </TouchableOpacity>
-
             {/* Toast overlay */}
             <Toast
                 message={toastMessage}
@@ -295,7 +419,6 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
         </View>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
@@ -327,6 +450,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginBottom: 16,
         gap: 12,
+        zIndex: 100,
     },
     nodeTitleText: {
         ...typography.h2,
@@ -342,10 +466,52 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 10,
     },
-    flagButton: {
+    menuAnchor: {
+        position: "relative",
+        zIndex: 100,
+    },
+    moreButton: {
         padding: 4,
     },
-
+    dropdownBackdrop: {
+        position: "absolute",
+        top: -500,
+        left: -1000,
+        right: -1000,
+        bottom: -2000,
+        zIndex: 999,
+    },
+    dropdownMenu: {
+        position: "absolute",
+        top: 32,
+        right: 0,
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borderMedium,
+        paddingVertical: 4,
+        minWidth: 200,
+        zIndex: 1000,
+    },
+    dropdownItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+    },
+    dropdownItemIcon: {
+        marginRight: 10,
+    },
+    dropdownItemText: {
+        fontFamily: typography.fonts.medium,
+        fontSize: 14,
+        color: colors.textPrimary,
+    },
+    dropdownDivider: {
+        height: 1,
+        backgroundColor: colors.borderLight,
+        marginHorizontal: 8,
+    },
 
     /* Content */
     scrollContent: {
@@ -436,17 +602,5 @@ const styles = StyleSheet.create({
     navFooterBtnDisabled: {
         opacity: 0.35,
     },
-    floatingFcardBtn: {
-        position: "absolute",
-        bottom: 80,
-        right: 20,
-        width: 56,
-        height: 56,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.primary,
-        backgroundColor: colors.surface,
-        justifyContent: "center",
-        alignItems: "center",
-    },
 });
+

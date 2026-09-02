@@ -553,7 +553,7 @@ export class RewardEngine {
 
                 consequences.push({
                     eventType: ProgressEventType.STREAK_MILESTONE,
-                    message: `Cột mốc chuỗi ${newStreak} ngày: +${granted.xpAwarded} XP, +${granted.goldAwarded} vàng`,
+                    message: `Cột mốc chuỗi ${newStreak} ngày!`,
                     xpGained: granted.xpAwarded,
                     goldGained: granted.goldAwarded,
                     itemsGained: granted.itemsAwarded,
