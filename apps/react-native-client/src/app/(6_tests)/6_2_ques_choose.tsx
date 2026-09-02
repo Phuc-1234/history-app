@@ -5,7 +5,7 @@ import type { ScopeType, PurposeType, StartTestV2Request } from "../../features/
 
 export default function QuestionsScreen() {
     const router = useRouter();
-    const { testId, scopeType, scopeId, purposeType, skipIntro, questionCount, autoPickStrategy } = useLocalSearchParams<{
+    const { testId, scopeType, scopeId, purposeType, skipIntro, questionCount, autoPickStrategy, isResume } = useLocalSearchParams<{
         testId?: string;
         scopeType?: string;
         scopeId?: string;
@@ -13,8 +13,10 @@ export default function QuestionsScreen() {
         skipIntro?: string;
         questionCount?: string;
         autoPickStrategy?: string;
+        isResume?: string;
     }>();
 
+    const isResumeBool = isResume === "true";
     const parsedCount = questionCount ? parseInt(questionCount, 10) : undefined;
     const validCount = parsedCount && !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : undefined;
 
@@ -25,9 +27,14 @@ export default function QuestionsScreen() {
         ...(testId ? { testId } : {}),
         ...(validCount ? { questionCount: validCount } : {}),
         ...(autoPickStrategy ? { autoPickStrategy } : {}),
+        ...(isResumeBool ? { isResume: true } : {}),
     };
 
     return (
-        <TestContainerV2 params={params} onExit={() => router.back()} skipIntro={skipIntro === "true"} />
+        <TestContainerV2
+            params={params}
+            onExit={() => router.back()}
+            skipIntro={isResumeBool || skipIntro === "true"}
+        />
     );
 }

@@ -24,7 +24,8 @@ import { PodiumSection } from "../../leaderboard/components/PodiumSection";
 import { AvatarWithFrame, FaintStarsOverlay } from "../../../components/ui";
 import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
 import { CustomModal } from "../../../components/Modal";
-import { StudyReminderModal, useGetReminderSettingsQuery } from "@/features/notification";
+import { StudyReminderModal } from "@/features/notification";
+import { useHomePrompts } from "../hooks/useHomePrompts";
 import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 
 // ─── Component: Thẻ bài học ───────────────────────────────────────────────────
@@ -163,19 +164,10 @@ export default function HomeScreen() {
     }, [data?.leaderboard]);
 
     const [guestModalVisible, setGuestModalVisible] = React.useState(false);
-    const [hasCheckedAutoSuggest, setHasCheckedAutoSuggest] = React.useState(false);
-    const [autoReminderModalVisible, setAutoReminderModalVisible] = React.useState(false);
-    const { data: reminderSettings } = useGetReminderSettingsQuery(undefined, { skip: !profile });
-
-    React.useEffect(() => {
-        if (!hasCheckedAutoSuggest && reminderSettings) {
-            setHasCheckedAutoSuggest(true);
-            // 20% chance on app start if reminders are turned off
-            if (!reminderSettings.isEnabled && Math.random() < 0.2) {
-                setAutoReminderModalVisible(true);
-            }
-        }
-    }, [reminderSettings, hasCheckedAutoSuggest]);
+    const {
+        reminderModalVisible,
+        closeReminderModal,
+    } = useHomePrompts();
 
     const handleGoToLeaderboard = preventDoubleTap(() =>
         router.push("/(tabs)/9_1_leaderboard" as never));
@@ -653,8 +645,8 @@ export default function HomeScreen() {
                 mascotExpression="thinking"
             />
             <StudyReminderModal
-                visible={autoReminderModalVisible}
-                onClose={() => setAutoReminderModalVisible(false)}
+                visible={reminderModalVisible}
+                onClose={closeReminderModal}
             />
         </>
     );

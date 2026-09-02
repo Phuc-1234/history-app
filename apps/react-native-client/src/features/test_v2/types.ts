@@ -111,6 +111,7 @@ export interface StartTestV2Request {
     timeLimit?: number | null;
     difficultyRatioJson?: any;
     questionIds?: number[];
+    isResume?: boolean;
 }
 
 export interface StartTestV2Response {

@@ -33,6 +33,7 @@ import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
 import { CustomModal } from "@/components/Modal";
 import Mascot from "@/components/Mascot";
 import TestIntro, { getScopePlaceholder } from "./TestIntro";
+import { ResumeTestPromptModal } from "./ResumeTestPromptModal";
 import { useTestRunnerV2 } from "../hooks/useTestRunner";
 import { colors } from "@/theme/colors";
 import typography from "@/theme/typography";
@@ -165,7 +166,7 @@ export default function TestContainerV2({
     const { data: testInfo, isLoading: isInfoLoading } = useGetTestInfoQuery(
         params,
         {
-            skip: runner.status !== "idle",
+            skip: runner.status !== "idle" || !!params.isResume,
         },
     );
     const { data: activeEffectsData } = useGetUserActiveEffectsQuery();
@@ -194,6 +195,10 @@ export default function TestContainerV2({
         timeLeft,
         formattedTime,
         result,
+        conflictResumable,
+        isAbandoningConflict,
+        resolveConflictResume,
+        resolveConflictAbandon,
         actions,
         isQuestionAnswered,
         getAnswerForQuestion,
@@ -201,10 +206,10 @@ export default function TestContainerV2({
     } = runner;
 
     useEffect(() => {
-        if (skipIntro && status === "idle") {
+        if ((skipIntro || params.isResume) && status === "idle") {
             actions.start();
         }
-    }, [skipIntro, status, actions.start]);
+    }, [skipIntro, params.isResume, status, actions.start]);
 
     useEffect(() => {
         if (status === "completed" && result?.userTestLog) {
@@ -414,6 +419,13 @@ export default function TestContainerV2({
                     }}
                     showMascot={true}
                     mascotExpression="sad"
+                />
+                <ResumeTestPromptModal
+                    visible={!!conflictResumable}
+                    testLog={conflictResumable?.resumable ?? null}
+                    onResume={resolveConflictResume}
+                    onAbandon={resolveConflictAbandon}
+                    isAbandoning={isAbandoningConflict}
                 />
             </>
         );

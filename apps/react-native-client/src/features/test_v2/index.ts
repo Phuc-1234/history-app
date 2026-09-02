@@ -6,6 +6,8 @@ export { default as MatchQuestion } from "./components/MatchQuestion";
 export { default as TestHistoryScreen } from "./screens/TestHistoryScreen";
 export { default as TestDetailScreen } from "./screens/TestDetailScreen";
 export { CuratedTestsSection } from "./components/CuratedTestsSection";
+export { ResumeTestPromptModal } from "./components/ResumeTestPromptModal";
+export { GlobalTestResumePromptModal } from "./components/GlobalTestResumePromptModal";
 export { useTestRunnerV2 } from "./hooks/useTestRunner";
 export * from "./services/testApi";
 export * from "./services/scoreEngine";
