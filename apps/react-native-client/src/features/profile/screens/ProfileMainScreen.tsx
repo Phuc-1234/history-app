@@ -1,5 +1,7 @@
 import React from "react";
 import {
+    Linking,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -7,9 +9,11 @@ import {
     Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAppDispatch, useAppSelector } from "@/store/storeHook";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { appLogout } from "@/features/auth/store/authSlice";
 import { useGetProfileQuery } from "@/features/auth/services/authApi";
 import { toggleSound, toggleHaptics } from "@/features/settings/store/settingsSlice";
@@ -26,6 +30,7 @@ import { APP_CONFIG } from "@/config";
 export default function ProfileMainScreen() {
     const router = useRouter();
     const dispatch = useAppDispatch();
+    const preventDoubleTap = usePreventDoubleTap();
 
     // Auto-subscribe to profile updates
     const { refetch, isFetching } = useGetProfileQuery();
@@ -33,6 +38,23 @@ export default function ProfileMainScreen() {
     const profile = useAppSelector((state) => state.auth.profile);
     const soundEnabled = useAppSelector((state) => state.settings?.soundEnabled ?? true);
     const hapticsEnabled = useAppSelector((state) => state.settings?.hapticsEnabled ?? true);
+
+    const handleOpenNotificationSettings = preventDoubleTap(async () => {
+        if (Platform.OS === "android") {
+            try {
+                await Linking.sendIntent("android.settings.APP_NOTIFICATION_SETTINGS", [
+                    {
+                        key: "android.provider.extra.APP_PACKAGE",
+                        value: Constants.expoConfig?.android?.package || "com.historyapp",
+                    },
+                ]);
+                return;
+            } catch {
+                // Fallback to general settings
+            }
+        }
+        await Linking.openSettings();
+    });
 
     if (!profile) {
         return (
@@ -223,6 +245,19 @@ export default function ProfileMainScreen() {
 
                 <Text style={styles.sectionHeader}>Cài đặt ứng dụng</Text>
                 <Card variant="soft" style={styles.menuContainer}>
+                    <TouchableOpacity
+                        style={styles.settingRow}
+                        onPress={handleOpenNotificationSettings}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.settingLeft}>
+                            <View style={styles.iconContainer}>
+                                <Ionicons name="notifications-outline" size={20} color={colors.primary} />
+                            </View>
+                            <Text style={styles.menuLabel}>Thông báo</Text>
+                        </View>
+                        <Ionicons name="open-outline" size={20} color={colors.textMuted} />
+                    </TouchableOpacity>
                     <View style={styles.settingRow}>
                         <View style={styles.settingLeft}>
                             <View style={styles.iconContainer}>
@@ -242,7 +277,7 @@ export default function ProfileMainScreen() {
                     <View style={styles.settingRow}>
                         <View style={styles.settingLeft}>
                             <View style={styles.iconContainer}>
-                                <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
+                                <MaterialIcons name="vibration" size={20} color={colors.primary} />
                             </View>
                             <Text style={styles.menuLabel}>Rung</Text>
                         </View>
