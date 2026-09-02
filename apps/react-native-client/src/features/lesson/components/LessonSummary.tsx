@@ -142,10 +142,10 @@ export function LessonSummary({
                             { backgroundColor: colors.primaryContainer },
                         ]}
                     >
-                        <Image
-                            source={require("../../../../assets/images/flashcard_ic.png")}
-                            style={{ width: 16, height: 16 }}
-                            resizeMode="contain"
+                        <Ionicons
+                            name="layers-outline"
+                            size={16}
+                            color={colors.primary}
                         />
                     </View>
                     <Text style={styles.gridButtonText}>Thẻ lật</Text>

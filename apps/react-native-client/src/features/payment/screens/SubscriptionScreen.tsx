@@ -131,7 +131,7 @@ export const SubscriptionScreen: React.FC = () => {
                 </View>
             </View>
             <View style={styles.featureItem}>
-                <Ionicons name="albums-outline" size={24} color={colors.warning} style={{ marginRight: 14 }} />
+                <Ionicons name="layers-outline" size={24} color={colors.warning} style={{ marginRight: 14 }} />
                 <View style={styles.featureTextContainer}>
                     <Text style={styles.featureTitle}>Mở khoá thẻ lật</Text>
                     <Text style={styles.featureDesc}>Ghi nhớ kiến thức nhanh chóng với flashcard.</Text>

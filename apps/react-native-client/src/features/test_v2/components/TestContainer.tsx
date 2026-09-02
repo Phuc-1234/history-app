@@ -14,7 +14,7 @@ import {
     Image,
     Platform,
 } from "react-native";
-import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package, RotateCcw } from "lucide-react-native";
+import { Grid, Zap, Coins, Flame, Trophy, ArrowLeft, HelpCircle, X, Flag, Package, RotateCcw, Sparkles } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { AppHtmlRenderer } from "../../../components/AppHtmlRenderer";
@@ -28,6 +28,7 @@ import Animated, {
     Easing,
     withRepeat,
     withSequence,
+    withDelay,
 } from "react-native-reanimated";
 import { useAppSelector } from "@/store/storeHook";
 import { ScreenWrapper } from "@/components/layout/ScreenWrapper";
@@ -288,6 +289,156 @@ function RipplePillButton({
                 </TouchableOpacity>
             </Animated.View>
         </View>
+    );
+}
+
+const STAR_CONFIGS = [
+    { top: -6, left: 16, size: 16, delay: 0, color: "#FFD700" },
+    { top: -10, right: 20, size: 14, delay: 300, color: "#FFA500" },
+    { top: 28, left: -14, size: 15, delay: 600, color: "#FFDF00" },
+    { top: 36, right: -16, size: 18, delay: 200, color: "#FFC107" },
+    { bottom: -4, left: 24, size: 14, delay: 500, color: "#FFE082" },
+    { bottom: -8, right: 22, size: 16, delay: 100, color: "#FFD700" },
+    { top: 2, right: 8, size: 12, delay: 450, color: "#FFF8E1" },
+    { bottom: 24, left: -8, size: 13, delay: 350, color: "#FFCA28" },
+];
+
+function TwinklingStar({ top, left, right, bottom, size, delay, color }: { top?: number; left?: number; right?: number; bottom?: number; size: number; delay: number; color: string }) {
+    const scale = useSharedValue(0.4);
+    const opacity = useSharedValue(0.3);
+    const rotation = useSharedValue(0);
+
+    useEffect(() => {
+        scale.value = withDelay(
+            delay,
+            withRepeat(
+                withSequence(
+                    withTiming(1.2, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+                    withTiming(0.4, { duration: 700, easing: Easing.inOut(Easing.ease) })
+                ),
+                -1,
+                true
+            )
+        );
+        opacity.value = withDelay(
+            delay,
+            withRepeat(
+                withSequence(
+                    withTiming(1, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+                    withTiming(0.2, { duration: 700, easing: Easing.inOut(Easing.ease) })
+                ),
+                -1,
+                true
+            )
+        );
+        rotation.value = withDelay(
+            delay,
+            withRepeat(
+                withSequence(
+                    withTiming(25, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+                    withTiming(-25, { duration: 1000, easing: Easing.inOut(Easing.ease) })
+                ),
+                -1,
+                true
+            )
+        );
+    }, [delay, scale, opacity, rotation]);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }, { rotate: `${rotation.value}deg` }],
+        opacity: opacity.value,
+    }));
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    position: "absolute",
+                    top,
+                    left,
+                    right,
+                    bottom,
+                },
+                animatedStyle,
+            ]}
+        >
+            <Sparkles size={size} color={color} fill={color} />
+        </Animated.View>
+    );
+}
+
+const FLAME_CONFIGS = [
+    { top: 2, left: 58, size: 22, delay: 0, color: "#FF4500" },
+    { top: 12, left: 22, size: 18, delay: 250, color: "#FF8A00" },
+    { top: 12, right: 22, size: 18, delay: 150, color: "#FF9800" },
+    { top: 48, left: 8, size: 20, delay: 500, color: "#FF5722" },
+    { top: 48, right: 8, size: 20, delay: 350, color: "#FF4500" },
+    { bottom: 12, left: 16, size: 18, delay: 400, color: "#FF3D00" },
+    { bottom: 12, right: 16, size: 18, delay: 600, color: "#FF7043" },
+    { bottom: 4, left: 58, size: 20, delay: 450, color: "#FFA000" },
+];
+
+function AnimatedFlameItem({ top, left, right, bottom, size, delay, color }: { top?: number; left?: number; right?: number; bottom?: number; size: number; delay: number; color: string }) {
+    const translateY = useSharedValue(0);
+    const scale = useSharedValue(0.7);
+    const opacity = useSharedValue(0.5);
+
+    useEffect(() => {
+        translateY.value = withDelay(
+            delay,
+            withRepeat(
+                withSequence(
+                    withTiming(-8, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+                    withTiming(4, { duration: 600, easing: Easing.inOut(Easing.ease) })
+                ),
+                -1,
+                true
+            )
+        );
+        scale.value = withDelay(
+            delay,
+            withRepeat(
+                withSequence(
+                    withTiming(1.25, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+                    withTiming(0.75, { duration: 600, easing: Easing.inOut(Easing.ease) })
+                ),
+                -1,
+                true
+            )
+        );
+        opacity.value = withDelay(
+            delay,
+            withRepeat(
+                withSequence(
+                    withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+                    withTiming(0.6, { duration: 600, easing: Easing.inOut(Easing.ease) })
+                ),
+                -1,
+                true
+            )
+        );
+    }, [delay, translateY, scale, opacity]);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: translateY.value }, { scale: scale.value }],
+        opacity: opacity.value,
+    }));
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    position: "absolute",
+                    top,
+                    left,
+                    right,
+                    bottom,
+                },
+                animatedStyle,
+            ]}
+        >
+            <Flame size={size} color={color} fill={color} />
+        </Animated.View>
     );
 }
 
@@ -552,6 +703,29 @@ export default function TestContainerV2({
         actions.restart();
     }, [actions]);
 
+    const handleDebugTriggerMilestones = useCallback(() => {
+        const dummyMilestones = [
+            {
+                eventType: "STREAK_MILESTONE",
+                message: "Cột mốc chuỗi 7 ngày!",
+                xpGained: 50,
+                goldGained: 20,
+                itemsGained: [],
+                payload: { streakValue: 7 },
+            },
+            {
+                eventType: "TIER_GAINED",
+                message: "Đạt danh hiệu: Học Giả!",
+                xpGained: 100,
+                goldGained: 50,
+                itemsGained: [],
+                payload: { tierName: "Học Giả" },
+            },
+        ];
+        setMilestoneQueue(dummyMilestones);
+        setActiveMilestone(dummyMilestones[0]);
+    }, []);
+
     useEffect(() => {
         if (status === "completed" && result?.consequences) {
             const milestones = result.consequences.filter(
@@ -799,6 +973,8 @@ export default function TestContainerV2({
                             <TouchableOpacity
                                 style={styles.exitBtn}
                                 onPress={preventDoubleTap(onExit || (() => router.back()))}
+                                onLongPress={handleDebugTriggerMilestones}
+                                delayLongPress={600}
                                 activeOpacity={0.8}
                             >
                                 <ArrowLeft size={16} color={colors.primary} />
@@ -1214,6 +1390,8 @@ export default function TestContainerV2({
                         <TouchableOpacity
                             style={styles.exitBtn}
                             onPress={preventDoubleTap(onExit || (() => router.back()))}
+                            onLongPress={handleDebugTriggerMilestones}
+                            delayLongPress={600}
                         >
                             <ArrowLeft size={16} color={colors.primary} />
                             <Text style={styles.exitBtnText}>Về bài học</Text>
@@ -1245,12 +1423,43 @@ export default function TestContainerV2({
                                 borderWidth: 1,
                                 borderColor: colors.borderMedium,
                             }} onPress={(e) => e.stopPropagation()}>
-                                <Mascot
-                                    expression="very-happy"
-                                    width={100}
-                                    height={100}
-                                    style={{ marginBottom: 16 }}
-                                />
+                                {activeMilestone.eventType === "TIER_GAINED" ? (
+                                    <View style={{ width: 140, height: 140, alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                                        {STAR_CONFIGS.map((star, idx) => (
+                                            <TwinklingStar key={idx} {...star} />
+                                        ))}
+                                        {activeMilestone.payload?.badgeImgUrl ? (
+                                            <Image
+                                                source={{ uri: activeMilestone.payload.badgeImgUrl }}
+                                                style={{ width: 100, height: 100, resizeMode: "contain" }}
+                                            />
+                                        ) : (
+                                            <View style={{
+                                                width: 90,
+                                                height: 90,
+                                                borderRadius: 45,
+                                                backgroundColor: "#FFF8E1",
+                                                borderWidth: 2,
+                                                borderColor: "#FFD54F",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                            }}>
+                                                <Trophy size={48} color="#FFA000" />
+                                            </View>
+                                        )}
+                                    </View>
+                                ) : (
+                                    <View style={{ width: 140, height: 140, alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                                        {FLAME_CONFIGS.map((flame, idx) => (
+                                            <AnimatedFlameItem key={idx} {...flame} />
+                                        ))}
+                                        <Mascot
+                                            expression="very-happy"
+                                            width={100}
+                                            height={100}
+                                        />
+                                    </View>
+                                )}
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 }}>
                                     {activeMilestone.eventType === "STREAK_MILESTONE" ? (
                                         <Flame size={20} color={colors.warning} />
@@ -1266,52 +1475,64 @@ export default function TestContainerV2({
                                         {activeMilestone.eventType === "STREAK_MILESTONE" ? "Chuỗi Ngày Mới!" : "Hạng Mới!"}
                                     </Text>
                                 </View>
-                                <Text style={{
-                                    fontFamily: typography.fonts.medium,
-                                    fontSize: 14,
-                                    color: colors.textSecondary,
-                                    textAlign: "center",
-                                    marginBottom: 16,
-                                    lineHeight: 20,
-                                }}>
-                                    {activeMilestone.message}
-                                </Text>
+                                {(() => {
+                                    const rawMsg = activeMilestone.message || "";
+                                    const cleanMsg = rawMsg
+                                        .replace(/:\s*\+\d+.*$/, "!")
+                                        .replace(/\s*\+\d+\s*XP.*$/i, "")
+                                        .replace(/\s*\+\d+\s*vàng.*$/i, "")
+                                        .trim();
+                                    return cleanMsg ? (
+                                        <Text style={{
+                                            fontFamily: typography.fonts.medium,
+                                            fontSize: 14,
+                                            color: colors.textSecondary,
+                                            textAlign: "center",
+                                            marginBottom: 16,
+                                            lineHeight: 20,
+                                        }}>
+                                            {cleanMsg}
+                                        </Text>
+                                    ) : null;
+                                })()}
 
                                 {/* Rewards inside modal */}
-                                <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-                                    {(activeMilestone.xpGained ?? 0) > 0 && (
-                                        <View style={[
-                                            styles.rewardChip,
-                                            styles.rewardChipXp,
-                                            { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-                                            xpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
-                                        ]}>
-                                            <Zap size={13} color="#FFF" />
-                                            <Text style={styles.rewardChipText}>+{activeMilestone.xpGained} XP</Text>
-                                            {xpMultiplier > 1 && (
-                                                <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
-                                                    <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{xpMultiplier}</Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                    )}
-                                    {(activeMilestone.goldGained ?? 0) > 0 && (
-                                        <View style={[
-                                            styles.rewardChip,
-                                            styles.rewardChipGold,
-                                            { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-                                            goldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
-                                        ]}>
-                                            <Coins size={13} color="#4A3B00" />
-                                            <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{activeMilestone.goldGained} vàng</Text>
-                                            {goldMultiplier > 1 && (
-                                                <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
-                                                    <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{goldMultiplier}</Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                    )}
-                                </View>
+                                {((activeMilestone.xpGained ?? 0) > 0 || (activeMilestone.goldGained ?? 0) > 0) && (
+                                    <View style={{ flexDirection: "row", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                                        {(activeMilestone.xpGained ?? 0) > 0 && (
+                                            <View style={[
+                                                styles.rewardChip,
+                                                styles.rewardChipXp,
+                                                { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+                                                xpMultiplier > 1 && { borderWidth: 2, borderColor: "#007AFF" },
+                                            ]}>
+                                                <Zap size={13} color="#FFF" />
+                                                <Text style={styles.rewardChipText}>+{activeMilestone.xpGained} XP</Text>
+                                                {xpMultiplier > 1 && (
+                                                    <View style={[styles.multiplierBadge, { borderColor: "#007AFF" }]}>
+                                                        <Text style={[styles.multiplierText, { color: "#007AFF" }]}>x{xpMultiplier}</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        )}
+                                        {(activeMilestone.goldGained ?? 0) > 0 && (
+                                            <View style={[
+                                                styles.rewardChip,
+                                                styles.rewardChipGold,
+                                                { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+                                                goldMultiplier > 1 && { borderWidth: 2, borderColor: "#FFB800" },
+                                            ]}>
+                                                <Coins size={13} color="#4A3B00" />
+                                                <Text style={[styles.rewardChipText, { color: "#4A3B00" }]}>+{activeMilestone.goldGained} vàng</Text>
+                                                {goldMultiplier > 1 && (
+                                                    <View style={[styles.multiplierBadge, { borderColor: "#FFB800" }]}>
+                                                        <Text style={[styles.multiplierText, { color: "#FFB800" }]}>x{goldMultiplier}</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
 
                                 {activeMilestone.itemsGained && activeMilestone.itemsGained.length > 0 && (
                                     <View style={{ width: "100%", alignItems: "center", marginBottom: 20 }}>
