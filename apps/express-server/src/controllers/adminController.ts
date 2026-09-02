@@ -763,21 +763,42 @@ export const listQuestions = async (req: Request, res: Response) => {
         const lessonId = req.query.lessonId ? Number(req.query.lessonId) : undefined;
         const sectionId = req.query.sectionId ? Number(req.query.sectionId) : undefined;
         const nodeId = req.query.nodeId ? Number(req.query.nodeId) : undefined;
-        const scopeId = req.query.scopeId ? Number(req.query.scopeId) : undefined;
-        const scopeType = req.query.scopeType as string | undefined;
+        let scopeId = req.query.scopeId ? Number(req.query.scopeId) : undefined;
+        let scopeType = req.query.scopeType as string | undefined;
         const type = req.query.type as string | undefined;
 
-        const questions = await adminService.listQuestions(
-            gradeId,
-            topicId,
-            lessonId,
-            sectionId,
-            nodeId,
-            type,
+        const search = req.query.search as string | undefined;
+        const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
+        const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : 50;
+
+        if (!scopeType && !scopeId) {
+            if (nodeId) {
+                scopeType = "NODE";
+                scopeId = nodeId;
+            } else if (sectionId) {
+                scopeType = "SECTION";
+                scopeId = sectionId;
+            } else if (lessonId) {
+                scopeType = "LESSON";
+                scopeId = lessonId;
+            } else if (topicId) {
+                scopeType = "TOPIC";
+                scopeId = topicId;
+            } else if (gradeId) {
+                scopeType = "GRADE";
+                scopeId = gradeId;
+            }
+        }
+
+        const result = await adminService.listQuestions(
+            scopeType,
             scopeId,
-            scopeType
+            type,
+            search,
+            page,
+            limit
         );
-        return res.status(200).json({ questions });
+        return res.status(200).json(result);
     } catch (err) {
         console.error("List questions error:", err);
         return res.status(500).json({ error: "Failed to list questions." });

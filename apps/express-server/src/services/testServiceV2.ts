@@ -140,8 +140,10 @@ function toQuestionDto(q: any): QuestionV2Dto {
 export async function expandScopeToQuestionWhere(
     scopeType: string | null | undefined,
     scopeId: number | null | undefined,
+    activeOnly: boolean = true,
 ): Promise<Prisma.QuestionWhereInput> {
-    if (!scopeType || scopeType === "NATIONAL") return { isActive: true };
+    const baseWhere: Prisma.QuestionWhereInput = activeOnly ? { isActive: true } : {};
+    if (!scopeType || scopeType === "NATIONAL") return baseWhere;
 
     const conditions: Prisma.QuestionWhereInput[] = [];
 
@@ -208,8 +210,8 @@ export async function expandScopeToQuestionWhere(
         if (nodeIds.length) conditions.push({ scopeType: "NODE" as any, scopeId: { in: nodeIds } });
     }
 
-    if (conditions.length === 0) return { isActive: true };
-    return { isActive: true, OR: conditions };
+    if (conditions.length === 0) return baseWhere;
+    return activeOnly ? { isActive: true, OR: conditions } : { OR: conditions };
 }
 
 async function expandSectionIds(initialIds: number[]): Promise<number[]> {

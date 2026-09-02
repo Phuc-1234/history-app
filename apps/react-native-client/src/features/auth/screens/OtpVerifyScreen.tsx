@@ -15,12 +15,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRegisterOtp } from "../hooks/useRegisterOtp";
 import colors from "../../../theme/colors";
 import AppBackground from "../../../components/layout/AppBackground";
+import Mascot from "../../../components/Mascot";
 
 const text = {
-    headline: "Xác thực tài khoản",
-    sent: "Mã kích hoạt đã được gửi tới",
-    enter: "Nhập mã OTP",
-    subtitle: (length: number) => `Vui lòng nhập mã OTP gồm ${length} số để kích hoạt tài khoản của bạn.`,
     confirm: "Kích hoạt",
     confirming: "Đang xác thực...",
     noCode: "Chưa nhận được mã?",
@@ -86,26 +83,18 @@ export default function RegisterOtpScreen({ length = 6 }: OtpVerifyScreenProps =
                     {/* Background Motifs (session-randomized) */}
                     <AppBackground />
 
-                    {/* Logo Section */}
-                    <View style={styles.logoContainer}>
-                        <Text style={styles.logoText}>Sắc Sử</Text>
-                        <Text style={styles.logoSubtitle}>Ứng dụng học và làm đề lịch sử</Text>
-                    </View>
-
-                    {/* Headline */}
-                    <View style={styles.headerContainer}>
-                        <Text style={styles.headlineText}>{text.headline}</Text>
-                        <Text style={styles.subText}>
-                            {text.sent}{"\n"}
+                    {/* Mascot & Instruction */}
+                    <View style={styles.topSection}>
+                        <Mascot expression="happy" width={130} height={130} style={styles.mascot} />
+                        <Text style={styles.screenTitle}>Kích hoạt tài khoản</Text>
+                        <Text style={styles.instructionText}>
+                            Nhập mã OTP {length} số đã được gửi đến{" "}
                             <Text style={styles.emailText}>{emailToShow}</Text>
                         </Text>
                     </View>
 
                     {/* Card Content */}
                     <View style={styles.formContainer}>
-                        <Text style={styles.cardTitle}>{text.enter}</Text>
-                        <Text style={styles.cardSubtitle}>{text.subtitle(length)}</Text>
-
                         {/* OTP Boxes */}
                         <View style={[styles.otpRow, { gap }]}>
                             {otp.map((digit, index) => (
@@ -179,66 +168,38 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         flexGrow: 1,
+        justifyContent: "center",
         backgroundColor: colors.background,
         paddingHorizontal: 28,
         position: "relative",
     },
-    logoContainer: {
+    topSection: {
         alignItems: "center",
-        justifyContent: "center",
-        marginTop: 10,
+        marginBottom: 24,
+    },
+    mascot: {
         marginBottom: 16,
     },
-    logoText: {
-        fontSize: 38,
-        fontWeight: "800",
-        color: colors.primary,
-        letterSpacing: 2,
-        textShadowColor: "rgba(0, 0, 0, 0.15)",
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 3,
-    },
-    logoSubtitle: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: colors.textMuted,
-        marginTop: 6,
-        textAlign: "center",
-    },
-    headerContainer: {
-        marginBottom: 16,
-    },
-    headlineText: {
+    screenTitle: {
+        fontSize: 24,
+        fontWeight: "700",
         color: colors.textDark,
-        fontSize: 28,
-        fontWeight: "600",
         textAlign: "center",
         marginBottom: 8,
     },
-    subText: {
-        color: colors.textMuted,
+    instructionText: {
+        color: colors.textDark,
         fontSize: 15,
         lineHeight: 22,
         textAlign: "center",
+        paddingHorizontal: 8,
     },
     emailText: {
         color: colors.primary,
         fontWeight: "700",
     },
     formContainer: {
-    },
-    cardTitle: {
-        color: colors.textDark,
-        fontSize: 20,
-        fontWeight: "700",
-        textAlign: "center",
-        marginBottom: 6,
-    },
-    cardSubtitle: {
-        color: colors.textMuted,
-        fontSize: 14,
-        textAlign: "center",
-        marginBottom: 16,
+        width: "100%",
     },
     otpRow: {
         flexDirection: "row",
@@ -271,15 +232,10 @@ const styles = StyleSheet.create({
     },
     primaryButton: {
         height: 56,
-        borderRadius: 28,
+        borderRadius: 30,
         backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 5,
-        elevation: 4,
         marginTop: 8,
     },
     primaryText: {

@@ -42,6 +42,8 @@ import {
 } from "@history-app/shared";
 import { supabase } from "../config/supabaseClient";
 import { contentService } from "./contentService";
+import { Prisma } from "@prisma/client";
+import { expandScopeToQuestionWhere } from "./testServiceV2";
 
 
 // ─── Helpers: build AdminQuestionAnswerDto[] từ answers table VÀ answerDataJson ─
@@ -1172,36 +1174,57 @@ export class AdminService {
     // ─────────────────────────────── QUESTION ─────────────────────────────────
 
     async listQuestions(
-        gradeId?: number,
-        topicId?: number,
-        lessonId?: number,
-        sectionId?: number,
-        nodeId?: number,
-        type?: string,
+        scopeType?: string,
         scopeId?: number,
-        scopeType?: string
-    ): Promise<AdminQuestionDto[]> {
-        const questions = await prisma.question.findMany({
-            where: {
-                AND: [
-                    gradeId ? { gradeId } : {},
-                    topicId ? { topicId } : {},
-                    lessonId ? { lessonId } : {},
-                    sectionId ? { sectionId } : {},
-                    nodeId ? { nodeId } : {},
-                    type ? { type: type as any } : {},
-                    scopeId ? { scopeId } : {},
-                    scopeType ? { scopeType: scopeType as any } : {},
-                ],
-            },
-            include: {
-                answers: true,
-            },
-            orderBy: { id: "desc" },
-            take: 100,
-        });
+        type?: string,
+        search?: string,
+        page: number = 1,
+        limit: number = 50
+    ): Promise<{ questions: AdminQuestionDto[]; total: number; page: number; limit: number; totalPages: number }> {
+        const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId, false);
 
-        return questions.map(q => ({
+        const searchConditions: Prisma.QuestionWhereInput[] = [];
+        if (search && search.trim()) {
+            const q = search.trim();
+            const idNum = Number(q.replace(/^#/, ""));
+            if (!isNaN(idNum) && idNum > 0) {
+                searchConditions.push({ id: idNum });
+            }
+            searchConditions.push({ promptText: { contains: q, mode: "insensitive" } });
+            searchConditions.push({ document: { contains: q, mode: "insensitive" } });
+            searchConditions.push({ explanation: { contains: q, mode: "insensitive" } });
+        }
+
+        const andConditions: Prisma.QuestionWhereInput[] = [];
+        if (scopeWhere && Object.keys(scopeWhere).length > 0) {
+            andConditions.push(scopeWhere);
+        }
+        if (type) {
+            andConditions.push({ type: type as any });
+        }
+        if (searchConditions.length > 0) {
+            andConditions.push({ OR: searchConditions });
+        }
+
+        const where: Prisma.QuestionWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+
+        const skip = (page - 1) * limit;
+        const take = limit;
+
+        const [total, questions] = await Promise.all([
+            prisma.question.count({ where }),
+            prisma.question.findMany({
+                where,
+                include: {
+                    answers: true,
+                },
+                orderBy: { id: "desc" },
+                skip,
+                take,
+            }),
+        ]);
+
+        const mappedQuestions = questions.map(q => ({
             id: q.id,
             type: q.type,
             difficulty: q.difficulty,
@@ -1219,6 +1242,14 @@ export class AdminService {
             nodeId: q.nodeId,
             answers: buildAnswers(q.type, q.answers as RawAnswer[], q.answerDataJson),
         }));
+
+        return {
+            questions: mappedQuestions,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit) || 1,
+        };
     }
 
     async getQuestionById(id: number): Promise<AdminQuestionDto | null> {
@@ -1400,28 +1431,48 @@ export class AdminService {
             orderBy: { title: "asc" },
         });
 
-        return tests.map(t => ({
-            id: t.id,
-            title: t.title,
-            summary: t.summary ?? null,
-            presetId: t.presetId,
-            scopeId: t.scopeId,
-            scopeType: t.scopeType,
-            isManual: (t as any).isManual ?? false,
-            isNationalTest: t.isNationalTest,
-            isPro: t.isPro,
-            imgUrl: t.imgUrl ?? null,
-            questionNumber: t.preset?.questionCount ?? t.questionNumber,
-            timeLimit: t.preset?.timeLimit ?? t.timeLimit,
-            xpReward: t.xpReward,
-            goldReward: t.goldReward,
-            passThreshold: t.preset?.passThreshold ?? t.passThreshold,
-            gradeId: t.gradeId,
-            topicId: t.topicId,
-            lessonId: t.lessonId,
-            sectionId: t.sectionId,
-            questionIds: t.testQuestions.map(tq => tq.questionId),
-        }));
+        const lessonIds = Array.from(new Set(
+            tests
+                .filter(t => (t.scopeType === "LESSON" && t.scopeId) || t.lessonId)
+                .map(t => ((t.scopeType === "LESSON" && t.scopeId) ? t.scopeId! : t.lessonId!))
+        ));
+
+        const lessons = lessonIds.length > 0
+            ? await prisma.lesson.findMany({
+                where: { id: { in: lessonIds } },
+                select: { id: true, name: true, position: true },
+            })
+            : [];
+        const lessonMap = new Map(lessons.map(l => [l.id, l]));
+
+        return tests.map(t => {
+            const lId = (t.scopeType === "LESSON" && t.scopeId) ? t.scopeId : t.lessonId;
+            const lesson = lId ? lessonMap.get(lId) : undefined;
+
+            return {
+                id: t.id,
+                title: t.title,
+                summary: t.summary ?? null,
+                presetId: t.presetId,
+                scopeId: t.scopeId,
+                scopeType: t.scopeType,
+                isManual: (t as any).isManual ?? false,
+                isNationalTest: t.isNationalTest,
+                isPro: t.isPro,
+                imgUrl: t.imgUrl ?? null,
+                questionNumber: t.preset?.questionCount ?? t.questionNumber,
+                timeLimit: t.preset?.timeLimit ?? t.timeLimit,
+                xpReward: t.xpReward,
+                goldReward: t.goldReward,
+                passThreshold: t.preset?.passThreshold ?? t.passThreshold,
+                gradeId: t.gradeId,
+                topicId: t.topicId,
+                lessonId: t.lessonId,
+                sectionId: t.sectionId,
+                questionIds: t.testQuestions.map(tq => tq.questionId),
+                lesson: lesson ? { id: lesson.id, name: lesson.name, position: lesson.position } : undefined,
+            };
+        });
     }
 
     async createTest(data: CreateTestBody): Promise<AdminTestDto> {
@@ -1462,6 +1513,8 @@ export class AdminService {
             select: { questionId: true },
         });
         const preset = test.presetId ? await prisma.testPreset.findUnique({ where: { id: test.presetId } }) : null;
+        const targetLessonId = (test.scopeType === 'LESSON' && test.scopeId) ? test.scopeId : test.lessonId;
+        const lesson = targetLessonId ? await prisma.lesson.findUnique({ where: { id: targetLessonId }, select: { id: true, name: true, position: true } }) : null;
 
         return {
             id: test.id,
@@ -1484,6 +1537,7 @@ export class AdminService {
             lessonId: test.lessonId,
             sectionId: test.sectionId,
             questionIds: testQuestions.map(tq => tq.questionId),
+            lesson: lesson ? { id: lesson.id, name: lesson.name, position: lesson.position } : undefined,
         };
     }
 
@@ -1533,6 +1587,8 @@ export class AdminService {
             select: { questionId: true },
         });
         const updatedPreset = updated.presetId ? await prisma.testPreset.findUnique({ where: { id: updated.presetId } }) : null;
+        const targetLessonId = (updated.scopeType === 'LESSON' && updated.scopeId) ? updated.scopeId : updated.lessonId;
+        const lesson = targetLessonId ? await prisma.lesson.findUnique({ where: { id: targetLessonId }, select: { id: true, name: true, position: true } }) : null;
 
         return {
             id: updated.id,
@@ -1555,6 +1611,7 @@ export class AdminService {
             lessonId: updated.lessonId,
             sectionId: updated.sectionId,
             questionIds: testQuestions.map(tq => tq.questionId),
+            lesson: lesson ? { id: lesson.id, name: lesson.name, position: lesson.position } : undefined,
         };
     }
 

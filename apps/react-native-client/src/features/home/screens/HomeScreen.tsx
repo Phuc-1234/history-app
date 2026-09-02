@@ -25,6 +25,7 @@ import { AvatarWithFrame, FaintStarsOverlay } from "../../../components/ui";
 import { useSideDrawer } from "../../../components/layout/SideDrawerContext";
 import { CustomModal } from "../../../components/Modal";
 import { StudyReminderModal, useGetReminderSettingsQuery } from "@/features/notification";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 
 // ─── Component: Thẻ bài học ───────────────────────────────────────────────────
 function LessonCard({
@@ -106,7 +107,8 @@ import { TierDrawerModal } from "../../tier";
 export default function HomeScreen() {
     const router = useRouter();
     const { hideLoading } = useLoading();
-    const { openDrawer } = useSideDrawer();
+    const { openDrawer, openAiChat } = useSideDrawer();
+    const preventDoubleTap = usePreventDoubleTap();
     const { data: topBarData, streakManager, tierManager } = useTopBarData();
 
     // Đảm bảo profile luôn mới nhất
@@ -175,34 +177,41 @@ export default function HomeScreen() {
         }
     }, [reminderSettings, hasCheckedAutoSuggest]);
 
-    const handleGoToLeaderboard = () =>
-        router.push("/(tabs)/9_1_leaderboard" as never);
-    const handleGoToLesson = (lessonId: number) =>
-        router.push(`/(3_4_lessons)/lesson/${lessonId}` as never);
-    const handleGoToLessons = () => router.push("/(tabs)/2_1_lessons" as never);
-    const handleGoToTests = () =>
-        router.push("/(tabs)/5_1_national_tests" as never);
-    const handleGoToFriends = () => {
+    const handleGoToLeaderboard = preventDoubleTap(() =>
+        router.push("/(tabs)/9_1_leaderboard" as never));
+    const handleGoToLesson = preventDoubleTap((lessonId: number) =>
+        router.push(`/(3_4_lessons)/lesson/${lessonId}` as never));
+    const handleGoToLessons = preventDoubleTap(() => router.push("/(tabs)/2_1_lessons" as never));
+    const handleGoToTests = preventDoubleTap(() =>
+        router.push("/(tabs)/5_1_national_tests" as never));
+    const handleGoToAiChat = preventDoubleTap(() => {
+        if (!profile) {
+            setGuestModalVisible(true);
+            return;
+        }
+        openAiChat();
+    });
+    const handleGoToFriends = preventDoubleTap(() => {
         if (!profile) {
             setGuestModalVisible(true);
             return;
         }
         router.push("/(social)/friends" as never);
-    };
-    const handleGoToItems = () => {
+    });
+    const handleGoToItems = preventDoubleTap(() => {
         if (!profile) {
             setGuestModalVisible(true);
             return;
         }
         router.push("/(tabs)/7_1_item" as never);
-    };
-    const handleGoToPvp = () => {
+    });
+    const handleGoToPvp = preventDoubleTap(() => {
         if (!profile) {
             setGuestModalVisible(true);
             return;
         }
         router.push("/pvp" as never);
-    };
+    });
 
     const isPro = !!profile?.isPro;
 
@@ -507,6 +516,21 @@ export default function HomeScreen() {
                                 showsHorizontalScrollIndicator={false}
                                 contentContainerStyle={styles.quickScrollContainer}
                             >
+                                <Card
+                                    style={styles.quickCardHorizontal}
+                                    activeOpacity={0.8}
+                                    onPress={handleGoToAiChat}
+                                >
+                                    <Ionicons
+                                        name="sparkles"
+                                        size={22}
+                                        color={colors.primary}
+                                    />
+                                    <Text style={styles.quickLabel}>
+                                        Trợ lý AI
+                                    </Text>
+                                </Card>
+
                                 <Card
                                     style={styles.quickCardHorizontal}
                                     activeOpacity={0.8}

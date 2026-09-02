@@ -34,6 +34,9 @@ interface SideDrawerContextType {
     openDrawer: () => void;
     closeDrawer: () => void;
     isOpen: boolean;
+    openAiChat: () => void;
+    isAiFabVisible: boolean;
+    setIsAiFabVisible: (visible: boolean) => void;
 }
 
 const SideDrawerContext = createContext<SideDrawerContextType | undefined>(undefined);
@@ -50,18 +53,24 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     const [isOpen, setIsOpen] = useState(false);
     const [renderDrawer, setRenderDrawer] = useState(false);
     const [aiChatVisible, setAiChatVisible] = useState(false);
+    const [isAiFabVisible, setIsAiFabVisible] = useState(false);
     const [guestModalVisible, setGuestModalVisible] = useState(false);
     const [reminderModalVisible, setReminderModalVisible] = useState(false);
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const segments = useSegments() as string[];
     const currentRoute = segments.join("/");
-    const shouldHideAiFab =
+    const isAuthScreen =
         segments.includes("(1_auth)") ||
-        segments.includes("(6_tests)") ||
+        segments.includes("1_auth") ||
         currentRoute.includes("login") ||
         currentRoute.includes("register") ||
         currentRoute.includes("forgot") ||
+        currentRoute.includes("otp") ||
+        currentRoute.includes("new_pass");
+    const shouldHideAiFab =
+        isAuthScreen ||
+        segments.includes("(6_tests)") ||
         currentRoute.includes("ques_choose") ||
         currentRoute.includes("pvp") ||
         segments.includes("pvp");
@@ -99,6 +108,7 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     ).current;
 
     const openDrawer = () => {
+        if (isAuthScreen) return;
         setIsOpen(true);
         setRenderDrawer(true);
     };
@@ -106,6 +116,18 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     const closeDrawer = () => {
         setIsOpen(false);
     };
+
+    const openAiChat = () => {
+        setIsAiFabVisible(true);
+        setAiChatVisible(true);
+    };
+
+    useEffect(() => {
+        if (isAuthScreen && (isOpen || renderDrawer)) {
+            setIsOpen(false);
+            setRenderDrawer(false);
+        }
+    }, [isAuthScreen, isOpen, renderDrawer]);
 
     useEffect(() => {
         const useNative = Platform.OS !== "web";
@@ -163,6 +185,15 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
             setReminderModalVisible(true);
             return;
         }
+        if (tabId === "ai_chat") {
+            if (!data.isLoggedIn) {
+                setGuestModalVisible(true);
+                return;
+            }
+            closeDrawer();
+            openAiChat();
+            return;
+        }
         if (!data.isLoggedIn && !GUEST_ALLOWED_TAB_IDS.has(tabId)) {
             setGuestModalVisible(true);
             return;
@@ -184,30 +215,31 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
     const tabsConfig = [
         { id: "home", label: "Trang chủ", icon: "home-outline", activeIcon: "home", route: "/(tabs)/home" },
         { id: "pvp", label: "Thi đấu PVP", icon: "game-controller-outline", activeIcon: "game-controller", route: "/pvp" },
+        { id: "ai_chat", label: "Trợ lý AI", icon: "sparkles-outline", activeIcon: "sparkles", route: "" },
         { id: "lessons", label: "Bài học", icon: "book-outline", activeIcon: "book", route: "/(tabs)/2_1_lessons" },
         { id: "tests", label: "Luyện đề", icon: "clipboard-outline", activeIcon: "clipboard", route: "/(tabs)/5_1_national_tests" },
         { id: "notifications", label: "Thông báo", icon: "notifications-outline", activeIcon: "notifications", route: "/notifications" },
+        { id: "reminders", label: "Nhắc hẹn học tập", icon: "alarm-outline", activeIcon: "alarm", route: "" },
         { id: "leaderboard", label: "Bảng xếp hạng", icon: "stats-chart-outline", activeIcon: "stats-chart", route: "/(tabs)/9_1_leaderboard" },
         { id: "profile", label: "Hồ sơ cá nhân", icon: "person-outline", activeIcon: "person", route: "/(tabs)/10_1_profile" },
         { id: "friends", label: "Bạn bè", icon: "people-outline", activeIcon: "people", route: "/(social)/friends" },
         { id: "items", label: "Vật phẩm", icon: "cart-outline", activeIcon: "gift", route: "/(tabs)/7_1_item" },
         { id: "buy_gold", label: "Nạp vàng", icon: "cash-outline", activeIcon: "cash", route: "/(tabs)/8_2_buy_gold" },
         { id: "subscription", label: "Đăng ký gói", icon: "card-outline", activeIcon: "card", route: "/(10_proflie)/10_8_subscription" },
-        { id: "reminders", label: "Nhắc hẹn học tập", icon: "alarm-outline", activeIcon: "alarm", route: "" },
         { id: "test_history", label: "Lịch sử làm bài", icon: "time-outline", activeIcon: "time", route: "/(10_proflie)/10_4_test_history" },
         { id: "feedback", label: "Gửi góp ý", icon: "chatbubble-ellipses-outline", activeIcon: "chatbubble-ellipses", route: "/(10_proflie)/10_6_feedback" },
     ];
 
     return (
-        <SideDrawerContext.Provider value={{ openDrawer, closeDrawer, isOpen }}>
+        <SideDrawerContext.Provider value={{ openDrawer, closeDrawer, isOpen, openAiChat, isAiFabVisible, setIsAiFabVisible }}>
             {children}
-            {!isOpen && (
+            {!isOpen && !isAuthScreen && (
                 <View
                     style={styles.swipeOpenHandle}
                     {...openPanResponder.panHandlers}
                 />
             )}
-            {renderDrawer && (
+            {renderDrawer && !isAuthScreen && (
                 <View style={StyleSheet.absoluteFill}>
                     {/* Backdrop */}
                     <Animated.View style={[styles.backdrop, { opacity: overlayOpacity }]}>
@@ -388,7 +420,12 @@ export function SideDrawerProvider({ children }: { children: React.ReactNode }) 
                     />
                 </>
             )}
-            {!shouldHideAiFab && data.isLoggedIn && <AiChatFab onPress={() => setAiChatVisible(true)} />}
+            {!shouldHideAiFab && data.isLoggedIn && isAiFabVisible && (
+                <AiChatFab
+                    onPress={() => setAiChatVisible(true)}
+                    onDismiss={() => setIsAiFabVisible(false)}
+                />
+            )}
             <AiChatOverlay visible={aiChatVisible} onClose={() => setAiChatVisible(false)} />
             <CustomModal
                  visible={guestModalVisible}
