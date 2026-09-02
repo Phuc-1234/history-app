@@ -571,11 +571,25 @@ export const listVideos = async (req: Request, res: Response) => {
 
 export const createVideo = async (req: Request<{}, any, CreateVideoBody>, res: Response) => {
     try {
-        const { title, hlsUrl } = req.body;
+        const { title, hlsUrl, lessonId } = req.body;
         if (!title || !hlsUrl) {
             return res.status(400).json({ error: "title and hlsUrl are required." });
         }
-        const video = await adminService.createVideo(req.body);
+        let parsedLessonId: number | null | undefined = undefined;
+        if (lessonId !== undefined) {
+            if (lessonId === null || (lessonId as any) === "" || (lessonId as any) === "null") {
+                parsedLessonId = null;
+            } else {
+                parsedLessonId = Number(lessonId);
+                if (Number.isNaN(parsedLessonId)) {
+                    return res.status(400).json({ error: "Invalid lessonId." });
+                }
+            }
+        }
+        const video = await adminService.createVideo({
+            ...req.body,
+            lessonId: parsedLessonId !== undefined ? parsedLessonId : null,
+        });
         return res.status(201).json(video);
     } catch (err: any) {
         if (err.code === "P2003") {
@@ -595,13 +609,24 @@ export const uploadVideo = async (req: Request, res: Response) => {
 
         const { title, summary } = req.body;
         const position = req.body.position !== undefined ? Number(req.body.position) : 0;
-        const lessonId = req.body.lessonId !== undefined ? Number(req.body.lessonId) : null;
+        
+        let lessonId: number | null = null;
+        if (req.body.lessonId !== undefined && req.body.lessonId !== "" && req.body.lessonId !== "null" && req.body.lessonId !== null) {
+            const parsed = Number(req.body.lessonId);
+            if (Number.isNaN(parsed)) {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+                return res.status(400).json({ error: "Invalid lessonId." });
+            }
+            lessonId = parsed;
+        }
 
-        if (!title || lessonId === null || Number.isNaN(lessonId)) {
+        if (!title) {
             if (fs.existsSync(file.path)) {
                 fs.unlinkSync(file.path);
             }
-            return res.status(400).json({ error: "title and lessonId are required." });
+            return res.status(400).json({ error: "title is required." });
         }
 
         // Tạo bản ghi Video trong DB với trạng thái PROCESSING
@@ -639,6 +664,9 @@ export const uploadVideo = async (req: Request, res: Response) => {
                 fs.unlinkSync(req.file.path);
             } catch {}
         }
+        if (err.code === "P2003") {
+            return res.status(400).json({ error: "lessonId does not exist." });
+        }
         console.error("Upload video error:", err);
         return res.status(500).json({ error: "Failed to upload video." });
     }
@@ -659,7 +687,14 @@ export const updateVideo = async (req: Request<{ videoId: string }, any, any>, r
                 if (val === "" || val === "null" || val === null) {
                     lessonId = null;
                 } else {
-                    lessonId = Number(val);
+                    const parsed = Number(val);
+                    if (Number.isNaN(parsed)) {
+                        if (fs.existsSync(file.path)) {
+                            fs.unlinkSync(file.path);
+                        }
+                        return res.status(400).json({ error: "Invalid lessonId." });
+                    }
+                    lessonId = parsed;
                 }
             }
 
@@ -703,7 +738,11 @@ export const updateVideo = async (req: Request<{ videoId: string }, any, any>, r
                 if (val === "" || val === "null" || val === null) {
                     lessonId = null;
                 } else {
-                    lessonId = Number(val);
+                    const parsed = Number(val);
+                    if (Number.isNaN(parsed)) {
+                        return res.status(400).json({ error: "Invalid lessonId." });
+                    }
+                    lessonId = parsed;
                 }
             }
 
@@ -731,11 +770,14 @@ export const updateVideo = async (req: Request<{ videoId: string }, any, any>, r
                 lessonId: updated.lessonId,
             });
         }
-    } catch (err) {
+    } catch (err: any) {
         if (req.file && fs.existsSync(req.file.path)) {
             try {
                 fs.unlinkSync(req.file.path);
             } catch {}
+        }
+        if (err.code === "P2003") {
+            return res.status(400).json({ error: "lessonId does not exist." });
         }
         console.error("Update video error:", err);
         return res.status(500).json({ error: "Failed to update video." });
