@@ -32,7 +32,7 @@ const text = {
     confirmPlaceholder: "Nhập lại mật khẩu mới",
     save: "Lưu",
     requirementsTitle: "Mật khẩu mới cần thỏa:",
-    reqMinLength: "Có ít nhất 8 ký tự",
+    reqMinLength: "Có ít nhất 6 ký tự",
     reqNotSame: "Khác mật khẩu cũ",
     reqConfirm: "Xác nhận mật khẩu khớp",
 };
@@ -148,7 +148,7 @@ export default function PasswordChangeScreen() {
                                 {
                                     key: "min",
                                     label: text.reqMinLength,
-                                    met: state.newPassword.length >= 8,
+                                    met: state.newPassword.length >= 6,
                                 },
                                 {
                                     key: "notSame",

@@ -1179,7 +1179,9 @@ export class AdminService {
         type?: string,
         search?: string,
         page: number = 1,
-        limit: number = 50
+        limit: number = 50,
+        prioritizeIds?: number[],
+        ids?: number[]
     ): Promise<{ questions: AdminQuestionDto[]; total: number; page: number; limit: number; totalPages: number }> {
         const scopeWhere = await expandScopeToQuestionWhere(scopeType, scopeId, false);
 
@@ -1202,27 +1204,87 @@ export class AdminService {
         if (type) {
             andConditions.push({ type: type as any });
         }
+        if (ids && ids.length > 0) {
+            andConditions.push({ id: { in: ids } });
+        }
         if (searchConditions.length > 0) {
             andConditions.push({ OR: searchConditions });
         }
 
         const where: Prisma.QuestionWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-        const skip = (page - 1) * limit;
-        const take = limit;
+        let total = 0;
+        let questions: any[] = [];
 
-        const [total, questions] = await Promise.all([
-            prisma.question.count({ where }),
-            prisma.question.findMany({
-                where,
-                include: {
-                    answers: true,
-                },
-                orderBy: { id: "desc" },
-                skip,
-                take,
-            }),
-        ]);
+        if (prioritizeIds && prioritizeIds.length > 0) {
+            const [totalCount, prioritizedTotal] = await Promise.all([
+                prisma.question.count({ where }),
+                prisma.question.count({ where: { ...where, id: { in: prioritizeIds } } }),
+            ]);
+            total = totalCount;
+
+            if (prioritizedTotal === 0) {
+                const skip = (page - 1) * limit;
+                questions = await prisma.question.findMany({
+                    where,
+                    include: { answers: true },
+                    orderBy: { id: "desc" },
+                    skip,
+                    take: limit,
+                });
+            } else {
+                const prioritizedSkip = (page - 1) * limit;
+                if (prioritizedSkip < prioritizedTotal) {
+                    const pTake = Math.min(limit, prioritizedTotal - prioritizedSkip);
+                    const pQuestions = await prisma.question.findMany({
+                        where: { ...where, id: { in: prioritizeIds } },
+                        include: { answers: true },
+                        orderBy: { id: "desc" },
+                        skip: prioritizedSkip,
+                        take: pTake,
+                    });
+                    const remainingTake = limit - pTake;
+                    let oQuestions: any[] = [];
+                    if (remainingTake > 0) {
+                        oQuestions = await prisma.question.findMany({
+                            where: { ...where, id: { notIn: prioritizeIds } },
+                            include: { answers: true },
+                            orderBy: { id: "desc" },
+                            skip: 0,
+                            take: remainingTake,
+                        });
+                    }
+                    questions = [...pQuestions, ...oQuestions];
+                } else {
+                    const otherSkip = prioritizedSkip - prioritizedTotal;
+                    questions = await prisma.question.findMany({
+                        where: { ...where, id: { notIn: prioritizeIds } },
+                        include: { answers: true },
+                        orderBy: { id: "desc" },
+                        skip: otherSkip,
+                        take: limit,
+                    });
+                }
+            }
+        } else {
+            const skip = (page - 1) * limit;
+            const take = limit;
+
+            const [totalCount, fetchedQuestions] = await Promise.all([
+                prisma.question.count({ where }),
+                prisma.question.findMany({
+                    where,
+                    include: {
+                        answers: true,
+                    },
+                    orderBy: { id: "desc" },
+                    skip,
+                    take,
+                }),
+            ]);
+            total = totalCount;
+            questions = fetchedQuestions;
+        }
 
         const mappedQuestions = questions.map(q => ({
             id: q.id,

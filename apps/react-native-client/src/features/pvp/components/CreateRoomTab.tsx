@@ -109,8 +109,10 @@ export function CreateRoomTab({
     // Modal picker state
     const [activePicker, setActivePicker] = useState<PickerType>(null);
 
-    const [questionCount, setQuestionCount] = useState<number>(initialQuestionCount ?? 10);
-    const [questionCountInput, setQuestionCountInput] = useState<string>((initialQuestionCount ?? 10).toString());
+    const initialCount = Math.max(5, initialQuestionCount ?? 10);
+    const [questionCount, setQuestionCount] = useState<number>(initialCount);
+    const [questionCountInput, setQuestionCountInput] = useState<string>(initialCount.toString());
+    const [questionCountNote, setQuestionCountNote] = useState<string | null>(null);
     const [timePerQuestion, setTimePerQuestion] = useState<number>(15);
 
     const [transitionInterval, setTransitionInterval] = useState<number>(5);
@@ -202,8 +204,26 @@ export function CreateRoomTab({
         const parsed = parseInt(digits, 10);
         if (!isNaN(parsed) && parsed >= 5) {
             setQuestionCount(parsed);
-        } else if (digits === "") {
+        }
+        if (questionCountNote) {
+            setQuestionCountNote(null);
+        }
+    };
+
+    const handleQuestionCountBlur = () => {
+        const parsed = parseInt(questionCountInput, 10);
+        if (!questionCountInput || isNaN(parsed) || parsed < 5) {
             setQuestionCount(5);
+            setQuestionCountInput("5");
+            setQuestionCountNote("Số lượng câu hỏi tối thiểu là 5 câu.");
+        } else if (availableCount > 0 && parsed > availableCount) {
+            const clamped = Math.max(5, availableCount);
+            setQuestionCount(clamped);
+            setQuestionCountInput(clamped.toString());
+            setQuestionCountNote(`Số lượng câu hỏi tối đa trong phạm vi là ${availableCount} câu.`);
+        } else {
+            setQuestionCount(parsed);
+            setQuestionCountNote(null);
         }
     };
 
@@ -664,6 +684,7 @@ export function CreateRoomTab({
                                     onPress={() => {
                                         setQuestionCount(cnt);
                                         setQuestionCountInput(cnt.toString());
+                                        setQuestionCountNote(null);
                                     }}
                                     disabled={availableCount > 0 && cnt > availableCount}
                                 >
@@ -689,10 +710,13 @@ export function CreateRoomTab({
                                 keyboardType="numeric"
                                 value={questionCountInput}
                                 onChangeText={handleQuestionCountChange}
+                                onBlur={handleQuestionCountBlur}
                             />
                         </View>
 
-                        {availableCount > 0 && questionCount > availableCount ? (
+                        {questionCountNote ? (
+                            <Text style={styles.warningText}>{questionCountNote}</Text>
+                        ) : availableCount > 0 && questionCount > availableCount ? (
                             <Text style={styles.warningText}>
                                 Lưu ý: Phạm vi chỉ có {availableCount} câu. Phòng sẽ tự động giới hạn ở {availableCount} câu.
                             </Text>

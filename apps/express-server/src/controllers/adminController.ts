@@ -809,6 +809,14 @@ export const listQuestions = async (req: Request, res: Response) => {
         const page = req.query.page ? Math.max(1, Number(req.query.page)) : 1;
         const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : 50;
 
+        const parseIdList = (val: any): number[] | undefined => {
+            if (!val) return undefined;
+            if (Array.isArray(val)) return val.map(Number).filter(n => !isNaN(n));
+            return String(val).split(',').map(s => Number(s.trim())).filter(n => !isNaN(n));
+        };
+        const prioritizeIds = parseIdList(req.query.prioritizeIds);
+        const ids = parseIdList(req.query.ids);
+
         if (!scopeType && !scopeId) {
             if (nodeId) {
                 scopeType = "NODE";
@@ -834,7 +842,9 @@ export const listQuestions = async (req: Request, res: Response) => {
             type,
             search,
             page,
-            limit
+            limit,
+            prioritizeIds,
+            ids
         );
         return res.status(200).json(result);
     } catch (err) {

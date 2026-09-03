@@ -5,7 +5,7 @@ import { useChangePasswordMutation } from "@/features/auth/services/authApi";
 const message = {
     currentRequired: "Vui lòng nhập mật khẩu cũ.",
     newRequired: "Vui lòng nhập mật khẩu mới.",
-    newMin: "Mật khẩu mới phải có ít nhất 8 ký tự.",
+    newMin: "Mật khẩu mới phải có ít nhất 6 ký tự.",
     newSame: "Mật khẩu mới không được trùng mật khẩu cũ.",
     confirmRequired: "Vui lòng xác nhận mật khẩu mới.",
     confirmMismatch: "Mật khẩu xác nhận không khớp.",
@@ -41,7 +41,7 @@ export function useChangePassword() {
             // Ưu tiên báo lỗi trùng mật khẩu cũ (yêu cầu nghiệp vụ: không được nhập trùng mk cũ)
             setNewPasswordError(message.newSame);
             isValid = false;
-        } else if (newPassword.length < 8) {
+        } else if (newPassword.length < 6) {
             setNewPasswordError(message.newMin);
             isValid = false;
         } else {
@@ -92,7 +92,7 @@ export function useChangePassword() {
             } else if (lower.includes("same") || lower.includes("different") || lower.includes("trùng")) {
                 msg = "Mật khẩu mới không được trùng mật khẩu cũ.";
             } else if (lower.includes("short") || lower.includes("least") || lower.includes("ngắn")) {
-                msg = "Mật khẩu mới phải có ít nhất 8 ký tự.";
+                msg = "Mật khẩu mới phải có ít nhất 6 ký tự.";
             } else if (rawError && !lower.includes("error") && !lower.includes("failed")) {
                 msg = rawError;
             }

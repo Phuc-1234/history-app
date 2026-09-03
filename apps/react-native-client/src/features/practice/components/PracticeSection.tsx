@@ -43,10 +43,14 @@ const QuestionCountSelector: React.FC<QuestionCountSelectorProps> = ({
     maxCount,
 }) => {
     const [inputText, setInputText] = useState(String(value));
+    const [note, setNote] = useState<string | null>(null);
 
     useEffect(() => {
         setInputText(String(value));
     }, [value]);
+
+    const effectiveMin = maxCount < 5 ? Math.max(1, maxCount) : 5;
+    const effectiveMax = Math.max(1, maxCount);
 
     const suggestions = useMemo(() => {
         if (maxCount <= 0) return [];
@@ -60,21 +64,28 @@ const QuestionCountSelector: React.FC<QuestionCountSelectorProps> = ({
     const handleTextChange = (text: string) => {
         const cleaned = text.replace(/[^0-9]/g, "");
         setInputText(cleaned);
+        if (note) {
+            setNote(null);
+        }
     };
 
     const handleBlur = () => {
-        if (!inputText || parseInt(inputText, 10) <= 0) {
-            const defaultVal = Math.min(10, maxCount) || 1;
-            onChange(defaultVal);
-            setInputText(String(defaultVal));
+        const num = parseInt(inputText, 10);
+        if (!inputText || isNaN(num) || num < effectiveMin) {
+            onChange(effectiveMin);
+            setInputText(String(effectiveMin));
+            setNote(
+                maxCount < 5
+                    ? `Số lượng câu hỏi tối thiểu là ${effectiveMin} câu (theo số câu hiện có).`
+                    : "Số lượng câu hỏi tối thiểu là 5 câu."
+            );
+        } else if (num > effectiveMax) {
+            onChange(effectiveMax);
+            setInputText(String(effectiveMax));
+            setNote(`Số lượng câu hỏi tối đa là ${effectiveMax} câu.`);
         } else {
-            const num = parseInt(inputText, 10);
-            if (num > maxCount) {
-                onChange(maxCount);
-                setInputText(String(maxCount));
-            } else {
-                onChange(num);
-            }
+            onChange(num);
+            setNote(null);
         }
     };
 
@@ -104,6 +115,7 @@ const QuestionCountSelector: React.FC<QuestionCountSelectorProps> = ({
                                 onPress={() => {
                                     onChange(val);
                                     setInputText(String(val));
+                                    setNote(null);
                                 }}
                                 activeOpacity={0.7}
                             >
@@ -120,6 +132,7 @@ const QuestionCountSelector: React.FC<QuestionCountSelectorProps> = ({
                     })}
                 </View>
             </View>
+            {note ? <Text style={styles.noteText}>{note}</Text> : null}
         </View>
     );
 };
@@ -260,7 +273,8 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                     <TouchableOpacity
                         style={styles.practiceStartBtn}
                         onPress={() => {
-                            const count = wrongPracticeCount > 0 ? wrongPracticeCount : Math.min(10, wrongQuestionCount) || 1;
+                            const minAllowed = wrongQuestionCount < 5 ? wrongQuestionCount : 5;
+                            const count = Math.max(minAllowed, Math.min(wrongPracticeCount || minAllowed, wrongQuestionCount));
                             onPracticePress({
                                 scopeType,
                                 scopeId,
@@ -350,7 +364,8 @@ export const PracticeSection: React.FC<PracticeSectionProps> = ({
                     <TouchableOpacity
                         style={styles.practiceStartBtn}
                         onPress={() => {
-                            const count = practiceCount > 0 ? practiceCount : Math.min(10, answeredQuestionCount) || 1;
+                            const minAllowed = answeredQuestionCount < 5 ? answeredQuestionCount : 5;
+                            const count = Math.max(minAllowed, Math.min(practiceCount || minAllowed, answeredQuestionCount));
                             onPracticePress({
                                 scopeType,
                                 scopeId,
@@ -510,5 +525,11 @@ const styles = StyleSheet.create({
     multiplierText: {
         fontSize: 9,
         fontFamily: typography.fonts.bold,
+    },
+    noteText: {
+        fontSize: 12,
+        fontFamily: typography.fonts.regular,
+        color: colors.textWarning,
+        marginTop: 6,
     },
 });
