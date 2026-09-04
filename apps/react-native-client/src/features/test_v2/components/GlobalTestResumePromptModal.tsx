@@ -14,6 +14,7 @@ export function GlobalTestResumePromptModal() {
 
     const [visible, setVisible] = useState(false);
     const lastPromptedPathRef = useRef<string | null>(null);
+    const lastPromptedLogIdRef = useRef<string | null>(null);
     const hasInitialPromptedRef = useRef(false);
 
     const {
@@ -38,6 +39,14 @@ export function GlobalTestResumePromptModal() {
         };
     }, [profile, refetch]);
 
+    // Reset lastPromptedPathRef when inside test runner so returning triggers prompt
+    useEffect(() => {
+        if (pathname?.includes("6_2_ques_choose")) {
+            lastPromptedPathRef.current = null;
+            setVisible(false);
+        }
+    }, [pathname]);
+
     // Prompt logic on app entry and screen navigation
     useEffect(() => {
         if (!profile || !isSuccess) return;
@@ -57,6 +66,7 @@ export function GlobalTestResumePromptModal() {
         // 1. Initial cold-start prompt
         if (!hasInitialPromptedRef.current) {
             hasInitialPromptedRef.current = true;
+            lastPromptedLogIdRef.current = resumable.id;
             lastPromptedPathRef.current = pathname;
             setVisible(true);
             return;
@@ -69,7 +79,11 @@ export function GlobalTestResumePromptModal() {
             pathname === "/(tabs)/2_1_lessons" ||
             pathname?.startsWith("/(3_4_lessons)/lesson");
 
-        if (isHubRoute && lastPromptedPathRef.current !== pathname) {
+        const isNewLog = lastPromptedLogIdRef.current !== resumable.id;
+        const isNewPath = lastPromptedPathRef.current !== pathname;
+
+        if (isHubRoute && (isNewLog || isNewPath)) {
+            lastPromptedLogIdRef.current = resumable.id;
             lastPromptedPathRef.current = pathname;
             setVisible(true);
         }
@@ -88,8 +102,13 @@ export function GlobalTestResumePromptModal() {
                 console.error("Failed to abandon test:", err);
             }
         }
+        lastPromptedLogIdRef.current = null;
         setVisible(false);
     }, [resumableData?.resumable, abandonTestMut]);
+
+    const handleCancel = useCallback(() => {
+        setVisible(false);
+    }, []);
 
     if (!visible || !resumableData?.resumable || pathname?.includes("6_2_ques_choose")) {
         return null;
@@ -101,6 +120,7 @@ export function GlobalTestResumePromptModal() {
             testLog={resumableData.resumable}
             onResume={handleResume}
             onAbandon={handleAbandon}
+            onCancel={handleCancel}
             isAbandoning={isAbandoning}
         />
     );

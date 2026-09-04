@@ -502,10 +502,10 @@ export default function TestContainerV2({
     } = runner;
 
     useEffect(() => {
-        if ((skipIntro || params.isResume) && status === "idle") {
+        if ((skipIntro || params.isResume) && status === "idle" && !conflictResumable && !error) {
             actions.start();
         }
-    }, [skipIntro, params.isResume, status, actions.start]);
+    }, [skipIntro, params.isResume, status, conflictResumable, error, actions.start]);
 
     useEffect(() => {
         if (status === "completed" && result?.userTestLog) {
@@ -817,6 +817,14 @@ export default function TestContainerV2({
                         showMascot={true}
                         mascotExpression="sad"
                     />
+                    <ResumeTestPromptModal
+                        visible={!!conflictResumable}
+                        testLog={conflictResumable?.resumable ?? null}
+                        onResume={resolveConflictResume}
+                        onAbandon={() => resolveConflictAbandon(true)}
+                        onCancel={handleBack}
+                        isAbandoning={isAbandoningConflict}
+                    />
                 </>
             );
         }
@@ -863,7 +871,7 @@ export default function TestContainerV2({
                     visible={!!conflictResumable}
                     testLog={conflictResumable?.resumable ?? null}
                     onResume={resolveConflictResume}
-                    onAbandon={resolveConflictAbandon}
+                    onAbandon={() => resolveConflictAbandon(false)}
                     isAbandoning={isAbandoningConflict}
                 />
             </>
