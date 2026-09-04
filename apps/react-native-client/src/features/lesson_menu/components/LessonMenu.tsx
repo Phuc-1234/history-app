@@ -428,19 +428,21 @@ export function LessonMenu({
                                             Lớp {selectedGrade}
                                         </Text>
 
-                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                                            <TouchableOpacity
-                                                onPress={() => setFeedbackModalVisible(true)}
-                                                style={styles.flagButton}
-                                                activeOpacity={0.7}
-                                            >
-                                                <Ionicons
-                                                    name="flag-outline"
-                                                    size={20}
-                                                    color={colors.textSecondary}
-                                                />
-                                            </TouchableOpacity>
-                                        </View>
+                                        {isLoggedIn && (
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                                <TouchableOpacity
+                                                    onPress={() => setFeedbackModalVisible(true)}
+                                                    style={styles.flagButton}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Ionicons
+                                                        name="flag-outline"
+                                                        size={20}
+                                                        color={colors.textSecondary}
+                                                    />
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
                                     </View>
                                     <View style={styles.topProgressWrapper}>
                                         <View style={styles.topProgressTrack}>

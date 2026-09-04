@@ -21,15 +21,16 @@ import {
 } from "../services/socialApi";
 import { styles } from "../styles/social.styles";
 import { toViewUser, type ViewUser } from "../utils/socialView";
+import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 
 type Tab = "Bạn bè" | "Người theo dõi" | "Đang theo dõi";
 
-function pushRoute(router: ReturnType<typeof useRouter>, route: string) {
-    router.push(route as never);
-}
-
 export function FriendsAndFollowScreen() {
     const router = useRouter();
+    const preventDoubleTap = usePreventDoubleTap();
+    const handlePushRoute = preventDoubleTap((route: string) => {
+        router.push(route as never);
+    });
     const [activeTab, setActiveTab] = useState<Tab>("Bạn bè");
     useGetProfileQuery();
     const currentUserId = useAppSelector((state) => state.auth.profile?.id);
@@ -72,7 +73,7 @@ export function FriendsAndFollowScreen() {
                 primaryIcon: "eye-outline" as const,
                 primaryVariant: "softFill" as const,
                 primaryOnPress: () =>
-                    pushRoute(router, `/(social)/profile?userId=${user.id}`),
+                    handlePushRoute(`/(social)/profile?userId=${user.id}`),
                 secondaryLabel: "Huỷ kết bạn",
                 secondaryIcon: "person-remove" as const,
                 secondaryVariant: "softFill" as const,
@@ -90,14 +91,17 @@ export function FriendsAndFollowScreen() {
                 secondaryIcon: "eye-outline" as const,
                 secondaryVariant: "softFill" as const,
                 secondaryOnPress: () =>
-                    pushRoute(router, `/(social)/profile?userId=${user.id}`),
+                    handlePushRoute(`/(social)/profile?userId=${user.id}`),
             };
         }
         // Người theo dõi: chevron-mode (chỉ cho xem profile)
         return {
             primaryLabel: "Xem",
             primaryIcon: "chevron-forward" as const,
-            primaryOnPress: () => pushRoute(router, `/(social)/profile?userId=${user.id}`),
+            primaryOnPress: () =>
+                handlePushRoute(`/(social)/profile?userId=${user.id}`),
+            onPress: () =>
+                handlePushRoute(`/(social)/profile?userId=${user.id}`),
         };
     };
 
@@ -161,13 +165,13 @@ export function FriendsAndFollowScreen() {
                         label="Tìm bạn"
                         icon="search"
                         variant="primary"
-                        onPress={() => pushRoute(router, "/(social)/search")}
+                        onPress={() => handlePushRoute("/(social)/search")}
                     />
                     <PrimaryButton
                         label="Lời mời"
                         icon="mail-unread"
                         variant="primary"
-                        onPress={() => pushRoute(router, "/(social)/requests")}
+                        onPress={() => handlePushRoute("/(social)/requests")}
                     />
                 </View>
                 {!currentUserId ? <EmptyState title="Đang tải thông tin đăng nhập..." /> : null}
@@ -185,7 +189,7 @@ export function FriendsAndFollowScreen() {
                     <EmptyState
                         title={activeEmptyTitle}
                         actionLabel="Tìm bạn"
-                        onAction={() => pushRoute(router, "/(social)/search")}
+                        onAction={() => handlePushRoute("/(social)/search")}
                     />
                 ) : null}
                 {activeUsers.map((user) => (

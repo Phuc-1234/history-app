@@ -6,6 +6,7 @@ import { apiSlice } from '../services/apiSlice';
 import authReducer from "../features/auth/store/authSlice";
 import testHistoryReducer from '../features/test_v2/store/testHistorySlice';
 import settingsReducer from '../features/settings/store/settingsSlice';
+import networkReducer from './networkSlice';
 
 // Combine your reducers (add your feature auth or history slices here later)
 const rootReducer = combineReducers({
@@ -13,14 +14,15 @@ const rootReducer = combineReducers({
   auth: authReducer,
   testHistory: testHistoryReducer,
   settings: settingsReducer,
+  network: networkReducer,
 });
 
 // Configure Redux Persist to save states automatically
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  // Ensure we don't accidentally try to persist the RTK Query cache state
-  blacklist: [apiSlice.reducerPath], 
+  // Ensure we don't accidentally try to persist the RTK Query cache state or network state
+  blacklist: [apiSlice.reducerPath, 'network'], 
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

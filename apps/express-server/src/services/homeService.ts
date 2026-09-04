@@ -8,11 +8,20 @@ export class HomeService {
      * - 3 bài học đầu tiên (theo vị trí, từ các topic)
      */
     async getHomeData(userId?: string | null) {
+        const hiddenFilter = userId
+            ? {
+                  OR: [
+                      { isHidden: false, isPrivate: false, isVerified: true },
+                      { id: userId },
+                  ],
+              }
+            : { isVerified: true, isHidden: false, isPrivate: false };
+
         // Chạy song song để tăng performance
         const [top3Users, allLessons] = await Promise.all([
             // Top 3 BXH theo XP
             prisma.user.findMany({
-                where: { isVerified: true, isHidden: false },
+                where: hiddenFilter,
                 orderBy: { totalXp: "desc" },
                 take: 3,
                 select: {

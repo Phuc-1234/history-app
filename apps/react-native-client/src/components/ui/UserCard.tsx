@@ -61,12 +61,14 @@ export function UserCard({
         </View>
     ) : null;
 
+    const handleCardPress = onPress ?? (isChevron ? primaryOnPress : undefined);
+
     return (
         <TouchableOpacity
             style={[styles.userCard, style]}
-            onPress={onPress}
+            onPress={handleCardPress}
             activeOpacity={0.85}
-            disabled={!onPress}
+            disabled={!handleCardPress}
         >
             <View style={styles.userCardHeaderRow}>
                 <Avatar user={user} />

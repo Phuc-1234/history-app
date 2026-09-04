@@ -928,6 +928,11 @@ export class TestServiceV2 {
             // Reward + progress engine
             let consequences: any[] = [];
             if (isPassed) {
+                const scoreRatio =
+                    totalMaxScore > 0
+                        ? Math.min(1, Math.max(0, totalScoreAwarded / totalMaxScore))
+                        : 1.0;
+
                 // 1. Reward engine: test reward → streak → xp/gold application → tier check
                 const rewardResult = await rewardEngine.processTestPassRewards(
                     userId,
@@ -939,6 +944,7 @@ export class TestServiceV2 {
                     tx,
                     log.autoPickStrategy,
                     log.questionCount ?? 10,
+                    scoreRatio,
                 );
                 consequences.push(...rewardResult.consequences);
 

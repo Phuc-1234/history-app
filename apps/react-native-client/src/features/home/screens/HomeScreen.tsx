@@ -171,6 +171,11 @@ export default function HomeScreen() {
 
     const handleGoToLeaderboard = preventDoubleTap(() =>
         router.push("/(tabs)/9_1_leaderboard" as never));
+    const handlePodiumUserPress = preventDoubleTap((targetUserId: string) => {
+        if (!profile) return;
+        if (String(targetUserId) === String(profile.id)) return;
+        router.push(`/(social)/profile?userId=${targetUserId}` as never);
+    });
     const handleGoToLesson = preventDoubleTap((lessonId: number) =>
         router.push(`/(3_4_lessons)/lesson/${lessonId}` as never));
     const handleGoToLessons = preventDoubleTap(() => router.push("/(tabs)/2_1_lessons" as never));
@@ -608,6 +613,8 @@ export default function HomeScreen() {
                                         topUsers={topUsersData}
                                         isSmallDevice={false}
                                         showStreak={false}
+                                        myUserId={profile?.id}
+                                        onUserPress={handlePodiumUserPress}
                                     />
                                 )}
                             </View>
