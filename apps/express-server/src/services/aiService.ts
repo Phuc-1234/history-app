@@ -308,30 +308,41 @@ Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thi
     }
 
     async generateMindMap(text: string): Promise<{ sections: any[] }> {
-        const prompt = `Bạn là một trợ lý AI phân tích lịch sử. Hãy tóm tắt đoạn văn bản lịch sử sau đây thành một cấu trúc sơ đồ tư duy (mindmap) dưới dạng JSON.
+        const prompt = `Bạn là một chuyên gia phân tích và trực quan hóa sơ đồ tư duy (mindmap) lịch sử. Hãy phân tích đoạn văn bản lịch sử sau đây và tổ chức thành một cấu trúc sơ đồ tư duy phân cấp dạng cây dưới dạng JSON.
+TẤT CẢ các thành phần trong sơ đồ tư duy (từ nhánh gốc, nhánh con, đến nhánh lá cuối cùng) đều bắt buộc phải là NHÁNH (sections/children), TUYỆT ĐỐI KHÔNG sử dụng hay trả về bất kỳ trường "nodes" hoặc khái niệm "nút" nào.
+
 Định dạng JSON trả về phải tuân thủ CHÍNH XÁC cấu trúc sau:
 {
   "sections": [
     {
-      "name": "Tên nhánh (ví dụ: 1. Hoàn cảnh lịch sử)",
+      "name": "Tên nhánh chính (ví dụ: 1. Hoàn cảnh lịch sử)",
       "position": 1,
-      "nodes": [
+      "children": [
         {
-          "header": "Tiêu đề nút (ví dụ: Nguyên nhân trực tiếp)",
-          "body": "Nội dung tóm tắt chi tiết của nút kiến thức này",
-          "position": 1
+          "name": "Tên nhánh phụ (ví dụ: Nguyên nhân sâu xa)",
+          "position": 1,
+          "children": [
+            {
+              "name": "Nội dung nhánh chi tiết / nhánh lá (ví dụ: Mâu thuẫn giai cấp sâu sắc)",
+              "position": 1,
+              "children": []
+            }
+          ]
         }
-      ],
-      "children": []
+      ]
     }
   ]
 }
-Lưu ý:
-- "children" là danh sách các nhánh con (cấu trúc đệ quy giống như "sections").
-- Hãy chia nhỏ thông tin hợp lý để sơ đồ tư duy có cấu trúc phân cấp rõ ràng.
+
+Lưu ý quan trọng:
+- Mỗi nhánh phải có "name" ngắn gọn, súc tích (dưới 15 từ), phù hợp để hiển thị trực quan trên sơ đồ tư duy.
+- Phân cấp cây logic, rõ ràng từ khái niệm tổng quát đến chi tiết (khoảng 2 đến 4 cấp phân nhánh).
+- TẤT CẢ các nhánh lá cuối cùng đều là nhánh có "children": [], KHÔNG tạo mảng "nodes".
+- "children" là danh sách các nhánh con (cấu trúc đệ quy giống hệt như "sections").
+- "position" là thứ tự số nguyên từ 1 trở đi.
 - Chỉ trả về duy nhất chuỗi JSON hợp lệ, không có thêm bất kỳ văn bản giải thích nào khác ngoài JSON, không bọc trong markdown codeblock \`\`\`json.
 
-Đoạn văn bản cần tóm tắt:
+Đoạn văn bản cần tóm tắt thành sơ đồ tư duy:
 ${text}`;
 
         const jsonStr = await this.callGemini(prompt);
@@ -339,26 +350,35 @@ ${text}`;
         const data = JSON.parse(cleanedStr);
 
         let idCounter = Date.now();
-        const addIds = (sections: any[]) => {
+        const normalizeSections = (sections: any[]) => {
             for (const s of sections) {
                 if (!s.id) {
                     s.id = idCounter++;
                 }
-                if (s.nodes && Array.isArray(s.nodes)) {
+                if (!s.children || !Array.isArray(s.children)) {
+                    s.children = [];
+                }
+                // Convert any accidental "nodes" into child branches ("nhánh")
+                if (s.nodes && Array.isArray(s.nodes) && s.nodes.length > 0) {
                     for (const n of s.nodes) {
-                        if (!n.id) {
-                            n.id = idCounter++;
-                        }
+                        s.children.push({
+                            id: n.id || idCounter++,
+                            name: n.header || n.body || "Chi tiết",
+                            position: n.position || s.children.length + 1,
+                            children: [],
+                        });
                     }
                 }
-                if (s.children && Array.isArray(s.children)) {
-                    addIds(s.children);
+                delete s.nodes;
+
+                if (s.children.length > 0) {
+                    normalizeSections(s.children);
                 }
             }
         };
 
         if (data && Array.isArray(data.sections)) {
-            addIds(data.sections);
+            normalizeSections(data.sections);
         }
 
         return data;

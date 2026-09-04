@@ -201,7 +201,7 @@ export const AiChatOverlay: React.FC<AiChatOverlayProps> = ({ visible, onClose }
                             ]}
                         >
                             {isUser ? (
-                                <Text selectable style={[styles.messageText, styles.userMessageText]}>
+                                <Text selectable style={[styles.messageText, styles.userMessageText, item.isError && styles.errorMessageText]}>
                                     {item.content}
                                 </Text>
                             ) : (
@@ -1074,6 +1074,9 @@ const styles = StyleSheet.create({
     },
     userMessageText: {
         color: colors.textLight,
+    },
+    errorMessageText: {
+        color: colors.textPrimary,
     },
     errorBubble: {
         backgroundColor: colors.errorContainer,

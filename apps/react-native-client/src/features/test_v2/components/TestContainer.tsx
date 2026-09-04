@@ -626,20 +626,7 @@ export default function TestContainerV2({
             const filtered = prev.filter((d) => d.questionId !== questionId);
             return [...filtered, entry];
         });
-
-        const currentQ = redoWrongQuestions[redoWrongIndex];
-        if (currentQ && currentQ.id === questionId && currentQ.type === "CHOOSE" && isSingleChoice(currentQ)) {
-            const evalRes = evaluateQuestion(currentQ, answerData);
-            setRedoWrongEvaluations((prev) => ({ ...prev, [questionId]: evalRes }));
-            if (evalRes.isCorrect) {
-                playPracticeCorrectSound();
-                hapticSuccess();
-            } else {
-                playPracticeWrongSound();
-                hapticError();
-            }
-        }
-    }, [redoWrongQuestions, redoWrongIndex]);
+    }, []);
 
     const handleRedoAnswerChoose = useCallback((questionId: number, selectedOptions: number[]) => {
         handleRedoSetAnswer(questionId, "CHOOSE", { selectedOptions } as UserChooseAnswer);
@@ -1002,7 +989,22 @@ export default function TestContainerV2({
         const redoAnswerEntry = currentRedoQuestion
             ? redoWrongAnswers.find((d) => d.questionId === currentRedoQuestion.id)
             : null;
-        const redoAnswered = !!redoAnswerEntry;
+        const redoAnswered = (() => {
+            if (!redoAnswerEntry) return false;
+            if (redoAnswerEntry.type === "FILL") {
+                const ans = redoAnswerEntry.answerData as UserFillAnswer;
+                return !!ans.typedAnswer && ans.typedAnswer.trim() !== "";
+            }
+            if (redoAnswerEntry.type === "CHOOSE") {
+                const ans = redoAnswerEntry.answerData as UserChooseAnswer;
+                return !!ans.selectedOptions && ans.selectedOptions.length > 0;
+            }
+            if (redoAnswerEntry.type === "MATCH") {
+                const ans = redoAnswerEntry.answerData as UserMatchAnswer;
+                return !!ans.pairs && ans.pairs.length > 0;
+            }
+            return false;
+        })();
         const redoShowFeedback = !!redoEvalResult;
 
         const redoRunnerBranchConfig = {
@@ -1099,7 +1101,7 @@ export default function TestContainerV2({
                                         onAnswer={handleRedoAnswerChoose}
                                         showFeedback={redoShowFeedback}
                                         evalResult={redoEvalResult}
-                                        disabled={false}
+                                        disabled={redoShowFeedback}
                                     />
                                 )}
                                 {currentRedoQuestion.type === "FILL" && (
@@ -1112,7 +1114,7 @@ export default function TestContainerV2({
                                         onAnswer={handleRedoAnswerFill}
                                         showFeedback={redoShowFeedback}
                                         evalResult={redoEvalResult}
-                                        disabled={false}
+                                        disabled={redoShowFeedback}
                                     />
                                 )}
                                 {currentRedoQuestion.type === "MATCH" && (
@@ -1125,7 +1127,7 @@ export default function TestContainerV2({
                                         onAnswer={handleRedoAnswerMatch}
                                         showFeedback={redoShowFeedback}
                                         evalResult={redoEvalResult}
-                                        disabled={false}
+                                        disabled={redoShowFeedback}
                                     />
                                 )}
                             </Animated.View>
