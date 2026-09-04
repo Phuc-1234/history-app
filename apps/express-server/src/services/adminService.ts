@@ -132,6 +132,73 @@ function buildAnswers(
     return [];
 }
 
+async function resolveScopeNamesForQuestions(
+    questions: { scopeType: string | null; scopeId: number | null }[]
+): Promise<Map<string, string>> {
+    const topicIds = new Set<number>();
+    const lessonIds = new Set<number>();
+    const sectionIds = new Set<number>();
+    const nodeIds = new Set<number>();
+
+    for (const q of questions) {
+        if (!q.scopeId) continue;
+        if (q.scopeType === "TOPIC") topicIds.add(q.scopeId);
+        else if (q.scopeType === "LESSON") lessonIds.add(q.scopeId);
+        else if (q.scopeType === "SECTION") sectionIds.add(q.scopeId);
+        else if (q.scopeType === "NODE") nodeIds.add(q.scopeId);
+    }
+
+    const [topics, lessons, sections, nodes] = await Promise.all([
+        topicIds.size > 0
+            ? prisma.topic.findMany({
+                where: { id: { in: Array.from(topicIds) } },
+                select: { id: true, name: true },
+            })
+            : [],
+        lessonIds.size > 0
+            ? prisma.lesson.findMany({
+                where: { id: { in: Array.from(lessonIds) } },
+                select: { id: true, name: true, position: true },
+            })
+            : [],
+        sectionIds.size > 0
+            ? prisma.section.findMany({
+                where: { id: { in: Array.from(sectionIds) } },
+                select: { id: true, name: true },
+            })
+            : [],
+        nodeIds.size > 0
+            ? prisma.node.findMany({
+                where: { id: { in: Array.from(nodeIds) } },
+                select: { id: true, header: true, body: true },
+            })
+            : [],
+    ]);
+
+    const result = new Map<string, string>();
+    for (const t of topics) result.set(`TOPIC:${t.id}`, t.name);
+    for (const l of lessons) result.set(`LESSON:${l.id}`, l.position ? `Bài ${l.position}: ${l.name}` : l.name);
+    for (const s of sections) result.set(`SECTION:${s.id}`, s.name);
+    for (const n of nodes) {
+        if (n.header && n.header.trim()) {
+            result.set(`NODE:${n.id}`, n.header.trim());
+        } else {
+            const plain = n.body.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+            if (plain) result.set(`NODE:${n.id}`, plain);
+        }
+    }
+    return result;
+}
+
+function getScopeName(
+    q: { scopeType: string | null; scopeId: number | null },
+    scopeNameMap: Map<string, string>
+): string | null {
+    if (q.scopeType === "NATIONAL") return "Quốc gia";
+    if (q.scopeType === "GRADE") return q.scopeId ? `Khối ${q.scopeId}` : null;
+    if (!q.scopeType || !q.scopeId) return null;
+    return scopeNameMap.get(`${q.scopeType}:${q.scopeId}`) ?? null;
+}
 
 export class AdminService {
     // ─────────────────────────────── OVERVIEW STATS ───────────────────────────
@@ -1286,6 +1353,8 @@ export class AdminService {
             questions = fetchedQuestions;
         }
 
+        const scopeNameMap = await resolveScopeNamesForQuestions(questions);
+
         const mappedQuestions = questions.map(q => ({
             id: q.id,
             type: q.type,
@@ -1296,6 +1365,7 @@ export class AdminService {
             isActive: q.isActive,
             scopeId: q.scopeId,
             scopeType: q.scopeType,
+            scopeName: getScopeName(q, scopeNameMap),
             answerDataJson: q.answerDataJson ?? null,
             gradeId: q.gradeId,
             topicId: q.topicId,
@@ -1321,6 +1391,8 @@ export class AdminService {
         });
         if (!question) return null;
 
+        const scopeNameMap = await resolveScopeNamesForQuestions([question]);
+
         return {
             id: question.id,
             type: question.type,
@@ -1331,6 +1403,7 @@ export class AdminService {
             isActive: question.isActive,
             scopeId: question.scopeId,
             scopeType: question.scopeType,
+            scopeName: getScopeName(question, scopeNameMap),
             answerDataJson: question.answerDataJson ?? null,
             gradeId: question.gradeId,
             topicId: question.topicId,
