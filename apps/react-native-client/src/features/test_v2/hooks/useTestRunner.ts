@@ -60,7 +60,7 @@ export interface TestRunnerV2State {
     conflictResumable: ResumableTestV2Response | null;
     isAbandoningConflict: boolean;
     resolveConflictResume: () => void;
-    resolveConflictAbandon: () => Promise<void>;
+    resolveConflictAbandon: (startNew?: boolean) => Promise<void>;
 
     // Actions
     actions: {
@@ -186,6 +186,25 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         setStatus("running");
     }, [params, startTestMut]);
 
+    // ── Check resumable on test intro open ───────────────────────────
+    useEffect(() => {
+        if (params.isResume) return;
+
+        let isMounted = true;
+        triggerCheckResumable()
+            .unwrap()
+            .then((check) => {
+                if (isMounted && check?.resumable && check.questions && check.questions.length > 0) {
+                    setConflictResumable(check);
+                }
+            })
+            .catch(() => {});
+
+        return () => {
+            isMounted = false;
+        };
+    }, [params.isResume, triggerCheckResumable]);
+
     // ── Start test ───────────────────────────────────────────────────
     const handleStart = useCallback(async () => {
         try {
@@ -263,13 +282,17 @@ export function useTestRunnerV2(params: StartTestV2Request): TestRunnerV2State {
         }
     }, [conflictResumable, resumeSession]);
 
-    const resolveConflictAbandon = useCallback(async () => {
+    const resolveConflictAbandon = useCallback(async (startNew: boolean = true) => {
         if (conflictResumable?.resumable) {
             try {
                 showLoading();
                 await abandonTestMut({ logId: conflictResumable.resumable.id }).unwrap();
                 setConflictResumable(null);
-                await startNewSession();
+                if (startNew) {
+                    await startNewSession();
+                } else {
+                    setStatus("idle");
+                }
             } catch (err: any) {
                 console.error("Failed to abandon previous test:", err);
                 setError(err?.data?.error ?? err?.message ?? "Không thể hủy bài kiểm tra cũ");

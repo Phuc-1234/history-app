@@ -9,6 +9,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { store, persistor } from "../store/store";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GlobalSessionModal } from "../components/GlobalSessionModal";
+import { GlobalNetworkModal } from "../components/GlobalNetworkModal";
 import messaging from "@react-native-firebase/messaging";
 import { useNotification } from "../features/notification";
 import { Toast } from "../components/Toast";
@@ -96,6 +97,7 @@ export default function RootLayout() {
                                 />
                             </Stack>
                             <GlobalSessionModal />
+                            <GlobalNetworkModal />
                             <PvpActiveRoomPromptModal />
                             <GlobalTestResumePromptModal />
                             <GlobalToastContainer />

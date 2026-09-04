@@ -174,11 +174,17 @@ export class ProgressEngine {
     }
 
     /**
-     * Checks whether a node has any questions scoped to it (nodeId match).
+     * Checks whether a node has any questions scoped to it (scopeType/scopeId or nodeId match).
      */
     async nodeHasRelevantQuestions(nodeId: number): Promise<boolean> {
         const count = await prisma.question.count({
-            where: { nodeId },
+            where: {
+                isActive: true,
+                OR: [
+                    { scopeType: "NODE", scopeId: nodeId },
+                    { nodeId },
+                ],
+            },
         });
         return count > 0;
     }

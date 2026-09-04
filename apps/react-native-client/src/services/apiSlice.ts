@@ -9,6 +9,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { API_BASE_URL } from './config';
+import { setNetworkErrorVisible } from '../store/networkSlice';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -219,6 +220,13 @@ const baseQueryWithReauth: BaseQueryFn<
         api.dispatch(setSessionExpired(true));
       }
     }
+  }
+
+  if (
+    result.error &&
+    (result.error.status === 'FETCH_ERROR' || result.error.status === 'TIMEOUT_ERROR')
+  ) {
+    api.dispatch(setNetworkErrorVisible(true));
   }
 
   return result;

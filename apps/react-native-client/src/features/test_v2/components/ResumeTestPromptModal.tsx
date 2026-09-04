@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
 } from "react-native";
-import { Clock, FileText, Trash2, Play } from "lucide-react-native";
+import { Clock, FileText, Trash2, Play, X } from "lucide-react-native";
 import { colors, spacing, typography } from "@/theme";
 import type { UserTestLogV2 } from "../types";
 
@@ -16,6 +16,7 @@ interface ResumeTestPromptModalProps {
     testLog: UserTestLogV2 | null;
     onResume: () => void;
     onAbandon: () => void;
+    onCancel?: () => void;
     isAbandoning?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function ResumeTestPromptModal({
     testLog,
     onResume,
     onAbandon,
+    onCancel,
     isAbandoning = false,
 }: ResumeTestPromptModalProps) {
     if (!visible || !testLog) return null;
@@ -47,10 +49,21 @@ export function ResumeTestPromptModal({
             visible={visible}
             transparent
             animationType="fade"
-            onRequestClose={() => {}}
+            onRequestClose={onCancel || (() => {})}
         >
             <View style={styles.overlay}>
                 <View style={styles.modalCard}>
+                    {onCancel && (
+                        <TouchableOpacity
+                            style={styles.closeBtn}
+                            onPress={onCancel}
+                            disabled={isAbandoning}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <X size={20} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+
                     <View style={styles.iconContainer}>
                         <Clock size={32} color={colors.primary} />
                     </View>
@@ -131,6 +144,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderWidth: 1,
         borderColor: colors.borderMedium,
+        position: "relative",
+    },
+    closeBtn: {
+        position: "absolute",
+        top: 14,
+        right: 14,
+        zIndex: 1,
+        padding: 4,
     },
     iconContainer: {
         width: 56,

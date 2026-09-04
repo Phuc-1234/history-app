@@ -291,24 +291,28 @@ export function NodeScreen({ nodeId, onBack, onQuizPress, onPrevPress, onNextPre
                                             <Text style={styles.dropdownItemText}>Flashcard của nút này</Text>
                                         </TouchableOpacity>
 
-                                        <View style={styles.dropdownDivider} />
+                                        {isLoggedIn && (
+                                            <>
+                                                <View style={styles.dropdownDivider} />
 
-                                        <TouchableOpacity
-                                            style={styles.dropdownItem}
-                                            onPress={() => {
-                                                setShowMenu(false);
-                                                setFeedbackModalVisible(true);
-                                            }}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Ionicons
-                                                name="chatbubble-ellipses-outline"
-                                                size={18}
-                                                color={colors.textPrimary}
-                                                style={styles.dropdownItemIcon}
-                                            />
-                                            <Text style={styles.dropdownItemText}>Góp ý</Text>
-                                        </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={styles.dropdownItem}
+                                                    onPress={() => {
+                                                        setShowMenu(false);
+                                                        setFeedbackModalVisible(true);
+                                                    }}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Ionicons
+                                                        name="chatbubble-ellipses-outline"
+                                                        size={18}
+                                                        color={colors.textPrimary}
+                                                        style={styles.dropdownItemIcon}
+                                                    />
+                                                    <Text style={styles.dropdownItemText}>Góp ý</Text>
+                                                </TouchableOpacity>
+                                            </>
+                                        )}
                                     </View>
                                 </>
                             )}

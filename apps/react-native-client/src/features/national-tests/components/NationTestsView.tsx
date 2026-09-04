@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
+import React, { useState, useCallback } from "react";
 import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import {
   StyleSheet,
@@ -19,7 +19,11 @@ import typography from "@/theme/typography";
 import { Card } from "@/components/Card";
 import Button from "@/components/Button";
 import { CustomModal } from "@/components/Modal";
-import { useGetNationalTestsQuery, useLazyGetTestInfoQuery } from "@/features/test_v2/services/testApi";
+import {
+  useGetNationalTestsQuery,
+  useLazyGetTestInfoQuery,
+  useCheckResumableQuery,
+} from "@/features/test_v2/services/testApi";
 import {
   BookOpen,
   FileText,
@@ -81,6 +85,18 @@ export const NationalTestsView: React.FC = () => {
   };
 
   const { data: tests, isLoading, error, refetch, isFetching } = useGetNationalTestsQuery();
+  const { refetch: refetchResumable } = useCheckResumableQuery(undefined, {
+    skip: !profile,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (profile) {
+        refetchResumable();
+      }
+    }, [profile, refetchResumable])
+  );
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isMasteryExpanded, setIsMasteryExpanded] = useState(false);

@@ -19,6 +19,7 @@ import { colors } from "../../../theme/colors";
 import typography from "../../../theme/typography";
 import FeedbackModal from "../../../components/FeedbackModal";
 import { CuratedTestsSection } from "../../test_v2";
+import { useAppSelector } from "@/store/storeHook";
 
 interface LessonSummaryProps {
     data: LessonSummaryData;
@@ -28,6 +29,7 @@ interface LessonSummaryProps {
     ) => void;
     onNodePress?: (nodeId: number) => void;
     onSectionTestPress?: (sectionId: number) => void;
+    refreshTrigger?: number | boolean;
 }
 
 const getLessonProgress = (sections: LessonSection[]) => {
@@ -56,8 +58,10 @@ export function LessonSummary({
     onActionPress,
     onNodePress,
     onSectionTestPress,
+    refreshTrigger,
 }: LessonSummaryProps) {
     const { width } = useWindowDimensions();
+    const isLoggedIn = !!useAppSelector((state) => state.auth.profile);
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
 
     const progress = data.progress || getLessonProgress(sections);
@@ -107,13 +111,15 @@ export function LessonSummary({
                     <Text style={[styles.lessonHeading, { flex: 1, marginBottom: 0 }]}>
                         Bài {data.position}: {data.name}
                     </Text>
-                    <TouchableOpacity
-                        onPress={() => setFeedbackModalVisible(true)}
-                        style={styles.flagButton}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
+                    {isLoggedIn && (
+                        <TouchableOpacity
+                            onPress={() => setFeedbackModalVisible(true)}
+                            style={styles.flagButton}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                    )}
                 </View>
                 {data.summary ? (
                     <View style={styles.lessonDescriptionContainer}>
@@ -219,6 +225,7 @@ export function LessonSummary({
                 title="Một số đề luyện tập"
                 variant="plain"
                 defaultExpanded={true}
+                refreshTrigger={refreshTrigger}
             />
 
             {/* Context Feedback Modal */}

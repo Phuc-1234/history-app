@@ -31,7 +31,7 @@ export function charWidthFor(depth: number): number {
 //   depth 2 (leaf):   bullet dot 20 + left padding 8 + right icon room 22
 export function sideRoomFor(depth: number): number {
     if (depth === 1) return 4 + 12 + 24;
-    if (depth === 2) return 20 + 8 + 22;
+    if (depth >= 2) return 20 + 8 + 22;
     return 14 + 14;
 }
 
@@ -40,7 +40,7 @@ export function sideRoomFor(depth: number): number {
 // breathing room.
 export function textStartOffset(depth: number): number {
     if (depth === 1) return 4 + 12; // accent bar + padding
-    if (depth === 2) return 20 + 8; // bullet dot + padding
+    if (depth >= 2) return 20 + 8; // bullet dot + padding
     return 14; // root left padding
 }
 

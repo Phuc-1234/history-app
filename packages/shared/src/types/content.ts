@@ -52,6 +52,7 @@ export interface SectionDto {
     children?: SectionDto[];
     // nodes directly under this section
     nodes?: NodeDto[];
+    hasSectionTest?: boolean;
 }
 
 // ---- Response bodies ----

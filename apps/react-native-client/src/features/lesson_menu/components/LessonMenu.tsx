@@ -14,7 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Book } from "lucide-react-native";
 import Svg, { Circle } from "react-native-svg";
 import { useRouter } from "expo-router";
-import { useAppSelector } from "../../../store/storeHook";
+import { useAppSelector, useAppDispatch } from "../../../store/storeHook";
+import { apiSlice } from "../../../services/apiSlice";
 import { useLessonMenu } from "../hooks/useLessonMenu";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { Card } from "../../../components/Card";
@@ -376,6 +377,15 @@ export function LessonMenu({
         onBackPress: () => router.back(),
     };
 
+    const dispatch = useAppDispatch();
+    const [refreshCount, setRefreshCount] = useState(0);
+
+    const handleRefresh = async () => {
+        setRefreshCount((c) => c + 1);
+        dispatch(apiSlice.util.invalidateTags(["User"]));
+        refetch();
+    };
+
     return (
         <ScreenWrapper branchConfig={branchConfig} showTopBar={false}>
             <View style={styles.container}>
@@ -394,7 +404,7 @@ export function LessonMenu({
                             refreshControl={
                                 <RefreshControl
                                     refreshing={isFetching && !loading}
-                                    onRefresh={refetch}
+                                    onRefresh={handleRefresh}
                                     colors={[colors.primary]}
                                     tintColor={colors.primary}
                                 />
@@ -418,19 +428,21 @@ export function LessonMenu({
                                             Lớp {selectedGrade}
                                         </Text>
 
-                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                                            <TouchableOpacity
-                                                onPress={() => setFeedbackModalVisible(true)}
-                                                style={styles.flagButton}
-                                                activeOpacity={0.7}
-                                            >
-                                                <Ionicons
-                                                    name="flag-outline"
-                                                    size={20}
-                                                    color={colors.textSecondary}
-                                                />
-                                            </TouchableOpacity>
-                                        </View>
+                                        {isLoggedIn && (
+                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                                <TouchableOpacity
+                                                    onPress={() => setFeedbackModalVisible(true)}
+                                                    style={styles.flagButton}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Ionicons
+                                                        name="flag-outline"
+                                                        size={20}
+                                                        color={colors.textSecondary}
+                                                    />
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
                                     </View>
                                     <View style={styles.topProgressWrapper}>
                                         <View style={styles.topProgressTrack}>
@@ -702,10 +714,20 @@ export function LessonMenu({
                                         themeColor={themeColor}
                                         variant="card"
                                         defaultExpanded={true}
+                                        refreshTrigger={refreshCount}
+                                    />
+
+                                    <PracticeSection
+                                        scopeType="GRADE"
+                                        scopeId={selectedGrade}
+                                        wrongQuestionCount={wrongQuestionCount}
+                                        answeredQuestionCount={answeredQuestionCount}
+                                        onPracticePress={onPracticePress}
+                                        isActiveTab={activeTab === "LUYEN_TAP"}
                                     />
 
                                     {/* Độ thành thạo Card (Expandable) */}
-                                    <Card variant="bordered" style={[styles.practiceCard, { marginBottom: 16 }]}>
+                                    <Card variant="bordered" style={[styles.practiceCard, { marginTop: 16, marginBottom: 16 }]}>
                                         <TouchableOpacity
                                             style={styles.masteryExpandHeader}
                                             onPress={() => setIsMasteryExpanded((prev) => !prev)}
@@ -760,15 +782,6 @@ export function LessonMenu({
                                             </View>
                                         )}
                                     </Card>
-
-                                    <PracticeSection
-                                        scopeType="GRADE"
-                                        scopeId={selectedGrade}
-                                        wrongQuestionCount={wrongQuestionCount}
-                                        answeredQuestionCount={answeredQuestionCount}
-                                        onPracticePress={onPracticePress}
-                                        isActiveTab={activeTab === "LUYEN_TAP"}
-                                    />
                                 </View>
                             )}
                         </ScrollView>

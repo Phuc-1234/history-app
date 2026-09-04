@@ -873,6 +873,18 @@ export const createQuestion = async (req: Request<{}, any, CreateQuestionBody>, 
         if (!type || difficulty === undefined || !promptText || !answerDataJson) {
             return res.status(400).json({ error: "type, difficulty, promptText, and answerDataJson are required." });
         }
+        if (type === "CHOOSE" && answerDataJson) {
+            const opts = (answerDataJson as any).options;
+            if (!Array.isArray(opts) || opts.length < 2) {
+                return res.status(400).json({ error: "CHOOSE questions must have at least 2 options." });
+            }
+        }
+        if (type === "MATCH" && answerDataJson) {
+            const pairs = (answerDataJson as any).pairs;
+            if (!Array.isArray(pairs) || pairs.length < 2) {
+                return res.status(400).json({ error: "MATCH questions must have at least 2 pairs." });
+            }
+        }
         const question = await adminService.createQuestion(req.body);
         return res.status(201).json(question);
     } catch (err) {
@@ -885,6 +897,22 @@ export const updateQuestion = async (req: Request<{ questionId: string }, any, U
     try {
         const questionId = Number(req.params.questionId);
         if (Number.isNaN(questionId)) return res.status(400).json({ error: "Invalid questionId." });
+
+        if (req.body.answerDataJson) {
+            const effectiveType = req.body.type || (await prisma.question.findUnique({ where: { id: questionId }, select: { type: true } }))?.type;
+            if (effectiveType === "CHOOSE") {
+                const opts = (req.body.answerDataJson as any).options;
+                if (opts && (!Array.isArray(opts) || opts.length < 2)) {
+                    return res.status(400).json({ error: "CHOOSE questions must have at least 2 options." });
+                }
+            }
+            if (effectiveType === "MATCH") {
+                const pairs = (req.body.answerDataJson as any).pairs;
+                if (pairs && (!Array.isArray(pairs) || pairs.length < 2)) {
+                    return res.status(400).json({ error: "MATCH questions must have at least 2 pairs." });
+                }
+            }
+        }
 
         const question = await adminService.updateQuestion(questionId, req.body);
         if (!question) return res.status(404).json({ error: "Question not found." });
@@ -1120,6 +1148,24 @@ export const bulkSaveMindMap = async (req: Request<{ lessonId: string }, any, { 
     } catch (err) {
         console.error("Bulk save mind map error:", err);
         return res.status(500).json({ error: "Failed to save mind map in bulk." });
+    }
+};
+
+export const deleteAdminMindMap = async (req: Request<{ lessonId: string }>, res: Response) => {
+    try {
+        const lessonId = Number(req.params.lessonId);
+        if (Number.isNaN(lessonId)) return res.status(400).json({ error: "Invalid lessonId." });
+
+        await prisma.mindMap.upsert({
+            where: { lessonId },
+            update: { data: { sections: [] } as any },
+            create: { lessonId, data: { sections: [] } as any },
+        });
+
+        return res.status(200).json({ message: "Mind map deleted successfully." });
+    } catch (err) {
+        console.error("Delete admin mind map error:", err);
+        return res.status(500).json({ error: "Failed to delete mind map." });
     }
 };
 

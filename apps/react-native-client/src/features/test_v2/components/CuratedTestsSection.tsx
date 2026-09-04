@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -56,6 +56,7 @@ interface CuratedTestsSectionProps {
   themeColor?: string;
   variant?: "card" | "plain";
   defaultExpanded?: boolean;
+  refreshTrigger?: number | boolean;
 }
 
 export const CuratedTestsSection: React.FC<CuratedTestsSectionProps> = ({
@@ -65,6 +66,7 @@ export const CuratedTestsSection: React.FC<CuratedTestsSectionProps> = ({
   themeColor = colors.primary,
   variant = "card",
   defaultExpanded = true,
+  refreshTrigger,
 }) => {
   const router = useRouter();
   const preventDoubleTap = usePreventDoubleTap();
@@ -75,10 +77,16 @@ export const CuratedTestsSection: React.FC<CuratedTestsSectionProps> = ({
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
   const [lockedFeatureName, setLockedFeatureName] = useState("");
 
-  const { data: tests, isLoading } = useGetCuratedTestsQuery(
+  const { data: tests, isLoading, refetch } = useGetCuratedTestsQuery(
     { scopeType, scopeId },
     { skip: !scopeId }
   );
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger !== null) {
+      refetch();
+    }
+  }, [refreshTrigger]);
 
   const handleTestPress = preventDoubleTap((test: CuratedTestDto) => {
     if (test.isPro && !isUserPro) {
@@ -124,9 +132,9 @@ export const CuratedTestsSection: React.FC<CuratedTestsSectionProps> = ({
                 { backgroundColor: colors.surfaceVariant, overflow: "hidden" },
               ]}
             >
-              {item.imgUrl ? (
+              {item.imgUrl && item.imgUrl.trim().length > 0 ? (
                 <Image
-                  source={{ uri: item.imgUrl }}
+                  source={{ uri: item.imgUrl.trim() }}
                   style={{ width: "100%", height: "100%" }}
                   resizeMode="cover"
                 />

@@ -485,7 +485,7 @@ export function CreateRoomTab({
                         <Text style={styles.label}>Chế độ câu hỏi</Text>
                         <View style={styles.optionsRow}>
                             {[
-                                { key: "AUTO_PICK" as Mode, label: "Đề tự sinh" },
+                                { key: "AUTO_PICK" as Mode, label: "Đề không cố định" },
                                 { key: "CURATED" as Mode, label: "Đề thi có sẵn" },
                             ].map((opt) => (
                                 <TouchableOpacity

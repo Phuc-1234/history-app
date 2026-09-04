@@ -12,6 +12,16 @@ const getSectionDisplaySuffix = (name: string): string => {
     return match ? match[1] : "này";
 };
 
+const countTotalNodes = (sec: LessonSection): number => {
+    let count = sec.nodes?.length || 0;
+    if (sec.children) {
+        for (const child of sec.children) {
+            count += countTotalNodes(child);
+        }
+    }
+    return count;
+};
+
 const stripHtml = (html: string | undefined | null): string => {
     if (!html) return "";
     let clean = html.replace(/<[^>]*>/g, " ");
@@ -177,8 +187,8 @@ export function ExpandableSection({
                             />
                         ))}
 
-                    {/* Section test button — only for top-level sections */}
-                    {isTopLevel && onSectionTestPress && (
+                    {/* Section test button — only for top-level sections with >1 node and questions */}
+                    {isTopLevel && onSectionTestPress && section.hasSectionTest && countTotalNodes(section) > 1 && (
                         <TouchableOpacity
                             style={[
                                 styles.sectionTestBtn,

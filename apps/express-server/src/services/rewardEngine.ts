@@ -582,10 +582,16 @@ export class RewardEngine {
         tx: TxClient,
         autoPickStrategy?: string | null,
         questionCount: number = 10,
+        scoreRatio: number = 1.0,
     ): Promise<{ consequences: ProgressConsequence[]; totalXpGained: number; totalGoldGained: number }> {
         const consequences: ProgressConsequence[] = [];
         let totalXpGained = 0;
         let totalGoldGained = 0;
+
+        const scaleReward = (amount: number, ratio: number) => {
+            if (amount <= 0) return 0;
+            return Math.max(1, Math.floor(amount * ratio));
+        };
 
         // Fetch active multipliers for XP and Gold
         const { xpMultiplier, goldMultiplier } = await shopService.getUserActiveEffects(userId, tx);
@@ -611,8 +617,14 @@ export class RewardEngine {
         if (testReward) {
             const baseXp = testReward.xp;
             const baseGold = testReward.gold;
-            const calcXp = Math.floor((isPracticeTrigger ? baseXp * questionCount : baseXp) * xpMultiplier);
-            const calcGold = Math.floor((isPracticeTrigger ? baseGold * questionCount : baseGold) * goldMultiplier);
+            const calcXp = scaleReward(
+                Math.floor((isPracticeTrigger ? baseXp * questionCount : baseXp) * xpMultiplier),
+                scoreRatio,
+            );
+            const calcGold = scaleReward(
+                Math.floor((isPracticeTrigger ? baseGold * questionCount : baseGold) * goldMultiplier),
+                scoreRatio,
+            );
 
             const granted = await this.grantReward(
                 userId,
@@ -633,8 +645,8 @@ export class RewardEngine {
             // No rule configured — grant a minimal fallback only on the very first pass.
             // Subsequent passes with no matching rule grant 0 XP (streak not triggered).
             if (triggerTime === 1) {
-                testXp = Math.floor(5 * xpMultiplier);
-                testGold = Math.floor(5 * goldMultiplier);
+                testXp = scaleReward(Math.floor(5 * xpMultiplier), scoreRatio);
+                testGold = scaleReward(Math.floor(5 * goldMultiplier), scoreRatio);
             } else { 
                 testXp = 0;
                 testGold = 0;
