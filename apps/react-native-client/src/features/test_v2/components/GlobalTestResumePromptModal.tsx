@@ -106,10 +106,6 @@ export function GlobalTestResumePromptModal() {
         setVisible(false);
     }, [resumableData?.resumable, abandonTestMut]);
 
-    const handleCancel = useCallback(() => {
-        setVisible(false);
-    }, []);
-
     if (!visible || !resumableData?.resumable || pathname?.includes("6_2_ques_choose")) {
         return null;
     }
@@ -120,7 +116,6 @@ export function GlobalTestResumePromptModal() {
             testLog={resumableData.resumable}
             onResume={handleResume}
             onAbandon={handleAbandon}
-            onCancel={handleCancel}
             isAbandoning={isAbandoning}
         />
     );

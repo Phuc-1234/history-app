@@ -809,7 +809,6 @@ export default function TestContainerV2({
                         testLog={conflictResumable?.resumable ?? null}
                         onResume={resolveConflictResume}
                         onAbandon={() => resolveConflictAbandon(true)}
-                        onCancel={handleBack}
                         isAbandoning={isAbandoningConflict}
                     />
                 </>

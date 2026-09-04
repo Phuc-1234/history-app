@@ -200,6 +200,53 @@ function getScopeName(
     return scopeNameMap.get(`${q.scopeType}:${q.scopeId}`) ?? null;
 }
 
+function formatFlashcardDto(f: {
+    id: number;
+    frontText: string;
+    backText: string;
+    lessonId: number | null;
+    sectionId: number | null;
+    nodeId: number | null;
+    lesson?: { id: number; name: string; position: number } | null;
+    section?: { id: number; name: string } | null;
+    node?: { id: number; header: string | null; body: string } | null;
+}): FlashcardDto {
+    let scopeType: "LESSON" | "SECTION" | "NODE" | null = null;
+    let scopeId: number | null = null;
+    let scopeName: string | null = null;
+
+    if (f.nodeId && f.node) {
+        scopeType = "NODE";
+        scopeId = f.nodeId;
+        if (f.node.header && f.node.header.trim()) {
+            scopeName = f.node.header.trim();
+        } else if (f.node.body) {
+            const plain = f.node.body.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+            if (plain) scopeName = plain;
+        }
+    } else if (f.sectionId && f.section) {
+        scopeType = "SECTION";
+        scopeId = f.sectionId;
+        scopeName = f.section.name;
+    } else if (f.lessonId && f.lesson) {
+        scopeType = "LESSON";
+        scopeId = f.lessonId;
+        scopeName = f.lesson.position ? `Bài ${f.lesson.position}: ${f.lesson.name}` : f.lesson.name;
+    }
+
+    return {
+        id: f.id,
+        frontText: f.frontText,
+        backText: f.backText,
+        lessonId: f.lessonId,
+        sectionId: f.sectionId,
+        nodeId: f.nodeId,
+        scopeType,
+        scopeId,
+        scopeName,
+    };
+}
+
 export class AdminService {
     // ─────────────────────────────── OVERVIEW STATS ───────────────────────────
 
@@ -1760,6 +1807,12 @@ export class AdminService {
     // ─────────────────────────────── FLASHCARD ────────────────────────────────────
 
     async listFlashcards(lessonId?: number): Promise<FlashcardDto[]> {
+        const includeRelations = {
+            lesson: { select: { id: true, name: true, position: true } },
+            section: { select: { id: true, name: true } },
+            node: { select: { id: true, header: true, body: true } },
+        };
+
         let flashcards;
         if (lessonId) {
             flashcards = await prisma.flashcard.findMany({
@@ -1770,22 +1823,17 @@ export class AdminService {
                         { node: { section: { lessonId } } },
                     ],
                 },
+                include: includeRelations,
                 orderBy: { id: "asc" },
             });
         } else {
             flashcards = await prisma.flashcard.findMany({
+                include: includeRelations,
                 orderBy: { id: "asc" },
             });
         }
 
-        return flashcards.map((f) => ({
-            id: f.id,
-            frontText: f.frontText,
-            backText: f.backText,
-            lessonId: f.lessonId,
-            sectionId: f.sectionId,
-            nodeId: f.nodeId,
-        }));
+        return flashcards.map(formatFlashcardDto);
     }
 
     async createFlashcard(data: CreateFlashcardBody): Promise<FlashcardDto> {
@@ -1816,16 +1864,14 @@ export class AdminService {
                 sectionId: data.sectionId ?? null,
                 nodeId: data.nodeId ?? null,
             },
+            include: {
+                lesson: { select: { id: true, name: true, position: true } },
+                section: { select: { id: true, name: true } },
+                node: { select: { id: true, header: true, body: true } },
+            },
         });
 
-        return {
-            id: flashcard.id,
-            frontText: flashcard.frontText,
-            backText: flashcard.backText,
-            lessonId: flashcard.lessonId,
-            sectionId: flashcard.sectionId,
-            nodeId: flashcard.nodeId,
-        };
+        return formatFlashcardDto(flashcard);
     }
 
     async updateFlashcard(id: number, data: UpdateFlashcardBody): Promise<FlashcardDto | null> {
@@ -1865,16 +1911,14 @@ export class AdminService {
                 sectionId: targetSectionId,
                 nodeId: targetNodeId,
             },
+            include: {
+                lesson: { select: { id: true, name: true, position: true } },
+                section: { select: { id: true, name: true } },
+                node: { select: { id: true, header: true, body: true } },
+            },
         });
 
-        return {
-            id: flashcard.id,
-            frontText: flashcard.frontText,
-            backText: flashcard.backText,
-            lessonId: flashcard.lessonId,
-            sectionId: flashcard.sectionId,
-            nodeId: flashcard.nodeId,
-        };
+        return formatFlashcardDto(flashcard);
     }
 
     async deleteFlashcard(id: number): Promise<boolean> {
