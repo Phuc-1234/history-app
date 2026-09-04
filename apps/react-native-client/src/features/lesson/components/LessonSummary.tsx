@@ -28,6 +28,7 @@ interface LessonSummaryProps {
     ) => void;
     onNodePress?: (nodeId: number) => void;
     onSectionTestPress?: (sectionId: number) => void;
+    refreshTrigger?: number | boolean;
 }
 
 const getLessonProgress = (sections: LessonSection[]) => {
@@ -56,6 +57,7 @@ export function LessonSummary({
     onActionPress,
     onNodePress,
     onSectionTestPress,
+    refreshTrigger,
 }: LessonSummaryProps) {
     const { width } = useWindowDimensions();
     const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
@@ -219,6 +221,7 @@ export function LessonSummary({
                 title="Một số đề luyện tập"
                 variant="plain"
                 defaultExpanded={true}
+                refreshTrigger={refreshTrigger}
             />
 
             {/* Context Feedback Modal */}

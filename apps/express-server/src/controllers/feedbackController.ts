@@ -149,7 +149,9 @@ export const createFeedback = async (req: Request, res: Response): Promise<any> 
                 const testRecords = await prisma.test.findMany({
                     where: {
                         OR: [
+                            { scopeType: "SECTION", scopeId: { in: sectionIds } },
                             { sectionId: { in: sectionIds } },
+                            { scopeType: "LESSON", scopeId: lessonId },
                             { lessonId },
                         ],
                     },
@@ -172,22 +174,40 @@ export const createFeedback = async (req: Request, res: Response): Promise<any> 
                     },
                 });
 
-                // 6. Reset question masteries for questions under this lesson
+                // 6. Reset question masteries & answer logs for questions under this lesson
                 const questions = await prisma.question.findMany({
                     where: {
                         OR: [
+                            { scopeType: "LESSON" as any, scopeId: lessonId },
                             { lessonId },
-                            ...(sectionIds.length > 0 ? [{ sectionId: { in: sectionIds } }] : []),
-                            ...(nodeIds.length > 0 ? [{ nodeId: { in: nodeIds } }] : []),
+                            ...(sectionIds.length > 0
+                                ? [
+                                      { scopeType: "SECTION" as any, scopeId: { in: sectionIds } },
+                                      { sectionId: { in: sectionIds } },
+                                  ]
+                                : []),
+                            ...(nodeIds.length > 0
+                                ? [
+                                      { scopeType: "NODE" as any, scopeId: { in: nodeIds } },
+                                      { nodeId: { in: nodeIds } },
+                                  ]
+                                : []),
                         ],
                     },
                     select: { id: true },
                 });
                 if (questions.length > 0) {
+                    const qIds = questions.map((q) => q.id);
                     await prisma.userQuestionMastery.deleteMany({
                         where: {
                             userId,
-                            questionId: { in: questions.map((q) => q.id) },
+                            questionId: { in: qIds },
+                        },
+                    });
+                    await prisma.userAnswerLog.deleteMany({
+                        where: {
+                            questionId: { in: qIds },
+                            testLog: { userId },
                         },
                     });
                 }

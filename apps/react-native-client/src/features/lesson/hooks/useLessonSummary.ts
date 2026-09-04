@@ -19,6 +19,7 @@ export interface LessonSection {
     nodes: LessonNode[]; // Bound database node contents [cite: 11]
     progress?: { totalNodes: number; completedNodes: number } | null;
     testPassed?: boolean | null;
+    hasSectionTest?: boolean;
 }
 
 export interface LessonSummaryData {

@@ -25,6 +25,7 @@ type SectionWithProgress = SectionDto & {
     nodes: NodeDto[];
     progress: ProgressCounts | null;
     testPassed?: boolean | null;
+    hasSectionTest?: boolean;
 };
 
 export class ContentService {
@@ -299,6 +300,7 @@ export class ContentService {
                 progress: null,
                 testPassed: userId ? passedScopeKeys.has(`SECTION:${s.id}`) : false,
                 masteryPercentage: null,
+                hasSectionTest: false,
             });
         }
 
@@ -354,6 +356,54 @@ export class ContentService {
             s.masteryPercentage = sectionMasteryMap.get(s.id) ?? null;
         }
 
+        // Determine hasSectionTest for root sections:
+        // Do not render section-level test if <= 1 node in the section tree or no questions exist in scope
+        const collectDescendantSectionIds = (s: SectionWithProgress): number[] => {
+            const ids = [s.id];
+            for (const child of s.children) {
+                ids.push(...collectDescendantSectionIds(child));
+            }
+            return ids;
+        };
+
+        const collectDescendantNodeIds = (s: SectionWithProgress): number[] => {
+            const nIds = s.nodes.map((n) => n.id);
+            for (const child of s.children) {
+                nIds.push(...collectDescendantNodeIds(child));
+            }
+            return nIds;
+        };
+
+        await Promise.all(
+            roots.map(async (root) => {
+                const secIds = collectDescendantSectionIds(root);
+                const nodeIds = collectDescendantNodeIds(root);
+
+                if (nodeIds.length <= 1) {
+                    root.hasSectionTest = false;
+                    return;
+                }
+
+                const questionCount = await prisma.question.count({
+                    where: {
+                        isActive: true,
+                        OR: [
+                            { scopeType: "SECTION", scopeId: { in: secIds } },
+                            { sectionId: { in: secIds } },
+                            ...(nodeIds.length > 0
+                                ? [
+                                      { scopeType: "NODE" as const, scopeId: { in: nodeIds } },
+                                      { nodeId: { in: nodeIds } },
+                                  ]
+                                : []),
+                        ],
+                    },
+                });
+
+                root.hasSectionTest = questionCount > 0;
+            })
+        );
+
         // 3b. Calculate progress counts bottom-up
         const calcProgress = (section: SectionWithProgress): ProgressCounts => {
             let total = section.nodes.length;
@@ -361,8 +411,8 @@ export class ContentService {
                 completedNodeIds.has(n.id),
             ).length;
 
-            // Include section test if it's a top-level section
-            if (section.parentSectionId === null) {
+            // Include section test if it's a top-level section and has a valid test
+            if (section.parentSectionId === null && section.hasSectionTest) {
                 total += 1;
                 if (userId && passedScopeKeys.has(`SECTION:${section.id}`)) {
                     completed += 1;
@@ -841,7 +891,13 @@ export class ContentService {
         if (!node) return null;
 
         const questionCount = await prisma.question.count({
-            where: { nodeId },
+            where: {
+                isActive: true,
+                OR: [
+                    { scopeType: "NODE", scopeId: nodeId },
+                    { nodeId },
+                ],
+            },
         });
 
         let isStudied: boolean | null = null;

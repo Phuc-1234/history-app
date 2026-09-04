@@ -1,17 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenWrapper } from "../../../components/layout/ScreenWrapper";
 import { usePreventDoubleTap } from "@/hooks/usePreventDoubleTap";
 import { LessonSummary, useLessonSummary } from "../../../features/lesson";
 import { SpecialLoading } from "../../../features/loading";
+import { useAppDispatch } from "@/store/storeHook";
+import { apiSlice } from "@/services/apiSlice";
 
 export default function LessonSummaryScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const preventDoubleTap = usePreventDoubleTap();
+    const dispatch = useAppDispatch();
+    const [refreshCount, setRefreshCount] = useState(0);
     const { summaryData, rootSections, loading, isFetching, refetch } = useLessonSummary(
         id || "default-id",
     );
+
+    const handleRefresh = async () => {
+        setRefreshCount((c) => c + 1);
+        dispatch(apiSlice.util.invalidateTags(["User"]));
+        refetch();
+    };
 
     const isLoading = loading || !summaryData;
 
@@ -28,11 +38,12 @@ export default function LessonSummaryScreen() {
                     enableScroll={true}
                     enableRefresh={true}
                     refreshing={isFetching}
-                    onRefresh={refetch}
+                    onRefresh={handleRefresh}
                 >
                     <LessonSummary
                         data={summaryData}
                         sections={rootSections}
+                        refreshTrigger={refreshCount}
                         onNodePress={preventDoubleTap((nodeId) => {
                             // Collect all node IDs across sections for prev/next nav
                             const collectNodeIds = (sections: any[]): number[] => {

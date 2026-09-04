@@ -1339,8 +1339,13 @@ export class TestServiceV2 {
         const tests = await prisma.test.findMany({
             where: {
                 isNationalTest: false,
-                scopeType: scopeType as any,
-                scopeId,
+                OR: [
+                    { scopeType: scopeType as any, scopeId },
+                    ...(scopeType === "LESSON" ? [{ lessonId: scopeId }] : []),
+                    ...(scopeType === "GRADE" ? [{ gradeId: scopeId }] : []),
+                    ...(scopeType === "TOPIC" ? [{ topicId: scopeId }] : []),
+                    ...(scopeType === "SECTION" ? [{ sectionId: scopeId }] : []),
+                ],
             },
             select: {
                 id: true,
