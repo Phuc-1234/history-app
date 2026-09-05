@@ -482,11 +482,11 @@ export function CreateRoomTab({
                 {!isScopeCollapsed && (
                     <View style={styles.cardBody}>
                         {/* Mode Selection */}
-                        <Text style={styles.label}>Chế độ câu hỏi</Text>
+                        <Text style={styles.label}>Nguồn câu hỏi</Text>
                         <View style={styles.optionsRow}>
                             {[
-                                { key: "AUTO_PICK" as Mode, label: "Đề không cố định" },
-                                { key: "CURATED" as Mode, label: "Đề thi có sẵn" },
+                                { key: "AUTO_PICK" as Mode, label: "Từ giáo trình" },
+                                { key: "CURATED" as Mode, label: "Từ đề thi" },
                             ].map((opt) => (
                                 <TouchableOpacity
                                     key={opt.key}
@@ -533,7 +533,7 @@ export function CreateRoomTab({
                         {/* AUTO_PICK MODE: Scope Type selection & Cascading Modal Pickers */}
                         {mode === "AUTO_PICK" && (
                             <View style={styles.sectionBlock}>
-                                <Text style={styles.label}>Phạm vi câu hỏi (Scope)</Text>
+                                <Text style={styles.label}>Phạm vi câu hỏi</Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                                     {[
                                         { key: "NATIONAL" as ScopeType, label: "Tất cả" },
