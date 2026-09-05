@@ -311,23 +311,60 @@ Chủ động sử dụng Tools tra cứu dữ liệu ứng dụng khi cần thi
         const prompt = `Bạn là một chuyên gia phân tích và trực quan hóa sơ đồ tư duy (mindmap) lịch sử. Hãy phân tích đoạn văn bản lịch sử sau đây và tổ chức thành một cấu trúc sơ đồ tư duy phân cấp dạng cây dưới dạng JSON.
 TẤT CẢ các thành phần trong sơ đồ tư duy (từ nhánh gốc, nhánh con, đến nhánh lá cuối cùng) đều bắt buộc phải là NHÁNH (sections/children), TUYỆT ĐỐI KHÔNG sử dụng hay trả về bất kỳ trường "nodes" hoặc khái niệm "nút" nào.
 
+QUY TẮC CẤP 1 (BẮT BUỘC):
+- Nút gốc trên giao diện đã luôn là tiêu đề chung của bài học.
+- TUYỆT ĐỐI KHÔNG tạo một nhánh cấp 1 duy nhất để lặp lại tiêu đề bài học hoặc gom toàn bộ nội dung thành 1 nhánh duy nhất (ví dụ: cấm tạo nhánh cấp 1 duy nhất mang tên bài học rồi nhét các phần khác làm nhánh con cấp 2 của nó).
+- Mảng "sections" ở cấp cao nhất BẮT BUỘC phải là danh sách các phần/chủ đề lớn độc lập song song với nhau (tối thiểu 2 đến 4 nhánh cấp 1, ví dụ: "1. Bối cảnh lịch sử", "2. Diễn biến chính", "3. Kết quả & Ý nghĩa").
+
 Định dạng JSON trả về phải tuân thủ CHÍNH XÁC cấu trúc sau:
 {
   "sections": [
     {
-      "name": "Tên nhánh chính (ví dụ: 1. Hoàn cảnh lịch sử)",
+      "name": "1. Hoàn cảnh lịch sử",
       "position": 1,
       "children": [
         {
-          "name": "Tên nhánh phụ (ví dụ: Nguyên nhân sâu xa)",
+          "name": "Nguyên nhân sâu xa",
           "position": 1,
           "children": [
             {
-              "name": "Nội dung nhánh chi tiết / nhánh lá (ví dụ: Mâu thuẫn giai cấp sâu sắc)",
+              "name": "Mâu thuẫn giai cấp sâu sắc",
               "position": 1,
               "children": []
             }
           ]
+        },
+        {
+          "name": "Nguyên nhân trực tiếp",
+          "position": 2,
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "2. Diễn biến chính",
+      "position": 2,
+      "children": [
+        {
+          "name": "Giai đoạn 1",
+          "position": 1,
+          "children": []
+        },
+        {
+          "name": "Giai đoạn 2",
+          "position": 2,
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "3. Ý nghĩa lịch sử",
+      "position": 3,
+      "children": [
+        {
+          "name": "Bài học kinh nghiệm",
+          "position": 1,
+          "children": []
         }
       ]
     }
@@ -337,6 +374,7 @@ TẤT CẢ các thành phần trong sơ đồ tư duy (từ nhánh gốc, nhánh
 Lưu ý quan trọng:
 - Mỗi nhánh phải có "name" ngắn gọn, súc tích (dưới 15 từ), phù hợp để hiển thị trực quan trên sơ đồ tư duy.
 - Phân cấp cây logic, rõ ràng từ khái niệm tổng quát đến chi tiết (khoảng 2 đến 4 cấp phân nhánh).
+- Mảng "sections" ở cấp cao nhất bắt buộc phải có từ 2 nhánh trở lên, tương ứng với các mục lớn của bài.
 - TẤT CẢ các nhánh lá cuối cùng đều là nhánh có "children": [], KHÔNG tạo mảng "nodes".
 - "children" là danh sách các nhánh con (cấu trúc đệ quy giống hệt như "sections").
 - "position" là thứ tự số nguyên từ 1 trở đi.
@@ -349,12 +387,27 @@ ${text}`;
         const cleanedStr = this.cleanJson(jsonStr);
         const data = JSON.parse(cleanedStr);
 
+        // Fallback: If AI still wrapped everything in a single top-level branch, unwrap it so its children become level-1 branches
+        if (data && Array.isArray(data.sections)) {
+            while (
+                data.sections.length === 1 &&
+                data.sections[0]?.children &&
+                Array.isArray(data.sections[0].children) &&
+                data.sections[0].children.length > 0
+            ) {
+                console.log(`[aiService] Unwrapping single top-level wrapper branch: "${data.sections[0].name}"`);
+                data.sections = data.sections[0].children;
+            }
+        }
+
         let idCounter = Date.now();
         const normalizeSections = (sections: any[]) => {
-            for (const s of sections) {
+            for (let i = 0; i < sections.length; i++) {
+                const s = sections[i];
                 if (!s.id) {
                     s.id = idCounter++;
                 }
+                s.position = i + 1;
                 if (!s.children || !Array.isArray(s.children)) {
                     s.children = [];
                 }

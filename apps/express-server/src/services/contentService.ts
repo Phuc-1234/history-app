@@ -746,6 +746,91 @@ export class ContentService {
             }
         }
 
+        // Fetch active questions in grade to determine hasSectionTest for root sections
+        const questionSectionIds = new Set<number>();
+        const questionNodeIds = new Set<number>();
+
+        if (allSectionIds.length > 0) {
+            const allNodeIds = allNodes.map((n) => n.id);
+            const activeQuestions = await prisma.question.findMany({
+                where: {
+                    isActive: true,
+                    OR: [
+                        { scopeType: "SECTION", scopeId: { in: allSectionIds } },
+                        { sectionId: { in: allSectionIds } },
+                        ...(allNodeIds.length > 0
+                            ? [
+                                  { scopeType: "NODE" as const, scopeId: { in: allNodeIds } },
+                                  { nodeId: { in: allNodeIds } },
+                              ]
+                            : []),
+                    ],
+                },
+                select: {
+                    scopeType: true,
+                    scopeId: true,
+                    sectionId: true,
+                    nodeId: true,
+                },
+            });
+
+            for (const q of activeQuestions) {
+                if (q.scopeType === "SECTION" && q.scopeId != null) {
+                    questionSectionIds.add(q.scopeId);
+                }
+                if (q.sectionId != null) {
+                    questionSectionIds.add(q.sectionId);
+                }
+                if (q.scopeType === "NODE" && q.scopeId != null) {
+                    questionNodeIds.add(q.scopeId);
+                }
+                if (q.nodeId != null) {
+                    questionNodeIds.add(q.nodeId);
+                }
+            }
+        }
+
+        const sectionChildrenMap = new Map<number, number[]>();
+        for (const topic of topics) {
+            for (const lesson of topic.lessons) {
+                for (const section of lesson.sections) {
+                    if (section.parentSectionId !== null) {
+                        if (!sectionChildrenMap.has(section.parentSectionId)) {
+                            sectionChildrenMap.set(section.parentSectionId, []);
+                        }
+                        sectionChildrenMap.get(section.parentSectionId)!.push(section.id);
+                    }
+                }
+            }
+        }
+
+        const getDescendantSectionIds = (rootId: number): number[] => {
+            const ids = [rootId];
+            const queue = [rootId];
+            while (queue.length > 0) {
+                const curr = queue.shift()!;
+                const children = sectionChildrenMap.get(curr);
+                if (children) {
+                    for (const c of children) {
+                        ids.push(c);
+                        queue.push(c);
+                    }
+                }
+            }
+            return ids;
+        };
+
+        const getDescendantNodeIds = (secIds: number[]): number[] => {
+            const nodeIds: number[] = [];
+            for (const sId of secIds) {
+                const nIds = sectionNodeMap.get(sId);
+                if (nIds) {
+                    nodeIds.push(...nIds);
+                }
+            }
+            return nodeIds;
+        };
+
         let gradeTotal = 0;
         let gradeCompleted = 0;
 
@@ -766,11 +851,20 @@ export class ContentService {
                                 completedNodeIds.has(id),
                             ).length;
 
-                            // Include section-level test if it's a top-level section
+                            // Include section-level test only if it's a top-level section AND has a valid section test
                             if (section.parentSectionId === null) {
-                                lessonTotal += 1;
-                                if (userId && passedScopeKeys.has(`SECTION:${section.id}`)) {
-                                    lessonCompleted += 1;
+                                const secIds = getDescendantSectionIds(section.id);
+                                const descendantNodeIds = getDescendantNodeIds(secIds);
+                                const hasSectionTest =
+                                    descendantNodeIds.length > 1 &&
+                                    (secIds.some((sId) => questionSectionIds.has(sId)) ||
+                                        descendantNodeIds.some((nId) => questionNodeIds.has(nId)));
+
+                                if (hasSectionTest) {
+                                    lessonTotal += 1;
+                                    if (userId && passedScopeKeys.has(`SECTION:${section.id}`)) {
+                                        lessonCompleted += 1;
+                                    }
                                 }
                             }
                         }

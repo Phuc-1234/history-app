@@ -477,61 +477,67 @@ function MatchReview({
                         ]}
                     >
                         <View style={styles.matchReviewRowTop}>
-                            <Text
-                                style={[
-                                    styles.matchReviewLeftText,
-                                    styles.textLight,
-                                ]}
-                            >
-                                {pair.left}
-                            </Text>
-                            <Text
-                                style={[
-                                    styles.matchReviewArrow,
-                                    styles.textLight,
-                                ]}
-                            >
-                                →
-                            </Text>
-                            {userPair?.right ? (
-                                <Text
-                                    style={[
-                                        styles.matchReviewRightText,
-                                        styles.textLight,
-                                    ]}
-                                >
-                                    {userPair.right}
-                                </Text>
-                            ) : null}
-                            <View
-                                style={[
-                                    styles.reviewBadge,
-                                    isPairCorrect
-                                        ? styles.reviewBadgeCorrect
-                                        : styles.reviewBadgeWrong,
-                                ]}
-                            >
-                                <Text
-                                    style={
-                                        isPairCorrect
-                                            ? styles.reviewBadgeTextCorrect
-                                            : styles.reviewBadgeTextWrong
-                                    }
-                                >
-                                    {isPairCorrect
-                                        ? "Chính xác"
-                                        : userPair
-                                          ? "Chưa đúng"
-                                          : "Chưa ghép"}
+                            <View style={styles.matchReviewTextContainer}>
+                                <Text style={styles.matchReviewPairText}>
+                                    <Text
+                                        style={[
+                                            styles.matchReviewLeftText,
+                                            styles.textLight,
+                                        ]}
+                                    >
+                                        {pair.left}
+                                    </Text>
+                                    <Text
+                                        style={[
+                                            styles.matchReviewArrow,
+                                            styles.textLight,
+                                        ]}
+                                    >
+                                        {" "}→{" "}
+                                    </Text>
+                                    <Text
+                                        style={[
+                                            styles.matchReviewRightText,
+                                            styles.textLight,
+                                        ]}
+                                    >
+                                        {userPair?.right ?? "(Chưa ghép)"}
+                                    </Text>
                                 </Text>
                             </View>
-                            <View style={[
-                                styles.pointsBadge,
-                                (isPairCorrect && isQuestionCorrect) ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
-                            ]}>
-                                <Text style={(isPairCorrect && isQuestionCorrect) ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
-                                    {(isPairCorrect && isQuestionCorrect) ? `+${formatScore(maxScore)}đ` : "+0đ"}
-                                </Text>
+                            <View style={styles.matchReviewBadges}>
+                                <View
+                                    style={[
+                                        styles.reviewBadge,
+                                        styles.matchReviewBadge,
+                                        isPairCorrect
+                                            ? styles.reviewBadgeCorrect
+                                            : styles.reviewBadgeWrong,
+                                    ]}
+                                >
+                                    <Text
+                                        style={
+                                            isPairCorrect
+                                                ? styles.reviewBadgeTextCorrect
+                                                : styles.reviewBadgeTextWrong
+                                        }
+                                    >
+                                        {isPairCorrect
+                                            ? "Chính xác"
+                                            : userPair
+                                              ? "Chưa đúng"
+                                              : "Chưa ghép"}
+                                    </Text>
+                                </View>
+                                <View style={[
+                                    styles.pointsBadge,
+                                    styles.matchReviewBadge,
+                                    (isPairCorrect && isQuestionCorrect) ? styles.pointsBadgeCorrect : styles.pointsBadgeZero
+                                ]}>
+                                    <Text style={(isPairCorrect && isQuestionCorrect) ? styles.pointsBadgeTextCorrect : styles.pointsBadgeTextZero}>
+                                        {(isPairCorrect && isQuestionCorrect) ? `+${formatScore(maxScore)}đ` : "+0đ"}
+                                    </Text>
+                                </View>
                             </View>
                         </View>
                         {!isPairCorrect && (
@@ -814,20 +820,34 @@ const styles = StyleSheet.create({
     },
     matchReviewRowTop: {
         flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 8,
+    },
+    matchReviewTextContainer: {
+        flex: 1,
+    },
+    matchReviewPairText: {
+        lineHeight: 20,
+    },
+    matchReviewBadges: {
+        flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        flexWrap: "wrap",
+        flexShrink: 0,
+    },
+    matchReviewBadge: {
+        marginLeft: 0,
     },
     matchReviewLeftText: {
         fontSize: 13,
         fontFamily: typography.fonts.semiBold,
         color: colors.textSecondary,
     },
-    matchReviewArrow: { fontSize: 14, fontFamily: typography.fonts.regular, color: colors.textMuted },
+    matchReviewArrow: { fontSize: 14, fontFamily: typography.fonts.bold, color: colors.textLight },
     matchReviewRightText: { fontSize: 13, fontFamily: typography.fonts.bold },
     matchReviewCorrectHintRow: {
         flexDirection: "column",
-        alignItems: "flex-start",
         gap: 2,
         borderTopWidth: 1,
         borderTopColor: "rgba(255, 255, 255, 0.3)",
@@ -844,6 +864,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: typography.fonts.bold,
         color: colors.textLight,
+        lineHeight: 18,
     },
     explBox: {
         marginTop: 12,

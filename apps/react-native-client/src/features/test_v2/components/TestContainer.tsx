@@ -2726,14 +2726,10 @@ const styles = StyleSheet.create({
     textRed: { color: colors.error },
     matchContainer: { gap: 8, marginTop: 8 },
     matchRow: {
-        flexDirection: "row",
-        alignItems: "center",
         backgroundColor: colors.surfaceVariant,
         borderRadius: 5,
         padding: 10,
         borderWidth: 1,
-        gap: 6,
-        flexWrap: "wrap",
     },
     matchCorrect: { borderColor: colors.success },
     matchWrong: { borderColor: colors.error },
@@ -2995,17 +2991,18 @@ function MatchReview({
                                 : styles.matchWrong,
                         ]}
                     >
-                        <Text style={styles.matchText}>{correct.left}</Text>
-                        <Text style={styles.matchArrow}>→</Text>
-                        <Text style={styles.matchText}>
-                            {userPair?.right ?? "(Không ghép)"}
-                        </Text>
-                        {!isPairCorrect && (
-                            <Text style={styles.matchCorrectHint}>
-                                {" "}
-                                (Chính xác: {correct.right})
+                        <Text style={{ lineHeight: 20 }}>
+                            <Text style={styles.matchText}>{correct.left}</Text>
+                            <Text style={styles.matchArrow}> → </Text>
+                            <Text style={styles.matchText}>
+                                {userPair?.right ?? "(Không ghép)"}
                             </Text>
-                        )}
+                            {!isPairCorrect && (
+                                <Text style={styles.matchCorrectHint}>
+                                    {" "}(Chính xác: {correct.right})
+                                </Text>
+                            )}
+                        </Text>
                     </View>
                 );
             })}
